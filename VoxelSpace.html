@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Voxel Space project demonstration</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Demonstration of the Voxel Space technique">
+    <meta name="author" content="Sebastian Macke">
+    <meta name="keywords" content="Voxel, VoxelSpace, Voxel Space, Comanche, landscape, rendering">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/scripts.js" defer></script>
+</head>
+
+<body scroll="no">
+
+<div id="fps">
+</div>
+
+<div id="info">
+    Fly controls
+    <b>WASD</b> or <b>Cursor Keys</b> or <b>left click</b> move, <b>R|F</b> up | down, <b>Q|E</b> pitch,
+<br>
+
+<select title="Mapselector" name="Mapselector" size="1" onchange="LoadMap(this.value);" value="C2M3">
+<option value="C2M3">Map C2M3</option>
+<option value="C4M3">Map C4M3</option>
+</select>
+
+<label for="distancerange">Distance</label>
+<input id="distancerange" type="range" min="1000" max="8000" step="1" onchange="camera.farClip = this.value; Draw()">
+
+<label for="deltaZ">Delta Z</label>
+<input id="deltaZ" type="range" min="0.1" max="2" step="0.1" onchange="camera.minDeltaZ = this.value; Draw()">
+
+<a href="https://github.com/s-macke/VoxelSpace">Github project page</a>
+
+</div>
+
+<canvas id="fullscreenCanvas" width="800" height="400">
+    Your browser does not support the canvas element.
+</canvas>
+</body>
