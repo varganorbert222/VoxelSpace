@@ -1,1 +1,0 @@
-Extract the maps from the Comanche games and generate the gif animations.
