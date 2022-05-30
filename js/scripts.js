@@ -1,7 +1,6 @@
 "use strict";
 
 const DEG_TO_RAD = 0.01745329;
-const RENDER_SCALE = 0.5;
 
 // ---------------------------------------------
 // Viewer information
@@ -15,6 +14,8 @@ const camera = {
   posY: 78, // height of the camera
   angle: 0, // direction of the camera
   horizon: 100, // horizon position (look up and down)
+  renderScale: 0.7,
+  pixelOffset: 2,
 };
 
 // ---------------------------------------------
@@ -41,7 +42,7 @@ const screendata = {
   buf8: null, // the same array but with bytes
   buf32: null, // the same array but with 32-Bit words
 
-  backgroundcolor: 0xffe09090,
+  backgroundcolor: 0xffffe2b3, // ABGR (alpha, blue, green, red) 32-bit color
 };
 
 // ---------------------------------------------
@@ -104,6 +105,9 @@ function UpdateCamera() {
     camera.posY = TerrainHeight(mapoffset) + 10;
   }
 
+  // const screenCenter = window.innerHeight / 2;
+  // camera.horizon = screenCenter * camera.renderScale;
+
   time = current;
 }
 
@@ -148,10 +152,6 @@ function DetectMouseMove(e) {
   input.leftright =
     ((input.mouseposition[0] - currentMousePosition[0]) / window.innerWidth) *
     2;
-
-  const screenCenter = window.innerHeight / 2;
-
-  camera.horizon = 100;
 
   input.updown =
     ((input.mouseposition[1] - currentMousePosition[1]) / window.innerHeight) *
@@ -241,7 +241,8 @@ function ProjectToScreen(screenWidth, camFOV, horizon, depth, terrainSDF) {
   const dstToProjPlane =
     (screenWidth * 0.5) / Math.tan(camFOV * 0.5 * DEG_TO_RAD);
   const terrainProjectedHeight = (terrainSDF / depth) * dstToProjPlane;
-  const drawHeight = Math.floor(terrainProjectedHeight + horizon);
+  const scaledHorizon = horizon * camera.renderScale;
+  const drawHeight = Math.floor(terrainProjectedHeight + scaledHorizon);
 
   return drawHeight;
 }
@@ -249,7 +250,7 @@ function ProjectToScreen(screenWidth, camFOV, horizon, depth, terrainSDF) {
 // ---------------------------------------------
 // Fast way to draw vertical lines
 
-function DrawVerticalLine(x, ytop, ybottom, col) {
+function DrawVerticalLine(x, ytop, ybottom, col, width = 1) {
   x = x | 0;
   ytop = ytop | 0;
   ybottom = ybottom | 0;
@@ -260,10 +261,12 @@ function DrawVerticalLine(x, ytop, ybottom, col) {
   if (ytop > ybottom) return;
 
   // get offset on screen for the vertical line
-  let offset = (ytop * screenwidth + x) | 0;
-  for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
-    buf32[offset | 0] = col | 0;
-    offset = (offset + screenwidth) | 0;
+  for (let j = 0; j <= width && x + j < screenwidth; j++) {
+    let offset = (ytop * screenwidth + x + j) | 0;
+    for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
+      buf32[offset | 0] = col | 0;
+      offset = (offset + screenwidth) | 0;
+    }
   }
 }
 
@@ -293,6 +296,33 @@ function TerrainSDF(mapOffset) {
   return camera.posY - TerrainHeight(mapOffset);
 }
 
+function ApplyFog(color, skyColor, depth) {
+  let ca = (color >> 24) & 0xff;
+  let cr = (color >> 16) & 0xff;
+  let cg = (color >> 8) & 0xff;
+  let cb = color & 0xff;
+
+  let sa = (skyColor >>> 24) & 0xff;
+  let sr = (skyColor >>> 16) & 0xff;
+  let sg = (skyColor >>> 8) & 0xff;
+  let sb = skyColor & 0xff;
+
+  const p = depth / camera.farClip;
+
+  ca = ca + (sa - ca) * p;
+  cr = cr + (sr - cr) * p;
+  cg = cg + (sg - cg) * p;
+  cb = cb + (sb - cb) * p;
+
+  return (ca << 24) | (cr << 16) | (cg << 8) | cb;
+}
+
+function TerrainShading(mapOffset, depth) {
+  let terrainColor = map.colorMap[mapOffset];
+  terrainColor = ApplyFog(terrainColor, screendata.backgroundcolor, depth);
+  return terrainColor;
+}
+
 function Render() {
   const mapwidthperiod = map.width - 1;
   const mapheightperiod = map.height - 1;
@@ -320,7 +350,7 @@ function Render() {
     plx += camera.posX;
     ply += camera.posZ;
 
-    for (let i = 0; (i < screenwidth) | 0; i = (i + 1) | 0) {
+    for (let i = 0; (i < screenwidth) | 0; i += camera.pixelOffset | 1) {
       const mapoffset =
         (((Math.floor(ply) & mapwidthperiod) << map.shift) +
           (Math.floor(plx) & mapheightperiod)) |
@@ -337,17 +367,20 @@ function Render() {
           terrainSDF
         ) | 0;
 
+      const terrainColor = TerrainShading(mapoffset, z);
+
       DrawVerticalLine(
         i,
         heightonscreen | 0,
         hiddeny[i],
-        map.colorMap[mapoffset]
+        terrainColor,
+        camera.pixelOffset
       );
 
       if (heightonscreen < hiddeny[i]) hiddeny[i] = heightonscreen;
 
-      plx += dx;
-      ply += dy;
+      plx += dx * (camera.pixelOffset | 1);
+      ply += dy * (camera.pixelOffset | 1);
     }
 
     //deltaz += 0.005;
@@ -375,7 +408,91 @@ function Draw() {
 
 // ---------------------------------------------
 // Init routines
+// compute vector index from matrix one
+function ivect(ix, iy, w) {
+  // byte array, r,g,b,a
+  return (ix + w * iy) * 4;
+}
 
+function Bilinear(srcImg, destImg, scale) {
+  // c.f.: wikipedia english article on bilinear interpolation
+  // taking the unit square, the inner loop looks like this
+  // note: there's a function call inside the double loop to this one
+  // maybe a performance killer, optimize this whole code as you need
+  function inner(f00, f10, f01, f11, x, y) {
+    var un_x = 1.0 - x;
+    var un_y = 1.0 - y;
+    return f00 * un_x * un_y + f10 * x * un_y + f01 * un_x * y + f11 * x * y;
+  }
+  var i, j;
+  var iyv, iy0, iy1, ixv, ix0, ix1;
+  var idxD, idxS00, idxS10, idxS01, idxS11;
+  var dx, dy;
+  var r, g, b, a;
+  for (i = 0; i < destImg.height; ++i) {
+    iyv = i / scale;
+    iy0 = Math.floor(iyv);
+    // Math.ceil can go over bounds
+    iy1 =
+      Math.ceil(iyv) > srcImg.height - 1 ? srcImg.height - 1 : Math.ceil(iyv);
+    for (j = 0; j < destImg.width; ++j) {
+      ixv = j / scale;
+      ix0 = Math.floor(ixv);
+      // Math.ceil can go over bounds
+      ix1 =
+        Math.ceil(ixv) > srcImg.width - 1 ? srcImg.width - 1 : Math.ceil(ixv);
+      idxD = ivect(j, i, destImg.width);
+      // matrix to vector indices
+      idxS00 = ivect(ix0, iy0, srcImg.width);
+      idxS10 = ivect(ix1, iy0, srcImg.width);
+      idxS01 = ivect(ix0, iy1, srcImg.width);
+      idxS11 = ivect(ix1, iy1, srcImg.width);
+      // overall coordinates to unit square
+      dx = ixv - ix0;
+      dy = iyv - iy0;
+      // I let the r, g, b, a on purpose for debugging
+      r = inner(
+        srcImg.data[idxS00],
+        srcImg.data[idxS10],
+        srcImg.data[idxS01],
+        srcImg.data[idxS11],
+        dx,
+        dy
+      );
+      destImg.data[idxD] = r;
+
+      g = inner(
+        srcImg.data[idxS00 + 1],
+        srcImg.data[idxS10 + 1],
+        srcImg.data[idxS01 + 1],
+        srcImg.data[idxS11 + 1],
+        dx,
+        dy
+      );
+      destImg.data[idxD + 1] = g;
+
+      b = inner(
+        srcImg.data[idxS00 + 2],
+        srcImg.data[idxS10 + 2],
+        srcImg.data[idxS01 + 2],
+        srcImg.data[idxS11 + 2],
+        dx,
+        dy
+      );
+      destImg.data[idxD + 2] = b;
+
+      a = inner(
+        srcImg.data[idxS00 + 3],
+        srcImg.data[idxS10 + 3],
+        srcImg.data[idxS01 + 3],
+        srcImg.data[idxS11 + 3],
+        dx,
+        dy
+      );
+      destImg.data[idxD + 3] = a;
+    }
+  }
+}
 // Util class for downloading the png
 function LoadImagesAsync(urls) {
   return new Promise(function (resolve, reject) {
@@ -390,10 +507,20 @@ function LoadImagesAsync(urls) {
       image.onload = function () {
         const tempcanvas = document.createElement("canvas");
         const tempcontext = tempcanvas.getContext("2d");
+
         tempcanvas.width = map.width;
         tempcanvas.height = map.height;
         tempcontext.drawImage(image, 0, 0, map.width, map.height);
+
+        // let src = tempcontext.getImageData(0, 0, map.width, map.height);
+        // let dst = tempcontext.createImageData(map.width, map.height);
+
+        // Bilinear(src, dst, 1);
+
+        // result[i] = dst.data;
+
         result[i] = tempcontext.getImageData(0, 0, map.width, map.height).data;
+
         pending--;
         if (pending === 0) {
           resolve(result);
@@ -413,16 +540,14 @@ function LoadMap(mapName) {
       map.height = data.height;
       map.altitude = data.altitude;
 
-      console.log(data);
+      LoadImagesAsync([
+        `maps/color/${data.colorMap}.png`,
+        `maps/height/${data.heightMap}.png`,
+      ]).then(OnLoadedImage);
     } catch (err) {
       console.log(err);
     }
   });
-
-  LoadImagesAsync([
-    `maps/color/${mapName}_C.png`,
-    `maps/height/${mapName}_D.png`,
-  ]).then(OnLoadedImage);
 }
 
 function OnLoadedImage(images) {
@@ -446,9 +571,8 @@ function OnResizeWindow() {
 
   const aspect = window.innerWidth / window.innerHeight;
 
-  //screendata.canvas.width = window.innerWidth < 800 ? window.innerWidth : 800;
-  screendata.canvas.width = window.innerWidth * RENDER_SCALE;
-  screendata.canvas.height = screendata.canvas.width / aspect;
+  screendata.canvas.width = Math.floor(window.innerWidth * camera.renderScale);
+  screendata.canvas.height = Math.floor(screendata.canvas.width / aspect);
 
   if (screendata.canvas.getContext) {
     screendata.context = screendata.canvas.getContext("2d");
@@ -463,6 +587,7 @@ function OnResizeWindow() {
   );
   screendata.buf8 = new Uint8Array(screendata.bufarray);
   screendata.buf32 = new Uint32Array(screendata.bufarray);
+
   Draw();
 }
 
