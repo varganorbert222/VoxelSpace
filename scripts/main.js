@@ -1,5 +1,7 @@
 "use strict";
 
+import maps from "../maps/data/maps.json" assert { type: "json" };
+
 const DEG_TO_RAD = 0.01745329;
 
 // ---------------------------------------------
@@ -13,7 +15,7 @@ const camera = {
   posZ: 800, // y position on the map
   posY: 78, // height of the camera
   angle: 0, // direction of the camera
-  horizon: 100, // horizon position (look up and down)
+  horizon: window.innerHeight / 2.0, // horizon position (look up and down)
   renderScale: 0.7,
   pixelOffset: 2,
 };
@@ -33,7 +35,7 @@ const map = {
 // ---------------------------------------------
 // Screen data
 
-const screendata = {
+const screenData = {
   canvas: null,
   context: null,
   imagedata: null,
@@ -58,57 +60,54 @@ const input = {
   keypressed: false,
 };
 
-let updaterunning = false;
-
-let time = new Date().getTime();
+let isRunning = false;
 
 // for fps display
-let timelastframe = new Date().getTime();
-let frames = 0;
+let elapsedTime = new Date().getTime();
+let deltaTime = new Date().getTime();
+let totalFrames = 0;
 
 // Update the camera for next frame. Dependent on keypresses
 function UpdateCamera() {
-  const current = new Date().getTime();
+  const currentTime = new Date().getTime();
 
   input.keypressed = false;
   if (input.leftright != 0) {
-    camera.angle += input.leftright * 0.1 * (current - time) * 0.03;
+    camera.angle += input.leftright * 0.1 * (currentTime - elapsedTime) * 0.03;
     input.keypressed = true;
   }
   if (input.forwardbackward != 0) {
     camera.posX -=
-      input.forwardbackward * Math.sin(camera.angle) * (current - time) * 0.03;
+      input.forwardbackward *
+      Math.sin(camera.angle) *
+      (currentTime - elapsedTime) *
+      0.03;
     camera.posZ -=
-      input.forwardbackward * Math.cos(camera.angle) * (current - time) * 0.03;
+      input.forwardbackward *
+      Math.cos(camera.angle) *
+      (currentTime - elapsedTime) *
+      0.03;
     input.keypressed = true;
   }
   if (input.updown != 0) {
-    camera.posY += input.updown * (current - time) * 0.03;
+    camera.posY += input.updown * (currentTime - elapsedTime) * 0.03;
     input.keypressed = true;
   }
   if (input.lookup) {
-    camera.horizon += 2 * (current - time) * 0.03;
+    camera.horizon += 2 * (currentTime - elapsedTime) * 0.03;
     input.keypressed = true;
   }
   if (input.lookdown) {
-    camera.horizon -= 2 * (current - time) * 0.03;
+    camera.horizon -= 2 * (currentTime - elapsedTime) * 0.03;
     input.keypressed = true;
   }
 
   // Collision detection. Don't fly below the surface.
-  const mapoffset =
-    (((Math.floor(camera.posZ) & (map.width - 1)) << map.shift) +
-      (Math.floor(camera.posX) & (map.height - 1))) |
-    0;
-
-  if (TerrainSDF(mapoffset) < 10) {
-    camera.posY = TerrainHeight(mapoffset) + 10;
+  if (TerrainSDF(camera.posX, camera.posZ) < 10) {
+    camera.posY = TerrainHeight(camera.posX, camera.posZ) + 10;
   }
 
-  // const screenCenter = window.innerHeight / 2;
-  // camera.horizon = screenCenter * camera.renderScale;
-
-  time = current;
+  elapsedTime = currentTime;
 }
 
 // ---------------------------------------------
@@ -128,9 +127,9 @@ function GetMousePosition(e) {
 function DetectMouseDown(e) {
   input.forwardbackward = 3;
   input.mouseposition = GetMousePosition(e);
-  time = new Date().getTime();
+  elapsedTime = new Date().getTime();
 
-  if (!updaterunning) Draw();
+  if (!isRunning) Draw();
   return;
 }
 
@@ -193,8 +192,8 @@ function DetectKeysDown(e) {
       break;
   }
 
-  if (!updaterunning) {
-    time = new Date().getTime();
+  if (!isRunning) {
+    elapsedTime = new Date().getTime();
     Draw();
   }
   return false;
@@ -255,8 +254,8 @@ function DrawVerticalLine(x, ytop, ybottom, col, width = 1) {
   ytop = ytop | 0;
   ybottom = ybottom | 0;
   col = col | 0;
-  const buf32 = screendata.buf32;
-  const screenwidth = screendata.canvas.width | 0;
+  const buf32 = screenData.buf32;
+  const screenwidth = screenData.canvas.width | 0;
   if (ytop < 0) ytop = 0;
   if (ytop > ybottom) return;
 
@@ -274,26 +273,39 @@ function DrawVerticalLine(x, ytop, ybottom, col, width = 1) {
 // Basic screen handling
 
 function DrawBackground() {
-  const buf32 = screendata.buf32;
-  const color = screendata.backgroundcolor | 0;
+  const buf32 = screenData.buf32;
+  const color = screenData.backgroundcolor | 0;
   for (let i = 0; i < buf32.length; i++) buf32[i] = color | 0;
 }
 
 // Show the back buffer on screen
 function Flip() {
-  screendata.imagedata.data.set(screendata.buf8);
-  screendata.context.putImageData(screendata.imagedata, 0, 0);
+  screenData.imagedata.data.set(screenData.buf8);
+  screenData.context.putImageData(screenData.imagedata, 0, 0);
 }
 
 // ---------------------------------------------
 // The main render routine
 
-function TerrainHeight(mapOffset) {
-  return (map.heightMap[mapOffset] / 255) * map.altitude;
+function GetMapOffset(x, y) {
+  const mapWidthPeriod = map.width - 1;
+  const mapHeightPeriod = map.height - 1;
+
+  const mapOffset =
+    (((Math.floor(y) & mapWidthPeriod) << map.shift) +
+      (Math.floor(x) & mapHeightPeriod)) |
+    0;
+
+  return mapOffset;
 }
 
-function TerrainSDF(mapOffset) {
-  return camera.posY - TerrainHeight(mapOffset);
+function TerrainHeight(x, y) {
+  const mapOffset = GetMapOffset(x, y);
+  return (map.heightMap[mapOffset] / 255.0) * map.altitude;
+}
+
+function TerrainSDF(x, y) {
+  return camera.posY - TerrainHeight(x, y);
 }
 
 function ApplyFog(color, skyColor, depth) {
@@ -317,9 +329,10 @@ function ApplyFog(color, skyColor, depth) {
   return (ca << 24) | (cr << 16) | (cg << 8) | cb;
 }
 
-function TerrainShading(mapOffset, depth) {
+function TerrainShading(x, y, depth) {
+  const mapOffset = GetMapOffset(x, y);
   let terrainColor = map.colorMap[mapOffset];
-  terrainColor = ApplyFog(terrainColor, screendata.backgroundcolor, depth);
+  terrainColor = ApplyFog(terrainColor, screenData.backgroundcolor, depth);
   return terrainColor;
 }
 
@@ -327,13 +340,13 @@ function Render() {
   const mapwidthperiod = map.width - 1;
   const mapheightperiod = map.height - 1;
 
-  const screenwidth = screendata.canvas.width | 0;
+  const screenwidth = screenData.canvas.width | 0;
   const sinang = Math.sin(camera.angle);
   const cosang = Math.cos(camera.angle);
 
   const hiddeny = new Int32Array(screenwidth);
-  for (let i = 0; (i < screendata.canvas.width) | 0; i = (i + 1) | 0) {
-    hiddeny[i] = screendata.canvas.height;
+  for (let i = 0; (i < screenData.canvas.width) | 0; i = (i + 1) | 0) {
+    hiddeny[i] = screenData.canvas.height;
   }
 
   let deltaz = camera.minDeltaZ;
@@ -351,23 +364,18 @@ function Render() {
     ply += camera.posZ;
 
     for (let i = 0; (i < screenwidth) | 0; i += camera.pixelOffset | 1) {
-      const mapoffset =
-        (((Math.floor(ply) & mapwidthperiod) << map.shift) +
-          (Math.floor(plx) & mapheightperiod)) |
-        0;
-
-      const terrainSDF = TerrainSDF(mapoffset);
+      const terrainSDF = TerrainSDF(plx, ply);
 
       const heightonscreen =
         ProjectToScreen(
-          screendata.canvas.width,
+          screenData.canvas.width,
           90,
           camera.horizon,
           z,
           terrainSDF
         ) | 0;
 
-      const terrainColor = TerrainShading(mapoffset, z);
+      const terrainColor = TerrainShading(plx, ply, z);
 
       DrawVerticalLine(
         i,
@@ -392,15 +400,15 @@ function Render() {
 // Draw the next frame
 
 function Draw() {
-  updaterunning = true;
+  isRunning = true;
   UpdateCamera();
   DrawBackground();
   Render();
   Flip();
-  frames++;
+  totalFrames++;
 
   if (!input.keypressed) {
-    updaterunning = false;
+    isRunning = false;
   } else {
     window.requestAnimationFrame(Draw, 0);
   }
@@ -514,11 +522,8 @@ function LoadImagesAsync(urls) {
 
         // let src = tempcontext.getImageData(0, 0, map.width, map.height);
         // let dst = tempcontext.createImageData(map.width, map.height);
-
         // Bilinear(src, dst, 1);
-
         // result[i] = dst.data;
-
         result[i] = tempcontext.getImageData(0, 0, map.width, map.height).data;
 
         pending--;
@@ -532,22 +537,17 @@ function LoadImagesAsync(urls) {
 }
 
 function LoadMap(mapName) {
-  fetch(`maps/data/${mapName}.json`).then(async (response) => {
-    try {
-      const data = await response.json();
+  const selectedMap = maps.find((x) => x.name === mapName);
+  if (!selectedMap) return;
 
-      map.width = data.width;
-      map.height = data.height;
-      map.altitude = data.altitude;
+  map.width = selectedMap.width;
+  map.height = selectedMap.height;
+  map.altitude = selectedMap.altitude;
 
-      LoadImagesAsync([
-        `maps/color/${data.colorMap}.png`,
-        `maps/height/${data.heightMap}.png`,
-      ]).then(OnLoadedImage);
-    } catch (err) {
-      console.log(err);
-    }
-  });
+  LoadImagesAsync([
+    `maps/color/${selectedMap.colorMap}.png`,
+    `maps/height/${selectedMap.heightMap}.png`,
+  ]).then(OnLoadedImage);
 }
 
 function OnLoadedImage(images) {
@@ -567,28 +567,68 @@ function OnLoadedImage(images) {
 }
 
 function OnResizeWindow() {
-  screendata.canvas = document.getElementById("fullscreenCanvas");
+  screenData.canvas = document.getElementById("id_fullscreen_canvas");
 
   const aspect = window.innerWidth / window.innerHeight;
 
-  screendata.canvas.width = Math.floor(window.innerWidth * camera.renderScale);
-  screendata.canvas.height = Math.floor(screendata.canvas.width / aspect);
+  screenData.canvas.width = Math.floor(window.innerWidth * camera.renderScale);
+  screenData.canvas.height = Math.floor(screenData.canvas.width / aspect);
 
-  if (screendata.canvas.getContext) {
-    screendata.context = screendata.canvas.getContext("2d");
-    screendata.imagedata = screendata.context.createImageData(
-      screendata.canvas.width,
-      screendata.canvas.height
+  if (screenData.canvas.getContext) {
+    screenData.context = screenData.canvas.getContext("2d");
+    screenData.imagedata = screenData.context.createImageData(
+      screenData.canvas.width,
+      screenData.canvas.height
     );
   }
 
-  screendata.bufarray = new ArrayBuffer(
-    screendata.imagedata.width * screendata.imagedata.height * 4
+  screenData.bufarray = new ArrayBuffer(
+    screenData.imagedata.width * screenData.imagedata.height * 4
   );
-  screendata.buf8 = new Uint8Array(screendata.bufarray);
-  screendata.buf32 = new Uint32Array(screendata.bufarray);
+  screenData.buf8 = new Uint8Array(screenData.bufarray);
+  screenData.buf32 = new Uint32Array(screenData.bufarray);
 
   Draw();
+}
+
+function InitMapSelection() {
+  const mapSelector = document.getElementById("id_mapselector");
+  while (mapSelector.firstChild) {
+    mapSelector.removeChild(mapSelector.firstChild);
+  }
+  maps.map((map, i) => {
+    let opt = document.createElement("option");
+    opt.value = map.name; // the index
+    opt.innerHTML = map.name;
+    mapSelector.append(opt);
+  });
+
+  mapSelector.addEventListener("change", function (e) {
+    LoadMap(e.target.value);
+  });
+}
+
+function InitSettings() {
+  const renderDistance = document.getElementById("id_render_distance");
+  renderDistance.addEventListener("change", function (e) {
+    camera.farClip = parseFloat(e.target.value);
+    Draw();
+  });
+  const renderScale = document.getElementById("id_render_scale");
+  renderScale.addEventListener("change", function (e) {
+    camera.renderScale = parseFloat(e.target.value);
+    OnResizeWindow();
+  });
+  const deltaZ = document.getElementById("id_delta_z");
+  deltaZ.addEventListener("change", function (e) {
+    camera.minDeltaZ = parseFloat(e.target.value);
+    Draw();
+  });
+  const pixelOffset = document.getElementById("id_pixel_offset");
+  pixelOffset.addEventListener("change", function (e) {
+    camera.pixelOffset = parseInt(e.target.value);
+    Draw();
+  });
 }
 
 function Init() {
@@ -601,9 +641,7 @@ function Init() {
   OnResizeWindow();
 
   // set event handlers for keyboard, mouse, touchscreen and window resize
-  const canvas = document.getElementById("fullscreenCanvas");
-  window.onkeydown = DetectKeysDown;
-  window.onkeyup = DetectKeysUp;
+  const canvas = document.getElementById("id_fullscreen_canvas");
   canvas.onmousedown = DetectMouseDown;
   canvas.onmouseup = DetectMouseUp;
   canvas.onmousemove = DetectMouseMove;
@@ -611,15 +649,22 @@ function Init() {
   canvas.ontouchend = DetectMouseUp;
   canvas.ontouchmove = DetectMouseMove;
 
+  window.onkeydown = DetectKeysDown;
+  window.onkeyup = DetectKeysUp;
   window.onresize = OnResizeWindow;
-
   window.setInterval(function () {
     const current = new Date().getTime();
-    document.getElementById("fps").innerText =
-      ((frames / (current - timelastframe)) * 1000).toFixed(1) + " fps";
-    frames = 0;
-    timelastframe = current;
+    document.getElementById("id_fps").innerText =
+      ((totalFrames / (current - deltaTime)) * 1000).toFixed(1) + " fps";
+    totalFrames = 0;
+    deltaTime = current;
   }, 2000);
+
+  InitMapSelection();
+  InitSettings();
 }
 
-Init();
+// When document is ready
+document.addEventListener("DOMContentLoaded", () => {
+  Init();
+});

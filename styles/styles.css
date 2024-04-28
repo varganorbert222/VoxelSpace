@@ -2,7 +2,7 @@ html,
 body {
   margin: 0;
   height: 100%;
-  overflow: hidden
+  overflow: hidden;
 }
 
 canvas {
@@ -14,7 +14,7 @@ a {
   color: white;
 }
 
-#info {
+#id_info {
   position: absolute;
   top: 0px;
   width: 100%;
@@ -25,7 +25,7 @@ a {
   font-size: 120%;
 }
 
-#fps {
+#id_fps {
   float: right;
   position: absolute;
   top: 0px;
@@ -35,4 +35,8 @@ a {
   color: white;
   font-family: "Arial", Times, serif;
   font-size: 120%;
+}
+
+#id_fullscreen_canvas {
+  image-rendering: pixelated;
 }

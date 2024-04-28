@@ -1,51 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <title>Voxel Space project demonstration</title>
+  <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Demonstration of the Voxel Space technique">
-    <meta name="author" content="Sebastian Macke">
-    <meta name="keywords" content="Voxel, VoxelSpace, Voxel Space, Comanche, landscape, rendering">
-    <link rel="stylesheet" href="css/styles.css">
-    <script src="js/scripts.js" defer></script>
-</head>
+    <meta
+      name="description"
+      content="Demonstration of the Voxel Space technique"
+    />
+    <meta name="author" content="Sebastian Macke" />
+    <meta
+      name="keywords"
+      content="Voxel, VoxelSpace, Voxel Space, Comanche, landscape, rendering"
+    />
+    <link rel="stylesheet" href="styles/styles.css" />
+    <script type="module" src="scripts/main.js" defer></script>
+    <title>Voxel Space project demonstration</title>
+    <link rel="icon" type="image/x-icon" href="favicon.png">
+  </head>
 
-<body scroll="no">
+  <body scroll="no">
+    <div id="id_fps"></div>
 
-<div id="fps">
-</div>
+    <div id="id_info">
+      Fly controls
+      <b>WASD</b> or <b>Cursor Keys</b> or <b>left click</b> move, <b>R|F</b> up
+      | down, <b>Q|E</b> pitch,
+      <br />
 
-<div id="info">
-    Fly controls
-    <b>WASD</b> or <b>Cursor Keys</b> or <b>left click</b> move, <b>R|F</b> up | down, <b>Q|E</b> pitch,
-<br>
+      <select
+        id="id_mapselector"
+        title="Mapselector"
+        name="Mapselector"
+      >
+        <option value="">Please select map</option>
+      </select>
 
-<select title="Mapselector" name="Mapselector" size="1" onchange="LoadMap(this.value);" value="C2M3">
-<option value="C2M3">Map C2M3</option>
-<option value="C4M3">Map C4M3</option>
-</select>
+      <label for="id_render_distance">Distance</label>
+      <input
+        id="id_render_distance"
+        type="range"
+        min="1000"
+        max="8000"
+        step="1"
+      />
 
-<label for="distancerange">Distance</label>
-<input id="distancerange" type="range" min="1000" max="8000" step="1" onchange="camera.farClip = parseFloat(this.value); Draw()">
+      <label for="id_delta_z">Delta Z</label>
+      <input
+        id="id_delta_z"
+        type="range"
+        min="0.1"
+        max="2"
+        step="0.1"
+      />
 
-<label for="deltaZ">Delta Z</label>
-<input id="deltaZ" type="range" min="0.1" max="2" step="0.1" onchange="camera.minDeltaZ = parseFloat(this.value); Draw()">
+      <label for="id_render_scale">Render Scale</label>
+      <input
+        id="id_render_scale"
+        type="range"
+        min="0.1"
+        max="1"
+        step="0.1"
+      />
 
-<label for="renderScale">Render Scale</label>
-<input id="renderScale" type="range" min="0.1" max="1" step="0.1" onchange="camera.renderScale = parseFloat(this.value); OnResizeWindow()">
+      <select
+        id="id_pixel_offset"
+        title="pixelOffset"
+        name="pixelOffset"
+        size="1"
+        value="2"
+      >
+        <option value="0">Pixel Offset 0</option>
+        <option value="2">Pixel Offset 2</option>
+        <option value="4">Pixel Offset 4</option>
+      </select>
 
-<select id="pixelOffset" title="pixelOffset" name="pixelOffset" size="1" onchange="camera.pixelOffset = parseInt(this.value); Draw()" value="2">
-    <option value="0">Pixel Offset 0</option>
-    <option value="2">Pixel Offset 2</option>
-    <option value="4">Pixel Offset 4</option>
-</select>
+      <a href="https://github.com/varganorbert222/VoxelSpace"
+        >Github project page</a
+      >
+    </div>
 
-<a href="https://github.com/varganorbert222/VoxelSpace">Github project page</a>
-
-</div>
-
-<canvas id="fullscreenCanvas" width="800" height="400" style="image-rendering: pixelated;">
-    Your browser does not support the canvas element.
-</canvas>
-</body>
+    <canvas id="id_fullscreen_canvas" width="800" height="400">
+      Your browser does not support the canvas element.
+    </canvas>
+  </body>
+</html>
