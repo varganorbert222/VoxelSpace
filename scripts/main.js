@@ -1,6 +1,12 @@
 "use strict";
 
 import maps from "../maps/data/maps.json" assert { type: "json" };
+import Camera from "./camera.js";
+import Terrain from "./terrain.js";
+import ScreenBuffer from "./screenbuffer.js";
+import Input from "./input.js";
+import PostProcessing from "./postprocessing.js";
+import Data from "./data.js";
 
 const DEG_TO_RAD = 0.01745329;
 
