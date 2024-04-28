@@ -1,0 +1,18 @@
+[
+  {
+    "name": "C2M3",
+    "colorMap": "C2M3_C",
+    "heightMap": "C2M3_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96
+  },
+  {
+    "name": "C4M3",
+    "colorMap": "C4M3_C",
+    "heightMap": "C4M3_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96
+  }
+]
