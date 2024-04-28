@@ -1,3 +1,5 @@
+"use strict";
+
 class Input {
   get forwardbackward() {
     return this._forwardbackward;

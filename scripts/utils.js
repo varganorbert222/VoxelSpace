@@ -1,3 +1,5 @@
+"use strict";
+
 // compute vector index from matrix one
 function ivect(ix, iy, w) {
   // byte array, r,g,b,a
