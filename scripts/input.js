@@ -1,6 +1,4 @@
 class Input {
-  #canvas;
-
   get forwardbackward() {
     return this._forwardbackward;
   }
@@ -26,10 +24,20 @@ class Input {
   }
 
   get keypressed() {
-    return this._keypressed;
+    return (
+      this._forwardbackward !== 0 ||
+      this.leftright !== 0 ||
+      this._updown !== 0 ||
+      this._lookup ||
+      this._lookdown
+    );
   }
 
   constructor(canvas) {
+    this.init(canvas);
+  }
+
+  init(canvas) {
     this._forwardbackward = 0;
     this._leftright = 0;
     this._updown = 0;
@@ -37,20 +45,42 @@ class Input {
     this._lookdown = false;
     this._mouseposition = null;
     this._keypressed = false;
-    this.#canvas = canvas;
-  }
+    this._canvas = canvas;
 
-  init() {
     // set event handlers for keyboard, mouse, touchscreen and window resize
-    this.#canvas.onmousedown = this.detectMouseDown;
-    this.#canvas.onmouseup = this.detectMouseUp;
-    this.#canvas.onmousemove = this.detectMouseMove;
-    this.#canvas.ontouchstart = this.detectMouseDown;
-    this.#canvas.ontouchend = this.detectMouseUp;
-    this.#canvas.ontouchmove = this.detectMouseMove;
+    // this._canvas.removeEventListener('mousedown', this.detectMouseDown);
+    this._canvas.addEventListener("mousedown", (e) => {
+        this.detectMouseDown(e);
+    });
+    // this._canvas.removeEventListener('mouseup');
+    this._canvas.addEventListener("mouseup", (e) => {
+      this.detectMouseUp(e);
+    });
+    // this._canvas.removeEventListener('mousemove');
+    this._canvas.addEventListener("mousemove", (e) => {
+      this.detectMouseMove(e);
+    });
+    // this._canvas.removeEventListener('touchstart');
+    this._canvas.addEventListener("touchstart", (e) => {
+      this.detectMouseDown(e);
+    });
+    // this._canvas.removeEventListener('touchend');
+    this._canvas.addEventListener("touchend", (e) => {
+      this.detectMouseUp(e);
+    });
+    // this._canvas.removeEventListener('touchmove');
+    this._canvas.addEventListener("touchmove", (e) => {
+      this.detectMouseMove(e);
+    });
 
-    window.onkeydown = this.detectKeysDown;
-    window.onkeyup = this.detectKeysUp;
+    // window.removeEventListener('keydown');
+    window.addEventListener("keydown", (e) => {
+      this.detectKeysDown(e);
+    });
+    // window.removeEventListener('keyup');
+    window.addEventListener("keyup", (e) => {
+      this.detectKeysUp(e);
+    });
   }
 
   getMousePosition(e) {
@@ -125,6 +155,7 @@ class Input {
         return;
         break;
     }
+
     return false;
   }
 

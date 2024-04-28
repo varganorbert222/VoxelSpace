@@ -7,6 +7,7 @@ import ScreenBuffer from "./screenbuffer.js";
 import Input from "./input.js";
 import PostProcessing from "./postprocessing.js";
 import Data from "./data.js";
+import { LoadImagesAsync } from "./utils.js";
 
 const DEG_TO_RAD = 0.01745329;
 
@@ -53,193 +54,45 @@ const screenData = {
   backgroundcolor: 0xffffe2b3, // ABGR (alpha, blue, green, red) 32-bit color
 };
 
-// ---------------------------------------------
-// Keyboard and mouse interaction
-
-const input = {
-  forwardbackward: 0,
-  leftright: 0,
-  updown: 0,
-  lookup: false,
-  lookdown: false,
-  mouseposition: null,
-  keypressed: false,
-};
-
-let isRunning = false;
-
 // for fps display
-let elapsedTime = new Date().getTime();
-let deltaTime = new Date().getTime();
+let deltaTime = 0;
 let totalFrames = 0;
+let lastTimeForFps = 0;
+let elapsedTimeForDeltaTime = 0;
+
+let input;
 
 // Update the camera for next frame. Dependent on keypresses
 function UpdateCamera() {
-  const currentTime = new Date().getTime();
-
-  input.keypressed = false;
   if (input.leftright != 0) {
-    camera.angle += input.leftright * 0.1 * (currentTime - elapsedTime) * 0.03;
-    input.keypressed = true;
+    camera.angle += input.leftright * 0.1 * deltaTime * 0.03;
   }
   if (input.forwardbackward != 0) {
     camera.posX -=
       input.forwardbackward *
       Math.sin(camera.angle) *
-      (currentTime - elapsedTime) *
+      deltaTime *
       0.03;
     camera.posZ -=
       input.forwardbackward *
       Math.cos(camera.angle) *
-      (currentTime - elapsedTime) *
+      deltaTime *
       0.03;
-    input.keypressed = true;
   }
   if (input.updown != 0) {
-    camera.posY += input.updown * (currentTime - elapsedTime) * 0.03;
-    input.keypressed = true;
+    camera.posY += input.updown * deltaTime * 0.03;
   }
   if (input.lookup) {
-    camera.horizon += 2 * (currentTime - elapsedTime) * 0.03;
-    input.keypressed = true;
+    camera.horizon += 2 * deltaTime * 0.03;
   }
   if (input.lookdown) {
-    camera.horizon -= 2 * (currentTime - elapsedTime) * 0.03;
-    input.keypressed = true;
+    camera.horizon -= 2 * deltaTime * 0.03;
   }
 
   // Collision detection. Don't fly below the surface.
   if (TerrainSDF(camera.posX, camera.posZ) < 10) {
     camera.posY = TerrainHeight(camera.posX, camera.posZ) + 10;
   }
-
-  elapsedTime = currentTime;
-}
-
-// ---------------------------------------------
-// Keyboard and mouse event handlers
-// ---------------------------------------------
-// Keyboard and mouse event handlers
-
-function GetMousePosition(e) {
-  // fix for Chrome
-  if (e.type.startsWith("touch")) {
-    return [e.targetTouches[0].pageX, e.targetTouches[0].pageY];
-  } else {
-    return [e.pageX, e.pageY];
-  }
-}
-
-function DetectMouseDown(e) {
-  input.forwardbackward = 3;
-  input.mouseposition = GetMousePosition(e);
-  elapsedTime = new Date().getTime();
-
-  if (!isRunning) Draw();
-  return;
-}
-
-function DetectMouseUp() {
-  input.mouseposition = null;
-  input.forwardbackward = 0;
-  input.leftright = 0;
-  input.updown = 0;
-  return;
-}
-
-function DetectMouseMove(e) {
-  e.preventDefault();
-  if (input.mouseposition == null) return;
-  if (input.forwardbackward == 0) return;
-
-  const currentMousePosition = GetMousePosition(e);
-
-  input.leftright =
-    ((input.mouseposition[0] - currentMousePosition[0]) / window.innerWidth) *
-    2;
-
-  input.updown =
-    ((input.mouseposition[1] - currentMousePosition[1]) / window.innerHeight) *
-    10;
-}
-
-function DetectKeysDown(e) {
-  switch (e.keyCode) {
-    case 37: // left cursor
-    case 65: // a
-      input.leftright = +1;
-      break;
-    case 39: // right cursor
-    case 68: // d
-      input.leftright = -1;
-      break;
-    case 38: // cursor up
-    case 87: // w
-      input.forwardbackward = 3;
-      break;
-    case 40: // cursor down
-    case 83: // s
-      input.forwardbackward = -3;
-      break;
-    case 82: // r
-      input.updown = +2;
-      break;
-    case 70: // f
-      input.updown = -2;
-      break;
-    case 69: // e
-      input.lookup = true;
-      break;
-    case 81: //q
-      input.lookdown = true;
-      break;
-    default:
-      return;
-      break;
-  }
-
-  if (!isRunning) {
-    elapsedTime = new Date().getTime();
-    Draw();
-  }
-  return false;
-}
-
-function DetectKeysUp(e) {
-  switch (e.keyCode) {
-    case 37: // left cursor
-    case 65: // a
-      input.leftright = 0;
-      break;
-    case 39: // right cursor
-    case 68: // d
-      input.leftright = 0;
-      break;
-    case 38: // cursor up
-    case 87: // w
-      input.forwardbackward = 0;
-      break;
-    case 40: // cursor down
-    case 83: // s
-      input.forwardbackward = 0;
-      break;
-    case 82: // r
-      input.updown = 0;
-      break;
-    case 70: // f
-      input.updown = 0;
-      break;
-    case 69: // e
-      input.lookup = false;
-      break;
-    case 81: //q
-      input.lookdown = false;
-      break;
-    default:
-      return;
-      break;
-  }
-  return false;
 }
 
 function ProjectToScreen(screenWidth, camFOV, horizon, depth, terrainSDF) {
@@ -404,142 +257,18 @@ function Render() {
 
 // ---------------------------------------------
 // Draw the next frame
-
 function Draw() {
-  isRunning = true;
   UpdateCamera();
   DrawBackground();
   Render();
   Flip();
+  
   totalFrames++;
-
-  if (!input.keypressed) {
-    isRunning = false;
-  } else {
-    window.requestAnimationFrame(Draw, 0);
-  }
-}
-
-// ---------------------------------------------
-// Init routines
-// compute vector index from matrix one
-function ivect(ix, iy, w) {
-  // byte array, r,g,b,a
-  return (ix + w * iy) * 4;
-}
-
-function Bilinear(srcImg, destImg, scale) {
-  // c.f.: wikipedia english article on bilinear interpolation
-  // taking the unit square, the inner loop looks like this
-  // note: there's a function call inside the double loop to this one
-  // maybe a performance killer, optimize this whole code as you need
-  function inner(f00, f10, f01, f11, x, y) {
-    var un_x = 1.0 - x;
-    var un_y = 1.0 - y;
-    return f00 * un_x * un_y + f10 * x * un_y + f01 * un_x * y + f11 * x * y;
-  }
-  var i, j;
-  var iyv, iy0, iy1, ixv, ix0, ix1;
-  var idxD, idxS00, idxS10, idxS01, idxS11;
-  var dx, dy;
-  var r, g, b, a;
-  for (i = 0; i < destImg.height; ++i) {
-    iyv = i / scale;
-    iy0 = Math.floor(iyv);
-    // Math.ceil can go over bounds
-    iy1 =
-      Math.ceil(iyv) > srcImg.height - 1 ? srcImg.height - 1 : Math.ceil(iyv);
-    for (j = 0; j < destImg.width; ++j) {
-      ixv = j / scale;
-      ix0 = Math.floor(ixv);
-      // Math.ceil can go over bounds
-      ix1 =
-        Math.ceil(ixv) > srcImg.width - 1 ? srcImg.width - 1 : Math.ceil(ixv);
-      idxD = ivect(j, i, destImg.width);
-      // matrix to vector indices
-      idxS00 = ivect(ix0, iy0, srcImg.width);
-      idxS10 = ivect(ix1, iy0, srcImg.width);
-      idxS01 = ivect(ix0, iy1, srcImg.width);
-      idxS11 = ivect(ix1, iy1, srcImg.width);
-      // overall coordinates to unit square
-      dx = ixv - ix0;
-      dy = iyv - iy0;
-      // I let the r, g, b, a on purpose for debugging
-      r = inner(
-        srcImg.data[idxS00],
-        srcImg.data[idxS10],
-        srcImg.data[idxS01],
-        srcImg.data[idxS11],
-        dx,
-        dy
-      );
-      destImg.data[idxD] = r;
-
-      g = inner(
-        srcImg.data[idxS00 + 1],
-        srcImg.data[idxS10 + 1],
-        srcImg.data[idxS01 + 1],
-        srcImg.data[idxS11 + 1],
-        dx,
-        dy
-      );
-      destImg.data[idxD + 1] = g;
-
-      b = inner(
-        srcImg.data[idxS00 + 2],
-        srcImg.data[idxS10 + 2],
-        srcImg.data[idxS01 + 2],
-        srcImg.data[idxS11 + 2],
-        dx,
-        dy
-      );
-      destImg.data[idxD + 2] = b;
-
-      a = inner(
-        srcImg.data[idxS00 + 3],
-        srcImg.data[idxS10 + 3],
-        srcImg.data[idxS01 + 3],
-        srcImg.data[idxS11 + 3],
-        dx,
-        dy
-      );
-      destImg.data[idxD + 3] = a;
-    }
-  }
-}
-// Util class for downloading the png
-function LoadImagesAsync(urls) {
-  return new Promise(function (resolve, reject) {
-    let pending = urls.length;
-    const result = [];
-    if (pending === 0) {
-      resolve([]);
-      return;
-    }
-    urls.forEach(function (url, i) {
-      const image = new Image();
-      image.onload = function () {
-        const tempcanvas = document.createElement("canvas");
-        const tempcontext = tempcanvas.getContext("2d");
-
-        tempcanvas.width = map.width;
-        tempcanvas.height = map.height;
-        tempcontext.drawImage(image, 0, 0, map.width, map.height);
-
-        // let src = tempcontext.getImageData(0, 0, map.width, map.height);
-        // let dst = tempcontext.createImageData(map.width, map.height);
-        // Bilinear(src, dst, 1);
-        // result[i] = dst.data;
-        result[i] = tempcontext.getImageData(0, 0, map.width, map.height).data;
-
-        pending--;
-        if (pending === 0) {
-          resolve(result);
-        }
-      };
-      image.src = url;
-    });
-  });
+  const currentTime = new Date().getTime();
+  deltaTime = currentTime - elapsedTimeForDeltaTime;
+  elapsedTimeForDeltaTime = currentTime;
+  
+  window.requestAnimationFrame(Draw);
 }
 
 function LoadMap(mapName) {
@@ -553,7 +282,7 @@ function LoadMap(mapName) {
   LoadImagesAsync([
     `maps/color/${selectedMap.colorMap}.png`,
     `maps/height/${selectedMap.heightMap}.png`,
-  ]).then(OnLoadedImage);
+  ], map.width, map.height).then(OnLoadedImage);
 }
 
 function OnLoadedImage(images) {
@@ -568,8 +297,6 @@ function OnLoadedImage(images) {
       colorMap[(i << 2) + 0];
     map.heightMap[i] = heightMap[i << 2];
   }
-
-  Draw();
 }
 
 function OnResizeWindow() {
@@ -593,8 +320,6 @@ function OnResizeWindow() {
   );
   screenData.buf8 = new Uint8Array(screenData.bufarray);
   screenData.buf32 = new Uint32Array(screenData.bufarray);
-
-  Draw();
 }
 
 function InitMapSelection() {
@@ -616,58 +341,51 @@ function InitMapSelection() {
 
 function InitSettings() {
   const renderDistance = document.getElementById("id_render_distance");
+  renderDistance.value = camera.farClip;
   renderDistance.addEventListener("change", function (e) {
     camera.farClip = parseFloat(e.target.value);
-    Draw();
   });
   const renderScale = document.getElementById("id_render_scale");
+  renderScale.value = camera.renderScale;
   renderScale.addEventListener("change", function (e) {
     camera.renderScale = parseFloat(e.target.value);
     OnResizeWindow();
   });
   const deltaZ = document.getElementById("id_delta_z");
+  deltaZ.value = camera.minDeltaZ;
   deltaZ.addEventListener("change", function (e) {
     camera.minDeltaZ = parseFloat(e.target.value);
-    Draw();
   });
   const pixelOffset = document.getElementById("id_pixel_offset");
+  pixelOffset.value = camera.pixelOffset;
   pixelOffset.addEventListener("change", function (e) {
     camera.pixelOffset = parseInt(e.target.value);
-    Draw();
   });
 }
 
 function Init() {
+  input = new Input(document.getElementById("id_fullscreen_canvas"));
+
   for (let i = 0; i < map.width * map.height; i++) {
     map.colorMap[i] = 0xff007050;
     map.heightMap[i] = 0;
   }
 
-  LoadMap("C2M3");
-  OnResizeWindow();
-
-  // set event handlers for keyboard, mouse, touchscreen and window resize
-  const canvas = document.getElementById("id_fullscreen_canvas");
-  canvas.onmousedown = DetectMouseDown;
-  canvas.onmouseup = DetectMouseUp;
-  canvas.onmousemove = DetectMouseMove;
-  canvas.ontouchstart = DetectMouseDown;
-  canvas.ontouchend = DetectMouseUp;
-  canvas.ontouchmove = DetectMouseMove;
-
-  window.onkeydown = DetectKeysDown;
-  window.onkeyup = DetectKeysUp;
   window.onresize = OnResizeWindow;
   window.setInterval(function () {
     const current = new Date().getTime();
     document.getElementById("id_fps").innerText =
-      ((totalFrames / (current - deltaTime)) * 1000).toFixed(1) + " fps";
+      (totalFrames / (current - lastTimeForFps) * 1000).toFixed(1) + " fps";
     totalFrames = 0;
-    deltaTime = current;
-  }, 2000);
+    lastTimeForFps = current;
+  }, 500);
 
   InitMapSelection();
   InitSettings();
+
+  LoadMap("C2M3");
+  OnResizeWindow();
+  Draw();
 }
 
 // When document is ready
