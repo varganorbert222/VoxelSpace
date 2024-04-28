@@ -131,7 +131,7 @@ function Render() {
       ply += dy * (camera.pixelOffset | 1);
     }
 
-    //deltaz += 0.005;
+    // deltaz += 0.005; // implement LOD (lerp or similar)
     deltaz *= 1.005;
   }
 }
@@ -179,6 +179,7 @@ function OnResizeWindow() {
 
 function InitMapSelection() {
   const mapSelector = document.getElementById("id_mapselector");
+  mapSelector.value = maps[0].name;
   while (mapSelector.firstChild) {
     mapSelector.removeChild(mapSelector.firstChild);
   }
@@ -235,7 +236,7 @@ function Init() {
   InitMapSelection();
   InitSettings();
 
-  LoadMap("C2M3");
+  LoadMap(maps[0].name);
   OnResizeWindow();
   Draw();
 }

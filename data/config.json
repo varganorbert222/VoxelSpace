@@ -3,7 +3,7 @@
         "renderDistance": {
             "min": 1000.0,
             "max": 8000.0,
-            "step": 1.0
+            "step": 1000.0
         },
         "deltaZ": {
             "min": 0.1,

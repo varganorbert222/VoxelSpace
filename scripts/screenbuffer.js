@@ -1,6 +1,7 @@
 "use strict";
 
-class ScreenBuffer { // Camera'ba kell tenni, mert annak a felelőssége
+class ScreenBuffer {
+  // Camera'ba kell tenni, mert annak a felelőssége
   get canvas() {
     return this._canvas;
   }

@@ -1,5 +1,13 @@
 [
   {
+    "name": "C1M3",
+    "colorMap": "C1M3_C",
+    "heightMap": "C1M3_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96
+  },
+  {
     "name": "C2M3",
     "colorMap": "C2M3_C",
     "heightMap": "C2M3_D",
