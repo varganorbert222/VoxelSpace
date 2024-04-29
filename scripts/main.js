@@ -4,7 +4,6 @@ import maps from "../data/maps.json" assert { type: "json" };
 import config from "../data/config.json" assert { type: "json" };
 import Camera from "./camera.js";
 import Terrain from "./terrain.js";
-import ScreenBuffer from "./screenbuffer.js";
 import Input from "./input.js";
 import PostProcessing from "./postprocessing.js";
 import Data from "./data.js";
@@ -12,22 +11,8 @@ import { LoadImagesAsync } from "./utils.js";
 
 const DEG_TO_RAD = 0.01745329;
 
-// ---------------------------------------------
-// Viewer information
-
-const camera = {
-  nearClip: 0.001,
-  farClip: 1000,
-  minDeltaZ: 1,
-  posX: 512, // x position on the map
-  posZ: 800, // y position on the map
-  posY: 78, // height of the camera
-  angle: 0, // direction of the camera
-  horizon: window.innerHeight / 2.0, // horizon position (look up and down)
-  renderScale: 0.7,
-  pixelOffset: 2,
-};
-
+let input;
+let camera;
 let terrain;
 let screenBuffer; // kamerába kell tenni, mert annak a felelőssége
 
@@ -36,35 +21,6 @@ let deltaTime = 0;
 let totalFrames = 0;
 let lastTimeForFps = 0;
 let elapsedTimeForDeltaTime = 0;
-
-let input;
-
-// Update the camera for next frame. Dependent on keypresses
-function UpdateCamera() {
-  if (input.leftright != 0) {
-    camera.angle += input.leftright * 0.1 * deltaTime * 0.03;
-  }
-  if (input.forwardbackward != 0) {
-    camera.posX -=
-      input.forwardbackward * Math.sin(camera.angle) * deltaTime * 0.03;
-    camera.posZ -=
-      input.forwardbackward * Math.cos(camera.angle) * deltaTime * 0.03;
-  }
-  if (input.updown != 0) {
-    camera.posY += input.updown * deltaTime * 0.03;
-  }
-  if (input.lookup) {
-    camera.horizon += 2 * deltaTime * 0.03;
-  }
-  if (input.lookdown) {
-    camera.horizon -= 2 * deltaTime * 0.03;
-  }
-
-  // Collision detection. Don't fly below the surface.
-  if (terrain.collide(camera.posX, camera.posZ, camera.posY)) {
-    camera.posY = terrain.getTerrainHeight(camera.posX, camera.posZ) + 10;
-  }
-}
 
 function ProjectToScreen(screenWidth, camFOV, horizon, depth, terrainSDF) {
   const dstToProjPlane =
@@ -115,7 +71,7 @@ function Render() {
           terrainSDF
         ) | 0;
 
-      const terrainColor = terrain.terrainShading(plx, ply/*, z*/);
+      const terrainColor = terrain.terrainShading(plx, ply /*, z*/);
 
       screenBuffer.drawVerticalLine(
         i,
@@ -139,10 +95,8 @@ function Render() {
 // ---------------------------------------------
 // Draw the next frame
 function Draw() {
-  UpdateCamera();
-  screenBuffer.drawBackground();
-  Render();
-  screenBuffer.flip();
+  camera.move(input, terrain, deltaTime);
+  camera.render(terrain);
 
   totalFrames++;
   const currentTime = new Date().getTime();
@@ -169,12 +123,11 @@ function LoadMap(mapName) {
 }
 
 function OnResizeWindow() {
-  screenBuffer.set({
-    canvas: document.getElementById("id_fullscreen_canvas"),
-    width: window.innerWidth,
-    height: window.innerHeight,
-    renderScale: camera.renderScale
-  });
+  camera.resize(
+    document.getElementById("id_fullscreen_canvas"),
+    window.innerWidth,
+    window.innerHeight
+  );
 }
 
 function InitMapSelection() {
@@ -199,30 +152,30 @@ function InitSettings() {
   const renderDistance = document.getElementById("id_render_distance");
   renderDistance.value = camera.farClip;
   renderDistance.addEventListener("change", function (e) {
-    camera.farClip = parseFloat(e.target.value);
+    camera.set({ farClip: parseFloat(e.target.value) });
   });
   const renderScale = document.getElementById("id_render_scale");
   renderScale.value = camera.renderScale;
   renderScale.addEventListener("change", function (e) {
-    camera.renderScale = parseFloat(e.target.value);
+    camera.set({ renderScale: parseFloat(e.target.value) });
     OnResizeWindow();
   });
   const deltaZ = document.getElementById("id_delta_z");
   deltaZ.value = camera.minDeltaZ;
   deltaZ.addEventListener("change", function (e) {
-    camera.minDeltaZ = parseFloat(e.target.value);
+    camera.set({ minDeltaZ: parseFloat(e.target.value) });
   });
   const pixelOffset = document.getElementById("id_pixel_offset");
   pixelOffset.value = camera.pixelOffset;
   pixelOffset.addEventListener("change", function (e) {
-    camera.pixelOffset = parseInt(e.target.value);
+    camera.set({ pixelOffset: parseFloat(e.target.value) });
   });
 }
 
 function Init() {
-  screenBuffer = new ScreenBuffer();
   input = new Input(document.getElementById("id_fullscreen_canvas"));
   terrain = new Terrain();
+  camera = new Camera(config.camera);
 
   window.onresize = OnResizeWindow;
   window.setInterval(function () {
