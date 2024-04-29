@@ -1,7 +1,8 @@
 "use strict";
 
-import ScreenBuffer from "./screenbuffer.js";
+import FrameBuffer from "./framebuffer.js";
 import Renderer from "./renderer.js";
+import Time from "./time.js";
 
 const DEG_TO_RAD = 0.01745329;
 
@@ -54,14 +55,15 @@ class Camera {
     this._renderScale = settings.renderScale ?? 0.5;
     this._pixelOffset = settings.pixelOffset ?? 2;
     this._fov = settings.fov ?? 90.0;
-    this._screenBuffer = new ScreenBuffer();
-    this._renderer = new Renderer(this, this._screenBuffer);
+    this._frameBuffer = new FrameBuffer(0xffffe2b3);
+    this._depthBuffer = new FrameBuffer(0xff000000);
+    this._renderer = new Renderer(this, this._frameBuffer, this._depthBuffer);
   }
 
   // ProjectToViewport?
   projectToScreen(y, z) {
     const dstToProjPlane =
-      (this._screenBuffer.canvas.width * 0.5) /
+      (this._frameBuffer.canvas.width * 0.5) /
       Math.tan(this._fov * 0.5 * DEG_TO_RAD);
     const terrainProjectedHeight = (y / z) * dstToProjPlane;
     const scaledHorizon = this._horizon * this._renderScale;
@@ -77,12 +79,18 @@ class Camera {
     this._renderScale = settings.renderScale ?? this._renderScale;
   }
 
-  render(terrain) {
-    this._renderer.render(terrain);
+  render(terrain, renderMode) {
+    this._renderer.render(terrain, renderMode);
   }
 
   resize(canvas, width, height) {
-    this._screenBuffer.set({
+    this._frameBuffer.set({
+      canvas: canvas,
+      width: width,
+      height: height,
+      renderScale: this._renderScale,
+    });
+    this._depthBuffer.set({
       canvas: canvas,
       width: width,
       height: height,
@@ -90,24 +98,24 @@ class Camera {
     });
   }
 
-  move(input, terrain, deltaTime) {
+  move(input, terrain) {
     if (input.leftright != 0) {
-      this._angle += input.leftright * 0.1 * deltaTime * 0.03;
+      this._angle += input.leftright * 0.1 * Time.deltaTime * 0.03;
     }
     if (input.forwardbackward != 0) {
       this._posX -=
-        input.forwardbackward * Math.sin(this._angle) * deltaTime * 0.03;
+        input.forwardbackward * Math.sin(this._angle) * Time.deltaTime * 0.03;
       this._posY -=
-        input.forwardbackward * Math.cos(this._angle) * deltaTime * 0.03;
+        input.forwardbackward * Math.cos(this._angle) * Time.deltaTime * 0.03;
     }
     if (input.updown != 0) {
-      this._posZ += input.updown * deltaTime * 0.03;
+      this._posZ += input.updown * Time.deltaTime * 0.03;
     }
     if (input.lookup) {
-      this._horizon += 2 * deltaTime * 0.03;
+      this._horizon += 2 * Time.deltaTime * 0.03;
     }
     if (input.lookdown) {
-      this._horizon -= 2 * deltaTime * 0.03;
+      this._horizon -= 2 * Time.deltaTime * 0.03;
     }
 
     // Collision detection. Don't fly below the surface.

@@ -1,17 +1,39 @@
 "use strict";
 
+import { makeColor } from "./color.js";
+import { invLerp } from "./utils.js";
+
 class Renderer {
-  constructor(camera, screenBuffer) {
+  constructor(camera, frameBuffer, depthBuffer) {
     this._camera = camera;
-    this._screenBuffer = screenBuffer;
+    this._frameBuffer = frameBuffer;
+    this._depthBuffer = depthBuffer;
   }
 
-  drawBackground() {
-    this._screenBuffer.drawBackground();
+  drawBackground(renderMode) {
+    switch (renderMode) {
+      case "frame":
+        this._frameBuffer.drawBackground();
+        break;
+      case "depth":
+        this._depthBuffer.drawBackground();
+        break;
+      default:
+        break;
+    }
   }
 
-  flip() {
-    this._screenBuffer.flip();
+  writeToContext(renderMode) {
+    switch (renderMode) {
+      case "frame":
+        this._frameBuffer.writeToContext();
+        break;
+      case "depth":
+        this._depthBuffer.writeToContext();
+        break;
+      default:
+        break;
+    }
   }
 
   renderTerrain(terrain) {
@@ -23,8 +45,8 @@ class Renderer {
     const cameraPosZ = this._camera.posZ;
     let step = this._camera.minDeltaZ;
 
-    const screenWidth = this._screenBuffer.canvas.width;
-    const screenHeight = this._screenBuffer.canvas.height;
+    const screenWidth = this._frameBuffer.canvas.width;
+    const screenHeight = this._frameBuffer.canvas.height;
     const sinang = Math.sin(this._camera.angle);
     const cosang = Math.cos(this._camera.angle);
 
@@ -48,19 +70,26 @@ class Renderer {
 
       for (let i = 0; (i < screenWidth) | 0; i += pixelOffset) {
         const terrainSDF = terrain.getTerrainSDF(plx, ply, cameraPosZ);
-
-        const heightonscreen =
-          this._camera.projectToScreen(terrainSDF, z) | 0;
-
+        const heightonscreen = this._camera.projectToScreen(terrainSDF, z) | 0;
         const terrainColor = terrain.terrainShading(plx, ply /*, z*/);
+        const depth = invLerp(nearClip, farClip, z);
+        const depthColor = makeColor(255 * depth, 255 * depth, 255 * depth, 255);
 
-        this._screenBuffer.drawVerticalLine(
+        this._frameBuffer.drawVerticalLine(
           i,
-          heightonscreen | 0,
+          heightonscreen,
           hiddenY[i],
           terrainColor,
           pixelOffset
         );
+
+        this._depthBuffer.drawVerticalLine(
+            i,
+            heightonscreen,
+            hiddenY[i],
+            depthColor,
+            pixelOffset
+          );
 
         if (heightonscreen < hiddenY[i]) hiddenY[i] = heightonscreen;
 
@@ -73,10 +102,10 @@ class Renderer {
     }
   }
 
-  render(terrain) {
-    this.drawBackground();
+  render(terrain, renderMode) {
+    this.drawBackground(renderMode);
     this.renderTerrain(terrain);
-    this.flip();
+    this.writeToContext(renderMode);
   }
 }
 

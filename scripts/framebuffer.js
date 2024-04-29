@@ -1,25 +1,24 @@
 "use strict";
 
-class ScreenBuffer {
-  // Camera'ba kell tenni, mert annak a felelőssége
+class FrameBuffer {
   get canvas() {
     return this._canvas;
   }
 
-  constructor() {
+  constructor(backgroundColor) {
     this._canvas = null;
-    this._context = null;
-    this._imagedata = null;
+    this._contextForCanvas = null;
+    this._imageDataForContext = null;
 
-    this._bufarray = null; // color data
-    this._buf8 = null; // the same array but with bytes
-    this._buf32 = null; // the same array but with 32-Bit words
+    this._colorBuffer = null; // color data
+    this._buffer8bit = null; // the same array but with bytes
+    this._buffer32bit = null; // the same array but with 32-Bit words
 
-    this._backgroundcolor = 0xffffe2b3; // ABGR (alpha, blue, green, red) 32-bit color
+    this._backgroundcolor = backgroundColor; // ABGR (alpha, blue, green, red) 32-bit color
   }
 
   drawBackground() {
-    const buf32 = this._buf32;
+    const buf32 = this._buffer32bit;
     const color = this._backgroundcolor | 0;
     for (let i = 0; i < buf32.length; i++) buf32[i] = color | 0;
   }
@@ -29,7 +28,6 @@ class ScreenBuffer {
     ytop = ytop | 0;
     ybottom = ybottom | 0;
     col = col | 0;
-    const buf32 = this._buf32;
     const screenwidth = this._canvas.width | 0;
     if (ytop < 0) ytop = 0;
     if (ytop > ybottom) return;
@@ -38,16 +36,16 @@ class ScreenBuffer {
     for (let j = 0; j <= width && x + j < screenwidth; j++) {
       let offset = (ytop * screenwidth + x + j) | 0;
       for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
-        buf32[offset | 0] = col | 0;
+        this._buffer32bit[offset | 0] = col | 0;
         offset = (offset + screenwidth) | 0;
       }
     }
   }
 
   // Show the back buffer on screen
-  flip() {
-    this._imagedata.data.set(this._buf8);
-    this._context.putImageData(this._imagedata, 0, 0);
+  writeToContext() {
+    this._imageDataForContext.data.set(this._buffer8bit);
+    this._contextForCanvas.putImageData(this._imageDataForContext, 0, 0);
   }
 
   set(bufferData) {
@@ -58,19 +56,19 @@ class ScreenBuffer {
     this._canvas.height = Math.floor(this._canvas.width / aspect);
 
     if (this._canvas.getContext) {
-      this._context = this._canvas.getContext("2d");
-      this._imagedata = this._context.createImageData(
+      this._contextForCanvas = this._canvas.getContext("2d");
+      this._imageDataForContext = this._contextForCanvas.createImageData(
         this._canvas.width,
         this._canvas.height
       );
     }
 
-    this._bufarray = new ArrayBuffer(
-      this._imagedata.width * this._imagedata.height * 4
+    this._colorBuffer = new ArrayBuffer(
+      this._imageDataForContext.width * this._imageDataForContext.height * 4
     );
-    this._buf8 = new Uint8Array(this._bufarray);
-    this._buf32 = new Uint32Array(this._bufarray);
+    this._buffer8bit = new Uint8Array(this._colorBuffer);
+    this._buffer32bit = new Uint32Array(this._colorBuffer);
   }
 }
 
-export default ScreenBuffer;
+export default FrameBuffer;

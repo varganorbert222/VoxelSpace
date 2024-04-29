@@ -6,7 +6,7 @@ function ivect(ix, iy, w) {
   return (ix + w * iy) * 4;
 }
 
-function Bilinear(srcImg, destImg, scale) {
+function bilinear(srcImg, destImg, scale) {
   // c.f.: wikipedia english article on bilinear interpolation
   // taking the unit square, the inner loop looks like this
   // note: there's a function call inside the double loop to this one
@@ -87,7 +87,7 @@ function Bilinear(srcImg, destImg, scale) {
 }
 
 // Util class for downloading the png
-function LoadImagesAsync(urls, width, height) {
+function loadImagesAsync(urls, width, height) {
   return new Promise(function (resolve, reject) {
     let pending = urls.length;
     const result = [];
@@ -121,4 +121,8 @@ function LoadImagesAsync(urls, width, height) {
   });
 }
 
-export { LoadImagesAsync, Bilinear };
+function invLerp(from, to, value){
+  return (value - from) / (to - from);
+}
+
+export { loadImagesAsync, bilinear, invLerp };
