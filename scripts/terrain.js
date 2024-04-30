@@ -48,7 +48,7 @@ class Terrain {
     return z - this.getTerrainHeight(x, y);
   }
 
-  terrainShading(x, y) {
+  getTerrainColor(x, y) {
     const mapOffset = this.getMapOffset(x, y);
     let terrainColor = this._colorMap[mapOffset];
     return terrainColor;

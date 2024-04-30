@@ -102,6 +102,11 @@ function initSettings() {
   renderModeElement.addEventListener("change", function (e) {
     renderMode = e.target.value;
   });
+  const applyFogElement = document.getElementById("id_apply_fog");
+  applyFogElement.checked = camera.renderer.applyFog;
+  applyFogElement.addEventListener("change", function (e) {
+    camera.renderer.applyFog = e.target.checked;
+  });
 }
 
 function printFps() {

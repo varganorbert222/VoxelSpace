@@ -4,10 +4,19 @@ import { makeColor, unpackColor } from "./color.js";
 import { invLerp } from "./utils.js";
 
 class Renderer {
+  get applyFog() {
+    return this._applyFog;
+  }
+
+  set applyFog(value) {
+    this._applyFog = value;
+  }
+
   constructor(camera, frameBuffer, depthBuffer) {
     this._camera = camera;
     this._frameBuffer = frameBuffer;
     this._depthBuffer = depthBuffer;
+    this._applyFog = true;
   }
 
   drawBackground(renderMode) {
@@ -36,7 +45,7 @@ class Renderer {
     }
   }
 
-  applyFog(color, depth) {
+  calculateFog(color, depth) {
     const skyColor = 0xffffe2b3;
 
     let c = unpackColor(color);
@@ -89,8 +98,12 @@ class Renderer {
 
         switch (renderMode) {
           case "frame":
-            let terrainColor = terrain.terrainShading(plx, ply /*, z*/);
-            terrainColor = this.applyFog(terrainColor, depth);
+            let terrainColor = terrain.getTerrainColor(plx, ply /*, z*/);
+
+            if (this._applyFog) {
+              terrainColor = this.calculateFog(terrainColor, depth);
+            }
+
             this._frameBuffer.drawVerticalLine(
               i,
               heightonscreen,

@@ -43,6 +43,10 @@ class Camera {
     return this._angle;
   }
 
+  get renderer() {
+    return this._renderer;
+  }
+
   constructor(settings) {
     this._nearClip = settings.nearClip ?? 1;
     this._farClip = settings.farClip ?? 2000;
