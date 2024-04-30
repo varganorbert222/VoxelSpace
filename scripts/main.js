@@ -5,7 +5,6 @@ import config from "../data/config.json" assert { type: "json" };
 import Camera from "./camera.js";
 import Terrain from "./terrain.js";
 import Input from "./input.js";
-import PostProcessing from "./postprocessing.js";
 import Time from "./time.js";
 import Profiler from "./profiler.js";
 import { loadImagesAsync } from "./utils.js";

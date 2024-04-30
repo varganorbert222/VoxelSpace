@@ -5,6 +5,10 @@ class FrameBuffer {
     return this._canvas;
   }
 
+  get colorBuffer() {
+    return this._colorBuffer;
+  }
+
   constructor(backgroundColor) {
     this._canvas = null;
     this._contextForCanvas = null;
@@ -20,7 +24,9 @@ class FrameBuffer {
   drawBackground() {
     const buf32 = this._buffer32bit;
     const color = this._backgroundcolor | 0;
-    for (let i = 0; i < buf32.length; i++) buf32[i] = color | 0;
+    for (let i = 0; i < buf32.length; i++) {
+      buf32[i] = color | 0;
+    }
   }
 
   drawVerticalLine(x, ytop, ybottom, col, width = 1) {

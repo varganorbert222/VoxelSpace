@@ -1,6 +1,6 @@
 "use strict";
 
-import { makeColor } from "./color.js";
+import { makeColor, unpackColor } from "./color.js";
 import { invLerp } from "./utils.js";
 
 class Renderer {
@@ -36,7 +36,21 @@ class Renderer {
     }
   }
 
-  renderTerrain(terrain) {
+  applyFog(color, depth) {
+    const skyColor = 0xffffe2b3;
+
+    let c = unpackColor(color);
+    let s = unpackColor(skyColor);
+
+    const cr = c.r + (s.r - c.r) * depth;
+    const cg = c.g + (s.g - c.g) * depth;
+    const cb = c.b + (s.b - c.b) * depth;
+    const ca = c.a + (s.a - c.a) * depth;
+
+    return makeColor(cr, cg, cb, ca);
+  }
+
+  renderTerrain(terrain, renderMode) {
     const nearClip = this._camera.nearClip;
     const farClip = this._camera.farClip;
     const pixelOffset = this._camera.pixelOffset;
@@ -71,25 +85,38 @@ class Renderer {
       for (let i = 0; (i < screenWidth) | 0; i += pixelOffset) {
         const terrainSDF = terrain.getTerrainSDF(plx, ply, cameraPosZ);
         const heightonscreen = this._camera.projectToScreen(terrainSDF, z) | 0;
-        const terrainColor = terrain.terrainShading(plx, ply /*, z*/);
         const depth = invLerp(nearClip, farClip, z);
-        const depthColor = makeColor(255 * depth, 255 * depth, 255 * depth, 255);
 
-        this._frameBuffer.drawVerticalLine(
-          i,
-          heightonscreen,
-          hiddenY[i],
-          terrainColor,
-          pixelOffset
-        );
-
-        this._depthBuffer.drawVerticalLine(
-            i,
-            heightonscreen,
-            hiddenY[i],
-            depthColor,
-            pixelOffset
-          );
+        switch (renderMode) {
+          case "frame":
+            let terrainColor = terrain.terrainShading(plx, ply /*, z*/);
+            terrainColor = this.applyFog(terrainColor, depth);
+            this._frameBuffer.drawVerticalLine(
+              i,
+              heightonscreen,
+              hiddenY[i],
+              terrainColor,
+              pixelOffset
+            );
+            break;
+          case "depth":
+            const depthColor = makeColor(
+              255 * depth,
+              255 * depth,
+              255 * depth,
+              255
+            );
+            this._depthBuffer.drawVerticalLine(
+              i,
+              heightonscreen,
+              hiddenY[i],
+              depthColor,
+              pixelOffset
+            );
+            break;
+          default:
+            break;
+        }
 
         if (heightonscreen < hiddenY[i]) hiddenY[i] = heightonscreen;
 
@@ -104,7 +131,7 @@ class Renderer {
 
   render(terrain, renderMode) {
     this.drawBackground(renderMode);
-    this.renderTerrain(terrain);
+    this.renderTerrain(terrain, renderMode);
     this.writeToContext(renderMode);
   }
 }

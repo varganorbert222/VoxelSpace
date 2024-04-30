@@ -48,31 +48,9 @@ class Terrain {
     return z - this.getTerrainHeight(x, y);
   }
 
-  applyFog(color, skyColor, depth) {
-    let ca = (color >> 24) & 0xff;
-    let cr = (color >> 16) & 0xff;
-    let cg = (color >> 8) & 0xff;
-    let cb = color & 0xff;
-
-    let sa = (skyColor >>> 24) & 0xff;
-    let sr = (skyColor >>> 16) & 0xff;
-    let sg = (skyColor >>> 8) & 0xff;
-    let sb = skyColor & 0xff;
-
-    const p = depth / camera.farClip;
-
-    ca = ca + (sa - ca) * p;
-    cr = cr + (sr - cr) * p;
-    cg = cg + (sg - cg) * p;
-    cb = cb + (sb - cb) * p;
-
-    return (ca << 24) | (cr << 16) | (cg << 8) | cb;
-  }
-
   terrainShading(x, y) {
     const mapOffset = this.getMapOffset(x, y);
     let terrainColor = this._colorMap[mapOffset];
-    // terrainColor = this.applyFog(terrainColor, screenData.backgroundcolor, depth);
     return terrainColor;
   }
 
