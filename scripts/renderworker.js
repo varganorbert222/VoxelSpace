@@ -1,5 +1,22 @@
 "use strict";
 
+import { makeColor, unpackColor } from "./color.js";
+import { invLerp } from "./utils.js";
+
+function calculateFog(color, depth) {
+  const skyColor = 0xffffe2b3;
+
+  let c = unpackColor(color);
+  let s = unpackColor(skyColor);
+
+  const cr = c.r + (s.r - c.r) * depth;
+  const cg = c.g + (s.g - c.g) * depth;
+  const cb = c.b + (s.b - c.b) * depth;
+  const ca = c.a + (s.a - c.a) * depth;
+
+  return makeColor(cr, cg, cb, ca);
+}
+
 function renderTerrain({ camera, frameBuffer, terrain, renderMode, applyFog }) {
   const nearClip = camera.nearClip;
   const farClip = camera.farClip;
@@ -42,7 +59,7 @@ function renderTerrain({ camera, frameBuffer, terrain, renderMode, applyFog }) {
           let terrainColor = terrain.getTerrainColor(plx, ply /*, z*/);
 
           if (applyFog) {
-            terrainColor = this.calculateFog(terrainColor, depth);
+            terrainColor = calculateFog(terrainColor, depth);
           }
 
           frameBuffer.drawVerticalLine(
