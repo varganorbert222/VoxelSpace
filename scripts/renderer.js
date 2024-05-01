@@ -1,6 +1,7 @@
 "use strict";
 
 import { makeColor, unpackColor } from "./color.js";
+import Threading from "./threading.js";
 import { invLerp } from "./utils.js";
 
 class Renderer {
@@ -12,42 +13,26 @@ class Renderer {
     this._applyFog = value;
   }
 
-  constructor(camera, frameBuffer, depthBuffer) {
+  constructor(camera, frameBuffer) {
     this._camera = camera;
     this._frameBuffer = frameBuffer;
-    this._depthBuffer = depthBuffer;
     this._applyFog = true;
+    this._workers = [];
   }
 
-  drawBackground(renderMode) {
-    switch (renderMode) {
-      case "frame":
-        this._frameBuffer.drawBackground();
-        break;
-      case "depth":
-        this._depthBuffer.drawBackground();
-        break;
-      default:
-        break;
+  drawBackground(renderMode, backgroundColor) {
+    if (renderMode === "frame") {
+      this._frameBuffer.drawBackground(backgroundColor);
+    } else if (renderMode === "depth") {
+      this._frameBuffer.drawBackground(0xff000000);
     }
   }
 
-  writeToContext(renderMode) {
-    switch (renderMode) {
-      case "frame":
-        this._frameBuffer.writeToContext();
-        break;
-      case "depth":
-        this._depthBuffer.writeToContext();
-        break;
-      default:
-        break;
-    }
+  writeToContext() {
+    this._frameBuffer.writeToContext();
   }
 
-  calculateFog(color, depth) {
-    const skyColor = 0xffffe2b3;
-
+  calculateFog(color, depth, skyColor) {
     let c = unpackColor(color);
     let s = unpackColor(skyColor);
 
@@ -95,41 +80,25 @@ class Renderer {
         const terrainSDF = terrain.getTerrainSDF(plx, ply, cameraPosZ);
         const heightonscreen = this._camera.projectToScreen(terrainSDF, z) | 0;
         const depth = invLerp(nearClip, farClip, z);
+        let plotColor = 0xff000000;
 
-        switch (renderMode) {
-          case "frame":
-            let terrainColor = terrain.getTerrainColor(plx, ply /*, z*/);
+        if (renderMode === "frame") {
+          plotColor = terrain.getTerrainColor(plx, ply /*, z*/);
 
-            if (this._applyFog) {
-              terrainColor = this.calculateFog(terrainColor, depth);
-            }
-
-            this._frameBuffer.drawVerticalLine(
-              i,
-              heightonscreen,
-              hiddenY[i],
-              terrainColor,
-              pixelOffset
-            );
-            break;
-          case "depth":
-            const depthColor = makeColor(
-              255 * depth,
-              255 * depth,
-              255 * depth,
-              255
-            );
-            this._depthBuffer.drawVerticalLine(
-              i,
-              heightonscreen,
-              hiddenY[i],
-              depthColor,
-              pixelOffset
-            );
-            break;
-          default:
-            break;
+          if (this._applyFog) {
+            plotColor = this.calculateFog(plotColor, depth, terrain.skyColor); // itt baj van a skycolorral, mert brutálisan lelassul a program (lehet nem jó a konverzió)
+          }
+        } else if (renderMode === "depth") {
+          plotColor = makeColor(255 * depth, 255 * depth, 255 * depth, 255);
         }
+
+        this._frameBuffer.drawVerticalLine(
+          i,
+          heightonscreen,
+          hiddenY[i],
+          plotColor,
+          pixelOffset
+        );
 
         if (heightonscreen < hiddenY[i]) hiddenY[i] = heightonscreen;
 
@@ -142,10 +111,33 @@ class Renderer {
     }
   }
 
+  renderTerrainWithWorkers(terrain, renderMode, numberOfCores) {
+    if (this._workers.length === 0) {
+      for (let index = 0; index < Threading.numberOfCores; index++) {
+        const worker = new Worker("./renderworker.js");
+        worker.onmessage = (e) => {};
+        this._workers.push(worker);
+      }
+    }
+
+    for (let index = 0; index < Threading.numberOfCores; index++) {
+      this._workers[index].postMessage({
+        camera: this._camera,
+        frameBuffer: this._frameBuffer,
+        terrain: terrain,
+        renderMode: renderMode,
+        applyFog: this._applyFog,
+        workerIndex: index,
+        totalWorkers: Threading.numberOfCores,
+      });
+    }
+  }
+
   render(terrain, renderMode) {
-    this.drawBackground(renderMode);
+    this.drawBackground(renderMode, terrain.skyColor);
     this.renderTerrain(terrain, renderMode);
-    this.writeToContext(renderMode);
+    // this.renderTerrainWithWorkers(terrain, renderMode, Threading.numberOfCores);
+    this.writeToContext();
   }
 }
 

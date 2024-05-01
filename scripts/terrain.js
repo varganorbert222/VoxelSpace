@@ -1,5 +1,7 @@
 "use strict";
 
+import { hexToColor } from "./color.js";
+
 class Terrain {
   get width() {
     return this._width;
@@ -13,6 +15,10 @@ class Terrain {
     return this._altitude;
   }
 
+  get skyColor() {
+    return this._skyColor;
+  }
+
   constructor() {
     this._width = 1024;
     this._height = 1024;
@@ -20,7 +26,7 @@ class Terrain {
     this._shift = 10; // power of two: 2^10 = 1024
     this._heightMap = new Uint8Array(1024 * 1024); // 1024 * 1024 byte array with height information
     this._colorMap = new Uint32Array(1024 * 1024); // 1024 * 1024 int array with RGB colors
-
+    this._skyColor = 0xffffffff;
     for (let i = 0; i < this._width * this._height; i++) {
       this._colorMap[i] = 0xff007050;
       this._heightMap[i] = 0;
@@ -58,6 +64,7 @@ class Terrain {
     this._width = mapData.width;
     this._height = mapData.height;
     this._altitude = mapData.altitude;
+    this._skyColor = hexToColor(mapData.skyColor);
 
     for (let i = 0; i < this._width * this._height; i++) {
       this._colorMap[i] =

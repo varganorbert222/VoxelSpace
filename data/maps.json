@@ -5,7 +5,8 @@
     "heightMap": "C1M3_D",
     "width": 1024,
     "height": 1024,
-    "altitude": 96
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
   },
   {
     "name": "C2M3",
@@ -13,7 +14,8 @@
     "heightMap": "C2M3_D",
     "width": 1024,
     "height": 1024,
-    "altitude": 96
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
   },
   {
     "name": "C4M3",
@@ -21,6 +23,7 @@
     "heightMap": "C4M3_D",
     "width": 1024,
     "height": 1024,
-    "altitude": 96
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
   }
 ]

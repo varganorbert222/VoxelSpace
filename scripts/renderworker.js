@@ -2,6 +2,7 @@
 
 import { makeColor, unpackColor } from "./color.js";
 import { invLerp } from "./utils.js";
+import VMath from "./vmath.js";
 
 function calculateFog(color, depth) {
   const skyColor = 0xffffe2b3;
@@ -17,17 +18,53 @@ function calculateFog(color, depth) {
   return makeColor(cr, cg, cb, ca);
 }
 
-function renderTerrain({ camera, frameBuffer, terrain, renderMode, applyFog }) {
-  const nearClip = camera.nearClip;
-  const farClip = camera.farClip;
-  const pixelOffset = camera.pixelOffset;
+function calculateIndexes(width, workerIndex, totalWorkers) {
+  const slice = width / totalWorkers;
+  const startIndex = slice * workerIndex;
+  const endIndex = startIndex + slice;
+  return {
+    slice: slice,
+    startIndex: startIndex,
+    endIndex: endIndex,
+  };
+}
+
+function projectToScreen(y, z, width, horizon, renderScale) {
+  const dstToProjPlane =
+    (width * 0.5) / Math.tan(VMath.degToRad(this._fov * 0.5));
+  const projected = (y / z) * dstToProjPlane;
+  const scaledHorizon = horizon * renderScale;
+  const drawHeight = Math.floor(projected + scaledHorizon);
+
+  return drawHeight;
+}
+
+function renderTerrain({
+  camera,
+  terrain,
+  renderMode,
+  applyFog,
+  workerIndex,
+  totalWorkers,
+}) {
+  const cameraNearClip = camera.nearClip;
+  const cameraFarClip = camera.farClip;
+  const cameraPixelOffset = camera.pixelOffset;
   const cameraPosX = camera.posX;
   const cameraPosY = camera.posY;
   const cameraPosZ = camera.posZ;
-  let step = camera.minDeltaZ;
+  const cameraScreenWidth = camera.screenWidth;
+  const cameraScreenHeight = camera.screenHeight;
+  const cameraHorizon = camera.horizon;
+  const indexes = calculateIndexes(screenWidth, workerIndex, totalWorkers);
+  const screenWidth = indexes.endIndex;
+  const screenHeight = cameraScreenHeight;
+  let cameraDeltaZ = camera.minDeltaZ;
 
-  const screenWidth = frameBuffer.canvas.width;
-  const screenHeight = frameBuffer.canvas.height;
+  const frameBuffer = new Uint32Array(new ArrayBuffer(
+    screenWidth * screenHeight * 4
+  ));
+
   const sinang = Math.sin(camera.angle);
   const cosang = Math.cos(camera.angle);
 
@@ -37,22 +74,27 @@ function renderTerrain({ camera, frameBuffer, terrain, renderMode, applyFog }) {
   }
 
   // Draw from front to back
-  for (let z = nearClip; z < farClip; z += step) {
+  for (let z = cameraNearClip; z < cameraFarClip; z += cameraDeltaZ) {
     // 90 degree field of view (TODO: variable fov)
     let plx = -cosang * z - sinang * z;
     let ply = sinang * z - cosang * z;
     let prx = cosang * z - sinang * z;
     let pry = -sinang * z - cosang * z;
 
-    const dx = (prx - plx) / screenWidth;
-    const dy = (pry - ply) / screenWidth;
+    const dx = (prx - plx) / cameraScreenWidth;
+    const dy = (pry - ply) / cameraScreenWidth;
     plx += cameraPosX;
     ply += cameraPosY;
 
-    for (let i = 0; (i < screenWidth) | 0; i += pixelOffset) {
+    for (
+      let i = 0;
+      (i < indexes.slice) | 0;
+      i += cameraPixelOffset
+    ) {
       const terrainSDF = terrain.getTerrainSDF(plx, ply, cameraPosZ);
-      const heightonscreen = camera.projectToScreen(terrainSDF, z) | 0;
-      const depth = invLerp(nearClip, farClip, z);
+      const heightonscreen =
+        projectToScreen(terrainSDF, z, cameraScreenWidth, cameraHorizon) | 0;
+      const depth = invLerp(cameraNearClip, cameraFarClip, z);
 
       switch (renderMode) {
         case "frame":
@@ -67,7 +109,7 @@ function renderTerrain({ camera, frameBuffer, terrain, renderMode, applyFog }) {
             heightonscreen,
             hiddenY[i],
             terrainColor,
-            pixelOffset
+            cameraPixelOffset
           );
           break;
         case "depth":
@@ -77,12 +119,12 @@ function renderTerrain({ camera, frameBuffer, terrain, renderMode, applyFog }) {
             255 * depth,
             255
           );
-          depthBuffer.drawVerticalLine(
+          frameBuffer.drawVerticalLine(
             i,
             heightonscreen,
             hiddenY[i],
             depthColor,
-            pixelOffset
+            cameraPixelOffset
           );
           break;
         default:
@@ -91,17 +133,22 @@ function renderTerrain({ camera, frameBuffer, terrain, renderMode, applyFog }) {
 
       if (heightonscreen < hiddenY[i]) hiddenY[i] = heightonscreen;
 
-      plx += dx * pixelOffset;
-      ply += dy * pixelOffset;
+      plx += dx * cameraPixelOffset;
+      ply += dy * cameraPixelOffset;
     }
 
-    // step += 0.005; // implement LOD (lerp or similar)
-    step *= 1.005;
+    // cameraDeltaZ += 0.005; // implement LOD (lerp or similar)
+    cameraDeltaZ *= 1.005;
+  }
+
+  return {
+    frameBuffer: frameBuffer,
+    startIndex: indexes.startIndex,
+    endIndex: indexes.endIndex
   }
 }
 
 onmessage = (e) => {
-  const workerResult = {};
-  renderTerrain(e.data[0]);
+  const workerResult = renderTerrain(e.data);
   postMessage(workerResult);
 };

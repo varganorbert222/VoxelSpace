@@ -3,8 +3,7 @@
 import FrameBuffer from "./framebuffer.js";
 import Renderer from "./renderer.js";
 import Time from "./time.js";
-
-const DEG_TO_RAD = 0.01745329;
+import VMath from "./vmath.js";
 
 class Camera {
   get nearClip() {
@@ -59,16 +58,15 @@ class Camera {
     this._renderScale = settings.renderScale ?? 0.5;
     this._pixelOffset = settings.pixelOffset ?? 2;
     this._fov = settings.fov ?? 90.0;
-    this._frameBuffer = new FrameBuffer(0xffffe2b3);
-    this._depthBuffer = new FrameBuffer(0xff000000);
-    this._renderer = new Renderer(this, this._frameBuffer, this._depthBuffer);
+    this._frameBuffer = new FrameBuffer();
+    this._renderer = new Renderer(this, this._frameBuffer);
   }
 
   // ProjectToViewport?
   projectToScreen(y, z) {
     const dstToProjPlane =
       (this._frameBuffer.canvas.width * 0.5) /
-      Math.tan(this._fov * 0.5 * DEG_TO_RAD);
+      Math.tan(VMath.degToRad(this._fov * 0.5));
     const terrainProjectedHeight = (y / z) * dstToProjPlane;
     const scaledHorizon = this._horizon * this._renderScale;
     const drawHeight = Math.floor(terrainProjectedHeight + scaledHorizon);
@@ -89,12 +87,6 @@ class Camera {
 
   resize(canvas, width, height) {
     this._frameBuffer.set({
-      canvas: canvas,
-      width: width,
-      height: height,
-      renderScale: this._renderScale,
-    });
-    this._depthBuffer.set({
       canvas: canvas,
       width: width,
       height: height,

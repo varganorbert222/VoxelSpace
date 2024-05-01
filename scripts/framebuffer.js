@@ -17,13 +17,11 @@ class FrameBuffer {
     this._colorBuffer = null; // color data
     this._buffer8bit = null; // the same array but with bytes
     this._buffer32bit = null; // the same array but with 32-Bit words
-
-    this._backgroundcolor = backgroundColor; // ABGR (alpha, blue, green, red) 32-bit color
   }
 
-  drawBackground() {
+  drawBackground(backgroundColor) {
     const buf32 = this._buffer32bit;
-    const color = this._backgroundcolor | 0;
+    const color = backgroundColor | 0;
     for (let i = 0; i < buf32.length; i++) {
       buf32[i] = color | 0;
     }
