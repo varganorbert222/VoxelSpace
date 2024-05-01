@@ -1,8 +1,98 @@
 [
   {
+    "name": "C0M1",
+    "colorMap": "C0M1_C",
+    "heightMap": "C0M1_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C0M5",
+    "colorMap": "C0M5_C",
+    "heightMap": "C0M5_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C0M6",
+    "colorMap": "C0M6_C",
+    "heightMap": "C0M6_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C0M8",
+    "colorMap": "C0M8_C",
+    "heightMap": "C0M8_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C1M1",
+    "colorMap": "C1M1_C",
+    "heightMap": "C1M1_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C1M2",
+    "colorMap": "C1M2_C",
+    "heightMap": "C1M2_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
     "name": "C1M3",
     "colorMap": "C1M3_C",
     "heightMap": "C1M3_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C1M4",
+    "colorMap": "C1M4_C",
+    "heightMap": "C1M4_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C1M5",
+    "colorMap": "C1M5_C",
+    "heightMap": "C1M5_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C2M1",
+    "colorMap": "C2M1_C",
+    "heightMap": "C2M1_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C2M2",
+    "colorMap": "C2M2_C",
+    "heightMap": "C2M2_D",
     "width": 1024,
     "height": 1024,
     "altitude": 96,
@@ -18,9 +108,504 @@
     "skyColor": "#9FE9FC"
   },
   {
+    "name": "C2M4",
+    "colorMap": "C2M4_C",
+    "heightMap": "C2M4_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C2M5",
+    "colorMap": "C2M5_C",
+    "heightMap": "C2M5_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C2M6",
+    "colorMap": "C2M6_C",
+    "heightMap": "C2M6_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C2M7",
+    "colorMap": "C2M7_C",
+    "heightMap": "C2M7_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C2M8",
+    "colorMap": "C2M8_C",
+    "heightMap": "C2M8_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C3M1",
+    "colorMap": "C3M1_C",
+    "heightMap": "C3M1_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C3M2",
+    "colorMap": "C3M2_C",
+    "heightMap": "C3M2_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C3M3",
+    "colorMap": "C3M3_C",
+    "heightMap": "C3M3_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C3M4",
+    "colorMap": "C3M4_C",
+    "heightMap": "C3M4_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C3M5",
+    "colorMap": "C3M5_C",
+    "heightMap": "C3M5_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C3M6",
+    "colorMap": "C3M6_C",
+    "heightMap": "C3M6_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C3M7",
+    "colorMap": "C3M7_C",
+    "heightMap": "C3M7_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C3M8",
+    "colorMap": "C3M8_C",
+    "heightMap": "C3M8_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C4M1",
+    "colorMap": "C4M1_C",
+    "heightMap": "C4M1_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C4M2",
+    "colorMap": "C4M2_C",
+    "heightMap": "C4M2_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
     "name": "C4M3",
     "colorMap": "C4M3_C",
     "heightMap": "C4M3_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C4M4",
+    "colorMap": "C4M4_C",
+    "heightMap": "C4M4_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C4M5",
+    "colorMap": "C4M5_C",
+    "heightMap": "C4M5_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C4M6",
+    "colorMap": "C4M6_C",
+    "heightMap": "C4M6_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C4M7",
+    "colorMap": "C4M7_C",
+    "heightMap": "C4M7_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C4M8",
+    "colorMap": "C4M8_C",
+    "heightMap": "C4M8_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C5M1",
+    "colorMap": "C5M1_C",
+    "heightMap": "C5M1_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C5M2",
+    "colorMap": "C5M2_C",
+    "heightMap": "C5M2_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C5M3",
+    "colorMap": "C5M3_C",
+    "heightMap": "C5M3_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C5M4",
+    "colorMap": "C5M4_C",
+    "heightMap": "C5M4_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C5M5",
+    "colorMap": "C5M5_C",
+    "heightMap": "C5M5_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C5M6",
+    "colorMap": "C5M6_C",
+    "heightMap": "C5M6_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C5M7",
+    "colorMap": "C5M7_C",
+    "heightMap": "C5M7_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C5M8",
+    "colorMap": "C5M8_C",
+    "heightMap": "C5M8_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C6M1",
+    "colorMap": "C6M1_C",
+    "heightMap": "C6M1_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C6M2",
+    "colorMap": "C6M2_C",
+    "heightMap": "C6M2_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C6M5",
+    "colorMap": "C6M5_C",
+    "heightMap": "C6M5_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C6M6",
+    "colorMap": "C6M6_C",
+    "heightMap": "C6M6_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C6M8",
+    "colorMap": "C6M8_C",
+    "heightMap": "C6M8_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C7M1",
+    "colorMap": "C7M1_C",
+    "heightMap": "C7M1_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C7M3",
+    "colorMap": "C7M3_C",
+    "heightMap": "C7M3_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C7M4",
+    "colorMap": "C7M4_C",
+    "heightMap": "C7M4_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C7M6",
+    "colorMap": "C7M6_C",
+    "heightMap": "C7M6_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C7M7",
+    "colorMap": "C7M7_C",
+    "heightMap": "C7M7_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C7M8",
+    "colorMap": "C7M8_C",
+    "heightMap": "C7M8_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C8M1",
+    "colorMap": "C8M1_C",
+    "heightMap": "C8M1_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C8M2",
+    "colorMap": "C8M2_C",
+    "heightMap": "C8M2_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C8M3",
+    "colorMap": "C8M3_C",
+    "heightMap": "C8M3_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C8M4",
+    "colorMap": "C8M4_C",
+    "heightMap": "C8M4_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C8M5",
+    "colorMap": "C8M5_C",
+    "heightMap": "C8M5_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C9M2",
+    "colorMap": "C9M2_C",
+    "heightMap": "C9M2_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C9M3",
+    "colorMap": "C9M3_C",
+    "heightMap": "C9M3_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C9M4",
+    "colorMap": "C9M4_C",
+    "heightMap": "C9M4_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C9M5",
+    "colorMap": "C9M5_C",
+    "heightMap": "C9M5_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C9M6",
+    "colorMap": "C9M6_C",
+    "heightMap": "C9M6_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C9M7",
+    "colorMap": "C9M7_C",
+    "heightMap": "C9M7_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "C9M8",
+    "colorMap": "C9M8_C",
+    "heightMap": "C9M8_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "MP01",
+    "colorMap": "MP01_C",
+    "heightMap": "MP01_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "MP02",
+    "colorMap": "MP02_C",
+    "heightMap": "MP02_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "MP03",
+    "colorMap": "MP03_C",
+    "heightMap": "MP03_D",
+    "width": 1024,
+    "height": 1024,
+    "altitude": 96,
+    "skyColor": "#9FE9FC"
+  },
+  {
+    "name": "MP04",
+    "colorMap": "MP04_C",
+    "heightMap": "MP04_D",
     "width": 1024,
     "height": 1024,
     "altitude": 96,
