@@ -49,6 +49,11 @@ function processFileContent(content) {
     detailShadowMap = detailShadowMap[0].substring(0, detailShadowMap[0].search('.PCX'));
     detailShadowMap = normalizeStr(detailShadowMap);
   }
+  let terrainHeight = /.*;TERRAIN SCALE/.exec(upperContent);
+  if (terrainHeight) {
+    terrainHeight = terrainHeight[0].substring(0, terrainHeight[0].search(';')).trim();
+    terrainHeight = { 19: 192, 20: 384, 21: 768 }[terrainHeight] * 0.3048; // feet to meter
+  }
   let terrainCamo = /.*;TERRAIN CAMMO/.exec(upperContent);
   if (terrainCamo) {
     terrainCamo = terrainCamo[0].substring(0, terrainCamo[0].search(';')).trim();
@@ -73,7 +78,7 @@ function processFileContent(content) {
     terrainCamo: terrainCamo,
     width: 1024,
     height: 1024,
-    altitude: 96,
+    altitude: terrainHeight,
     skyColor: skyColor
   }
 }

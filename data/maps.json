@@ -10,8 +10,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FFBE5C"
+    "altitude": 117.04320000000001,
+    "skyColor": "#CDE2EE"
   },
   {
     "name": "C0M2",
@@ -24,8 +24,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FFE782"
+    "altitude": 117.04320000000001,
+    "skyColor": "#FFBE5C"
   },
   {
     "name": "C0M3",
@@ -38,8 +38,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#E4EDF2"
+    "altitude": 117.04320000000001,
+    "skyColor": "#FFA9F1"
   },
   {
     "name": "C0M4",
@@ -52,8 +52,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#92D2F9"
+    "altitude": 117.04320000000001,
+    "skyColor": "#E4EDF2"
   },
   {
     "name": "C0M5",
@@ -66,8 +66,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#A8DAF9"
+    "altitude": 117.04320000000001,
+    "skyColor": "#E4EDF2"
   },
   {
     "name": "C0M6",
@@ -80,8 +80,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FFA9F1"
+    "altitude": 58.52160000000001,
+    "skyColor": "#BBDCF0"
   },
   {
     "name": "C0M7",
@@ -94,8 +94,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FCFDB5"
+    "altitude": 58.52160000000001,
+    "skyColor": "#92D2F9"
   },
   {
     "name": "C0M8",
@@ -108,7 +108,7 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
+    "altitude": 117.04320000000001,
     "skyColor": "#E4EDF2"
   },
   {
@@ -122,8 +122,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#BBDCF0"
+    "altitude": 117.04320000000001,
+    "skyColor": "#E4EDF2"
   },
   {
     "name": "C1M1",
@@ -136,8 +136,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FCFDB5"
+    "altitude": 117.04320000000001,
+    "skyColor": "#92D2F9"
   },
   {
     "name": "C1M2",
@@ -150,8 +150,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#E4EDF2"
+    "altitude": 58.52160000000001,
+    "skyColor": "#FCFDB5"
   },
   {
     "name": "C1M2",
@@ -164,8 +164,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#DAE1F1"
+    "altitude": 117.04320000000001,
+    "skyColor": "#3D5D82"
   },
   {
     "name": "C1M4",
@@ -178,8 +178,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "ALTITUDE": 96,
-    "skyColor": "#AFB8CE"
+    "altitude": 117.04320000000001,
+    "skyColor": "#92D2F9"
   },
   {
     "name": "C1M5",
@@ -192,7 +192,7 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
+    "altitude": 117.04320000000001,
     "skyColor": "#718EBB"
   },
   {
@@ -206,8 +206,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#CDE2EE"
+    "altitude": 117.04320000000001,
+    "skyColor": "#92D2F9"
   },
   {
     "name": "C2M0",
@@ -220,8 +220,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#3D5D82"
+    "altitude": 117.04320000000001,
+    "skyColor": "#92D2F9"
   },
   {
     "name": "C2M1",
@@ -234,8 +234,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FCFDB5"
+    "altitude": 117.04320000000001,
+    "skyColor": "#FFE782"
   },
   {
     "name": "C2M2",
@@ -248,7 +248,7 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
+    "altitude": 117.04320000000001,
     "skyColor": "#FFBE5C"
   },
   {
@@ -262,8 +262,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FCFDB5"
+    "altitude": 117.04320000000001,
+    "skyColor": "#FFA9F1"
   },
   {
     "name": "C2M4",
@@ -276,8 +276,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#BBDCF0"
+    "altitude": 58.52160000000001,
+    "skyColor": "#E4EDF2"
   },
   {
     "name": "C2M5",
@@ -290,8 +290,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#E4EDF2"
+    "altitude": 117.04320000000001,
+    "skyColor": "#FFBE5C"
   },
   {
     "name": "C2M6",
@@ -304,8 +304,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#E4EDF2"
+    "altitude": 117.04320000000001,
+    "skyColor": "#92D2F9"
   },
   {
     "name": "C2M7",
@@ -318,8 +318,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#7ADBF0"
+    "altitude": 117.04320000000001,
+    "skyColor": "#A8DAF9"
   },
   {
     "name": "C2M8",
@@ -332,8 +332,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#A8DAF9"
+    "altitude": 117.04320000000001,
+    "skyColor": "#CDE2EE"
   },
   {
     "name": "C2M8",
@@ -346,8 +346,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FCFDB5"
+    "altitude": 117.04320000000001,
+    "skyColor": "#FFE782"
   },
   {
     "name": "C3M0",
@@ -360,8 +360,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#728EAE"
+    "altitude": 117.04320000000001,
+    "skyColor": "#92D2F9"
   },
   {
     "name": "C3M3",
@@ -374,8 +374,8 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#BE89AF"
+    "altitude": 117.04320000000001,
+    "skyColor": "#D89374"
   },
   {
     "name": "C3M2",
@@ -388,8 +388,8 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#BE89AF"
+    "altitude": 117.04320000000001,
+    "skyColor": "#DAE1F1"
   },
   {
     "name": "C3M4",
@@ -402,8 +402,8 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#BE89AF"
+    "altitude": 117.04320000000001,
+    "skyColor": "#9AD3DE"
   },
   {
     "name": "C3M4",
@@ -416,8 +416,8 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#718EBB"
+    "altitude": 117.04320000000001,
+    "skyColor": "#728EAE"
   },
   {
     "name": "C3M5",
@@ -430,7 +430,7 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
+    "altitude": 117.04320000000001,
     "skyColor": "#3D5D82"
   },
   {
@@ -444,8 +444,8 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#AFB8CE"
+    "altitude": 117.04320000000001,
+    "skyColor": "#3D5D82"
   },
   {
     "name": "C3M7",
@@ -458,8 +458,8 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#DAE1F1"
+    "altitude": 234.08640000000003,
+    "skyColor": "#AFB8CE"
   },
   {
     "name": "C3M8",
@@ -472,8 +472,8 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#AFB8CE"
+    "altitude": 117.04320000000001,
+    "skyColor": "#E3E3E3"
   },
   {
     "name": "C4M0",
@@ -486,7 +486,7 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
+    "altitude": 117.04320000000001,
     "skyColor": "#BE89AF"
   },
   {
@@ -500,8 +500,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#E4EDF2"
+    "altitude": 117.04320000000001,
+    "skyColor": "#92D2F9"
   },
   {
     "name": "C4M6",
@@ -514,8 +514,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#BBDCF0"
+    "altitude": 117.04320000000001,
+    "skyColor": "#E4EDF2"
   },
   {
     "name": "C4M4",
@@ -528,8 +528,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#92D2F9"
+    "altitude": 117.04320000000001,
+    "skyColor": "#A8DAF9"
   },
   {
     "name": "C4M4",
@@ -542,8 +542,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FFA9F1"
+    "altitude": 117.04320000000001,
+    "skyColor": "#CDE2EE"
   },
   {
     "name": "C4M5",
@@ -556,8 +556,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#BBDCF0"
+    "altitude": 117.04320000000001,
+    "skyColor": "#FFBE5C"
   },
   {
     "name": "C4M2",
@@ -570,8 +570,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#A8DAF9"
+    "altitude": 117.04320000000001,
+    "skyColor": "#FFE782"
   },
   {
     "name": "C4M7",
@@ -584,8 +584,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#CDE2EE"
+    "altitude": 117.04320000000001,
+    "skyColor": "#FFA9F1"
   },
   {
     "name": "C4M8",
@@ -598,8 +598,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#7ADBF0"
+    "altitude": 117.04320000000001,
+    "skyColor": "#FCFDB5"
   },
   {
     "name": "C5M0",
@@ -612,8 +612,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#728EAE"
+    "altitude": 117.04320000000001,
+    "skyColor": "#A8DAF9"
   },
   {
     "name": "C5M1",
@@ -626,8 +626,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#AFB8CE"
+    "altitude": 117.04320000000001,
+    "skyColor": "#DAE1F1"
   },
   {
     "name": "C5M2",
@@ -640,8 +640,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#92D2F9"
+    "altitude": 117.04320000000001,
+    "skyColor": "#DAE1F1"
   },
   {
     "name": "C5M3",
@@ -654,8 +654,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#AFB8CE"
+    "altitude": 117.04320000000001,
+    "skyColor": "#BBDCF0"
   },
   {
     "name": "C5M4",
@@ -668,8 +668,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#BBDCF0"
+    "altitude": 117.04320000000001,
+    "skyColor": "#E4EDF2"
   },
   {
     "name": "C5M5",
@@ -682,8 +682,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#A8DAF9"
+    "altitude": 117.04320000000001,
+    "skyColor": "#D89374"
   },
   {
     "name": "C5M6",
@@ -696,8 +696,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#728EAE"
+    "altitude": 117.04320000000001,
+    "skyColor": "#A8DAF9"
   },
   {
     "name": "C5M7",
@@ -710,7 +710,7 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
+    "altitude": 117.04320000000001,
     "skyColor": "#E4EDF2"
   },
   {
@@ -724,8 +724,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#E4EDF2"
+    "altitude": 117.04320000000001,
+    "skyColor": "#D89374"
   },
   {
     "name": "C6M0",
@@ -738,8 +738,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FFBE5C"
+    "altitude": 117.04320000000001,
+    "skyColor": "#E4EDF2"
   },
   {
     "name": "C6M1",
@@ -752,8 +752,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#E4EDF2"
+    "altitude": 117.04320000000001,
+    "skyColor": "#7ADBF0"
   },
   {
     "name": "C6M2",
@@ -766,7 +766,7 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
+    "altitude": 117.04320000000001,
     "skyColor": "#FFA9F1"
   },
   {
@@ -780,8 +780,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#92D2F9"
+    "altitude": 117.04320000000001,
+    "skyColor": "#CDE2EE"
   },
   {
     "name": "C6M2",
@@ -794,8 +794,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#E4EDF2"
+    "altitude": 117.04320000000001,
+    "skyColor": "#A8DAF9"
   },
   {
     "name": "C6M5",
@@ -808,8 +808,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#A8DAF9"
+    "altitude": 117.04320000000001,
+    "skyColor": "#92D2F9"
   },
   {
     "name": "C6M6",
@@ -822,8 +822,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FFBE5C"
+    "altitude": 117.04320000000001,
+    "skyColor": "#BBDCF0"
   },
   {
     "name": "C6M7",
@@ -836,8 +836,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FFBE5C"
+    "altitude": 117.04320000000001,
+    "skyColor": "#E4EDF2"
   },
   {
     "name": "C6M8",
@@ -850,7 +850,7 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
+    "altitude": 117.04320000000001,
     "skyColor": "#FCFDB5"
   },
   {
@@ -864,8 +864,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#92D2F9"
+    "altitude": 117.04320000000001,
+    "skyColor": "#CDE2EE"
   },
   {
     "name": "C7M2",
@@ -878,8 +878,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#BBDCF0"
+    "altitude": 117.04320000000001,
+    "skyColor": "#FFE782"
   },
   {
     "name": "C7M3",
@@ -892,8 +892,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FFA9F1"
+    "altitude": 117.04320000000001,
+    "skyColor": "#7ADBF0"
   },
   {
     "name": "C7M4",
@@ -906,8 +906,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#BBDCF0"
+    "altitude": 117.04320000000001,
+    "skyColor": "#E4EDF2"
   },
   {
     "name": "C7M5",
@@ -920,8 +920,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#A8DAF9"
+    "altitude": 117.04320000000001,
+    "skyColor": "#7ADBF0"
   },
   {
     "name": "C7M6",
@@ -934,8 +934,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FFE782"
+    "altitude": 58.52160000000001,
+    "skyColor": "#7ADBF0"
   },
   {
     "name": "C7M7",
@@ -948,8 +948,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#CDE2EE"
+    "altitude": 117.04320000000001,
+    "skyColor": "#92D2F9"
   },
   {
     "name": "C7M8",
@@ -962,8 +962,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#92D2F9"
+    "altitude": 117.04320000000001,
+    "skyColor": "#BBDCF0"
   },
   {
     "name": "C8M1",
@@ -976,8 +976,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#A8DAF9"
+    "altitude": 117.04320000000001,
+    "skyColor": "#CDE2EE"
   },
   {
     "name": "C8M2",
@@ -990,8 +990,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#A8DAF9"
+    "altitude": 117.04320000000001,
+    "skyColor": "#92D2F9"
   },
   {
     "name": "C8M3",
@@ -1004,8 +1004,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#A8DAF9"
+    "altitude": 117.04320000000001,
+    "skyColor": "#92D2F9"
   },
   {
     "name": "C8M4",
@@ -1018,8 +1018,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#E4EDF2"
+    "altitude": 117.04320000000001,
+    "skyColor": "#3D5D82"
   },
   {
     "name": "C8M2",
@@ -1032,7 +1032,7 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
+    "altitude": 117.04320000000001,
     "skyColor": "#CDE2EE"
   },
   {
@@ -1046,8 +1046,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#CDE2EE"
+    "altitude": 117.04320000000001,
+    "skyColor": "#BBDCF0"
   },
   {
     "name": "C8M7",
@@ -1060,8 +1060,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#D89374"
+    "altitude": 117.04320000000001,
+    "skyColor": "#E4EDF2"
   },
   {
     "name": "C8M8",
@@ -1074,8 +1074,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#CDE2EE"
+    "altitude": 117.04320000000001,
+    "skyColor": "#92D2F9"
   },
   {
     "name": "C9M1",
@@ -1088,8 +1088,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FFBE5C"
+    "altitude": 58.52160000000001,
+    "skyColor": "#92D2F9"
   },
   {
     "name": "C9M1",
@@ -1102,8 +1102,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FFA9F1"
+    "altitude": 58.52160000000001,
+    "skyColor": "#FFE782"
   },
   {
     "name": "C9M3",
@@ -1116,7 +1116,7 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
+    "altitude": 58.52160000000001,
     "skyColor": "#DAE1F1"
   },
   {
@@ -1130,8 +1130,8 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#718EBB"
+    "altitude": 117.04320000000001,
+    "skyColor": "#728EAE"
   },
   {
     "name": "SCUD",
@@ -1144,8 +1144,8 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#728EAE"
+    "altitude": 117.04320000000001,
+    "skyColor": "#D89374"
   },
   {
     "name": "C9M6",
@@ -1158,8 +1158,8 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#718EBB"
+    "altitude": 117.04320000000001,
+    "skyColor": "#D89374"
   },
   {
     "name": "C9M7",
@@ -1172,8 +1172,8 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#D89374"
+    "altitude": 58.52160000000001,
+    "skyColor": "#3D5D82"
   },
   {
     "name": "C9M8",
@@ -1186,7 +1186,7 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
+    "altitude": 58.52160000000001,
     "skyColor": "#D89374"
   },
   {
@@ -1200,8 +1200,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#D89374"
+    "altitude": 117.04320000000001,
+    "skyColor": "#728EAE"
   },
   {
     "name": "MP02",
@@ -1214,8 +1214,8 @@
     "terrainCamo": "DESERT",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#A8DAF9"
+    "altitude": 117.04320000000001,
+    "skyColor": "#D89374"
   },
   {
     "name": "MP03",
@@ -1228,8 +1228,8 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#9AD3DE"
+    "altitude": 117.04320000000001,
+    "skyColor": "#E3E3E3"
   },
   {
     "name": "MP04",
@@ -1242,8 +1242,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FFBE5C"
+    "altitude": 117.04320000000001,
+    "skyColor": "#7ADBF0"
   },
   {
     "name": "MP03",
@@ -1256,8 +1256,8 @@
     "terrainCamo": "SNOW",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#BE89AF"
+    "altitude": 117.04320000000001,
+    "skyColor": "#9AD3DE"
   },
   {
     "name": "MP06",
@@ -1270,8 +1270,8 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FFBE5C"
+    "altitude": 117.04320000000001,
+    "skyColor": "#FCFDB5"
   },
   {
     "name": "MP07",
@@ -1284,7 +1284,7 @@
     "terrainCamo": "GREEN",
     "width": 1024,
     "height": 1024,
-    "altitude": 96,
-    "skyColor": "#FFBE5C"
+    "altitude": 117.04320000000001,
+    "skyColor": "#CDE2EE"
   }
 ]
