@@ -86,7 +86,7 @@ class Renderer {
           plotColor = terrain.getTerrainColor(plx, ply /*, z*/);
 
           if (this._applyFog) {
-            plotColor = this.calculateFog(plotColor, depth, terrain.skyColor); // itt baj van a skycolorral, mert brutálisan lelassul a program (lehet nem jó a konverzió)
+            plotColor = this.calculateFog(plotColor, depth, terrain.skyColor);
           }
         } else if (renderMode === "depth") {
           plotColor = makeColor(255 * depth, 255 * depth, 255 * depth, 255);
