@@ -27,45 +27,29 @@
       | down, <b>Q|E</b> pitch,
       <br />
 
+      <label for="id_mapselector">Map</label>
       <select id="id_mapselector" title="Mapselector" name="Mapselector">
         <option value="">Please select map</option>
       </select>
 
       <label for="id_render_distance">Distance</label>
-      <input
-        id="id_render_distance"
-        type="range"
-        min="800"
-        max="8000"
-        step="1"
-      />
+      <input id="id_render_distance" type="range" />
 
       <label for="id_delta_z">Delta Z</label>
-      <input id="id_delta_z" type="range" min="0.1" max="2" step="0.1" />
+      <input id="id_delta_z" type="range" />
 
       <label for="id_render_scale">Render Scale</label>
-      <input id="id_render_scale" type="range" min="0.1" max="1" step="0.1" />
+      <input id="id_render_scale" type="range" />
 
+      <label for="id_pixel_offset">Pixel offset</label>
       <select
         id="id_pixel_offset"
         title="pixelOffset"
         name="pixelOffset"
-        value="2"
-      >
-        <option value="1">Pixel Offset 1</option>
-        <option value="2">Pixel Offset 2</option>
-        <option value="4">Pixel Offset 4</option>
-      </select>
+      ></select>
 
-      <select
-        id="id_render_mode"
-        title="renderMode"
-        name="renderMode"
-        value="frame"
-      >
-        <option value="frame">Frame buffer</option>
-        <option value="depth">Depth buffer</option>
-      </select>
+      <label for="id_render_mode">Render</label>
+      <select id="id_render_mode" title="renderMode" name="renderMode"></select>
 
       <label for="id_apply_fog">Apply fog</label>
       <input

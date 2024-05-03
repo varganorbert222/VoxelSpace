@@ -6,7 +6,6 @@ import Camera from "./camera.js";
 import Terrain from "./terrain.js";
 import Input from "./input.js";
 import Time from "./time.js";
-import Profiler from "./profiler.js";
 import { loadImagesAsync } from "./utils.js";
 
 let input;
@@ -57,56 +56,96 @@ function onResizeWindow() {
   );
 }
 
-function initMapSelection() {
-  const mapSelector = document.getElementById("id_mapselector");
-  mapSelector.value = maps[0].name;
-  while (mapSelector.firstChild) {
-    mapSelector.removeChild(mapSelector.firstChild);
-  }
-  maps.map((map, i) => {
-    let opt = document.createElement("option");
-    opt.value = map.name;
-    opt.innerHTML = map.name;
-    mapSelector.append(opt);
-  });
+function initRangeElement(id, config, value, onChange) {
+  const element = document.getElementById(id);
+  element.setAttribute("min", config.min);
+  element.setAttribute("max", config.max);
+  element.setAttribute("step", config.step);
+  element.value = value;
+  element.addEventListener("change", onChange);
+  return element;
+}
 
-  mapSelector.addEventListener("change", function (e) {
-    loadMap(e.target.value);
+function initOptionElement(id, config, value, onChange) {
+  const element = document.getElementById(id);
+  while (element.firstChild) {
+    element.removeChild(element.firstChild);
+  }
+  element.value = value;
+  config.values.forEach((v, i) => {
+    const option = document.createElement("option");
+    option.text = v;
+    option.value = v;
+    element.append(option);
   });
+  element.addEventListener("change", onChange);
+  return element;
+}
+
+function initCheckboxElement(id, value, onChange) {
+  const element = document.getElementById(id);
+  element.checked = value;
+  element.addEventListener("change", onChange);
+  return element;
 }
 
 function initSettings() {
-  const renderDistanceElement = document.getElementById("id_render_distance");
-  renderDistanceElement.value = camera.farClip;
-  renderDistanceElement.addEventListener("change", function (e) {
-    camera.set({ farClip: parseFloat(e.target.value) });
-  });
-  const renderScaleElement = document.getElementById("id_render_scale");
-  renderScaleElement.value = camera.renderScale;
-  renderScaleElement.addEventListener("change", function (e) {
-    camera.set({ renderScale: parseFloat(e.target.value) });
-    onResizeWindow();
-  });
-  const deltaZElement = document.getElementById("id_delta_z");
-  deltaZElement.value = camera.minDeltaZ;
-  deltaZElement.addEventListener("change", function (e) {
-    camera.set({ minDeltaZ: parseFloat(e.target.value) });
-  });
-  const pixelOffsetElement = document.getElementById("id_pixel_offset");
-  pixelOffsetElement.value = camera.pixelOffset;
-  pixelOffsetElement.addEventListener("change", function (e) {
-    camera.set({ pixelOffset: parseFloat(e.target.value) });
-  });
-  const renderModeElement = document.getElementById("id_render_mode");
-  renderModeElement.value = renderMode;
-  renderModeElement.addEventListener("change", function (e) {
-    renderMode = e.target.value;
-  });
-  const applyFogElement = document.getElementById("id_apply_fog");
-  applyFogElement.checked = camera.renderer.applyFog;
-  applyFogElement.addEventListener("change", function (e) {
-    camera.renderer.applyFog = e.target.checked;
-  });
+  const renderDistanceElement = initRangeElement(
+    "id_render_distance",
+    config.settings.renderDistance,
+    camera.farClip,
+    (e) => {
+      camera.set({ farClip: parseFloat(e.target.value) });
+    }
+  );
+  const renderScaleElement = initRangeElement(
+    "id_render_scale",
+    config.settings.renderScale,
+    camera.renderScale,
+    (e) => {
+      camera.set({ renderScale: parseFloat(e.target.value) });
+      onResizeWindow();
+    }
+  );
+  const deltaZElement = initRangeElement(
+    "id_delta_z",
+    config.settings.deltaZ,
+    camera.minDeltaZ,
+    (e) => {
+      camera.set({ minDeltaZ: parseFloat(e.target.value) });
+    }
+  );
+  const pixelOffsetElement = initOptionElement(
+    "id_pixel_offset",
+    config.settings.pixelOffset,
+    camera.pixelOffset,
+    (e) => {
+      camera.set({ pixelOffset: parseFloat(e.target.value) });
+    }
+  );
+  const renderModeElement = initOptionElement(
+    "id_render_mode",
+    config.settings.renderMode,
+    renderMode,
+    (e) => {
+      renderMode = e.target.value;
+    }
+  );
+  const applyFogElement = initCheckboxElement(
+    "id_apply_fog",
+    camera.renderer.applyFog,
+    (e) => {
+      camera.renderer.applyFog = e.target.checked;
+    }
+  );
+  const mapSelector = initOptionElement(
+    "id_mapselector",
+    { values: maps.map(m => m.name) },
+    maps[0].name,
+    (e) => {
+      loadMap(e.target.value);
+    }
+  );
 }
 
 function printFps() {
@@ -125,7 +164,6 @@ function init() {
   window.onresize = onResizeWindow;
   window.setInterval(printFps, 500);
 
-  initMapSelection();
   initSettings();
 
   loadMap(maps[0].name);
