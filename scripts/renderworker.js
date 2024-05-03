@@ -1,11 +1,11 @@
 "use strict";
 
-import { makeColor, unpackColor } from "./color.js";
+import { Color, makeColor, unpackColor } from "./color.js";
 import { invLerp } from "./utils.js";
 import VMath from "./vmath.js";
 
 function calculateFog(color, depth) {
-  const skyColor = 0xffffe2b3;
+  const skyColor = Color.WHITE;
 
   let c = unpackColor(color);
   let s = unpackColor(skyColor);

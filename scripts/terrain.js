@@ -1,6 +1,6 @@
 "use strict";
 
-import { hexToColor } from "./color.js";
+import { Color, hexToColor } from "./color.js";
 import { loadRGBAImageToArray, loadRImageToArray } from "./imageutil.js";
 
 class Terrain {
@@ -27,7 +27,7 @@ class Terrain {
     this._mapShift = 10; // power of two: 2^10 = 1024
     this._colorMap = new Uint32Array(this._width * this._height); // 1024 * 1024 int array with RGB colors
     this._heightMap = new Uint8Array(this._width * this._height); // 1024 * 1024 byte array with height information
-    this._skyColor = 0xffffffff;
+    this._skyColor = Color.WHITE;
   }
 
   getOffset(x, y, width, height, shift) {

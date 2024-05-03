@@ -1,6 +1,6 @@
 "use strict";
 
-import { makeColor, unpackColor } from "./color.js";
+import { Color, makeColor, unpackColor } from "./color.js";
 import Threading from "./threading.js";
 import VMath from "./vmath.js";
 
@@ -24,7 +24,7 @@ class Renderer {
     if (renderMode === "frame") {
       this._frameBuffer.drawBackground(backgroundColor);
     } else if (renderMode === "depth") {
-      this._frameBuffer.drawBackground(0xff000000);
+      this._frameBuffer.drawBackground(Color.BLACK);
     }
   }
 
@@ -80,7 +80,7 @@ class Renderer {
         const terrainSDF = terrain.getTerrainSDF(plx, ply, cameraPosZ);
         const heightonscreen = this._camera.projectToScreen(terrainSDF, z) | 0;
         const depth = VMath.invLerp(nearClip, farClip, z);
-        let plotColor = 0xff000000;
+        let plotColor = Color.BLACK;
 
         if (renderMode === "frame") {
           plotColor = terrain.getTerrainColor(plx, ply /*, z*/);
@@ -89,7 +89,7 @@ class Renderer {
             plotColor = this.calculateFog(plotColor, depth, skyColor);
           }
         } else if (renderMode === "depth") {
-          plotColor = makeColor(255 * depth, 255 * depth, 255 * depth, 255);
+          plotColor = makeColor(depth * 255, depth * 255, depth * 255, 255);
         }
 
         this._frameBuffer.drawVerticalLine(
@@ -113,14 +113,14 @@ class Renderer {
 
   renderTerrainWithWorkers(terrain, renderMode, numberOfCores) {
     if (this._workers.length === 0) {
-      for (let index = 0; index < Threading.numberOfCores; index++) {
+      for (let index = 0; index < numberOfCores; index++) {
         const worker = new Worker("./renderworker.js");
         worker.onmessage = (e) => {};
         this._workers.push(worker);
       }
     }
 
-    for (let index = 0; index < Threading.numberOfCores; index++) {
+    for (let index = 0; index < numberOfCores; index++) {
       this._workers[index].postMessage({
         camera: this._camera,
         frameBuffer: this._frameBuffer,
@@ -128,7 +128,7 @@ class Renderer {
         renderMode: renderMode,
         applyFog: this._applyFog,
         workerIndex: index,
-        totalWorkers: Threading.numberOfCores,
+        totalWorkers: numberOfCores,
       });
     }
   }

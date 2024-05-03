@@ -1,3 +1,25 @@
+class Color {
+  static get WHITE() {
+    return 0xFFFFFFFF;
+  }
+
+  static get BLACK() {
+    return 0xFF000000;
+  }
+
+  static get RED() {
+    return 0xFFFF0000;
+  }
+
+  static get GREEN() {
+    return 0xFF00FF00;
+  }
+
+  static get BLUE() {
+    return 0xFF0000FF;
+  }
+}
+
 function makeColor(r, g, b, a) {
   // 0-255 each component
   return (a << 24) | (r << 16) | (g << 8) | b;
@@ -31,4 +53,4 @@ function hexToColor(hex) {
   return makeColor(rgb.r, rgb.g, rgb.b, 255);
 }
 
-export { makeColor, unpackColor, hexToColor };
+export { makeColor, unpackColor, hexToColor, Color };

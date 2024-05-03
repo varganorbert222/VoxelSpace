@@ -5,7 +5,6 @@ import config from "../data/config.json" assert { type: "json" };
 import Camera from "./camera.js";
 import Terrain from "./terrain.js";
 import Input from "./input.js";
-import Time from "./time.js";
 import { loadImagesAsync } from "./imageutil.js";
 
 let input;
@@ -13,22 +12,13 @@ let camera;
 let terrain;
 let totalFrames = 0;
 let lastTimeForFps = 0;
-let elapsedTimeForDeltaTime = 0;
 let renderMode = "frame";
 
-function updateDeltaTime() {
-  const currentTime = new Date().getTime();
-  Time.deltaTime = currentTime - elapsedTimeForDeltaTime;
-  elapsedTimeForDeltaTime = currentTime;
-}
 
 function run() {
   camera.move(input, terrain);
   camera.render(terrain, renderMode);
-
   totalFrames++;
-  updateDeltaTime();
-
   window.requestAnimationFrame(run);
 }
 

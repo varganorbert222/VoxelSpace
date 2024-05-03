@@ -1,8 +1,13 @@
 "use strict";
 
 class VMath {
-  static DEG_TO_RAD = 0.01745329;
-  static FEET_TO_METER = 0.3048;
+  static get DEG_TO_RAD() {
+    return 0.01745329;
+  }
+  
+  static get FEET_TO_METER() {
+    return 0.3048;
+  }
 
   static degToRad(deg) {
     return deg * VMath.DEG_TO_RAD;
@@ -16,7 +21,7 @@ class VMath {
     return feet * VMath.FEET_TO_METER;
   }
 
-  static invLerp(from, to, value){
+  static invLerp(from, to, value) {
     return (value - from) / (to - from);
   }
 }
