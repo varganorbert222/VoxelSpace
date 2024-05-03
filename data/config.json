@@ -23,7 +23,6 @@
     }
   },
   "camera": {
-    "fov": 90.0,
     "nearClip": 0.001,
     "farClip": 2000.0,
     "pixelOffset": 1,

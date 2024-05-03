@@ -34,10 +34,6 @@ class Camera {
     return this._pixelOffset;
   }
 
-  get fov() {
-    return this._fov;
-  }
-
   get angle() {
     return this._angle;
   }
@@ -54,7 +50,7 @@ class Camera {
     this._posY = settings.posY ?? 0; // y position on the map
     this._posZ = settings.posZ ?? 100; // height of the camera
     this._angle = settings.angle ?? 0; // direction of the camera
-    this._horizon = settings.horizon ?? window.innerHeight / 2.0; // horizon position (look up and down)
+    this._pitch = settings.pitch ?? 0; // horizon position (look up and down)
     this._renderScale = settings.renderScale ?? 0.5;
     this._pixelOffset = settings.pixelOffset ?? 2;
     this._fov = settings.fov ?? 90.0;
@@ -62,15 +58,13 @@ class Camera {
     this._renderer = new Renderer(this, this._frameBuffer);
   }
 
-  // ProjectToViewport?
   projectToScreen(y, z) {
-    const dstToProjPlane =
-      (this._frameBuffer.canvas.width * 0.5) /
-      Math.tan(VMath.degToRad(this._fov * 0.5));
+    const screenWidth = this._frameBuffer.canvas.width;
+    const screenHeight = this._frameBuffer.canvas.height;
+    const dstToProjPlane = screenWidth * 0.5;
     const terrainProjectedHeight = (y / z) * dstToProjPlane;
-    const scaledHorizon = this._horizon * this._renderScale;
-    const drawHeight = Math.floor(terrainProjectedHeight + scaledHorizon);
-
+    const horizon = Math.tan(VMath.degToRad(-this._pitch)) * screenHeight + screenHeight * 0.5;
+    const drawHeight = Math.floor(terrainProjectedHeight + horizon);
     return drawHeight;
   }
 
@@ -108,12 +102,13 @@ class Camera {
       this._posZ += input.updown * Time.deltaTime * 0.03;
     }
     if (input.lookup) {
-      this._horizon += 2 * Time.deltaTime * 0.03;
+      this._pitch += 2 * Time.deltaTime * 0.03;
+      this._pitch = VMath.clamp(-30, 30, this._pitch);
     }
     if (input.lookdown) {
-      this._horizon -= 2 * Time.deltaTime * 0.03;
+      this._pitch -= 2 * Time.deltaTime * 0.03;
+      this._pitch = VMath.clamp(-30, 30, this._pitch);
     }
-
     // Collision detection. Don't fly below the surface.
     if (terrain.collide(this._posX, this._posY, this._posZ)) {
       this._posZ = terrain.getTerrainHeight(this._posX, this._posY) + 10;
