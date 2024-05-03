@@ -6,7 +6,7 @@ import Camera from "./camera.js";
 import Terrain from "./terrain.js";
 import Input from "./input.js";
 import Time from "./time.js";
-import { loadImagesAsync } from "./utils.js";
+import { loadImagesAsync } from "./imageutil.js";
 
 let input;
 let camera;
@@ -39,12 +39,14 @@ function loadMap(mapName) {
   loadImagesAsync(
     [
       `maps/color/${selectedMap.colorMap}.png`,
-      `maps/height/${selectedMap.heightMap}.png`,
-    ],
-    terrain.width,
-    terrain.height
+      `maps/height/${selectedMap.heightMap}.png`
+    ]
   ).then((images) => {
-    terrain.loadData(selectedMap, images[0], images[1]);
+    const mapImages = {
+      colorMap:  images[0],
+      heightMap: images[1]
+    };
+    terrain.loadData(selectedMap, mapImages);
   });
 }
 

@@ -29,26 +29,6 @@ function processFileContent(content) {
     heightMap = heightMap[0].substring(0, heightMap[0].search('.PCX'));
     heightMap = normalizeStr(heightMap);
   }
-  let splatMap = /.{4}_M[.]PCX.*CHARACTER MAP/.exec(upperContent);
-  if (splatMap) {
-    splatMap = splatMap[0].substring(0, splatMap[0].search('.PCX'));
-    splatMap = normalizeStr(splatMap);
-  }
-  let detailColorMap = /(.{4}_C|.*)[.]PCX.*CHARACTER COLOR/.exec(upperContent);
-  if (detailColorMap) {
-    detailColorMap = detailColorMap[0].substring(0, detailColorMap[0].search('.PCX'));
-    detailColorMap = normalizeStr(detailColorMap);
-  }
-  let detailHeightMap = /(.{4}_D|.*)[.]PCX.*CHARACTER DISPLACEMENT/.exec(upperContent);
-  if (detailHeightMap) {
-    detailHeightMap = detailHeightMap[0].substring(0, detailHeightMap[0].search('.PCX'));
-    detailHeightMap = normalizeStr(detailHeightMap);
-  }
-  let detailShadowMap = /(.{4}_S|.*)[.]PCX.*CHARACTER SHADER/.exec(upperContent);
-  if (detailShadowMap) {
-    detailShadowMap = detailShadowMap[0].substring(0, detailShadowMap[0].search('.PCX'));
-    detailShadowMap = normalizeStr(detailShadowMap);
-  }
   let terrainHeight = /.*;TERRAIN SCALE/.exec(upperContent);
   if (terrainHeight) {
     terrainHeight = terrainHeight[0].substring(0, terrainHeight[0].search(';')).trim();
@@ -71,13 +51,7 @@ function processFileContent(content) {
     name: name,
     colorMap: colorMap,
     heightMap: heightMap,
-    splatMap: splatMap,
-    detailColorMap: detailColorMap,
-    detailHeightMap: detailHeightMap,
-    detailShadowMap: detailShadowMap,
     terrainCamo: terrainCamo,
-    width: 1024,
-    height: 1024,
     altitude: terrainHeight,
     skyColor: skyColor
   }

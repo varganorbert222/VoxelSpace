@@ -2,7 +2,7 @@
 
 import { makeColor, unpackColor } from "./color.js";
 import Threading from "./threading.js";
-import { invLerp } from "./utils.js";
+import VMath from "./vmath.js";
 
 class Renderer {
   get applyFog() {
@@ -79,7 +79,7 @@ class Renderer {
       for (let i = 0; (i < screenWidth) | 0; i += pixelOffset) {
         const terrainSDF = terrain.getTerrainSDF(plx, ply, cameraPosZ);
         const heightonscreen = this._camera.projectToScreen(terrainSDF, z) | 0;
-        const depth = invLerp(nearClip, farClip, z);
+        const depth = VMath.invLerp(nearClip, farClip, z);
         let plotColor = 0xff000000;
 
         if (renderMode === "frame") {

@@ -15,6 +15,10 @@ class VMath {
   static feetToMeter(feet) {
     return feet * VMath.FEET_TO_METER;
   }
+
+  static invLerp(from, to, value){
+    return (value - from) / (to - from);
+  }
 }
 
 export default VMath;

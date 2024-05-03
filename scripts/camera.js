@@ -110,7 +110,7 @@ class Camera {
       this._pitch = VMath.clamp(-30, 30, this._pitch);
     }
     // Collision detection. Don't fly below the surface.
-    if (terrain.collide(this._posX, this._posY, this._posZ)) {
+    if (terrain.collide(this._posX, this._posY, this._posZ - 10)) {
       this._posZ = terrain.getTerrainHeight(this._posX, this._posY) + 10;
     }
   }
