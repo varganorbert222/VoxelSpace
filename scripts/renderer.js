@@ -44,7 +44,7 @@ class Renderer {
     return makeColor(cr, cg, cb, ca);
   }
 
-  renderTerrain(terrain, renderMode) {
+  renderTerrain(terrain, renderMode, skyColor) {
     const nearClip = this._camera.nearClip;
     const farClip = this._camera.farClip;
     const pixelOffset = this._camera.pixelOffset;
@@ -86,7 +86,7 @@ class Renderer {
           plotColor = terrain.getTerrainColor(plx, ply /*, z*/);
 
           if (this._applyFog) {
-            plotColor = this.calculateFog(plotColor, depth, terrain.skyColor);
+            plotColor = this.calculateFog(plotColor, depth, skyColor);
           }
         } else if (renderMode === "depth") {
           plotColor = makeColor(255 * depth, 255 * depth, 255 * depth, 255);
@@ -135,7 +135,7 @@ class Renderer {
 
   render(terrain, renderMode) {
     this.drawBackground(renderMode, terrain.skyColor);
-    this.renderTerrain(terrain, renderMode);
+    this.renderTerrain(terrain, renderMode, terrain.skyColor);
     // this.renderTerrainWithWorkers(terrain, renderMode, Threading.numberOfCores);
     this.writeToContext();
   }

@@ -37,7 +37,7 @@ class FrameBuffer {
     if (ytop > ybottom) return;
 
     // get offset on screen for the vertical line
-    for (let j = 0; j <= width && x + j < screenwidth; j++) {
+    for (let j = 0; j < width && x + j < screenwidth; j++) {
       let offset = (ytop * screenwidth + x + j) | 0;
       for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
         this._buffer32bit[offset | 0] = col | 0;
