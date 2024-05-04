@@ -38,6 +38,10 @@ class Camera {
     return this._angle;
   }
 
+  get pitch() {
+    return this._pitch;
+  }
+
   get renderer() {
     return this._renderer;
   }

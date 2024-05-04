@@ -8,7 +8,7 @@ class Color {
   }
 
   static get RED() {
-    return 0xFFFF0000;
+    return 0xFF0000FF;
   }
 
   static get GREEN() {
@@ -16,7 +16,7 @@ class Color {
   }
 
   static get BLUE() {
-    return 0xFF0000FF;
+    return 0xFFFF0000;
   }
 }
 
