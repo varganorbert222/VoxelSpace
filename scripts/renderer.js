@@ -110,7 +110,6 @@ class Renderer {
         ply += dy * pixelOffset;
       }
 
-      // step += 0.005; // implement LOD (lerp or similar)
       step *= 1.005;
     }
   }
