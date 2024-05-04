@@ -24,6 +24,10 @@ class VMath {
   static invLerp(from, to, value) {
     return (value - from) / (to - from);
   }
+
+  static lerp(from, to, time) {
+    return (1 - time) * from + time * to;
+  }
 }
 
 export default VMath;

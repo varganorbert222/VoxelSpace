@@ -44,6 +44,17 @@ class Renderer {
     return makeColor(cr, cg, cb, ca);
   }
 
+  calculateLOD(z, farClip) {
+    const t = z / farClip;
+    if (t <= 0.2) {
+      return 1;
+    }
+    if (t <= 0.4) {
+      return 2;
+    }
+    return 4; 
+  }
+
   renderTerrain(terrain, renderMode, skyColor) {
     const nearClip = this._camera.nearClip;
     const farClip = this._camera.farClip;
@@ -76,6 +87,8 @@ class Renderer {
       plx += cameraPosX;
       ply += cameraPosY;
 
+      // const pixelOffset = this.calculateLOD(z, farClip);
+
       for (let i = 0; (i < screenWidth) | 0; i += pixelOffset) {
         const terrainSDF = terrain.getTerrainSDF(plx, ply, cameraPosZ);
         const heightonscreen = this._camera.projectToScreen(terrainSDF, z) | 0;
@@ -100,7 +113,11 @@ class Renderer {
           pixelOffset
         );
 
-        if (heightonscreen < hiddenY[i]) hiddenY[i] = heightonscreen;
+        for (let j = i; j < (i + pixelOffset) && j < screenWidth; j++) {
+          if (heightonscreen < hiddenY[j]){
+            hiddenY[j] = heightonscreen;
+          }
+        }
 
         plx += dx * pixelOffset;
         ply += dy * pixelOffset;
