@@ -44,17 +44,6 @@ class Renderer {
     return makeColor(cr, cg, cb, ca);
   }
 
-  calculateLOD(z, farClip) {
-    const t = z / farClip;
-    if (t <= 0.2) {
-      return 1;
-    }
-    if (t <= 0.4) {
-      return 2;
-    }
-    return 4; 
-  }
-
   renderTerrain(terrain, renderMode, skyColor) {
     const nearClip = this._camera.nearClip;
     const farClip = this._camera.farClip;
@@ -62,18 +51,18 @@ class Renderer {
     const cameraPosX = this._camera.posX;
     const cameraPosY = this._camera.posY;
     const cameraPosZ = this._camera.posZ;
-    let step = this._camera.minDeltaZ;
-
+    
     const screenWidth = this._frameBuffer.canvas.width;
     const screenHeight = this._frameBuffer.canvas.height;
     const sinang = Math.sin(this._camera.angle);
     const cosang = Math.cos(this._camera.angle);
-
+    
     const hiddenY = new Int32Array(screenWidth);
     for (let i = 0; (i < screenWidth) | 0; i = (i + 1) | 0) {
       hiddenY[i] = screenHeight;
     }
-
+    
+    let step = this._camera.minDeltaZ;
     // Draw from front to back
     for (let z = nearClip; z < farClip; z += step) {
       // 90 degree field of view (TODO: variable fov)
@@ -86,8 +75,6 @@ class Renderer {
       const dy = (pry - ply) / screenWidth;
       plx += cameraPosX;
       ply += cameraPosY;
-
-      // const pixelOffset = this.calculateLOD(z, farClip);
 
       for (let i = 0; (i < screenWidth) | 0; i += pixelOffset) {
         const terrainSDF = terrain.getTerrainSDF(plx, ply, cameraPosZ);
