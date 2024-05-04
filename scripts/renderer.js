@@ -1,7 +1,6 @@
 "use strict";
 
 import { Color, makeColor, unpackColor } from "./color.js";
-import Threading from "./threading.js";
 import VMath from "./vmath.js";
 
 class Renderer {
@@ -114,32 +113,9 @@ class Renderer {
     }
   }
 
-  renderTerrainWithWorkers(terrain, renderMode, numberOfCores) {
-    if (this._workers.length === 0) {
-      for (let index = 0; index < numberOfCores; index++) {
-        const worker = new Worker("./renderworker.js");
-        worker.onmessage = (e) => {};
-        this._workers.push(worker);
-      }
-    }
-
-    for (let index = 0; index < numberOfCores; index++) {
-      this._workers[index].postMessage({
-        camera: this._camera,
-        frameBuffer: this._frameBuffer,
-        terrain: terrain,
-        renderMode: renderMode,
-        applyFog: this._applyFog,
-        workerIndex: index,
-        totalWorkers: numberOfCores,
-      });
-    }
-  }
-
   render(terrain, renderMode) {
     this.drawBackground(renderMode, terrain.skyColor);
     this.renderTerrain(terrain, renderMode, terrain.skyColor);
-    // this.renderTerrainWithWorkers(terrain, renderMode, Threading.numberOfCores);
     this.writeToContext();
   }
 }
