@@ -9,7 +9,7 @@ class FrameBuffer {
     return this._colorBuffer;
   }
 
-  constructor(backgroundColor) {
+  constructor() {
     this._canvas = null;
     this._contextForCanvas = null;
     this._imageDataForContext = null;
