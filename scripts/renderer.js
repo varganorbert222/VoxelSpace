@@ -1,6 +1,6 @@
 "use strict";
 
-import { Color, makeColor, unpackColor } from "./color.js";
+import { Color } from "./color.js";
 import VMath from "./vmath.js";
 
 class Renderer {
@@ -32,15 +32,15 @@ class Renderer {
   }
 
   calculateFog(color, depth, skyColor) {
-    let c = unpackColor(color);
-    let s = unpackColor(skyColor);
+    let c = Color.unpackColor(color);
+    let s = Color.unpackColor(skyColor);
 
     const cr = c.r + (s.r - c.r) * depth;
     const cg = c.g + (s.g - c.g) * depth;
     const cb = c.b + (s.b - c.b) * depth;
     const ca = c.a + (s.a - c.a) * depth;
 
-    return makeColor(cr, cg, cb, ca);
+    return Color.makeColor(cr, cg, cb, ca);
   }
 
   renderTerrain(terrain, renderMode, skyColor) {
@@ -88,7 +88,7 @@ class Renderer {
             plotColor = this.calculateFog(plotColor, depth, skyColor);
           }
         } else if (renderMode === "depth") {
-          plotColor = makeColor(depth * 255, depth * 255, depth * 255, 255);
+          plotColor = Color.makeColor(depth * 255, depth * 255, depth * 255, 255);
         }
 
         this._frameBuffer.drawVerticalLine(
