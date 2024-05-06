@@ -9,6 +9,14 @@ class FrameBuffer {
     return this._colorBuffer;
   }
 
+  get width() {
+    return this._canvas.width;
+  }
+
+  get height() {
+    return this._canvas.height;
+  }
+
   constructor() {
     this._canvas = null;
     this._contextForCanvas = null;
@@ -20,28 +28,41 @@ class FrameBuffer {
   }
 
   drawBackground(backgroundColor) {
-    const buf32 = this._buffer32bit;
-    const color = backgroundColor | 0;
-    for (let i = 0; i < buf32.length; i++) {
-      buf32[i] = color | 0;
+    const n = this._buffer32bit.length;
+    const color = backgroundColor;
+    for (let i = 0; (i < n) | 0; i++) {
+      this._buffer32bit[i] = color;
     }
   }
 
   drawVerticalLine(x, ytop, ybottom, col, width = 1) {
-    x = x | 0;
-    ytop = ytop | 0;
-    ybottom = ybottom | 0;
-    col = col | 0;
-    const screenwidth = this._canvas.width | 0;
+    x = x;
+    ytop = ytop;
+    ybottom = ybottom;
+    col = col;
+    const screenwidth = this._canvas.width;
     if (ytop < 0) ytop = 0;
     if (ytop > ybottom) return;
 
     // get offset on screen for the vertical line
-    for (let j = 0; j < width && x + j < screenwidth; j++) {
+    for (let j = 0; (((j < width) | 0)) & ((x + j < screenwidth) | 0); j++) {
       let offset = (ytop * screenwidth + x + j) | 0;
-      for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
-        this._buffer32bit[offset | 0] = col | 0;
-        offset = (offset + screenwidth) | 0;
+      for (let k = ytop | 0; (k < ybottom) | 0; k++) {
+        this._buffer32bit[offset] = col;
+        offset = (offset + screenwidth);
+      }
+    }
+  }
+
+  copyFromBuffer(frameBuffer, startIndex, endIndex, width, height) {
+    const slice = endIndex - startIndex;
+    for (let x = startIndex; (x < endIndex) | 0; x++) {
+      let offsetTo = x;
+      let offsetFrom = x - slice;
+      for (let y = 0; (y < height) | 0; y++) {
+        this._buffer32bit[offsetTo] = frameBuffer[offsetFrom];
+        offsetTo += width;
+        offsetFrom += slice;
       }
     }
   }

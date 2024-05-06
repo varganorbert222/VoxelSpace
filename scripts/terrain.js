@@ -20,6 +20,18 @@ class Terrain {
     return this._skyColor;
   }
 
+  get colorMap() {
+    return this._colorMap;
+  }
+
+  get heightMap() {
+    return this._heightMap;
+  }
+
+  get mapShift() {
+    return this._mapShift;
+  }
+
   constructor() {
     this._width = 1024;
     this._height = 1024;
@@ -47,8 +59,18 @@ class Terrain {
   }
 
   getTerrainHeight(x, y) {
-    // return this._heightMap[this.getMapOffset(x, y)] / 255 * this._altitude;
+    return (this._heightMap[this.getMapOffset(x, y)] / 255) * this._altitude;
+  }
 
+  getTerrainSDF(x, y, z) {
+    return z - this.getTerrainHeight(x, y);
+  }
+
+  getTerrainColor(x, y) {
+    return this._colorMap[this.getMapOffset(x, y)];
+  }
+
+  getTerrainHeightBilinear(x, y) {
     const x0 = Math.floor(x);
     const y0 = Math.floor(y);
     const x1 = x0 + 1;
@@ -63,21 +85,15 @@ class Terrain {
     const h11 = this._heightMap[this.getMapOffset(x1, y1)];
 
     const h =
-        (1 - dx) * (1 - dy) * h00 +
-        dx * (1 - dy) * h10 +
-        (1 - dx) * dy * h01 +
-        dx * dy * h11;
+      (1 - dx) * (1 - dy) * h00 +
+      dx * (1 - dy) * h10 +
+      (1 - dx) * dy * h01 +
+      dx * dy * h11;
 
     return (h / 255) * this._altitude;
   }
 
-  getTerrainSDF(x, y, z) {
-    return z - this.getTerrainHeight(x, y);
-  }
-
-  getTerrainColor(x, y) {
-    // return this._colorMap[this.getMapOffset(x, y)];
-
+  getTerrainColorBilinear(x, y) {
     const x0 = Math.floor(x);
     const y0 = Math.floor(y);
     const x1 = x0 + 1;
@@ -99,6 +115,10 @@ class Terrain {
     const c = Color.add4(c1, c2, c3, c4);
 
     return c;
+  }
+
+  getTerrainSDFBilinear(x, y, z) {
+    return z - this.getTerrainHeightBilinear(x, y);
   }
 
   loadData(mapData, mapImages) {
