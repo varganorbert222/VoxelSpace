@@ -47,8 +47,8 @@ class Terrain {
     const mapHeightPeriod = height - 1;
 
     const mapOffset =
-      (((Math.floor(y) & mapWidthPeriod) << shift) +
-        (Math.floor(x) & mapHeightPeriod)) |
+      ((((y | 0) & mapWidthPeriod) << shift) +
+        ((x | 0) & mapHeightPeriod)) |
       0;
 
     return mapOffset;
@@ -71,8 +71,8 @@ class Terrain {
   }
 
   getTerrainHeightBilinear(x, y) {
-    const x0 = Math.floor(x);
-    const y0 = Math.floor(y);
+    const x0 = x | 0;
+    const y0 = y | 0;
     const x1 = x0 + 1;
     const y1 = y0 + 1;
 
@@ -94,8 +94,8 @@ class Terrain {
   }
 
   getTerrainColorBilinear(x, y) {
-    const x0 = Math.floor(x);
-    const y0 = Math.floor(y);
+    const x0 = x | 0;
+    const y0 = y | 0;
     const x1 = x0 + 1;
     const y1 = y0 + 1;
 
@@ -132,7 +132,7 @@ class Terrain {
   }
 
   collide(x, y, z) {
-    return this.getTerrainSDF(x, y, z) <= 0;
+    return this.getTerrainSDF(x, y, z) <= 0 | 0;
   }
 }
 

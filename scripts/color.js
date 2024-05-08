@@ -79,7 +79,7 @@ class Color {
   }
 
   static randomColor() {
-    return Color.makeColor(Math.random() * 255, Math.random() * 255, Math.random() * 255, 255);
+    return Color.makeColor(Math.random() * 255 | 0, Math.random() * 255 | 0, Math.random() * 255 | 0, 255);
   }
 }
 

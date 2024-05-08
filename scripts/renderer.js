@@ -66,15 +66,16 @@ class Renderer {
     const sinLeftAngle = Math.sin(cameraLeftAngle);
     const cosRightAngle = Math.cos(cameraRightAngle);
     const sinRightAngle = Math.sin(cameraRightAngle);
+    const cameraRenderScale = this._camera.renderScale;
 
-    if (!this._hiddenY | 0 | ((this._lastWidth !== screenWidth) | 0)) {
+    if ((!this._hiddenY | 0) | (this._lastWidth !== screenWidth | 0)) {
       this._hiddenY = new Int32Array(screenWidth);
       this._lastWidth = screenWidth;
     }
 
-    const pixelOffsets = [1, 3, 2, 3, 2, 3, 2];
+    const pixelOffsets = [2, 4, 2, 4, 2, 4, 2].map(x => Math.max(x * cameraRenderScale | 0, 1));
     const deltas = [cameraMinDeltaZ, 1, 2, 4, 8, 16, 32];
-    const qualityScaler = (cameraQuality / 4);
+    const qualityScaler = cameraQuality / 4;
     const lodDistances = [
       nearClip,
       0.01 * qualityScaler * 8000,
@@ -101,14 +102,14 @@ class Renderer {
       heightonscreen,
       depth;
 
-    for (let lod = 7; (lod > 0) | 0; lod--) {
+    for (let lod = 7; lod > 0 | 0; lod = lod - 1 | 0) {
       startIndex = lodDistances[lod - 1];
       endIndex = lodDistances[lod];
       pxOffset = pixelOffsets[lod - 1];
       // step = cameraMinDeltaZ;
       step = deltas[lod - 1];
 
-      for (let i = 0; (i < screenWidth) | 0; i++) {
+      for (let i = 0; i < screenWidth | 0; i = i + 1 | 0) {
         this._hiddenY[i] = screenHeight;
       }
 
@@ -116,8 +117,8 @@ class Renderer {
       // Draw from front to back
       for (
         let z = startIndex;
-        ((z < endIndex) | 0) & ((z < farClip) | 0);
-        z += step
+        (z < endIndex | 0) & (z < farClip | 0);
+        z = z + step
       ) {
         // 90 degree field of view (TODO: variable fov)
         plx = -cosLeftAngle * z - sinLeftAngle * z;
@@ -125,13 +126,13 @@ class Renderer {
         prx = cosRightAngle * z - sinRightAngle * z;
         pry = -sinRightAngle * z - cosRightAngle * z;
 
-        dx = ((prx - plx) / screenWidth) * pxOffset;
-        dy = ((pry - ply) / screenWidth) * pxOffset;
+        dx = ((prx - plx) / screenWidth);
+        dy = ((pry - ply) / screenWidth);
 
         plx += cameraPosX;
         ply += cameraPosY;
 
-        for (let i = 0; (i < screenWidth) | 0; i += pxOffset) {
+        for (let i = 0; i < screenWidth | 0; i = i + pxOffset | 0) {
           // if (isLOD1) {
           //   terrainSDF = terrain.getTerrainSDFBilinear(plx, ply, cameraPosZ);
           // } else {
@@ -170,18 +171,19 @@ class Renderer {
 
             for (
               let j = i;
-              ((j < i + pxOffset) | 0) & ((j < screenWidth) | 0);
+              (j < i + pxOffset | 0 & (j < screenWidth | 0));
               j++
             ) {
               this._hiddenY[j] = heightonscreen;
             }
           }
 
-          plx += dx;
-          ply += dy;
+          plx += dx * pxOffset;
+          ply += dy * pxOffset;
         }
 
         step *= 1.005;
+        // step += 0.005;
       }
     }
   }

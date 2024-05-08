@@ -28,41 +28,44 @@ class FrameBuffer {
   }
 
   drawBackground(backgroundColor) {
-    const n = this._buffer32bit.length;
-    const color = backgroundColor;
-    for (let i = 0; (i < n) | 0; i++) {
+    const n = this._buffer32bit.length | 0;
+    const color = backgroundColor | 0;
+    for (let i = 0; i < n | 0; i = i + 1 | 0) {
       this._buffer32bit[i] = color;
     }
   }
 
   drawVerticalLine(x, ytop, ybottom, col, width = 1) {
-    x = x;
-    ytop = ytop;
-    ybottom = ybottom;
-    col = col;
-    const screenwidth = this._canvas.width;
-    if (ytop < 0) ytop = 0;
-    if (ytop > ybottom) return;
-
+    x = x | 0;
+    ytop = ytop | 0;
+    ybottom = ybottom | 0;
+    col = col | 0;
+    if (ytop < 0 | 0) ytop = 0;
+    if (ytop > ybottom | 0) return;
+    
+    const screenwidth = this._canvas.width | 0;
+    let offset = 0;
     // get offset on screen for the vertical line
-    for (let j = 0; (((j < width) | 0)) & ((x + j < screenwidth) | 0); j++) {
-      let offset = (ytop * screenwidth + x + j) | 0;
-      for (let k = ytop | 0; (k < ybottom) | 0; k++) {
+    for (let j = 0; (j < width | 0) & (x + j < screenwidth | 0); j = j + 1 | 0) {
+      offset = ytop * screenwidth + x + j | 0;
+      for (let k = ytop | 0; k < ybottom | 0; k = k + 1 | 0) {
         this._buffer32bit[offset] = col;
-        offset = (offset + screenwidth);
+        offset = offset + screenwidth | 0;
       }
     }
   }
 
   copyFromBuffer(frameBuffer, startIndex, endIndex, width, height) {
-    const slice = endIndex - startIndex;
-    for (let x = startIndex; (x < endIndex) | 0; x++) {
-      let offsetTo = x;
-      let offsetFrom = x - slice;
-      for (let y = 0; (y < height) | 0; y++) {
+    const slice = endIndex - startIndex | 0;
+    let offsetTo = 0;
+    let offsetFrom = 0;
+    for (let x = startIndex; x < endIndex | 0; x = x + 1 | 0) {
+      offsetTo = x;
+      offsetFrom = x - slice;
+      for (let y = 0; y < height | 0; y = y + 1 | 0) {
         this._buffer32bit[offsetTo] = frameBuffer[offsetFrom];
-        offsetTo += width;
-        offsetFrom += slice;
+        offsetTo = offsetTo + width | 0;
+        offsetFrom = offsetFrom | slice | 0;
       }
     }
   }
@@ -77,8 +80,8 @@ class FrameBuffer {
     const aspect = bufferData.width / bufferData.height;
 
     this._canvas = bufferData.canvas;
-    this._canvas.width = Math.floor(bufferData.width * bufferData.renderScale);
-    this._canvas.height = Math.floor(this._canvas.width / aspect);
+    this._canvas.width = bufferData.width * bufferData.renderScale | 0;
+    this._canvas.height = this._canvas.width / aspect | 0;
 
     if (this._canvas.getContext) {
       this._contextForCanvas = this._canvas.getContext("2d");

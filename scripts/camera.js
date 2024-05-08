@@ -51,6 +51,10 @@ class Camera {
     return this._fov;
   }
 
+  get renderScale() {
+    return this._renderScale;
+  }
+
   constructor(settings) {
     this._nearClip = settings.nearClip ?? 1;
     this._farClip = settings.farClip ?? 2000;
@@ -100,7 +104,7 @@ class Camera {
     const dstToProjPlane = screenWidth2 / Math.tan(VMath.degToRad(this._fov * 0.5));
     const terrainProjectedHeight = (y / z) * dstToProjPlane;
     const horizon = this.calculateHorizon();
-    const drawHeight = Math.floor(terrainProjectedHeight + horizon);
+    const drawHeight = terrainProjectedHeight + horizon | 0;
     return drawHeight;
   }
 
