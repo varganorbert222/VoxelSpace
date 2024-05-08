@@ -99,6 +99,14 @@ function initSettings() {
       onResizeWindow();
     }
   );
+  const fovElement = initRangeElement(
+    "id_fov",
+    config.settings.fov,
+    camera.fov,
+    (e) => {
+      camera.set({ fov: parseFloat(e.target.value) });
+    }
+  );
   const deltaZElement = initRangeElement(
     "id_delta_z",
     config.settings.deltaZ,
@@ -108,11 +116,11 @@ function initSettings() {
     }
   );
   const pixelOffsetElement = initOptionElement(
-    "id_pixel_offset",
-    config.settings.pixelOffset,
-    camera.pixelOffset,
+    "id_quality",
+    config.settings.quality,
+    camera.quality,
     (e) => {
-      camera.set({ pixelOffset: parseFloat(e.target.value) });
+      camera.set({ quality: parseFloat(e.target.value) });
     }
   );
   const renderModeElement = initOptionElement(

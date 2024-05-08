@@ -77,6 +77,10 @@ class Color {
     const rgb = Color.hexToRgb(hex);
     return Color.makeColor(rgb.r, rgb.g, rgb.b, 255);
   }
+
+  static randomColor() {
+    return Color.makeColor(Math.random() * 255, Math.random() * 255, Math.random() * 255, 255);
+  }
 }
 
 export { Color };

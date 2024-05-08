@@ -15,8 +15,13 @@
       "max": 1.0,
       "step": 0.1
     },
-    "pixelOffset": {
-      "values": [1, 2, 4]
+    "fov": {
+      "min": 10,
+      "max": 90,
+      "step": 5
+    },
+    "quality": {
+      "values": [1, 2, 3, 4]
     },
     "renderMode": {
       "values": ["frame", "depth"]
@@ -25,8 +30,9 @@
   "camera": {
     "nearClip": 0.001,
     "farClip": 2000.0,
-    "pixelOffset": 1,
+    "quality": 1,
     "renderScale": 0.5,
-    "minDeltaZ": 1
+    "minDeltaZ": 1,
+    "fov": 90.0
   }
 }
