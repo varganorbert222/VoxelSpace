@@ -1,7 +1,7 @@
 {
   "settings": {
     "renderDistance": {
-      "min": 800.0,
+      "min": 100.0,
       "max": 8000.0,
       "step": 100.0
     },

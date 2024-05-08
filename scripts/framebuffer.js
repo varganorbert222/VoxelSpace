@@ -1,20 +1,17 @@
 "use strict";
 
 class FrameBuffer {
-  get canvas() {
-    return this._canvas;
-  }
 
   get colorBuffer() {
     return this._colorBuffer;
   }
 
   get width() {
-    return this._canvas.width;
+    return this._width;
   }
 
   get height() {
-    return this._canvas.height;
+    return this._height;
   }
 
   constructor() {
@@ -25,6 +22,9 @@ class FrameBuffer {
     this._colorBuffer = null; // color data
     this._buffer8bit = null; // the same array but with bytes
     this._buffer32bit = null; // the same array but with 32-Bit words
+
+    this._width = 0;
+    this._height = 0;
   }
 
   drawBackground(backgroundColor) {
@@ -43,7 +43,7 @@ class FrameBuffer {
     if (ytop < 0 | 0) ytop = 0;
     if (ytop > ybottom | 0) return;
     
-    const screenwidth = this._canvas.width | 0;
+    const screenwidth = this._width | 0;
     let offset = 0;
     // get offset on screen for the vertical line
     for (let j = 0; (j < width | 0) & (x + j < screenwidth | 0); j = j + 1 | 0) {
@@ -60,8 +60,8 @@ class FrameBuffer {
     let offsetTo = 0;
     let offsetFrom = 0;
     for (let x = startIndex; x < endIndex | 0; x = x + 1 | 0) {
-      offsetTo = x;
-      offsetFrom = x - slice;
+      offsetTo = x | 0;
+      offsetFrom = x - slice | 0;
       for (let y = 0; y < height | 0; y = y + 1 | 0) {
         this._buffer32bit[offsetTo] = frameBuffer[offsetFrom];
         offsetTo = offsetTo + width | 0;
@@ -80,14 +80,16 @@ class FrameBuffer {
     const aspect = bufferData.width / bufferData.height;
 
     this._canvas = bufferData.canvas;
-    this._canvas.width = bufferData.width * bufferData.renderScale | 0;
-    this._canvas.height = this._canvas.width / aspect | 0;
+    this._width = bufferData.width * bufferData.renderScale | 0;
+    this._height = this._width / aspect | 0;
+    this._canvas.width = this._width;
+    this._canvas.height = this._height;
 
     if (this._canvas.getContext) {
       this._contextForCanvas = this._canvas.getContext("2d");
       this._imageDataForContext = this._contextForCanvas.createImageData(
-        this._canvas.width,
-        this._canvas.height
+        this._width,
+        this._height
       );
     }
 
