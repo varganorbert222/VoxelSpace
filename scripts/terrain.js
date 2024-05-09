@@ -71,8 +71,8 @@ class Terrain {
   }
 
   getTerrainHeightBilinear(x, y) {
-    const x0 = x | 0;
-    const y0 = y | 0;
+    const x0 = Math.floor(x);
+    const y0 = Math.floor(y);
     const x1 = x0 + 1;
     const y1 = y0 + 1;
 
@@ -94,8 +94,8 @@ class Terrain {
   }
 
   getTerrainColorBilinear(x, y) {
-    const x0 = x | 0;
-    const y0 = y | 0;
+    const x0 = Math.floor(x);
+    const y0 = Math.floor(y);
     const x1 = x0 + 1;
     const y1 = y0 + 1;
 

@@ -22,9 +22,9 @@ class Renderer {
   }
 
   drawBackground(renderMode, backgroundColor) {
-    if (renderMode === "frame" | 0) {
+    if ((renderMode === "frame") | 0) {
       this._frameBuffer.drawBackground(backgroundColor);
-    } else if (renderMode === "depth" | 0) {
+    } else if ((renderMode === "depth") | 0) {
       this._frameBuffer.drawBackground(Color.BLACK);
     }
   }
@@ -58,7 +58,7 @@ class Renderer {
     const aspect = screenWidth / screenHeight;
     const calculatedFov = this._camera.calculateFov();
     const cameraFov = aspect < 1 ? calculatedFov.fovY : calculatedFov.fovX;
-    const fovAngleOffset = (90 - cameraFov) / 2 * VMath.DEG_TO_RAD;
+    const fovAngleOffset = ((90 - cameraFov) / 2) * VMath.DEG_TO_RAD;
     const cameraDirection = this._camera.angle;
     const cameraLeftAngle = cameraDirection - fovAngleOffset;
     const cameraRightAngle = cameraDirection + fovAngleOffset;
@@ -67,7 +67,7 @@ class Renderer {
     const cosRightAngle = Math.cos(cameraRightAngle);
     const sinRightAngle = Math.sin(cameraRightAngle);
 
-    if ((!this._hiddenY | 0) | (this._lastWidth !== screenWidth | 0)) {
+    if (!this._hiddenY | 0 | ((this._lastWidth !== screenWidth) | 0)) {
       this._hiddenY = new Int32Array(screenWidth);
       this._lastWidth = screenWidth;
     }
@@ -101,18 +101,13 @@ class Renderer {
       heightOnScreen,
       depth;
 
-    for (let lod = 7; lod > 0 | 0; lod = lod - 1 | 0) {
+    for (let lod = 7; (lod > 0) | 0; lod = (lod - 1) | 0) {
       startIndex = lodDistances[lod - 1];
       endIndex = lodDistances[lod];
       pxOffset = pixelOffsets[lod - 1];
       step = deltas[lod - 1];
 
-      // startIndex = nearClip;
-      // endIndex = farClip;
-      // pxOffset = 1;
-      // step = cameraMinDeltaZ;
-
-      for (let i = 0; i < screenWidth | 0; i = i + 1 | 0) {
+      for (let i = 0; (i < screenWidth) | 0; i = (i + 1) | 0) {
         this._hiddenY[i] = screenHeight;
       }
 
@@ -120,7 +115,7 @@ class Renderer {
       // Draw from front to back
       for (
         let z = startIndex;
-        (z < endIndex | 0) & (z < farClip | 0);
+        ((z < endIndex) | 0) & ((z < farClip) | 0);
         z = z + step
       ) {
         // field of view
@@ -135,26 +130,28 @@ class Renderer {
         plx += cameraPosX;
         ply += cameraPosY;
 
-        for (let i = 0; i < screenWidth | 0; i = i + pxOffset | 0) {
+        for (let i = 0; (i < screenWidth) | 0; i = (i + pxOffset) | 0) {
           // if (isLOD1) {
           //   terrainSDF = terrain.getTerrainSDFBilinear(plx, ply, cameraPosZ);
           // } else {
+          //   terrainSDF = terrain.getTerrainSDF(plx, ply, cameraPosZ);
           // }
           terrainSDF = terrain.getTerrainSDF(plx, ply, cameraPosZ);
           heightOnScreen = this._camera.projectToScreen(terrainSDF, z);
           depth = VMath.clamp(0, 1, VMath.invLerp(nearClip, farClip, z));
 
-          if (renderMode === "frame" | 0) {
+          if ((renderMode === "frame") | 0) {
             // if (isLOD1) {
             //   plotColor = terrain.getTerrainColorBilinear(plx, ply);
             // } else {
+            //   plotColor = terrain.getTerrainColor(plx, ply);
             // }
             plotColor = terrain.getTerrainColor(plx, ply);
 
             if (this._applyFog | 0) {
               plotColor = this.calculateFog(plotColor, depth, terrain.skyColor);
             }
-          } else if (renderMode === "depth" | 0) {
+          } else if ((renderMode === "depth") | 0) {
             plotColor = Color.makeColor(
               depth * 255,
               depth * 255,
@@ -163,7 +160,7 @@ class Renderer {
             );
           }
 
-          if (heightOnScreen < this._hiddenY[i] | 0) {
+          if ((heightOnScreen < this._hiddenY[i]) | 0) {
             this._frameBuffer.drawVerticalLine(
               i,
               heightOnScreen,
@@ -174,8 +171,8 @@ class Renderer {
 
             for (
               let j = i;
-              (j < i + pxOffset | 0 & (j < screenWidth | 0));
-              j = j + 1 | 0
+              (j < i + pxOffset) | (0 & ((j < screenWidth) | 0));
+              j = (j + 1) | 0
             ) {
               this._hiddenY[j] = heightOnScreen;
             }
