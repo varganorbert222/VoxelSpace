@@ -79,13 +79,15 @@ class Camera {
     this._height = 0;
     this._frameBuffer = new FrameBuffer();
     this._renderer = new Renderer(this, this._frameBuffer);
-    this._cachedDrawHeight = {
-      dstToProjPlane: 0,
-      horizon: 0,
-    };
     this._cachedFov = 0;
+    this._cachedHorizon = 0;
+    this._cachedProjPlane = 0;
     this._mustBeRecalcFov = true;
     this._mustBeRecalcDrawHeight = true;
+    this._mustBeRecalcHorizon = true;
+    this._mustBeRecalcProjPlane = true;
+    this._topColor = 0;
+    this._bottomColor = 0;
     // this._workerRenderer = new WorkerRenderer(this, this._frameBuffer);
   }
 
@@ -93,62 +95,59 @@ class Camera {
     if (!this._mustBeRecalcFov) {
       return this._cachedFov;
     }
-
-    const screenWidth = this._width;
-    const screenHeight = this._height;
+    this._mustBeRecalcFov = false;
 
     // Focal length in pixels (this could also be the distance from the camera to the screen)
     const focalLength =
-      (0.5 * screenHeight) / Math.tan(0.5 * VMath.DEG_TO_RAD * this._fov); // Assuming a 60 degree vertical FOV
+      this._height2 / Math.tan(0.5 * VMath.DEG_TO_RAD * this._fov); // Assuming a 60 degree vertical FOV
 
     // Calculate vertical FOV in degrees
-    const fovY =
-      2 * Math.atan2(screenHeight / 2, focalLength) * VMath.RAD_TO_DEG;
+    const fovY = 2 * Math.atan2(this._height2, focalLength) * VMath.RAD_TO_DEG;
 
     // Calculate horizontal FOV in degrees
-    const fovX =
-      2 * Math.atan2(screenWidth / 2, focalLength) * VMath.RAD_TO_DEG;
+    const fovX = 2 * Math.atan2(this._width2, focalLength) * VMath.RAD_TO_DEG;
 
-    let fov = (screenWidth / screenHeight) < 1 ? fovY : fovX;
-    fov = (90 - fov) / 2 * VMath.DEG_TO_RAD;
+    let fov = this._width / this.height < 1 ? fovY : fovX;
+    fov = ((90 - fov) / 2) * VMath.DEG_TO_RAD;
     this._cachedFov = fov;
-
-    this._mustBeRecalcFov = false;
 
     return fov;
   }
-  // THIS CAUSES THE PERFORMANCE ERROR
-  projectToScreen(y, z) {
-    // return y * (1 / z * 500 * this._renderScale) + this._height * 0.5;
 
-    if (!this._mustBeRecalcDrawHeight) {
-      const terrainProjectedHeight =
-        (y / z) * this._cachedDrawHeight.dstToProjPlane;
-      const drawHeight =
-        (terrainProjectedHeight + this._cachedDrawHeight.horizon) | 0;
-      return drawHeight;
+  calculateProjPlane() {
+    if (!this._mustBeRecalcProjPlane) {
+      return this._cachedProjPlane;
     }
+    this._mustBeRecalcProjPlane = false;
 
-    const screenWidth2 = this._width * 0.5;
-    const screenHeight2 = this._height * 0.5;
+    this._cachedProjPlane =
+      this._width2 / Math.tan(this._fov * 0.5 * VMath.DEG_TO_RAD);
 
-    const dstToProjPlane =
-      screenWidth2 / Math.tan(this._fov * 0.5 * VMath.DEG_TO_RAD);
-    const horizon =
+    return this._cachedProjPlane;
+  }
+
+  calculateHorizon(dstToProjPlane) {
+    if (!this._mustBeRecalcHorizon) {
+      return this._cachedHorizon;
+    }
+    this._mustBeRecalcHorizon = false;
+
+    this._cachedHorizon =
       Math.tan(-this._pitch * VMath.DEG_TO_RAD) * dstToProjPlane +
-      screenHeight2;
-    const terrainProjectedHeight =
-      (y / z) * this._cachedDrawHeight.dstToProjPlane;
-    const drawHeight =
-      (terrainProjectedHeight + this._cachedDrawHeight.horizon) | 0;
+      this._height2;
 
-    this._cachedDrawHeight = {
-      dstToProjPlane: dstToProjPlane,
-      horizon: horizon,
-    };
+    return this._cachedHorizon;
+  }
 
-    this._mustBeRecalcDrawHeight = false;
+  calculateProjectedHeight(y, z, dstToProjPlane, horizon) {
+    const terrainProjectedHeight = (y / z) * dstToProjPlane;
+    return (terrainProjectedHeight + horizon) | 0;
+  }
 
+  projectToScreen(y, z) {
+    const dstToProjPlane = this.calculateProjPlane();
+    const horizon = this.calculateHorizon(dstToProjPlane);
+    const drawHeight = this.calculateProjectedHeight(y, z, dstToProjPlane, horizon);
     return drawHeight;
   }
 
@@ -158,8 +157,14 @@ class Camera {
     this._minDeltaZ = settings.minDeltaZ ?? this._minDeltaZ;
     this._renderScale = settings.renderScale ?? this._renderScale;
     this._fov = settings.fov ?? this._fov;
+    this._topColor = settings.topColor ?? this._topColor;
+    this._bottomColor = settings.bottomColor ?? this._bottomColor;
+    this._frameBuffer.setColors(this._topColor, this._bottomColor);
+
     this._mustBeRecalcFov = true;
     this._mustBeRecalcDrawHeight = true;
+    this._mustBeRecalcHorizon = true;
+    this._mustBeRecalcProjPlane = true;
   }
 
   render(terrain, renderMode) {
@@ -170,14 +175,24 @@ class Camera {
   resize(canvas, width, height) {
     this._width = (width * this._renderScale) | 0;
     this._height = (height * this._renderScale) | 0;
+    this._width2 = this._width * 0.5;
+    this._height2 = this._height * 0.5;
+
     this._frameBuffer.set({
       canvas: canvas,
       width: width,
       height: height,
       renderScale: this._renderScale,
     });
+
     this._mustBeRecalcFov = true;
     this._mustBeRecalcDrawHeight = true;
+    this._mustBeRecalcHorizon = true;
+    this._mustBeRecalcProjPlane = true;
+  }
+
+  setDirty() {
+    this._mustBeRecalcHorizon = true;
   }
 
   move(input, terrain) {

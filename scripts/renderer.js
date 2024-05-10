@@ -123,7 +123,7 @@ class Renderer {
 
             if (this._applyFog | 0) {
               depth = VMath.clamp(0, 1, VMath.invLerp(nearClip, farClip, z));
-              plotColor = Color.lerp(plotColor, terrain.skyColor, depth);
+              plotColor = Color.lerp(plotColor, Color.WHITE, depth);
             }
           } else if ((renderMode === "depth") | 0) {
             depth = VMath.clamp(0, 1, VMath.invLerp(nearClip, farClip, z));
@@ -163,7 +163,7 @@ class Renderer {
   }
 
   render(terrain, renderMode) {
-    this.drawBackground(renderMode, terrain.skyColor);
+    this.drawBackground(renderMode);
     this.renderTerrain(terrain, renderMode);
     this.writeToContext();
   }

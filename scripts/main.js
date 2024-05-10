@@ -6,14 +6,14 @@ import Camera from "./camera.js";
 import Terrain from "./terrain.js";
 import Input from "./input.js";
 import { loadImagesAsync } from "./imageutil.js";
+import { Color } from "./color.js";
 
-let input;
-let camera;
-let terrain;
+let input = null;
+let camera = null;
+let terrain = null;
 let totalFrames = 0;
 let lastTimeForFps = 0;
 let renderMode = "frame";
-
 
 function run() {
   camera.move(input, terrain);
@@ -26,17 +26,19 @@ function loadMap(mapName) {
   const selectedMap = maps.find((x) => x.name === mapName);
   if (!selectedMap) return;
 
-  loadImagesAsync(
-    [
-      `maps/color/${selectedMap.colorMap}.png`,
-      `maps/height/${selectedMap.heightMap}.png`
-    ]
-  ).then((images) => {
+  loadImagesAsync([
+    `maps/color/${selectedMap.colorMap}.png`,
+    `maps/height/${selectedMap.heightMap}.png`,
+  ]).then((images) => {
     const mapImages = {
-      colorMap:  images[0],
-      heightMap: images[1]
+      colorMap: images[0],
+      heightMap: images[1],
     };
     terrain.loadData(selectedMap, mapImages);
+    camera.set({
+      topColor: terrain.skyColor,
+      bottomColor: Color.WHITE,
+    });
   });
 }
 
@@ -46,6 +48,10 @@ function onResizeWindow() {
     window.innerWidth,
     window.innerHeight
   );
+  camera.set({
+    topColor: terrain.skyColor,
+    bottomColor: Color.WHITE,
+  });
 }
 
 function initRangeElement(id, config, value, onChange) {
@@ -140,7 +146,7 @@ function initSettings() {
   );
   const mapSelector = initOptionElement(
     "id_mapselector",
-    { values: maps.map(m => m.name) },
+    { values: maps.map((m) => m.name) },
     maps[0].name,
     (e) => {
       loadMap(e.target.value);
@@ -157,9 +163,12 @@ function printFps() {
 }
 
 function init() {
-  input = new Input(document.getElementById("id_fullscreen_canvas"));
   terrain = new Terrain();
   camera = new Camera(config.camera);
+  input = new Input({
+    canvas: document.getElementById("id_fullscreen_canvas"),
+    onlook: () => camera.setDirty()
+  });
 
   window.onresize = onResizeWindow;
   window.setInterval(printFps, 500);

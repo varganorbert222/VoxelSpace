@@ -39,7 +39,7 @@ class Input {
     this.init(canvas);
   }
 
-  init(canvas) {
+  init(config) {
     this._forwardbackward = 0;
     this._leftright = 0;
     this._updown = 0;
@@ -47,12 +47,12 @@ class Input {
     this._lookdown = false;
     this._mouseposition = null;
     this._keypressed = false;
-    this._canvas = canvas;
+    this._canvas = config.canvas;
 
     // set event handlers for keyboard, mouse, touchscreen and window resize
     // this._canvas.removeEventListener('mousedown', this.detectMouseDown);
     this._canvas.addEventListener("mousedown", (e) => {
-        this.detectMouseDown(e);
+      this.detectMouseDown(e);
     });
     // this._canvas.removeEventListener('mouseup');
     this._canvas.addEventListener("mouseup", (e) => {
@@ -82,6 +82,9 @@ class Input {
     // window.removeEventListener('keyup');
     window.addEventListener("keyup", (e) => {
       this.detectKeysUp(e);
+    });
+    window.addEventListener("keypress", (e) => {
+      this.detectKeyPress(e, config.onlook);
     });
   }
 
@@ -149,15 +152,15 @@ class Input {
         break;
       case 69: // e
         this._lookup = true;
+        this._lookdown = false;
         break;
       case 81: //q
+        this._lookup = false;
         this._lookdown = true;
         break;
       default:
         return;
-        break;
     }
-
     return false;
   }
 
@@ -187,13 +190,32 @@ class Input {
         break;
       case 69: // e
         this._lookup = false;
+        this._lookdown = false;
         break;
       case 81: //q
+        this._lookup = false;
         this._lookdown = false;
         break;
       default:
         return;
+    }
+    return false;
+  }
+
+  detectKeyPress(e, onlook) {
+    switch (e.keyCode) {
+      case 101: // e
+        this._lookup = true;
+        this._lookdown = false;
+        onlook();
         break;
+      case 113: //q
+        this._lookup = false;
+        this._lookdown = true;
+        onlook();
+        break;
+      default:
+        return;
     }
     return false;
   }
