@@ -79,39 +79,76 @@ class Camera {
     this._height = 0;
     this._frameBuffer = new FrameBuffer();
     this._renderer = new Renderer(this, this._frameBuffer);
+    this._cachedDrawHeight = {
+      dstToProjPlane: 0,
+      horizon: 0,
+    };
+    this._cachedFov = 0;
+    this._mustBeRecalcFov = true;
+    this._mustBeRecalcDrawHeight = true;
     // this._workerRenderer = new WorkerRenderer(this, this._frameBuffer);
   }
 
   calculateFov() {
+    if (!this._mustBeRecalcFov) {
+      return this._cachedFov;
+    }
+
     const screenWidth = this._width;
     const screenHeight = this._height;
 
     // Focal length in pixels (this could also be the distance from the camera to the screen)
-    const focalLength = 0.5 * screenHeight / Math.tan(0.5 * VMath.DEG_TO_RAD * this._fov); // Assuming a 60 degree vertical FOV
-        
-    // Calculate vertical FOV in degrees
-    const fovY = 2 * Math.atan2(screenHeight / 2, focalLength) * VMath.RAD_TO_DEG;
-    
-    // Calculate horizontal FOV in degrees
-    const fovX = 2 * Math.atan2(screenWidth / 2, focalLength) * VMath.RAD_TO_DEG;
+    const focalLength =
+      (0.5 * screenHeight) / Math.tan(0.5 * VMath.DEG_TO_RAD * this._fov); // Assuming a 60 degree vertical FOV
 
-    return {
-      fovX: fovX,
-      fovY: fovY
-    }
+    // Calculate vertical FOV in degrees
+    const fovY =
+      2 * Math.atan2(screenHeight / 2, focalLength) * VMath.RAD_TO_DEG;
+
+    // Calculate horizontal FOV in degrees
+    const fovX =
+      2 * Math.atan2(screenWidth / 2, focalLength) * VMath.RAD_TO_DEG;
+
+    let fov = (screenWidth / screenHeight) < 1 ? fovY : fovX;
+    fov = (90 - fov) / 2 * VMath.DEG_TO_RAD;
+    this._cachedFov = fov;
+
+    this._mustBeRecalcFov = false;
+
+    return fov;
   }
   // THIS CAUSES THE PERFORMANCE ERROR
   projectToScreen(y, z) {
     // return y * (1 / z * 500 * this._renderScale) + this._height * 0.5;
 
+    if (!this._mustBeRecalcDrawHeight) {
+      const terrainProjectedHeight =
+        (y / z) * this._cachedDrawHeight.dstToProjPlane;
+      const drawHeight =
+        (terrainProjectedHeight + this._cachedDrawHeight.horizon) | 0;
+      return drawHeight;
+    }
+
     const screenWidth2 = this._width * 0.5;
     const screenHeight2 = this._height * 0.5;
 
-    const dstToProjPlane = screenWidth2 / Math.tan(this._fov * 0.5 * VMath.DEG_TO_RAD);
-    const horizon = Math.tan(-this._pitch * VMath.DEG_TO_RAD) * dstToProjPlane + screenHeight2;
-    const terrainProjectedHeight = y / z * dstToProjPlane;
-    const drawHeight = (terrainProjectedHeight + horizon) | 0;
-    
+    const dstToProjPlane =
+      screenWidth2 / Math.tan(this._fov * 0.5 * VMath.DEG_TO_RAD);
+    const horizon =
+      Math.tan(-this._pitch * VMath.DEG_TO_RAD) * dstToProjPlane +
+      screenHeight2;
+    const terrainProjectedHeight =
+      (y / z) * this._cachedDrawHeight.dstToProjPlane;
+    const drawHeight =
+      (terrainProjectedHeight + this._cachedDrawHeight.horizon) | 0;
+
+    this._cachedDrawHeight = {
+      dstToProjPlane: dstToProjPlane,
+      horizon: horizon,
+    };
+
+    this._mustBeRecalcDrawHeight = false;
+
     return drawHeight;
   }
 
@@ -121,6 +158,8 @@ class Camera {
     this._minDeltaZ = settings.minDeltaZ ?? this._minDeltaZ;
     this._renderScale = settings.renderScale ?? this._renderScale;
     this._fov = settings.fov ?? this._fov;
+    this._mustBeRecalcFov = true;
+    this._mustBeRecalcDrawHeight = true;
   }
 
   render(terrain, renderMode) {
@@ -129,14 +168,16 @@ class Camera {
   }
 
   resize(canvas, width, height) {
-    this._width = width * this._renderScale | 0;
-    this._height = height * this._renderScale | 0;
+    this._width = (width * this._renderScale) | 0;
+    this._height = (height * this._renderScale) | 0;
     this._frameBuffer.set({
       canvas: canvas,
       width: width,
       height: height,
       renderScale: this._renderScale,
     });
+    this._mustBeRecalcFov = true;
+    this._mustBeRecalcDrawHeight = true;
   }
 
   move(input, terrain) {

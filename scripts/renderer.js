@@ -33,18 +33,6 @@ class Renderer {
     this._frameBuffer.writeToContext();
   }
 
-  calculateFog(color, depth, skyColor) {
-    let c = Color.unpackColor(color);
-    let s = Color.unpackColor(skyColor);
-
-    const cr = c.r + (s.r - c.r) * depth;
-    const cg = c.g + (s.g - c.g) * depth;
-    const cb = c.b + (s.b - c.b) * depth;
-    const ca = c.a + (s.a - c.a) * depth;
-
-    return Color.makeColor(cr, cg, cb, ca);
-  }
-
   renderTerrain(terrain, renderMode) {
     const nearClip = this._camera.nearClip;
     const farClip = this._camera.farClip;
@@ -55,17 +43,14 @@ class Renderer {
     const cameraQuality = this._camera.quality;
     const screenWidth = this._frameBuffer.width;
     const screenHeight = this._frameBuffer.height;
-    const aspect = screenWidth / screenHeight;
-    const calculatedFov = this._camera.calculateFov();
-    const cameraFov = aspect < 1 ? calculatedFov.fovY : calculatedFov.fovX;
-    const fovAngleOffset = ((90 - cameraFov) / 2) * VMath.DEG_TO_RAD;
-    const cameraDirection = this._camera.angle;
-    const cameraLeftAngle = cameraDirection - fovAngleOffset;
-    const cameraRightAngle = cameraDirection + fovAngleOffset;
-    const cosLeftAngle = Math.cos(cameraLeftAngle);
-    const sinLeftAngle = Math.sin(cameraLeftAngle);
-    const cosRightAngle = Math.cos(cameraRightAngle);
-    const sinRightAngle = Math.sin(cameraRightAngle);
+    const screenWidthScaler = 1 / screenWidth;
+    const fov = this._camera.calculateFov();
+    const leftAngle = this._camera.angle - fov;
+    const rightAngle = this._camera.angle + fov;
+    const cosLeftAngle = Math.cos(leftAngle);
+    const sinLeftAngle = Math.sin(leftAngle);
+    const cosRightAngle = Math.cos(rightAngle);
+    const sinRightAngle = Math.sin(rightAngle);
 
     if (!this._hiddenY | 0 | ((this._lastWidth !== screenWidth) | 0)) {
       this._hiddenY = new Int32Array(screenWidth);
@@ -111,7 +96,6 @@ class Renderer {
         this._hiddenY[i] = screenHeight;
       }
 
-      // const isLOD1 = (lod === 1) | 0;
       // Draw from front to back
       for (
         let z = startIndex;
@@ -124,34 +108,25 @@ class Renderer {
         prx = cosRightAngle * z - sinRightAngle * z;
         pry = -sinRightAngle * z - cosRightAngle * z;
 
-        dx = (prx - plx) / screenWidth;
-        dy = (pry - ply) / screenWidth;
+        dx = (prx - plx) * screenWidthScaler;
+        dy = (pry - ply) * screenWidthScaler;
 
         plx += cameraPosX;
         ply += cameraPosY;
 
         for (let i = 0; (i < screenWidth) | 0; i = (i + pxOffset) | 0) {
-          // if (isLOD1) {
-          //   terrainSDF = terrain.getTerrainSDFBilinear(plx, ply, cameraPosZ);
-          // } else {
-          //   terrainSDF = terrain.getTerrainSDF(plx, ply, cameraPosZ);
-          // }
           terrainSDF = terrain.getTerrainSDF(plx, ply, cameraPosZ);
           heightOnScreen = this._camera.projectToScreen(terrainSDF, z);
-          depth = VMath.clamp(0, 1, VMath.invLerp(nearClip, farClip, z));
 
           if ((renderMode === "frame") | 0) {
-            // if (isLOD1) {
-            //   plotColor = terrain.getTerrainColorBilinear(plx, ply);
-            // } else {
-            //   plotColor = terrain.getTerrainColor(plx, ply);
-            // }
             plotColor = terrain.getTerrainColor(plx, ply);
 
             if (this._applyFog | 0) {
-              plotColor = this.calculateFog(plotColor, depth, terrain.skyColor);
+              depth = VMath.clamp(0, 1, VMath.invLerp(nearClip, farClip, z));
+              plotColor = Color.lerp(plotColor, terrain.skyColor, depth);
             }
           } else if ((renderMode === "depth") | 0) {
+            depth = VMath.clamp(0, 1, VMath.invLerp(nearClip, farClip, z));
             plotColor = Color.makeColor(
               depth * 255,
               depth * 255,
@@ -182,7 +157,6 @@ class Renderer {
           ply += dy * pxOffset;
         }
 
-        // step *= 1.005;
         step += 0.005;
       }
     }

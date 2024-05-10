@@ -1,4 +1,5 @@
 class Color {
+
   static get WHITE() {
     return 0xffffffff;
   }
@@ -80,6 +81,18 @@ class Color {
 
   static randomColor() {
     return Color.makeColor(Math.random() * 255 | 0, Math.random() * 255 | 0, Math.random() * 255 | 0, 255);
+  }
+
+  static lerp(color1, color2, time) {
+    let c = Color.unpackColor(color1);
+    let s = Color.unpackColor(color2);
+
+    const cr = c.r + (s.r - c.r) * time;
+    const cg = c.g + (s.g - c.g) * time;
+    const cb = c.b + (s.b - c.b) * time;
+    const ca = c.a + (s.a - c.a) * time;
+
+    return Color.makeColor(cr, cg, cb, ca);
   }
 }
 
