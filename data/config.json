@@ -22,9 +22,6 @@
     },
     "quality": {
       "values": [1, 2, 3, 4]
-    },
-    "renderMode": {
-      "values": ["frame", "depth"]
     }
   },
   "camera": {

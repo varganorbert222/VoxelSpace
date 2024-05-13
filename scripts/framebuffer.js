@@ -1,6 +1,7 @@
 "use strict";
 
 import ColorPalette from "./colorpalette.js";
+import { Color } from "./color.js";
 
 class FrameBuffer {
   get colorBuffer() {
@@ -24,6 +25,8 @@ class FrameBuffer {
     this._buffer8bit = null; // the same array but with bytes
     this._buffer32bit = null; // the same array but with 32-Bit words
     this._colorPalette = null;
+    this._cachedBuffer32bit = null;
+    this._mustBeRecalcBuffer32bit = true;
 
     this._width = 0;
     this._height = 0;
@@ -31,16 +34,30 @@ class FrameBuffer {
 
   // megcsinálni cached background csak akkor kérem le a palettát, ha változik a szin
   drawBackground() {
-    const n = this._buffer32bit.length | 0;
-    const nm = (this._width * this._height) | 0;
-    const nm2 = nm * 0.5;
-    let color = this._colorPalette.getColor(0);
-    for (let i = 0; (i < n) | 0; i = (i + 1) | 0) {
-      const t = i / nm2;
-      color = this._colorPalette.getColor(t);
-      this._buffer32bit[i] = color;
+    if (!this._mustBeRecalcBuffer32bit) {
+      for (let i = 0; i < this._width * this._height; i++) {
+        this._buffer32bit[i] = this._cachedBuffer32bit[i];
+      }
+      return;
     }
-  }
+    this._mustBeRecalcBuffer32bit = false;
+
+    const h2 = this._height * 0.5;
+    let t = 0;
+    let color = Color.BLACK;
+    for (let i = 0; (i < this._height) | 0; i = (i + 1) | 0) {
+      t = i / h2;
+      color = this._colorPalette.getColor(t);
+      this._buffer32bit[i * this._width] = color;
+      this._cachedBuffer32bit[i * this._width] = color;
+    }
+    for (let i = 0; (i < this._height) | 0; i = (i + 1) | 0) {
+      for (let j = 1; (j < this._width) | 0; j = (j + 1) | 0) {
+        this._buffer32bit[i * this._width + j] = this._buffer32bit[i * this._width];
+        this._cachedBuffer32bit[i * this._width + j] = this._buffer32bit[i * this._width];
+      }
+    }
+  } 
 
   drawVerticalLine(x, ytop, ybottom, col, width = 1) {
     x = x | 0;
@@ -109,10 +126,16 @@ class FrameBuffer {
     );
     this._buffer8bit = new Uint8Array(this._colorBuffer);
     this._buffer32bit = new Uint32Array(this._colorBuffer);
+    this._cachedBuffer32bit = new ArrayBuffer(
+      this._imageDataForContext.width * this._imageDataForContext.height * 4
+    );
+
+    this._mustBeRecalcBuffer32bit = true;
   }
 
   setColors(topColor, bottomColor) {
     this._colorPalette = new ColorPalette(topColor, bottomColor, 24);
+    this._mustBeRecalcBuffer32bit = true;
   }
 }
 

@@ -13,11 +13,11 @@ let camera = null;
 let terrain = null;
 let totalFrames = 0;
 let lastTimeForFps = 0;
-let renderMode = "frame";
+let lastFps = 0;
 
 function run() {
   camera.move(input, terrain);
-  camera.render(terrain, renderMode);
+  camera.render(terrain);
   totalFrames++;
   window.requestAnimationFrame(run);
 }
@@ -129,14 +129,6 @@ function initSettings() {
       camera.set({ quality: parseFloat(e.target.value) });
     }
   );
-  const renderModeElement = initOptionElement(
-    "id_render_mode",
-    config.settings.renderMode,
-    renderMode,
-    (e) => {
-      renderMode = e.target.value;
-    }
-  );
   const applyFogElement = initCheckboxElement(
     "id_apply_fog",
     camera.renderer.applyFog,
@@ -156,8 +148,11 @@ function initSettings() {
 
 function printFps() {
   const current = new Date().getTime();
-  document.getElementById("id_fps").innerText =
-    ((totalFrames / (current - lastTimeForFps)) * 1000).toFixed(1) + " fps";
+  const fps = (totalFrames / (current - lastTimeForFps)) * 1000;
+  if (fps !== lastFps) {
+    document.getElementById("id_fps").innerText = fps.toFixed(1) + " fps";
+    lastFps = fps;
+  }
   totalFrames = 0;
   lastTimeForFps = current;
 }
@@ -167,7 +162,7 @@ function init() {
   camera = new Camera(config.camera);
   input = new Input({
     canvas: document.getElementById("id_fullscreen_canvas"),
-    onlook: () => camera.setDirty()
+    onlook: () => camera.setDirty(),
   });
 
   window.onresize = onResizeWindow;

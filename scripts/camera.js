@@ -167,9 +167,9 @@ class Camera {
     this._mustBeRecalcProjPlane = true;
   }
 
-  render(terrain, renderMode) {
-    this._renderer.render(terrain, renderMode);
-    // this._workerRenderer.render(terrain, renderMode);
+  render(terrain) {
+    this._renderer.render(terrain);
+    // this._workerRenderer.render(terrain);
   }
 
   resize(canvas, width, height) {

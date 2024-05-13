@@ -21,19 +21,15 @@ class Renderer {
     this._lastWidth = 0;
   }
 
-  drawBackground(renderMode, backgroundColor) {
-    if ((renderMode === "frame") | 0) {
-      this._frameBuffer.drawBackground(backgroundColor);
-    } else if ((renderMode === "depth") | 0) {
-      this._frameBuffer.drawBackground(Color.BLACK);
-    }
+  drawBackground() {
+    this._frameBuffer.drawBackground();
   }
 
   writeToContext() {
     this._frameBuffer.writeToContext();
   }
 
-  renderTerrain(terrain, renderMode) {
+  renderTerrain(terrain) {
     const nearClip = this._camera.nearClip;
     const farClip = this._camera.farClip;
     const cameraPosX = this._camera.posX;
@@ -117,22 +113,11 @@ class Renderer {
         for (let i = 0; (i < screenWidth) | 0; i = (i + pxOffset) | 0) {
           terrainSDF = terrain.getTerrainSDF(plx, ply, cameraPosZ);
           heightOnScreen = this._camera.projectToScreen(terrainSDF, z);
+          plotColor = terrain.getTerrainColor(plx, ply);
 
-          if ((renderMode === "frame") | 0) {
-            plotColor = terrain.getTerrainColor(plx, ply);
-
-            if (this._applyFog | 0) {
-              depth = VMath.clamp(0, 1, VMath.invLerp(nearClip, farClip, z));
-              plotColor = Color.lerp(plotColor, Color.WHITE, depth);
-            }
-          } else if ((renderMode === "depth") | 0) {
+          if (this._applyFog | 0) {
             depth = VMath.clamp(0, 1, VMath.invLerp(nearClip, farClip, z));
-            plotColor = Color.makeColor(
-              depth * 255,
-              depth * 255,
-              depth * 255,
-              255
-            );
+            plotColor = Color.lerp(plotColor, Color.WHITE, depth);
           }
 
           if ((heightOnScreen < this._hiddenY[i]) | 0) {
@@ -162,9 +147,9 @@ class Renderer {
     }
   }
 
-  render(terrain, renderMode) {
-    this.drawBackground(renderMode);
-    this.renderTerrain(terrain, renderMode);
+  render(terrain) {
+    this.drawBackground();
+    this.renderTerrain(terrain);
     this.writeToContext();
   }
 }
