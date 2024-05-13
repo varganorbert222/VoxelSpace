@@ -34,7 +34,8 @@ class FrameBuffer {
 
   drawBackground() {
     if (!this._mustBeRecalcBuffer32bit) {
-      for (let i = 0; i < this._width * this._height; i++) {
+      const n = this._width * this._height;
+      for (let i = 0; (i < n) | 0; i++) {
         this._buffer32bit[i] = this._cachedBuffer32bit[i];
       }
       return;
@@ -66,18 +67,17 @@ class FrameBuffer {
     if ((ytop < 0) | 0) ytop = 0;
     if ((ytop > ybottom) | 0) return;
 
-    const screenwidth = this._width | 0;
     let offset = 0;
     // get offset on screen for the vertical line
     for (
       let j = 0;
-      ((j < width) | 0) & ((x + j < screenwidth) | 0);
+      ((j < width) | 0) & ((x + j < this._width) | 0);
       j = (j + 1) | 0
     ) {
-      offset = (ytop * screenwidth + x + j) | 0;
+      offset = (ytop * this._width + x + j) | 0;
       for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
         this._buffer32bit[offset] = col;
-        offset = (offset + screenwidth) | 0;
+        offset = (offset + this._width) | 0;
       }
     }
   }

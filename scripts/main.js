@@ -12,8 +12,10 @@ let input = null;
 let camera = null;
 let terrain = null;
 let totalFrames = 0;
+let currentTime = 0;
 let lastTimeForFps = 0;
 let lastFps = 0;
+let fps = -1;
 
 function run() {
   camera.move(input, terrain);
@@ -147,14 +149,14 @@ function initSettings() {
 }
 
 function printFps() {
-  const current = new Date().getTime();
-  const fps = (totalFrames / (current - lastTimeForFps)) * 1000;
+  currentTime = new Date().getTime();
+  fps = (totalFrames / (currentTime - lastTimeForFps)) * 1000;
   if (fps !== lastFps) {
     document.getElementById("id_fps").innerText = fps.toFixed(1) + " fps";
     lastFps = fps;
   }
   totalFrames = 0;
-  lastTimeForFps = current;
+  lastTimeForFps = currentTime;
 }
 
 function init() {
@@ -162,7 +164,6 @@ function init() {
   camera = new Camera(config.camera);
   input = new Input({
     canvas: document.getElementById("id_fullscreen_canvas"),
-    onlook: () => camera.setDirty(),
   });
 
   window.onresize = onResizeWindow;

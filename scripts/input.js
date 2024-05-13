@@ -84,7 +84,7 @@ class Input {
       this.detectKeysUp(e);
     });
     window.addEventListener("keypress", (e) => {
-      this.detectKeyPress(e, config.onlook);
+      this.detectKeyPress(e);
     });
   }
 
@@ -202,17 +202,15 @@ class Input {
     return false;
   }
 
-  detectKeyPress(e, onlook) {
+  detectKeyPress(e) {
     switch (e.keyCode) {
       case 101: // e
         this._lookup = true;
         this._lookdown = false;
-        onlook();
         break;
       case 113: //q
         this._lookup = false;
         this._lookdown = true;
-        onlook();
         break;
       default:
         return;

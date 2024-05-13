@@ -188,10 +188,6 @@ class Camera {
     this._mustBeRecalcProjPlane = true;
   }
 
-  setDirty() {
-    this._mustBeRecalcHorizon = true;
-  }
-
   move(input, terrain) {
     if (input.leftright != 0) {
       this._angle += input.leftright * 0.1 * Time.deltaTime * 0.03;
@@ -208,10 +204,12 @@ class Camera {
     if (input.lookup) {
       this._pitch += 2 * Time.deltaTime * 0.03;
       this._pitch = VMath.clamp(-30, 30, this._pitch);
+      this._mustBeRecalcHorizon = true;
     }
     if (input.lookdown) {
       this._pitch -= 2 * Time.deltaTime * 0.03;
       this._pitch = VMath.clamp(-30, 30, this._pitch);
+      this._mustBeRecalcHorizon = true;
     }
     // Collision detection. Don't fly below the surface.
     if (terrain.collide(this._posX, this._posY, this._posZ - 10)) {
