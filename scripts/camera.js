@@ -2,7 +2,6 @@
 
 import FrameBuffer from "./framebuffer.js";
 import Renderer from "./renderer.js";
-import WorkerRenderer from "./workerrenderer.js";
 import Time from "./time.js";
 import VMath from "./vmath.js";
 
@@ -88,7 +87,6 @@ class Camera {
     this._mustBeRecalcProjPlane = true;
     this._topColor = 0;
     this._bottomColor = 0;
-    // this._workerRenderer = new WorkerRenderer(this, this._frameBuffer);
   }
 
   calculateFov() {
@@ -169,7 +167,6 @@ class Camera {
 
   render(terrain) {
     this._renderer.render(terrain);
-    // this._workerRenderer.render(terrain);
   }
 
   resize(canvas, width, height) {

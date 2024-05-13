@@ -32,7 +32,6 @@ class FrameBuffer {
     this._height = 0;
   }
 
-  // megcsinálni cached background csak akkor kérem le a palettát, ha változik a szin
   drawBackground() {
     if (!this._mustBeRecalcBuffer32bit) {
       for (let i = 0; i < this._width * this._height; i++) {

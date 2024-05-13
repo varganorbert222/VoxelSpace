@@ -16,7 +16,6 @@ class Renderer {
     this._camera = camera;
     this._frameBuffer = frameBuffer;
     this._applyFog = true;
-    this._workers = [];
     this._hiddenY = null;
     this._lastWidth = 0;
   }
