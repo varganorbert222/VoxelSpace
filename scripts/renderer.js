@@ -12,12 +12,21 @@ class Renderer {
     this._applyFog = value;
   }
 
+  get repeat() {
+    return this._repeat;
+  }
+
+  set repeat(value) {
+    this._repeat = value;
+  }
+
   constructor(camera, frameBuffer) {
     this._camera = camera;
     this._frameBuffer = frameBuffer;
     this._applyFog = true;
     this._hiddenY = null;
     this._lastWidth = 0;
+    this._repeat = true;
   }
 
   drawBackground() {
@@ -39,13 +48,23 @@ class Renderer {
     const screenWidth = this._frameBuffer.width;
     const screenHeight = this._frameBuffer.height;
     const screenWidthScaler = 1 / screenWidth;
-    const fov = this._camera.calculateFov();
+    const fov = this._camera.calculateFov().fovX;
     const leftAngle = this._camera.angle - fov;
     const rightAngle = this._camera.angle + fov;
     const cosLeftAngle = Math.cos(leftAngle);
     const sinLeftAngle = Math.sin(leftAngle);
     const cosRightAngle = Math.cos(rightAngle);
     const sinRightAngle = Math.sin(rightAngle);
+    const isInArea = (point, square) => {
+      // point is an object {x: x_value, y: y_value}
+      // square is an object {topLeft: {x: x1, y: y1}, bottomRight: {x: x2, y: y2}}
+      return (
+        (point.x >= square.topLeft.x &&
+          point.x <= square.bottomRight.x &&
+          point.y >= square.topLeft.y &&
+          point.y <= square.bottomRight.y) | 0
+      );
+    };
 
     if (!this._hiddenY | 0 | ((this._lastWidth !== screenWidth) | 0)) {
       this._hiddenY = new Int32Array(screenWidth);
@@ -54,15 +73,14 @@ class Renderer {
 
     const pixelOffsets = [1, 2, 4, 2, 4, 2, 1];
     const deltas = [cameraMinDeltaZ, 1, 2, 4, 8, 16, 32];
-    const qualityScaler = cameraQuality / 4;
     const lodDistances = [
       nearClip,
-      0.01 * qualityScaler * 8000,
-      0.15 * qualityScaler * 8000,
-      0.25 * qualityScaler * 8000,
-      0.35 * qualityScaler * 8000,
-      0.45 * qualityScaler * 8000,
-      0.55 * qualityScaler * 8000,
+      0.01 * 2000 * cameraQuality,
+      0.15 * 2000 * cameraQuality,
+      0.25 * 2000 * cameraQuality,
+      0.35 * 2000 * cameraQuality,
+      0.45 * 2000 * cameraQuality,
+      0.55 * 2000 * cameraQuality,
       farClip,
     ];
 
@@ -79,6 +97,7 @@ class Renderer {
       dy,
       terrainSDF,
       heightOnScreen,
+      heightOnScreenBottom,
       depth;
 
     for (let lod = 7; (lod > 0) | 0; lod = (lod - 1) | 0) {
@@ -110,30 +129,51 @@ class Renderer {
         ply += cameraPosY;
 
         for (let i = 0; (i < screenWidth) | 0; i = (i + pxOffset) | 0) {
-          terrainSDF = terrain.getTerrainSDF(plx, ply, cameraPosZ);
-          heightOnScreen = this._camera.projectToScreen(terrainSDF, z);
-          plotColor = terrain.getTerrainColor(plx, ply);
+          const isOk =
+            isInArea(
+              { x: plx, y: ply },
+              {
+                topLeft: { x: 0, y: 0 },
+                bottomRight: { x: terrain.width, y: terrain.height },
+              }
+            ) |
+            (this._repeat | 0);
 
-          if (this._applyFog | 0) {
-            depth = VMath.clamp(0, 1, VMath.invLerp(nearClip, farClip, z));
-            plotColor = Color.lerp(plotColor, Color.WHITE, depth);
-          }
+          if (isOk) {
+            terrainSDF = terrain.getTerrainSDF(plx, ply, cameraPosZ);
+            heightOnScreen = this._camera.projectToScreen(terrainSDF, z);
+            plotColor = terrain.getTerrainColor(plx, ply);
 
-          if ((heightOnScreen < this._hiddenY[i]) | 0) {
-            this._frameBuffer.drawVerticalLine(
-              i,
-              heightOnScreen,
-              this._hiddenY[i],
-              plotColor,
-              pxOffset
-            );
+            if (this._repeat | 0) {
+              heightOnScreenBottom = this._hiddenY[i];
+            } else {
+              heightOnScreenBottom = Math.min(
+                this._hiddenY[i],
+                this._camera.projectToScreen(cameraPosZ + 20, z)
+              );
+            }
 
-            for (
-              let j = i;
-              (j < i + pxOffset) | (0 & ((j < screenWidth) | 0));
-              j = (j + 1) | 0
-            ) {
-              this._hiddenY[j] = heightOnScreen;
+            if (this._applyFog | 0) {
+              depth = VMath.clamp(0, 1, VMath.invLerp(nearClip, farClip, z));
+              plotColor = Color.lerp(plotColor, Color.WHITE, depth);
+            }
+
+            if ((heightOnScreen < this._hiddenY[i]) | 0) {
+              this._frameBuffer.drawVerticalLine(
+                i,
+                heightOnScreen,
+                heightOnScreenBottom,
+                plotColor,
+                pxOffset
+              );
+
+              for (
+                let j = i;
+                (j < i + pxOffset) | (0 & ((j < screenWidth) | 0));
+                j = (j + 1) | 0
+              ) {
+                this._hiddenY[j] = heightOnScreen;
+              }
             }
           }
 

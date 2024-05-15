@@ -1,5 +1,7 @@
 "use strict";
 
+import VMath from "./vmath.js";
+
 class Input {
   get forwardbackward() {
     return this._forwardbackward;
@@ -19,6 +21,18 @@ class Input {
 
   get lookdown() {
     return this._lookdown;
+  }
+
+  get zoom() {
+    return this._zoom / 100;
+  }
+
+  get dragX() {
+    return this._dragX;
+  }
+
+  get dragY() {
+    return this._dragY;
   }
 
   get mouseposition() {
@@ -42,44 +56,43 @@ class Input {
   init(config) {
     this._forwardbackward = 0;
     this._leftright = 0;
+    this._dragX = 0;
+    this._dragY = 0;
     this._updown = 0;
     this._lookup = false;
     this._lookdown = false;
+    this._zoom = 0.5;
     this._mouseposition = null;
     this._keypressed = false;
     this._canvas = config.canvas;
 
     // set event handlers for keyboard, mouse, touchscreen and window resize
-    // this._canvas.removeEventListener('mousedown', this.detectMouseDown);
     this._canvas.addEventListener("mousedown", (e) => {
       this.detectMouseDown(e);
     });
-    // this._canvas.removeEventListener('mouseup');
     this._canvas.addEventListener("mouseup", (e) => {
       this.detectMouseUp(e);
     });
-    // this._canvas.removeEventListener('mousemove');
     this._canvas.addEventListener("mousemove", (e) => {
       this.detectMouseMove(e);
     });
-    // this._canvas.removeEventListener('touchstart');
+    this._canvas.addEventListener("mousewheel", (e) => {
+      this.detectMouseWheel(e);
+    });
+
     this._canvas.addEventListener("touchstart", (e) => {
       this.detectMouseDown(e);
     });
-    // this._canvas.removeEventListener('touchend');
     this._canvas.addEventListener("touchend", (e) => {
       this.detectMouseUp(e);
     });
-    // this._canvas.removeEventListener('touchmove');
     this._canvas.addEventListener("touchmove", (e) => {
       this.detectMouseMove(e);
     });
 
-    // window.removeEventListener('keydown');
     window.addEventListener("keydown", (e) => {
       this.detectKeysDown(e);
     });
-    // window.removeEventListener('keyup');
     window.addEventListener("keyup", (e) => {
       this.detectKeysUp(e);
     });
@@ -100,30 +113,37 @@ class Input {
   detectMouseDown(e) {
     this._forwardbackward = 3;
     this._mouseposition = this.getMousePosition(e);
+    this._dragX = 0;
+    this._dragY = 0;
   }
 
-  detectMouseUp() {
+  detectMouseUp(e) {
     this._mouseposition = null;
     this._forwardbackward = 0;
     this._leftright = 0;
     this._updown = 0;
+    this._dragX = 0;
+    this._dragY = 0;
   }
 
   detectMouseMove(e) {
     e.preventDefault();
-    if (this._mouseposition == null) return;
+    if (this._mouseposition == null || this._dragX == null || this._dragY == null) return;
     if (this._forwardbackward == 0) return;
 
     const currentMousePosition = this.getMousePosition(e);
 
-    this._leftright =
-      ((this._mouseposition[0] - currentMousePosition[0]) / window.innerWidth) *
-      2;
+    this._dragX = (this._mouseposition[0] - currentMousePosition[0]) / (window.innerWidth * 4);
+    this._dragY = (this._mouseposition[1] - currentMousePosition[1]) / (window.innerHeight * 8);
 
-    this._updown =
-      ((this._mouseposition[1] - currentMousePosition[1]) /
-        window.innerHeight) *
-      10;
+    this._leftright = (this._dragX / window.innerWidth) * 2;
+    this._updown = (this._dragY / window.innerHeight) * 10;
+  }
+
+  detectMouseWheel(e) {
+    this._zoom += VMath.clamp(-10, 10, -e.wheelDelta || -e.detail);
+    this._zoom = VMath.clamp(0, 100, this._zoom);
+    e.preventDefault();
   }
 
   detectKeysDown(e) {

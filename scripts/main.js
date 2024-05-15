@@ -138,12 +138,32 @@ function initSettings() {
       camera.renderer.applyFog = e.target.checked;
     }
   );
+  const repeatElement = initCheckboxElement(
+    "id_repeat",
+    camera.renderer.repeat,
+    (e) => {
+      camera.renderer.repeat = e.target.checked;
+    }
+  );
   const mapSelector = initOptionElement(
     "id_mapselector",
     { values: maps.map((m) => m.name) },
     maps[0].name,
     (e) => {
       loadMap(e.target.value);
+    }
+  );
+  const cameraSelector = initOptionElement(
+    "id_cameraselector",
+    config.settings.cameraModes,
+    camera.mode,
+    (e) => {
+      camera.set({
+        mode: e.target.value,
+        posX: terrain.width * 0.5,
+        posY: terrain.height * 0.5,
+        posZ: terrain.altitude + 50
+      });
     }
   );
 }

@@ -22,6 +22,9 @@
     },
     "quality": {
       "values": [1, 2, 3, 4]
+    },
+    "cameraModes": {
+      "values": ["fly", "orbital"]
     }
   },
   "camera": {

@@ -62,13 +62,17 @@ class Camera {
     return this._height;
   }
 
+  get mode() {
+    return this._mode;
+  }
+
   constructor(settings) {
     this._nearClip = settings.nearClip ?? 1;
     this._farClip = settings.farClip ?? 2000;
     this._minDeltaZ = settings.minDeltaZ ?? 1;
-    this._posX = settings.posX ?? 0; // x position on the map
-    this._posY = settings.posY ?? 0; // y position on the map
-    this._posZ = settings.posZ ?? 100; // height of the camera
+    this._posX = settings.posX ?? 512; // x position on the map
+    this._posY = settings.posY ?? 512; // y position on the map
+    this._posZ = settings.posZ ?? 150; // height of the camera
     this._angle = settings.angle ?? 0; // direction of the camera
     this._pitch = settings.pitch ?? 0; // horizon position (look up and down)
     this._renderScale = settings.renderScale ?? 0.5;
@@ -87,6 +91,8 @@ class Camera {
     this._mustBeRecalcProjPlane = true;
     this._topColor = 0;
     this._bottomColor = 0;
+    this._orbiterRadius = 500;
+    this._mode = "fly";
   }
 
   calculateFov() {
@@ -99,17 +105,22 @@ class Camera {
     const focalLength =
       this._height2 / Math.tan(0.5 * VMath.DEG_TO_RAD * this._fov); // Assuming a 60 degree vertical FOV
 
-    // Calculate vertical FOV in degrees
-    const fovY = 2 * Math.atan2(this._height2, focalLength) * VMath.RAD_TO_DEG;
-
     // Calculate horizontal FOV in degrees
     const fovX = 2 * Math.atan2(this._width2, focalLength) * VMath.RAD_TO_DEG;
 
-    let fov = this._width / this.height < 1 ? fovY : fovX;
-    fov = ((90 - fov) / 2) * VMath.DEG_TO_RAD;
-    this._cachedFov = fov;
+    // Calculate vertical FOV in degrees
+    const fovY = 2 * Math.atan2(this._height2, focalLength) * VMath.RAD_TO_DEG;
 
-    return fov;
+    const aspect = this._width / this.height;
+    let fov = aspect < 1 ? fovY : fovX;
+    fov = (90 - fov) * 0.5 * VMath.DEG_TO_RAD;
+
+    this._cachedFov = {
+      fovX: fov,
+      fovY: fovY,
+    };
+
+    return this._cachedFov;
   }
 
   calculateProjPlane() {
@@ -118,8 +129,13 @@ class Camera {
     }
     this._mustBeRecalcProjPlane = false;
 
+    const aspect = this._width / this._height;
+    const scaler = aspect < 1 ? 1 : 1 / aspect;
+
     this._cachedProjPlane =
-      this._width2 / Math.tan(this._fov * 0.5 * VMath.DEG_TO_RAD);
+      this._width2 *
+      (1 / Math.tan(this._cachedFov.fovY * 0.5 * VMath.DEG_TO_RAD)) *
+      scaler;
 
     return this._cachedProjPlane;
   }
@@ -138,14 +154,21 @@ class Camera {
   }
 
   calculateProjectedHeight(y, z, dstToProjPlane, horizon) {
-    const terrainProjectedHeight = (y / z) * dstToProjPlane;
+    // const moveUpAndDown = 1 + (VMath.invLerp(-90, 90, this._pitch) * 2 - 1);
+    const terrainProjectedHeight =
+      (y / z) /* * moveUpAndDown*/ * dstToProjPlane;
     return (terrainProjectedHeight + horizon) | 0;
   }
 
   projectToScreen(y, z) {
     const dstToProjPlane = this.calculateProjPlane();
     const horizon = this.calculateHorizon(dstToProjPlane);
-    const drawHeight = this.calculateProjectedHeight(y, z, dstToProjPlane, horizon);
+    const drawHeight = this.calculateProjectedHeight(
+      y,
+      z,
+      dstToProjPlane,
+      horizon
+    );
     return drawHeight;
   }
 
@@ -158,6 +181,19 @@ class Camera {
     this._topColor = settings.topColor ?? this._topColor;
     this._bottomColor = settings.bottomColor ?? this._bottomColor;
     this._frameBuffer.setColors(this._topColor, this._bottomColor);
+
+    this._mode = settings.mode ?? this._mode;
+    this._posX = settings.posX ?? this._posX;
+    this._posY = settings.posY ?? this._posY;
+    this._posZ = settings.posZ ?? this._posZ;
+
+    // if (this._mode === "fly" | 0) {
+    //   this._pitch = 0;
+    //   this._angle = 0;
+    // } else if (this._mode === "orbital" | 0) {
+    //   this._pitch = 60;
+    //   this._angle = 0;
+    // }
 
     this._mustBeRecalcFov = true;
     this._mustBeRecalcDrawHeight = true;
@@ -188,7 +224,7 @@ class Camera {
     this._mustBeRecalcProjPlane = true;
   }
 
-  move(input, terrain) {
+  moveFpsView(input) {
     if (input.leftright != 0) {
       this._angle += input.leftright * 0.1 * Time.deltaTime * 0.03;
     }
@@ -211,6 +247,43 @@ class Camera {
       this._pitch = VMath.clamp(-30, 30, this._pitch);
       this._mustBeRecalcHorizon = true;
     }
+  }
+
+  moveOrbiterView(input, terrain) {
+    this._orbiterRadius = VMath.lerp(500, 2000, input.zoom);
+    const radius = this._orbiterRadius;
+    const deltaPhi = input.dragX;
+    const deltaTheta = input.dragY;
+    const offsetX = terrain.width * 0.5;
+    const offsetY = terrain.height * 0.5;
+
+    let theta = Math.acos(VMath.clamp(-1, 1, this._posZ / radius));
+    let phi = Math.atan2(this._posY - offsetY, this._posX - offsetX);
+
+    // Subtract deltaTheta and deltaPhi
+    theta = VMath.clamp(0.5, Math.PI / 2, theta - deltaTheta);
+    phi -= deltaPhi;
+
+    // Turn back into Cartesian coordinates
+    this._posX = offsetX + radius * Math.sin(theta) * Math.cos(phi);
+    this._posY = offsetY + radius * Math.sin(theta) * Math.sin(phi);
+    this._posZ = radius * Math.cos(theta);
+
+    this._angle = VMath.angle(
+      { x: this._posX - offsetX, y: this._posY - offsetY },
+      { x: 0, y: offsetY }
+    );
+    this._pitch = VMath.clamp(0, 1, this._posZ / radius) * 60;
+    this._mustBeRecalcHorizon = true;
+  }
+
+  move(input, terrain) {
+    if (this._mode === "fly") {
+      this.moveFpsView(input);
+    } else if (this._mode === "orbital") {
+      this.moveOrbiterView(input, terrain);
+    }
+
     // Collision detection. Don't fly below the surface.
     if (terrain.collide(this._posX, this._posY, this._posZ - 10)) {
       this._posZ = terrain.getTerrainHeight(this._posX, this._posY) + 10;
