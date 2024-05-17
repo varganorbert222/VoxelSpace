@@ -133,11 +133,14 @@ class Input {
 
     const currentMousePosition = this.getMousePosition(e);
 
-    this._dragX = (this._mouseposition[0] - currentMousePosition[0]) / (window.innerWidth * 4);
-    this._dragY = (this._mouseposition[1] - currentMousePosition[1]) / (window.innerHeight * 8);
+    const deltaX = this._mouseposition[0] - currentMousePosition[0];
+    const deltaY = this._mouseposition[1] - currentMousePosition[1];
 
-    this._leftright = (this._dragX / window.innerWidth) * 2;
-    this._updown = (this._dragY / window.innerHeight) * 10;
+    this._leftright = (deltaX / window.innerWidth) * 2;
+    this._updown = (deltaY / window.innerHeight) * 10;
+
+    this._dragX =  (deltaX / window.innerWidth) * 0.2;
+    this._dragY =  (deltaY / window.innerHeight) * 0.1;
   }
 
   detectMouseWheel(e) {
