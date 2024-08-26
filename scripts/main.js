@@ -1,7 +1,7 @@
 "use strict";
 
-import maps from "../data/maps.json" assert { type: "json" };
-import config from "../data/config.json" assert { type: "json" };
+import maps from "../data/maps.json" with { type: "json" };
+import config from "../data/config.json" with { type: "json" };
 import Camera from "./camera.js";
 import Terrain from "./terrain.js";
 import Input from "./input.js";
