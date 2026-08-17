@@ -81,13 +81,11 @@ class Renderer {
     const screenWidth = this._frameBuffer.width;
     const screenHeight = this._frameBuffer.height;
     const screenWidthScaler = 1 / screenWidth;
-    const fov = this._camera.calculateFov().fovX;
-    const leftAngle = this._camera.angle - fov;
-    const rightAngle = this._camera.angle + fov;
-    const cosLeftAngle = Math.cos(leftAngle);
-    const sinLeftAngle = Math.sin(leftAngle);
-    const cosRightAngle = Math.cos(rightAngle);
-    const sinRightAngle = Math.sin(rightAngle);
+    const halfFovX = this._camera.calculateFov().halfFovX;
+    const tanHalfFovX = Math.tan(halfFovX);
+    const cameraAngle = this._camera.angle;
+    const sinAngle = Math.sin(cameraAngle);
+    const cosAngle = Math.cos(cameraAngle);
     const isInArea = (point, square) => {
       // point is an object {x: x_value, y: y_value}
       // square is an object {topLeft: {x: x1, y: y1}, bottomRight: {x: x2, y: y2}}
@@ -104,18 +102,24 @@ class Renderer {
       this._lastWidth = screenWidth;
     }
 
-    const pixelOffsets = [1, 2, 4, 2, 4, 2, 1];
+    const pixelOffsets = [1, 2, 2, 4, 4, 8, 8];
     const deltas = [cameraMinDeltaZ, 1, 2, 4, 8, 16, 32];
+    const zStart = Math.max(nearClip, cameraMinDeltaZ, 1);
     const lodDistances = [
-      nearClip,
-      0.01 * 2000 * cameraQuality,
-      0.15 * 2000 * cameraQuality,
-      0.25 * 2000 * cameraQuality,
-      0.35 * 2000 * cameraQuality,
-      0.45 * 2000 * cameraQuality,
-      0.55 * 2000 * cameraQuality,
+      zStart,
+      0.01 * farClip * cameraQuality,
+      0.15 * farClip * cameraQuality,
+      0.25 * farClip * cameraQuality,
+      0.35 * farClip * cameraQuality,
+      0.45 * farClip * cameraQuality,
+      0.55 * farClip * cameraQuality,
       farClip,
     ];
+    for (let i = 1; (i < 7) | 0; i = (i + 1) | 0) {
+      if ((lodDistances[i] < lodDistances[i - 1]) | 0) {
+        lodDistances[i] = lodDistances[i - 1];
+      }
+    }
 
     let plotColor = Color.BLACK;
     let startIndex,
@@ -139,21 +143,27 @@ class Renderer {
       pxOffset = pixelOffsets[lod - 1];
       step = deltas[lod - 1];
 
+      if ((startIndex >= farClip) | 0) {
+        continue;
+      }
+
       for (let i = 0; (i < screenWidth) | 0; i = (i + 1) | 0) {
         this._hiddenY[i] = screenHeight;
       }
 
-      // Draw from front to back
       for (
         let z = startIndex;
         ((z < endIndex) | 0) & ((z < farClip) | 0);
         z = z + step
       ) {
-        // field of view
-        plx = -cosLeftAngle * z - sinLeftAngle * z;
-        ply = sinLeftAngle * z - cosLeftAngle * z;
-        prx = cosRightAngle * z - sinRightAngle * z;
-        pry = -sinRightAngle * z - cosRightAngle * z;
+        const viewX = -sinAngle * z;
+        const viewY = -cosAngle * z;
+        const rightX = cosAngle * tanHalfFovX * z;
+        const rightY = -sinAngle * tanHalfFovX * z;
+        plx = viewX - rightX;
+        ply = viewY - rightY;
+        prx = viewX + rightX;
+        pry = viewY + rightY;
 
         dx = (prx - plx) * screenWidthScaler;
         dy = (pry - ply) * screenWidthScaler;
@@ -202,7 +212,7 @@ class Renderer {
 
               for (
                 let j = i;
-                (j < i + pxOffset) | (0 & ((j < screenWidth) | 0));
+                ((j < i + pxOffset) | 0) & ((j < screenWidth) | 0);
                 j = (j + 1) | 0
               ) {
                 this._hiddenY[j] = heightOnScreen;

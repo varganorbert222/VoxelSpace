@@ -108,11 +108,9 @@ class FrameBuffer {
   }
 
   set(bufferData) {
-    const aspect = bufferData.width / bufferData.height;
-
     this._canvas = bufferData.canvas;
     this._width = (bufferData.width * bufferData.renderScale) | 0;
-    this._height = (this._width / aspect) | 0;
+    this._height = (bufferData.height * bufferData.renderScale) | 0;
     this._canvas.width = this._width;
     this._canvas.height = this._height;
 

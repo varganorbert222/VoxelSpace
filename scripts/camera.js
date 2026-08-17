@@ -101,23 +101,15 @@ class Camera {
     }
     this._mustBeRecalcFov = false;
 
-    // Focal length in pixels (this could also be the distance from the camera to the screen)
-    const focalLength =
-      this._height2 / Math.tan(0.5 * VMath.DEG_TO_RAD * this._fov); // Assuming a 60 degree vertical FOV
-
-    // Calculate horizontal FOV in degrees
-    const fovX = 2 * Math.atan2(this._width2, focalLength) * VMath.RAD_TO_DEG;
-
-    // Calculate vertical FOV in degrees
-    const fovY = 2 * Math.atan2(this._height2, focalLength) * VMath.RAD_TO_DEG;
-
-    const aspect = this._width / this.height;
-    let fov = aspect < 1 ? fovY : fovX;
-    fov = (90 - fov) * 0.5 * VMath.DEG_TO_RAD;
+    const halfFovY = this._fov * VMath.DEG_TO_RAD * 0.5;
+    const aspect = this._width / this._height;
+    const halfFovX = Math.atan(Math.tan(halfFovY) * aspect);
 
     this._cachedFov = {
-      fovX: fov,
-      fovY: fovY,
+      fovX: halfFovX * 2 * VMath.RAD_TO_DEG,
+      fovY: this._fov,
+      halfFovX: halfFovX,
+      halfFovY: halfFovY,
     };
 
     return this._cachedFov;
@@ -129,13 +121,8 @@ class Camera {
     }
     this._mustBeRecalcProjPlane = false;
 
-    const aspect = this._width / this._height;
-    const scaler = aspect < 1 ? 1 : 1 / aspect;
-
-    this._cachedProjPlane =
-      this._width2 *
-      (1 / Math.tan(this._cachedFov.fovY * 0.5 * VMath.DEG_TO_RAD)) *
-      scaler;
+    const halfFovY = this._fov * VMath.DEG_TO_RAD * 0.5;
+    this._cachedProjPlane = this._height2 / Math.tan(halfFovY);
 
     return this._cachedProjPlane;
   }
