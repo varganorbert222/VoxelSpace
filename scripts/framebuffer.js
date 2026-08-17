@@ -16,6 +16,10 @@ class FrameBuffer {
     return this._height;
   }
 
+  get buffer32bit() {
+    return this._buffer32bit;
+  }
+
   constructor() {
     this._canvas = null;
     this._contextForCanvas = null;

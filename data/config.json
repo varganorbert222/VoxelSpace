@@ -25,6 +25,9 @@
     },
     "cameraModes": {
       "values": ["fly", "orbital"]
+    },
+    "renderAlgorithms": {
+      "values": ["classic", "panorama"]
     }
   },
   "camera": {

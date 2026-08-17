@@ -2,6 +2,11 @@
 
 import { Color } from "./color.js";
 import VMath from "./vmath.js";
+import { generateSphericalPanorama } from "./sphericalPanorama.js";
+import { renderPanoramaView } from "./panoramaViewer.js";
+
+const PANO_WIDTH = 2048;
+const PANO_HEIGHT = 1024;
 
 class Renderer {
   get applyFog() {
@@ -20,6 +25,14 @@ class Renderer {
     this._repeat = value;
   }
 
+  get algorithm() {
+    return this._algorithm;
+  }
+
+  set algorithm(value) {
+    this._algorithm = value;
+  }
+
   constructor(camera, frameBuffer) {
     this._camera = camera;
     this._frameBuffer = frameBuffer;
@@ -27,6 +40,26 @@ class Renderer {
     this._hiddenY = null;
     this._lastWidth = 0;
     this._repeat = true;
+    this._algorithm = "classic";
+    this._panoWidth = PANO_WIDTH;
+    this._panoHeight = PANO_HEIGHT;
+    this._panoramaPixels = null;
+    this._panoramaHorizon = null;
+    this._panoramaValid = false;
+    this._panoramaDirty = true;
+    this._panoCamX = 0;
+    this._panoCamY = 0;
+    this._panoCamZ = 0;
+    this._panoFarClip = NaN;
+    this._panoApplyFog = null;
+    this._panoRepeat = null;
+    this._panoMinDeltaZ = NaN;
+    this._panoSkyColor = null;
+  }
+
+  invalidatePanorama() {
+    this._panoramaDirty = true;
+    this._panoramaValid = false;
   }
 
   drawBackground() {
@@ -186,7 +219,89 @@ class Renderer {
     }
   }
 
+  _ensurePanoramaBuffers() {
+    const n = (this._panoWidth * this._panoHeight) | 0;
+    if (!this._panoramaPixels || this._panoramaPixels.length !== n) {
+      this._panoramaPixels = new Uint32Array(n);
+      this._panoramaHorizon = new Int32Array(this._panoWidth);
+      this._panoramaValid = false;
+    }
+  }
+
+  _shouldRegeneratePanorama(terrain) {
+    if (!this._panoramaValid || this._panoramaDirty) {
+      return true;
+    }
+
+    const camera = this._camera;
+    const settingsChanged =
+      this._panoFarClip !== camera.farClip ||
+      this._panoApplyFog !== this._applyFog ||
+      this._panoRepeat !== this._repeat ||
+      this._panoMinDeltaZ !== camera.minDeltaZ ||
+      this._panoSkyColor !== terrain.skyColor;
+
+    if (settingsChanged) {
+      return true;
+    }
+
+    return (
+      camera.posX !== this._panoCamX ||
+      camera.posY !== this._panoCamY ||
+      camera.posZ !== this._panoCamZ
+    );
+  }
+
+  _renderPanorama(terrain) {
+    this._ensurePanoramaBuffers();
+
+    if (this._shouldRegeneratePanorama(terrain)) {
+      const camera = this._camera;
+      generateSphericalPanorama({
+        terrain,
+        camX: camera.posX,
+        camY: camera.posY,
+        camZ: camera.posZ,
+        width: this._panoWidth,
+        height: this._panoHeight,
+        farClip: camera.farClip,
+        nearClip: camera.nearClip,
+        applyFog: this._applyFog,
+        repeat: this._repeat,
+        skyColor: terrain.skyColor,
+        initialStep: camera.minDeltaZ,
+        pixels: this._panoramaPixels,
+        horizon: this._panoramaHorizon,
+      });
+      this._panoCamX = camera.posX;
+      this._panoCamY = camera.posY;
+      this._panoCamZ = camera.posZ;
+      this._panoFarClip = camera.farClip;
+      this._panoApplyFog = this._applyFog;
+      this._panoRepeat = this._repeat;
+      this._panoMinDeltaZ = camera.minDeltaZ;
+      this._panoSkyColor = terrain.skyColor;
+      this._panoramaValid = true;
+      this._panoramaDirty = false;
+    }
+
+    renderPanoramaView({
+      panorama: this._panoramaPixels,
+      panoramaWidth: this._panoWidth,
+      panoramaHeight: this._panoHeight,
+      yaw: this._camera.angle,
+      pitch: this._camera.pitch,
+      fovY: this._camera.fov,
+      frameBuffer: this._frameBuffer,
+    });
+    this.writeToContext();
+  }
+
   render(terrain) {
+    if (this._algorithm === "panorama") {
+      this._renderPanorama(terrain);
+      return;
+    }
     this.drawBackground();
     this.renderTerrain(terrain);
     this.writeToContext();

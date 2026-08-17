@@ -49,6 +49,12 @@ class Input {
     );
   }
 
+  get consumeToggleRenderAlgorithm() {
+    const pressed = this._toggleRenderAlgorithm;
+    this._toggleRenderAlgorithm = false;
+    return pressed;
+  }
+
   constructor(canvas) {
     this.init(canvas);
   }
@@ -64,6 +70,7 @@ class Input {
     this._zoom = 0.5;
     this._mouseposition = null;
     this._keypressed = false;
+    this._toggleRenderAlgorithm = false;
     this._canvas = config.canvas;
 
     // set event handlers for keyboard, mouse, touchscreen and window resize
@@ -180,6 +187,9 @@ class Input {
       case 81: //q
         this._lookup = false;
         this._lookdown = true;
+        break;
+      case 80: // P
+        if (!e.repeat) this._toggleRenderAlgorithm = true;
         break;
       default:
         return;

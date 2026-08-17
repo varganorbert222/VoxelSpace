@@ -11,13 +11,29 @@ import { Color } from "./color.js";
 let input = null;
 let camera = null;
 let terrain = null;
+let algorithmSelector = null;
 let totalFrames = 0;
 let currentTime = 0;
 let lastTimeForFps = 0;
 let lastFps = 0;
 let fps = -1;
 
+function setRenderAlgorithm(algorithm) {
+  camera.renderer.algorithm = algorithm;
+  if (algorithm === "classic") {
+    camera.clampPitchForClassic();
+  }
+  if (algorithmSelector) {
+    algorithmSelector.value = algorithm;
+  }
+}
+
 function run() {
+  if (input.consumeToggleRenderAlgorithm) {
+    const next =
+      camera.renderer.algorithm === "classic" ? "panorama" : "classic";
+    setRenderAlgorithm(next);
+  }
   camera.move(input, terrain);
   camera.render(terrain);
   totalFrames++;
@@ -37,6 +53,7 @@ function loadMap(mapName) {
       heightMap: images[1],
     };
     terrain.loadData(selectedMap, mapImages);
+    camera.renderer.invalidatePanorama();
     camera.set({
       topColor: terrain.skyColor,
       bottomColor: Color.WHITE,
@@ -164,6 +181,14 @@ function initSettings() {
         posY: terrain.height * 0.5,
         posZ: terrain.altitude + 50
       });
+    }
+  );
+  algorithmSelector = initOptionElement(
+    "id_algorithmselector",
+    config.settings.renderAlgorithms,
+    camera.renderer.algorithm,
+    (e) => {
+      setRenderAlgorithm(e.target.value);
     }
   );
 }

@@ -237,16 +237,22 @@ class Camera {
     if (input.updown != 0) {
       this._posZ += input.updown * Time.deltaTime * 0.03;
     }
+    const pitchLimit = this._renderer.algorithm === "panorama" ? 89 : 30;
     if (input.lookup) {
       this._pitch += 2 * Time.deltaTime * 0.03;
-      this._pitch = VMath.clamp(-30, 30, this._pitch);
+      this._pitch = VMath.clamp(-pitchLimit, pitchLimit, this._pitch);
       this._mustBeRecalcHorizon = true;
     }
     if (input.lookdown) {
       this._pitch -= 2 * Time.deltaTime * 0.03;
-      this._pitch = VMath.clamp(-30, 30, this._pitch);
+      this._pitch = VMath.clamp(-pitchLimit, pitchLimit, this._pitch);
       this._mustBeRecalcHorizon = true;
     }
+  }
+
+  clampPitchForClassic() {
+    this._pitch = VMath.clamp(-30, 30, this._pitch);
+    this._mustBeRecalcHorizon = true;
   }
 
   moveOrbiterView(input, terrain) {
