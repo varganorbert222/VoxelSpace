@@ -26,6 +26,8 @@ function setRenderAlgorithm(algorithm) {
   if (algorithmSelector) {
     algorithmSelector.value = algorithm;
   }
+  document.body.classList.toggle("classic", algorithm === "classic");
+  document.body.classList.toggle("panorama", algorithm === "panorama");
 }
 
 function run() {
@@ -215,6 +217,16 @@ function init() {
   window.setInterval(printFps, 500);
 
   initSettings();
+  setRenderAlgorithm(camera.renderer.algorithm);
+
+  input.bindTouchControls({
+    moveStick: document.getElementById("id_stick_move"),
+    lookStick: document.getElementById("id_stick_look"),
+    btnUp: document.getElementById("id_btn_up"),
+    btnDown: document.getElementById("id_btn_down"),
+    btnRollLeft: document.getElementById("id_btn_roll_left"),
+    btnRollRight: document.getElementById("id_btn_roll_right"),
+  });
 
   loadMap(maps[0].name);
   onResizeWindow();

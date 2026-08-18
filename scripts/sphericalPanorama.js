@@ -1,6 +1,7 @@
 "use strict";
 
 import { Color } from "./color.js";
+import ColorPalette from "./colorpalette.js";
 import VMath from "./vmath.js";
 
 export function generateSphericalPanorama({
@@ -19,9 +20,17 @@ export function generateSphericalPanorama({
   pixels,
   horizon,
 }) {
-  const n = (width * height) | 0;
-  for (let i = 0; (i < n) | 0; i = (i + 1) | 0) {
-    pixels[i] = skyColor;
+  const palette = new ColorPalette(skyColor, Color.WHITE, 24);
+  const h2 = height * 0.5;
+  for (let y = 0; (y < height) | 0; y = (y + 1) | 0) {
+    let t = y / h2;
+    if ((t < 0) | 0) t = 0;
+    if (t > 23 / 24) t = 23 / 24;
+    const color = palette.getColor(t);
+    const row = (y * width) | 0;
+    for (let x = 0; (x < width) | 0; x = (x + 1) | 0) {
+      pixels[row + x] = color;
+    }
   }
 
   const mapW = terrain.width;

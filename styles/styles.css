@@ -40,4 +40,79 @@ a {
 
 #id_fullscreen_canvas {
   image-rendering: pixelated;
+  touch-action: none;
+}
+
+#id_touch_controls {
+  display: none;
+  pointer-events: none;
+}
+
+@media (pointer: coarse), (hover: none) {
+  #id_touch_controls {
+    display: block;
+  }
+
+  #id_info {
+    font-size: 90%;
+  }
+}
+
+.stick {
+  pointer-events: auto;
+  position: absolute;
+  bottom: 28px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  touch-action: none;
+  z-index: 120;
+}
+
+#id_stick_move {
+  left: 24px;
+}
+
+#id_stick_look {
+  right: 24px;
+}
+
+.stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+}
+
+#id_touch_buttons {
+  pointer-events: auto;
+  position: absolute;
+  right: 160px;
+  bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 120;
+}
+
+#id_touch_buttons button {
+  min-width: 64px;
+  min-height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+  font-size: 14px;
+  touch-action: none;
+}
+
+body.classic .pano-only {
+  display: none;
 }

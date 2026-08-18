@@ -23,8 +23,9 @@
 
     <div id="id_info">
       Fly controls
-      <b>WASD</b> or <b>Cursor Keys</b> or <b>left click</b> move, <b>R|F</b> up
-      | down, <b>Q|E</b> pitch, <b>P</b> classic 2.5D | spherical panorama
+      <b>WASD</b> move / strafe, <b>click</b> mouse look, <b>arrows</b> look,
+      <b>R|F</b> or <b>Shift|Ctrl</b> up | down, <b>Q|E</b> pitch (classic) / roll (panorama),
+      <b>P</b> classic 2.5D | spherical panorama
       <br />
 
       <label for="id_mapselector">Map</label>
@@ -85,5 +86,20 @@
     <canvas id="id_fullscreen_canvas" width="800" height="400">
       Your browser does not support the canvas element.
     </canvas>
+
+    <div id="id_touch_controls">
+      <div id="id_stick_move" class="stick" aria-label="Move">
+        <div class="stick-knob"></div>
+      </div>
+      <div id="id_stick_look" class="stick" aria-label="Look">
+        <div class="stick-knob"></div>
+      </div>
+      <div id="id_touch_buttons">
+        <button type="button" id="id_btn_up">Up</button>
+        <button type="button" id="id_btn_down">Down</button>
+        <button type="button" id="id_btn_roll_left" class="pano-only">Roll L</button>
+        <button type="button" id="id_btn_roll_right" class="pano-only">Roll R</button>
+      </div>
+    </div>
   </body>
 </html>

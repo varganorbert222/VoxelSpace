@@ -295,14 +295,23 @@ class Renderer {
       this._panoramaDirty = false;
     }
 
+    this.drawBackground();
     renderPanoramaView({
       panorama: this._panoramaPixels,
       panoramaWidth: this._panoWidth,
       panoramaHeight: this._panoHeight,
-      yaw: this._camera.angle,
-      pitch: this._camera.pitch,
       fovY: this._camera.fov,
       frameBuffer: this._frameBuffer,
+      horizon: this._panoramaHorizon,
+      rightX: this._camera.rightX,
+      rightY: this._camera.rightY,
+      rightZ: this._camera.rightZ,
+      upX: this._camera.upX,
+      upY: this._camera.upY,
+      upZ: this._camera.upZ,
+      fwdX: this._camera.fwdX,
+      fwdY: this._camera.fwdY,
+      fwdZ: this._camera.fwdZ,
     });
     this.writeToContext();
   }

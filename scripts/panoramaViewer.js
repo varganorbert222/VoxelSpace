@@ -6,10 +6,18 @@ export function renderPanoramaView({
   panorama,
   panoramaWidth,
   panoramaHeight,
-  yaw,
-  pitch,
   fovY,
   frameBuffer,
+  horizon,
+  rightX,
+  rightY,
+  rightZ,
+  upX,
+  upY,
+  upZ,
+  fwdX,
+  fwdY,
+  fwdZ,
 }) {
   const width = frameBuffer.width;
   const height = frameBuffer.height;
@@ -17,12 +25,6 @@ export function renderPanoramaView({
 
   const aspect = width / height;
   const tanHalf = Math.tan(fovY * VMath.DEG_TO_RAD * 0.5);
-
-  const pitchRad = VMath.clamp(-89, 89, pitch) * VMath.DEG_TO_RAD;
-  const cosP = Math.cos(pitchRad);
-  const sinP = Math.sin(pitchRad);
-  const cosY = Math.cos(yaw);
-  const sinY = Math.sin(yaw);
 
   const invWidth = 1 / width;
   const invHeight = 1 / height;
@@ -44,13 +46,9 @@ export function renderPanoramaView({
       cy *= invLen;
       cz *= invLen;
 
-      const py_ = cy * cosP + cz * sinP;
-      const pz_ = -cy * sinP + cz * cosP;
-      const px_ = cx;
-
-      const worldX = px_ * cosY + pz_ * -sinY;
-      const worldY = px_ * -sinY + pz_ * -cosY;
-      const worldZ = py_;
+      const worldX = rightX * cx + upX * cy + fwdX * cz;
+      const worldY = rightY * cx + upY * cy + fwdY * cz;
+      const worldZ = rightZ * cx + upZ * cy + fwdZ * cz;
 
       const theta = Math.atan2(-worldX, -worldY);
       const phi = Math.asin(VMath.clamp(-1, 1, worldZ));
@@ -62,6 +60,7 @@ export function renderPanoramaView({
       if ((px >= panoramaWidth) | 0) px = 0;
       let py = (v * panoramaHeight) | 0;
       if ((py > panoLast) | 0) py = panoLast;
+      if ((py < horizon[px]) | 0) continue;
 
       buffer[row + sx] = panorama[(py * panoramaWidth + px) | 0];
     }
