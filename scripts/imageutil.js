@@ -1,6 +1,7 @@
 "use strict";
 
 import { readAlphaFromImage, readBlueFromImage, readColorFromImage, readGreenFromImage, readRedFromImage } from "./image.js";
+import { BYTES_PER_PIXEL } from "./constants/image.js";
 
 
 // Util class for downloading the png
@@ -43,7 +44,7 @@ function loadImagesAsync(urls) {
 
 function loadRGBAImageToArray(image) {
   const n = image.width * image.height;
-  const data = new ArrayBuffer(n * 4);
+  const data = new ArrayBuffer(n * BYTES_PER_PIXEL);
   for (let i = 0; i < n; i++) {
     data[i] = readColorFromImage(image.data, i);
   }

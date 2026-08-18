@@ -1,6 +1,8 @@
 "use strict";
 
 import VMath from "./vmath.js";
+import { PIXEL_CENTER, NDC_SCALE } from "./constants/panoramaViewer.js";
+import { HALF, TWO_PI } from "./constants/vmath.js";
 
 export function renderPanoramaView({
   panorama,
@@ -24,20 +26,19 @@ export function renderPanoramaView({
   const buffer = frameBuffer.buffer32bit;
 
   const aspect = width / height;
-  const tanHalf = Math.tan(fovY * VMath.DEG_TO_RAD * 0.5);
+  const tanHalf = Math.tan(fovY * VMath.DEG_TO_RAD * HALF);
 
   const invWidth = 1 / width;
   const invHeight = 1 / height;
-  const twoPi = Math.PI * 2;
   const panoLast = (panoramaHeight - 1) | 0;
 
   for (let sy = 0; (sy < height) | 0; sy = (sy + 1) | 0) {
-    const ndcY = 1 - (sy + 0.5) * invHeight * 2;
+    const ndcY = 1 - (sy + PIXEL_CENTER) * invHeight * NDC_SCALE;
     const cyBase = ndcY * tanHalf;
     const row = (sy * width) | 0;
 
     for (let sx = 0; (sx < width) | 0; sx = (sx + 1) | 0) {
-      const ndcX = (sx + 0.5) * invWidth * 2 - 1;
+      const ndcX = (sx + PIXEL_CENTER) * invWidth * NDC_SCALE - 1;
       let cx = ndcX * aspect * tanHalf;
       let cy = cyBase;
       let cz = 1;
@@ -52,9 +53,9 @@ export function renderPanoramaView({
 
       const theta = Math.atan2(-worldX, -worldY);
       const phi = Math.asin(VMath.clamp(-1, 1, worldZ));
-      let u = theta / twoPi;
+      let u = theta / TWO_PI;
       u = ((u % 1) + 1) % 1;
-      const v = VMath.clamp(0, 1, 0.5 - phi / Math.PI);
+      const v = VMath.clamp(0, 1, HALF - phi / Math.PI);
 
       let px = (u * panoramaWidth) | 0;
       if ((px >= panoramaWidth) | 0) px = 0;

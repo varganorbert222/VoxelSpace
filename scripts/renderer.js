@@ -4,9 +4,19 @@ import { Color } from "./color.js";
 import VMath from "./vmath.js";
 import { generateSphericalPanorama } from "./sphericalPanorama.js";
 import { renderPanoramaView } from "./panoramaViewer.js";
-
-const PANO_WIDTH = 2048;
-const PANO_HEIGHT = 1024;
+import {
+  ALGORITHM_CLASSIC,
+  ALGORITHM_PANORAMA,
+  PANO_WIDTH,
+  PANO_HEIGHT,
+  LOD_BAND_COUNT,
+  PIXEL_OFFSETS,
+  LOD_FAR_DELTAS,
+  LOD_DISTANCE_FRACTIONS,
+  STEP_GROWTH,
+  MIN_SAMPLE_DISTANCE,
+  NON_REPEAT_GROUND_OFFSET,
+} from "./constants/renderer.js";
 
 class Renderer {
   get applyFog() {
@@ -40,7 +50,7 @@ class Renderer {
     this._hiddenY = null;
     this._lastWidth = 0;
     this._repeat = true;
-    this._algorithm = "classic";
+    this._algorithm = ALGORITHM_CLASSIC;
     this._panoWidth = PANO_WIDTH;
     this._panoHeight = PANO_HEIGHT;
     this._panoramaPixels = null;
@@ -102,20 +112,17 @@ class Renderer {
       this._lastWidth = screenWidth;
     }
 
-    const pixelOffsets = [1, 2, 2, 4, 4, 8, 8];
-    const deltas = [cameraMinDeltaZ, 1, 2, 4, 8, 16, 32];
-    const zStart = Math.max(nearClip, cameraMinDeltaZ, 1);
-    const lodDistances = [
-      zStart,
-      0.01 * farClip * cameraQuality,
-      0.15 * farClip * cameraQuality,
-      0.25 * farClip * cameraQuality,
-      0.35 * farClip * cameraQuality,
-      0.45 * farClip * cameraQuality,
-      0.55 * farClip * cameraQuality,
-      farClip,
-    ];
-    for (let i = 1; (i < 7) | 0; i = (i + 1) | 0) {
+    const pixelOffsets = PIXEL_OFFSETS;
+    const deltas = [cameraMinDeltaZ, ...LOD_FAR_DELTAS];
+    const zStart = Math.max(nearClip, cameraMinDeltaZ, MIN_SAMPLE_DISTANCE);
+    const lodDistances = new Array(LOD_BAND_COUNT + 1);
+    lodDistances[0] = zStart;
+    for (let i = 0; (i < LOD_DISTANCE_FRACTIONS.length) | 0; i = (i + 1) | 0) {
+      lodDistances[i + 1] =
+        LOD_DISTANCE_FRACTIONS[i] * farClip * cameraQuality;
+    }
+    lodDistances[LOD_BAND_COUNT] = farClip;
+    for (let i = 1; (i < LOD_BAND_COUNT) | 0; i = (i + 1) | 0) {
       if ((lodDistances[i] < lodDistances[i - 1]) | 0) {
         lodDistances[i] = lodDistances[i - 1];
       }
@@ -137,7 +144,7 @@ class Renderer {
       heightOnScreenBottom,
       depth;
 
-    for (let lod = 7; (lod > 0) | 0; lod = (lod - 1) | 0) {
+    for (let lod = LOD_BAND_COUNT; (lod > 0) | 0; lod = (lod - 1) | 0) {
       startIndex = lodDistances[lod - 1];
       endIndex = lodDistances[lod];
       pxOffset = pixelOffsets[lod - 1];
@@ -192,7 +199,10 @@ class Renderer {
             } else {
               heightOnScreenBottom = Math.min(
                 this._hiddenY[i],
-                this._camera.projectToScreen(cameraPosZ + 20, z)
+                this._camera.projectToScreen(
+                  cameraPosZ + NON_REPEAT_GROUND_OFFSET,
+                  z
+                )
               );
             }
 
@@ -224,7 +234,7 @@ class Renderer {
           ply += dy * pxOffset;
         }
 
-        step += 0.005;
+        step += STEP_GROWTH;
       }
     }
   }
@@ -317,7 +327,7 @@ class Renderer {
   }
 
   render(terrain) {
-    if (this._algorithm === "panorama") {
+    if (this._algorithm === ALGORITHM_PANORAMA) {
       this._renderPanorama(terrain);
       return;
     }

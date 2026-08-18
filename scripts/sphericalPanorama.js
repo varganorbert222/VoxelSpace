@@ -3,6 +3,15 @@
 import { Color } from "./color.js";
 import ColorPalette from "./colorpalette.js";
 import VMath from "./vmath.js";
+import {
+  SKY_PALETTE_STEPS,
+  SKY_PALETTE_T_MAX,
+} from "./constants/framebuffer.js";
+import {
+  STEP_GROWTH,
+  MIN_SAMPLE_DISTANCE,
+} from "./constants/renderer.js";
+import { HALF, TWO_PI } from "./constants/vmath.js";
 
 export function generateSphericalPanorama({
   terrain,
@@ -20,12 +29,12 @@ export function generateSphericalPanorama({
   pixels,
   horizon,
 }) {
-  const palette = new ColorPalette(skyColor, Color.WHITE, 24);
-  const h2 = height * 0.5;
+  const palette = new ColorPalette(skyColor, Color.WHITE, SKY_PALETTE_STEPS);
+  const h2 = height * HALF;
   for (let y = 0; (y < height) | 0; y = (y + 1) | 0) {
     let t = y / h2;
     if ((t < 0) | 0) t = 0;
-    if (t > 23 / 24) t = 23 / 24;
+    if (t > SKY_PALETTE_T_MAX) t = SKY_PALETTE_T_MAX;
     const color = palette.getColor(t);
     const row = (y * width) | 0;
     for (let x = 0; (x < width) | 0; x = (x + 1) | 0) {
@@ -37,13 +46,14 @@ export function generateSphericalPanorama({
   const mapH = terrain.height;
 
   for (let px = 0; (px < width) | 0; px = (px + 1) | 0) {
-    const theta = (px / width) * Math.PI * 2;
+    const theta = (px / width) * TWO_PI;
     const dirX = -Math.sin(theta);
     const dirY = -Math.cos(theta);
     horizon[px] = height;
 
-    let t = Math.max(nearClip, initialStep, 1);
-    let step = Math.max(initialStep, 1);
+    let t = Math.max(nearClip, initialStep, MIN_SAMPLE_DISTANCE);
+    let step = initialStep;
+    if ((step <= 0) | 0) step = MIN_SAMPLE_DISTANCE;
     let wasInside = 0;
 
     while ((t < farClip) | 0) {
@@ -61,7 +71,7 @@ export function generateSphericalPanorama({
             break;
           }
           t += step;
-          step += 0.005;
+          step += STEP_GROWTH;
           continue;
         }
         wasInside = 1;
@@ -69,7 +79,7 @@ export function generateSphericalPanorama({
 
       const h = terrain.getTerrainHeight(wx, wy);
       const phiHit = Math.atan2(h - camZ, t);
-      let yHit = ((0.5 - phiHit / Math.PI) * height) | 0;
+      let yHit = ((HALF - phiHit / Math.PI) * height) | 0;
       if ((yHit < 0) | 0) yHit = 0;
       if ((yHit > height) | 0) yHit = height;
 
@@ -87,7 +97,7 @@ export function generateSphericalPanorama({
       }
 
       t += step;
-      step += 0.005;
+      step += STEP_GROWTH;
     }
   }
 

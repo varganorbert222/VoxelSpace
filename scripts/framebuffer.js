@@ -2,6 +2,11 @@
 
 import ColorPalette from "./colorpalette.js";
 import { Color } from "./color.js";
+import {
+  SKY_PALETTE_STEPS,
+} from "./constants/framebuffer.js";
+import { BYTES_PER_PIXEL } from "./constants/image.js";
+import { HALF } from "./constants/vmath.js";
 
 class FrameBuffer {
   get colorBuffer() {
@@ -46,7 +51,7 @@ class FrameBuffer {
     }
     this._mustBeRecalcBuffer32bit = false;
 
-    const h2 = this._height * 0.5;
+    const h2 = this._height * HALF;
     let t = 0;
     let color = Color.BLACK;
     for (let i = 0; (i < this._height) | 0; i = (i + 1) | 0) {
@@ -123,19 +128,19 @@ class FrameBuffer {
     }
 
     this._colorBuffer = new ArrayBuffer(
-      this._imageDataForContext.width * this._imageDataForContext.height * 4
+      this._imageDataForContext.width * this._imageDataForContext.height * BYTES_PER_PIXEL
     );
     this._buffer8bit = new Uint8Array(this._colorBuffer);
     this._buffer32bit = new Uint32Array(this._colorBuffer);
     this._cachedBuffer32bit = new ArrayBuffer(
-      this._imageDataForContext.width * this._imageDataForContext.height * 4
+      this._imageDataForContext.width * this._imageDataForContext.height * BYTES_PER_PIXEL
     );
 
     this._mustBeRecalcBuffer32bit = true;
   }
 
   setColors(topColor, bottomColor) {
-    this._colorPalette = new ColorPalette(topColor, bottomColor, 24);
+    this._colorPalette = new ColorPalette(topColor, bottomColor, SKY_PALETTE_STEPS);
     this._mustBeRecalcBuffer32bit = true;
   }
 }

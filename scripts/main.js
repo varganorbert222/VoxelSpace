@@ -7,6 +7,19 @@ import Terrain from "./terrain.js";
 import Input from "./input.js";
 import { loadImagesAsync } from "./imageutil.js";
 import { Color } from "./color.js";
+import {
+  ALGORITHM_CLASSIC,
+  ALGORITHM_PANORAMA,
+} from "./constants/renderer.js";
+import { HALF } from "./constants/vmath.js";
+import {
+  CANVAS_ID,
+  FPS_ELEMENT_ID,
+  FPS_UPDATE_MS,
+  MS_PER_SECOND,
+  FPS_DECIMALS,
+  SPAWN_HEIGHT_OFFSET,
+} from "./constants/main.js";
 
 let input = null;
 let camera = null;
@@ -20,20 +33,22 @@ let fps = -1;
 
 function setRenderAlgorithm(algorithm) {
   camera.renderer.algorithm = algorithm;
-  if (algorithm === "classic") {
+  if (algorithm === ALGORITHM_CLASSIC) {
     camera.clampPitchForClassic();
   }
   if (algorithmSelector) {
     algorithmSelector.value = algorithm;
   }
-  document.body.classList.toggle("classic", algorithm === "classic");
-  document.body.classList.toggle("panorama", algorithm === "panorama");
+  document.body.classList.toggle("classic", algorithm === ALGORITHM_CLASSIC);
+  document.body.classList.toggle("panorama", algorithm === ALGORITHM_PANORAMA);
 }
 
 function run() {
   if (input.consumeToggleRenderAlgorithm) {
     const next =
-      camera.renderer.algorithm === "classic" ? "panorama" : "classic";
+      camera.renderer.algorithm === ALGORITHM_CLASSIC
+        ? ALGORITHM_PANORAMA
+        : ALGORITHM_CLASSIC;
     setRenderAlgorithm(next);
   }
   camera.move(input, terrain);
@@ -65,7 +80,7 @@ function loadMap(mapName) {
 
 function onResizeWindow() {
   camera.resize(
-    document.getElementById("id_fullscreen_canvas"),
+    document.getElementById(CANVAS_ID),
     window.innerWidth,
     window.innerHeight
   );
@@ -179,9 +194,9 @@ function initSettings() {
     (e) => {
       camera.set({
         mode: e.target.value,
-        posX: terrain.width * 0.5,
-        posY: terrain.height * 0.5,
-        posZ: terrain.altitude + 50
+        posX: terrain.width * HALF,
+        posY: terrain.height * HALF,
+        posZ: terrain.altitude + SPAWN_HEIGHT_OFFSET
       });
     }
   );
@@ -197,9 +212,10 @@ function initSettings() {
 
 function printFps() {
   currentTime = new Date().getTime();
-  fps = (totalFrames / (currentTime - lastTimeForFps)) * 1000;
+  fps = (totalFrames / (currentTime - lastTimeForFps)) * MS_PER_SECOND;
   if (fps !== lastFps) {
-    document.getElementById("id_fps").innerText = fps.toFixed(1) + " fps";
+    document.getElementById(FPS_ELEMENT_ID).innerText =
+      fps.toFixed(FPS_DECIMALS) + " fps";
     lastFps = fps;
   }
   totalFrames = 0;
@@ -210,11 +226,11 @@ function init() {
   terrain = new Terrain();
   camera = new Camera(config.camera);
   input = new Input({
-    canvas: document.getElementById("id_fullscreen_canvas"),
+    canvas: document.getElementById(CANVAS_ID),
   });
 
   window.onresize = onResizeWindow;
-  window.setInterval(printFps, 500);
+  window.setInterval(printFps, FPS_UPDATE_MS);
 
   initSettings();
   setRenderAlgorithm(camera.renderer.algorithm);

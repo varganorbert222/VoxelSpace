@@ -1,6 +1,23 @@
 "use strict";
 
 import VMath from "./vmath.js";
+import {
+  ZOOM_DEFAULT,
+  ZOOM_MIN,
+  ZOOM_MAX,
+  ZOOM_RANGE,
+  ZOOM_DELTA_CLAMP,
+  DRAG_YAW_SCALE,
+  DRAG_PITCH_SCALE,
+  STICK_FORWARD_SCALE,
+  STICK_KNOB_TRAVEL_PX,
+  KEY_FORWARD_SPEED,
+  KEY_STRAFE_SPEED,
+  KEY_UPDOWN_SPEED,
+  TOUCH_UPDOWN_SPEED,
+  KeyCode,
+} from "./constants/input.js";
+import { HALF } from "./constants/vmath.js";
 
 class Input {
   get forward() {
@@ -36,7 +53,7 @@ class Input {
   }
 
   get zoom() {
-    return this._zoom / 100;
+    return this._zoom / ZOOM_RANGE;
   }
 
   get dragX() {
@@ -84,7 +101,7 @@ class Input {
     this._stickLookY = 0;
     this._dragX = 0;
     this._dragY = 0;
-    this._zoom = 0.5;
+    this._zoom = ZOOM_DEFAULT;
     this._mouseposition = null;
     this._toggleRenderAlgorithm = false;
     this._flyLook = true;
@@ -101,9 +118,13 @@ class Input {
     this._canvas.addEventListener("mousemove", (e) => {
       this.detectMouseMove(e);
     });
-    this._canvas.addEventListener("mousewheel", (e) => {
-      this.detectMouseWheel(e);
-    });
+    this._canvas.addEventListener(
+      "wheel",
+      (e) => {
+        this.detectMouseWheel(e);
+      },
+      { passive: false },
+    );
     this._canvas.addEventListener("click", () => {
       this.tryPointerLock();
     });
@@ -150,12 +171,12 @@ class Input {
       elements.moveStick,
       (dx, dy) => {
         this._stickStrafe = dx;
-        this._stickForward = -dy * 3;
+        this._stickForward = -dy * STICK_FORWARD_SCALE;
       },
       () => {
         this._stickStrafe = 0;
         this._stickForward = 0;
-      }
+      },
     );
     this.bindStick(
       elements.lookStick,
@@ -166,14 +187,14 @@ class Input {
       () => {
         this._stickLookX = 0;
         this._stickLookY = 0;
-      }
+      },
     );
     this.bindHoldButton(elements.btnUp, (down) => {
-      if (down) this._updown = 2;
+      if (down) this._updown = TOUCH_UPDOWN_SPEED;
       else if (this._updown > 0) this._updown = 0;
     });
     this.bindHoldButton(elements.btnDown, (down) => {
-      if (down) this._updown = -2;
+      if (down) this._updown = -TOUCH_UPDOWN_SPEED;
       else if (this._updown < 0) this._updown = 0;
     });
     this.bindHoldButton(elements.btnRollLeft, (down) => {
@@ -193,10 +214,10 @@ class Input {
 
     const read = (e) => {
       const rect = el.getBoundingClientRect();
-      const cx = rect.left + rect.width * 0.5;
-      const cy = rect.top + rect.height * 0.5;
-      let dx = (e.clientX - cx) / (rect.width * 0.5);
-      let dy = (e.clientY - cy) / (rect.height * 0.5);
+      const cx = rect.left + rect.width * HALF;
+      const cy = rect.top + rect.height * HALF;
+      let dx = (e.clientX - cx) / (rect.width * HALF);
+      let dy = (e.clientY - cy) / (rect.height * HALF);
       const len = Math.hypot(dx, dy);
       if (len > 1) {
         dx /= len;
@@ -204,7 +225,11 @@ class Input {
       }
       if (knob) {
         knob.style.transform =
-          "translate(" + dx * 28 + "px," + dy * 28 + "px)";
+          "translate(" +
+          dx * STICK_KNOB_TRAVEL_PX +
+          "px," +
+          dy * STICK_KNOB_TRAVEL_PX +
+          "px)";
       }
       onMove(dx, dy);
     };
@@ -277,68 +302,78 @@ class Input {
     const current = this.getMousePosition(e);
     const deltaX = this._mouseposition[0] - current[0];
     const deltaY = this._mouseposition[1] - current[1];
-    this._dragX = (deltaX / window.innerWidth) * 0.2;
-    this._dragY = (deltaY / window.innerHeight) * 0.1;
+    this._dragX = (deltaX / window.innerWidth) * DRAG_YAW_SCALE;
+    this._dragY = (deltaY / window.innerHeight) * DRAG_PITCH_SCALE;
   }
 
   detectMouseWheel(e) {
-    this._zoom += VMath.clamp(-10, 10, -e.wheelDelta || -e.detail);
-    this._zoom = VMath.clamp(0, 100, this._zoom);
     e.preventDefault();
+    let delta = 0;
+    if (typeof e.deltaY === "number" && e.deltaY !== 0) {
+      delta = e.deltaY;
+    } else {
+      delta = -(e.wheelDelta || -e.detail);
+    }
+    this._zoom += VMath.clamp(-ZOOM_DELTA_CLAMP, ZOOM_DELTA_CLAMP, delta);
+    this._zoom = VMath.clamp(ZOOM_MIN, ZOOM_MAX, this._zoom);
   }
 
   refreshKeyMove() {
     let forward = 0;
     let strafe = 0;
-    if (this._keys[87]) forward += 3;
-    if (this._keys[83]) forward -= 3;
-    if (this._keys[68]) strafe += 1;
-    if (this._keys[65]) strafe -= 1;
+    if (this._keys[KeyCode.W]) forward += KEY_FORWARD_SPEED;
+    if (this._keys[KeyCode.S]) forward -= KEY_FORWARD_SPEED;
+    if (this._keys[KeyCode.D]) strafe += KEY_STRAFE_SPEED;
+    if (this._keys[KeyCode.A]) strafe -= KEY_STRAFE_SPEED;
     this._keyForward = forward;
     this._keyStrafe = strafe;
   }
 
   refreshUpDown() {
     let up = 0;
-    if (this._keys[82] || this._keys[16]) up += 2;
-    if (this._keys[70] || this._keys[17]) up -= 2;
+    if (this._keys[KeyCode.R] || this._keys[KeyCode.SHIFT]) {
+      up += KEY_UPDOWN_SPEED;
+    }
+    if (this._keys[KeyCode.F] || this._keys[KeyCode.CTRL]) {
+      up -= KEY_UPDOWN_SPEED;
+    }
     this._updown = up;
   }
 
   detectKeysDown(e) {
     this._keys[e.keyCode] = true;
     switch (e.keyCode) {
-      case 37:
+      case KeyCode.LEFT:
         this._yawHold = -1;
         break;
-      case 39:
+      case KeyCode.RIGHT:
         this._yawHold = 1;
         break;
-      case 38:
+      case KeyCode.UP:
         this._pitchHold = 1;
         break;
-      case 40:
+      case KeyCode.DOWN:
         this._pitchHold = -1;
         break;
-      case 87:
-      case 83:
-      case 65:
-      case 68:
+      case KeyCode.W:
+      case KeyCode.S:
+      case KeyCode.A:
+      case KeyCode.D:
         this.refreshKeyMove();
         break;
-      case 82:
-      case 70:
-      case 16:
-      case 17:
+      case KeyCode.R:
+      case KeyCode.F:
+      case KeyCode.SHIFT:
+      case KeyCode.CTRL:
         this.refreshUpDown();
         break;
-      case 69:
-        this._rollHold = 1;
-        break;
-      case 81:
+      case KeyCode.E:
         this._rollHold = -1;
         break;
-      case 80:
+      case KeyCode.Q:
+        this._rollHold = 1;
+        break;
+      case KeyCode.P:
         if (!e.repeat) this._toggleRenderAlgorithm = true;
         break;
       default:
@@ -350,35 +385,35 @@ class Input {
   detectKeysUp(e) {
     this._keys[e.keyCode] = false;
     switch (e.keyCode) {
-      case 37:
+      case KeyCode.LEFT:
         if (this._yawHold === -1) this._yawHold = 0;
         break;
-      case 39:
+      case KeyCode.RIGHT:
         if (this._yawHold === 1) this._yawHold = 0;
         break;
-      case 38:
+      case KeyCode.UP:
         if (this._pitchHold === 1) this._pitchHold = 0;
         break;
-      case 40:
+      case KeyCode.DOWN:
         if (this._pitchHold === -1) this._pitchHold = 0;
         break;
-      case 87:
-      case 83:
-      case 65:
-      case 68:
+      case KeyCode.W:
+      case KeyCode.S:
+      case KeyCode.A:
+      case KeyCode.D:
         this.refreshKeyMove();
         break;
-      case 82:
-      case 70:
-      case 16:
-      case 17:
+      case KeyCode.R:
+      case KeyCode.F:
+      case KeyCode.SHIFT:
+      case KeyCode.CTRL:
         this.refreshUpDown();
         break;
-      case 69:
-        if (this._rollHold === 1) this._rollHold = 0;
-        break;
-      case 81:
+      case KeyCode.E:
         if (this._rollHold === -1) this._rollHold = 0;
+        break;
+      case KeyCode.Q:
+        if (this._rollHold === 1) this._rollHold = 0;
         break;
       default:
         return;

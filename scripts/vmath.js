@@ -1,16 +1,22 @@
 "use strict";
 
+import {
+  DEG_TO_RAD,
+  RAD_TO_DEG,
+  FEET_TO_METER,
+} from "./constants/vmath.js";
+
 class VMath {
   static get DEG_TO_RAD() {
-    return 0.01745329;
+    return DEG_TO_RAD;
   }
 
   static get RAD_TO_DEG() {
-    return 57.29577951;
+    return RAD_TO_DEG;
   }
 
   static get FEET_TO_METER() {
-    return 0.3048;
+    return FEET_TO_METER;
   }
 
   static clamp(min, max, value) {

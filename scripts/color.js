@@ -1,3 +1,11 @@
+import {
+  CHANNEL_MAX,
+  CHANNEL_MASK,
+  SHIFT_ALPHA,
+  SHIFT_RED,
+  SHIFT_GREEN,
+} from "./constants/color.js";
+
 class Color {
 
   static get WHITE() {
@@ -25,15 +33,14 @@ class Color {
   }
 
   static makeColor(r, g, b, a) {
-    // 0-255 each component
-    return (a << 24) | (r << 16) | (g << 8) | b;
+    return (a << SHIFT_ALPHA) | (r << SHIFT_RED) | (g << SHIFT_GREEN) | b;
   }
 
   static unpackColor(color) {
-    const a = (color >> 24) & 0xff;
-    const r = (color >> 16) & 0xff;
-    const g = (color >> 8) & 0xff;
-    const b = color & 0xff;
+    const a = (color >> SHIFT_ALPHA) & CHANNEL_MASK;
+    const r = (color >> SHIFT_RED) & CHANNEL_MASK;
+    const g = (color >> SHIFT_GREEN) & CHANNEL_MASK;
+    const b = color & CHANNEL_MASK;
 
     return {
       a: a,
@@ -80,11 +87,16 @@ class Color {
 
   static hexToColor(hex) {
     const rgb = Color.hexToRgb(hex);
-    return Color.makeColor(rgb.r, rgb.g, rgb.b, 255);
+    return Color.makeColor(rgb.r, rgb.g, rgb.b, CHANNEL_MAX);
   }
 
   static randomColor() {
-    return Color.makeColor(Math.random() * 255 | 0, Math.random() * 255 | 0, Math.random() * 255 | 0, 255);
+    return Color.makeColor(
+      (Math.random() * CHANNEL_MAX) | 0,
+      (Math.random() * CHANNEL_MAX) | 0,
+      (Math.random() * CHANNEL_MAX) | 0,
+      CHANNEL_MAX
+    );
   }
 
   static lerp(color1, color2, time) {

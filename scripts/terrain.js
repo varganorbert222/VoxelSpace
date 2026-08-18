@@ -2,6 +2,11 @@
 
 import { Color } from "./color.js";
 import { loadRGBAImageToArray, loadRImageToArray } from "./imageutil.js";
+import {
+  DEFAULT_MAP_SIZE,
+  DEFAULT_MAP_SHIFT,
+  HEIGHTMAP_MAX,
+} from "./constants/terrain.js";
 
 class Terrain {
   get width() {
@@ -33,12 +38,12 @@ class Terrain {
   }
 
   constructor() {
-    this._width = 1024;
-    this._height = 1024;
+    this._width = DEFAULT_MAP_SIZE;
+    this._height = DEFAULT_MAP_SIZE;
     this._altitude = 0;
-    this._mapShift = 10; // power of two: 2^10 = 1024
-    this._colorMap = new Uint32Array(this._width * this._height); // 1024 * 1024 int array with RGB colors
-    this._heightMap = new Uint8Array(this._width * this._height); // 1024 * 1024 byte array with height information
+    this._mapShift = DEFAULT_MAP_SHIFT;
+    this._colorMap = new Uint32Array(this._width * this._height);
+    this._heightMap = new Uint8Array(this._width * this._height);
     this._skyColor = Color.WHITE;
   }
 
@@ -59,7 +64,8 @@ class Terrain {
   }
 
   getTerrainHeight(x, y) {
-    return (this._heightMap[this.getMapOffset(x, y)] / 255) * this._altitude;
+    return (this._heightMap[this.getMapOffset(x, y)] / HEIGHTMAP_MAX) *
+      this._altitude;
   }
 
   getTerrainSDF(x, y, z) {
@@ -90,7 +96,7 @@ class Terrain {
       (1 - dx) * dy * h01 +
       dx * dy * h11;
 
-    return (h / 255) * this._altitude;
+    return (h / HEIGHTMAP_MAX) * this._altitude;
   }
 
   getTerrainColorBilinear(x, y) {

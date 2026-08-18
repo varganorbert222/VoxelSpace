@@ -4,6 +4,36 @@ import FrameBuffer from "./framebuffer.js";
 import Renderer from "./renderer.js";
 import Time from "./time.js";
 import VMath from "./vmath.js";
+import {
+  MODE_FLY,
+  MODE_ORBITAL,
+  DEFAULT_NEAR_CLIP,
+  DEFAULT_FAR_CLIP,
+  DEFAULT_MIN_DELTA_Z,
+  DEFAULT_POS_X,
+  DEFAULT_POS_Y,
+  DEFAULT_POS_Z,
+  DEFAULT_RENDER_SCALE,
+  DEFAULT_QUALITY,
+  DEFAULT_FOV,
+  DEFAULT_ORBIT_RADIUS,
+  MOVE_DT_SCALE,
+  MOUSE_LOOK_SENSITIVITY,
+  STICK_LOOK_SENSITIVITY,
+  KEY_LOOK_SENSITIVITY,
+  CLASSIC_PITCH_MIN,
+  CLASSIC_PITCH_MAX,
+  ORBIT_RADIUS_MIN,
+  ORBIT_RADIUS_MAX,
+  ORBIT_THETA_MIN_CLASSIC,
+  ORBIT_THETA_MIN_PANORAMA,
+  ORBIT_PITCH_SCALE,
+  COLLISION_CLEARANCE,
+  EPSILON,
+  EPSILON_TINY,
+} from "./constants/camera.js";
+import { ALGORITHM_PANORAMA } from "./constants/renderer.js";
+import { HALF } from "./constants/vmath.js";
 
 class Camera {
   get nearClip() {
@@ -67,17 +97,17 @@ class Camera {
   }
 
   constructor(settings) {
-    this._nearClip = settings.nearClip ?? 1;
-    this._farClip = settings.farClip ?? 2000;
-    this._minDeltaZ = settings.minDeltaZ ?? 1;
-    this._posX = settings.posX ?? 512; // x position on the map
-    this._posY = settings.posY ?? 512; // y position on the map
-    this._posZ = settings.posZ ?? 150; // height of the camera
-    this._angle = settings.angle ?? 0; // direction of the camera
-    this._pitch = settings.pitch ?? 0; // horizon position (look up and down)
-    this._renderScale = settings.renderScale ?? 0.5;
-    this._quality = settings.quality ?? 2;
-    this._fov = settings.fov ?? 90.0;
+    this._nearClip = settings.nearClip ?? DEFAULT_NEAR_CLIP;
+    this._farClip = settings.farClip ?? DEFAULT_FAR_CLIP;
+    this._minDeltaZ = settings.minDeltaZ ?? DEFAULT_MIN_DELTA_Z;
+    this._posX = settings.posX ?? DEFAULT_POS_X;
+    this._posY = settings.posY ?? DEFAULT_POS_Y;
+    this._posZ = settings.posZ ?? DEFAULT_POS_Z;
+    this._angle = settings.angle ?? 0;
+    this._pitch = settings.pitch ?? 0;
+    this._renderScale = settings.renderScale ?? DEFAULT_RENDER_SCALE;
+    this._quality = settings.quality ?? DEFAULT_QUALITY;
+    this._fov = settings.fov ?? DEFAULT_FOV;
     this._width = 0;
     this._height = 0;
     this._frameBuffer = new FrameBuffer();
@@ -91,8 +121,8 @@ class Camera {
     this._mustBeRecalcProjPlane = true;
     this._topColor = 0;
     this._bottomColor = 0;
-    this._orbiterRadius = 500;
-    this._mode = "fly";
+    this._orbiterRadius = DEFAULT_ORBIT_RADIUS;
+    this._mode = MODE_FLY;
     this._roll = 0;
     this._rightX = 1;
     this._rightY = 0;
@@ -143,7 +173,7 @@ class Camera {
     }
     this._mustBeRecalcFov = false;
 
-    const halfFovY = this._fov * VMath.DEG_TO_RAD * 0.5;
+    const halfFovY = this._fov * VMath.DEG_TO_RAD * HALF;
     const aspect = this._width / this._height;
     const halfFovX = Math.atan(Math.tan(halfFovY) * aspect);
 
@@ -163,7 +193,7 @@ class Camera {
     }
     this._mustBeRecalcProjPlane = false;
 
-    const halfFovY = this._fov * VMath.DEG_TO_RAD * 0.5;
+    const halfFovY = this._fov * VMath.DEG_TO_RAD * HALF;
     this._cachedProjPlane = this._height2 / Math.tan(halfFovY);
 
     return this._cachedProjPlane;
@@ -237,8 +267,8 @@ class Camera {
   resize(canvas, width, height) {
     this._width = (width * this._renderScale) | 0;
     this._height = (height * this._renderScale) | 0;
-    this._width2 = this._width * 0.5;
-    this._height2 = this._height * 0.5;
+    this._width2 = this._width * HALF;
+    this._height2 = this._height * HALF;
 
     this._frameBuffer.set({
       canvas: canvas,
@@ -254,21 +284,24 @@ class Camera {
   }
 
   moveFpsView(input) {
-    const dt = Time.deltaTime * 0.03;
+    const dt = Time.deltaTime * MOVE_DT_SCALE;
     const look = input.consumeLookDelta();
-    const mouseYaw = look.x * 0.12 * VMath.DEG_TO_RAD;
-    const mousePitch = look.y * 0.12 * VMath.DEG_TO_RAD;
-    const stickYaw = input.stickLookX * 2.4 * dt * VMath.DEG_TO_RAD;
-    const stickPitch = input.stickLookY * 2.4 * dt * VMath.DEG_TO_RAD;
-    const keyYaw = input.yawHold * 2 * dt * VMath.DEG_TO_RAD;
-    const keyPitch = input.pitchHold * 2 * dt * VMath.DEG_TO_RAD;
-    const panorama = this._renderer.algorithm === "panorama";
+    const mouseYaw = look.x * MOUSE_LOOK_SENSITIVITY * VMath.DEG_TO_RAD;
+    const mousePitch = look.y * MOUSE_LOOK_SENSITIVITY * VMath.DEG_TO_RAD;
+    const stickYaw =
+      input.stickLookX * STICK_LOOK_SENSITIVITY * dt * VMath.DEG_TO_RAD;
+    const stickPitch =
+      input.stickLookY * STICK_LOOK_SENSITIVITY * dt * VMath.DEG_TO_RAD;
+    const keyYaw = input.yawHold * KEY_LOOK_SENSITIVITY * dt * VMath.DEG_TO_RAD;
+    const keyPitch =
+      input.pitchHold * KEY_LOOK_SENSITIVITY * dt * VMath.DEG_TO_RAD;
+    const panorama = this._renderer.algorithm === ALGORITHM_PANORAMA;
 
     if (panorama) {
       this.applyPanoramaLook(
         mouseYaw + stickYaw + keyYaw,
         mousePitch + stickPitch - keyPitch,
-        input.rollHold * 2 * dt * VMath.DEG_TO_RAD
+        input.rollHold * KEY_LOOK_SENSITIVITY * dt * VMath.DEG_TO_RAD
       );
       const f = input.forward;
       const s = input.strafe;
@@ -277,15 +310,16 @@ class Camera {
       this._posY += (f * this._fwdY + s * this._rightY + u * this._upY) * dt;
       this._posZ += (f * this._fwdZ + s * this._rightZ + u * this._upZ) * dt;
     } else {
-      this._angle -= look.x * 0.12 * VMath.DEG_TO_RAD + stickYaw + keyYaw;
+      this._angle -=
+        look.x * MOUSE_LOOK_SENSITIVITY * VMath.DEG_TO_RAD + stickYaw + keyYaw;
       this._pitch +=
-        look.y * 0.12 +
-        input.stickLookY * 2.4 * dt +
-        input.pitchHold * 2 * dt;
+        look.y * MOUSE_LOOK_SENSITIVITY +
+        input.stickLookY * STICK_LOOK_SENSITIVITY * dt +
+        input.pitchHold * KEY_LOOK_SENSITIVITY * dt;
       if (input.rollHold !== 0) {
-        this._pitch += input.rollHold * 2 * dt;
+        this._pitch += input.rollHold * KEY_LOOK_SENSITIVITY * dt;
       }
-      this._pitch = VMath.clamp(-30, 30, this._pitch);
+      this._pitch = VMath.clamp(CLASSIC_PITCH_MIN, CLASSIC_PITCH_MAX, this._pitch);
       this._roll = 0;
       this.rebuildBasisFromEuler();
       this._mustBeRecalcHorizon = true;
@@ -304,7 +338,7 @@ class Camera {
   }
 
   clampPitchForClassic() {
-    this._pitch = VMath.clamp(-30, 30, this._pitch);
+    this._pitch = VMath.clamp(CLASSIC_PITCH_MIN, CLASSIC_PITCH_MAX, this._pitch);
     this._roll = 0;
     this.rebuildBasisFromEuler();
     this._mustBeRecalcHorizon = true;
@@ -329,7 +363,7 @@ class Camera {
     let rightY = this._fwdX;
     let rightZ = 0;
     let rightLen = Math.hypot(rightX, rightY, rightZ);
-    if (rightLen < 1e-6) {
+    if (rightLen < EPSILON) {
       rightX = cosY;
       rightY = -sinY;
       rightZ = 0;
@@ -357,7 +391,7 @@ class Camera {
     const noRollRightX = -this._fwdY;
     const noRollRightY = this._fwdX;
     const noRollLen = Math.hypot(noRollRightX, noRollRightY);
-    if (noRollLen < 1e-6) {
+    if (noRollLen < EPSILON) {
       this._roll = 0;
       return;
     }
@@ -398,7 +432,7 @@ class Camera {
     let fy = this._fwdY;
     let fz = this._fwdZ;
     let fl = Math.hypot(fx, fy, fz);
-    if (fl < 1e-8) return;
+    if (fl < EPSILON_TINY) return;
     fx /= fl;
     fy /= fl;
     fz /= fl;
@@ -406,12 +440,12 @@ class Camera {
     let ry = this._upZ * fx - this._upX * fz;
     let rz = this._upX * fy - this._upY * fx;
     let rl = Math.hypot(rx, ry, rz);
-    if (rl < 1e-6) {
+    if (rl < EPSILON) {
       rx = this._rightX;
       ry = this._rightY;
       rz = this._rightZ;
       rl = Math.hypot(rx, ry, rz);
-      if (rl < 1e-8) return;
+      if (rl < EPSILON_TINY) return;
     }
     rx /= rl;
     ry /= rl;
@@ -441,19 +475,81 @@ class Camera {
     this.extractEulerFromBasis();
   }
 
+  lookAt(tx, ty, tz) {
+    let fx = tx - this._posX;
+    let fy = ty - this._posY;
+    let fz = tz - this._posZ;
+    let fl = Math.hypot(fx, fy, fz);
+    if (fl < EPSILON_TINY) {
+      return;
+    }
+    fx /= fl;
+    fy /= fl;
+    fz /= fl;
+
+    let rx = -fy;
+    let ry = fx;
+    let rz = 0;
+    let rl = Math.hypot(rx, ry, rz);
+    if (rl < EPSILON) {
+      rx = this._rightX;
+      ry = this._rightY;
+      rz = this._rightZ;
+      rl = Math.hypot(rx, ry, rz);
+      if (rl < EPSILON_TINY) {
+        rx = 1;
+        ry = 0;
+        rz = 0;
+        rl = 1;
+      }
+    }
+    rx /= rl;
+    ry /= rl;
+    rz /= rl;
+
+    this._fwdX = fx;
+    this._fwdY = fy;
+    this._fwdZ = fz;
+    this._rightX = rx;
+    this._rightY = ry;
+    this._rightZ = rz;
+    this._upX = fy * rz - fz * ry;
+    this._upY = fz * rx - fx * rz;
+    this._upZ = fx * ry - fy * rx;
+    this._roll = 0;
+    this.extractEulerFromBasis();
+  }
+
   moveOrbiterView(input, terrain) {
-    this._orbiterRadius = VMath.lerp(500, 2000, input.zoom);
-    const radius = this._orbiterRadius;
+    const panorama = this._renderer.algorithm === ALGORITHM_PANORAMA;
+    const radius = VMath.lerp(ORBIT_RADIUS_MIN, ORBIT_RADIUS_MAX, input.zoom);
     const deltaPhi = input.dragX;
     const deltaTheta = input.dragY;
-    const offsetX = terrain.width * 0.5;
-    const offsetY = terrain.height * 0.5;
+    const offsetX = terrain.width * HALF;
+    const offsetY = terrain.height * HALF;
 
+    if (panorama) {
+      const dx = this._posX - offsetX;
+      const dy = this._posY - offsetY;
+      const dist = Math.hypot(dx, dy, this._posZ);
+      const currentR = dist > EPSILON ? dist : radius;
+      let theta = Math.acos(VMath.clamp(-1, 1, this._posZ / currentR));
+      let phi = Math.atan2(dy, dx);
+      theta = VMath.clamp(ORBIT_THETA_MIN_PANORAMA, Math.PI / 2, theta - deltaTheta);
+      phi -= deltaPhi;
+      this._orbiterRadius = radius;
+      this._posX = offsetX + radius * Math.sin(theta) * Math.cos(phi);
+      this._posY = offsetY + radius * Math.sin(theta) * Math.sin(phi);
+      this._posZ = radius * Math.cos(theta);
+      return;
+    }
+
+    this._orbiterRadius = radius;
     let theta = Math.acos(VMath.clamp(-1, 1, this._posZ / radius));
     let phi = Math.atan2(this._posY - offsetY, this._posX - offsetX);
 
     // Subtract deltaTheta and deltaPhi
-    theta = VMath.clamp(0.5, Math.PI / 2, theta - deltaTheta);
+    theta = VMath.clamp(ORBIT_THETA_MIN_CLASSIC, Math.PI / 2, theta - deltaTheta);
     phi -= deltaPhi;
 
     // Turn back into Cartesian coordinates
@@ -465,22 +561,33 @@ class Camera {
       { x: this._posX - offsetX, y: this._posY - offsetY },
       { x: 0, y: offsetY }
     );
-    this._pitch = VMath.clamp(0, 1, this._posZ / radius) * 60;
+    this._pitch = VMath.clamp(0, 1, this._posZ / radius) * ORBIT_PITCH_SCALE;
     this._mustBeRecalcHorizon = true;
   }
 
   move(input, terrain) {
-    input.setFlyLook(this._mode === "fly");
-    if (this._mode === "fly") {
+    input.setFlyLook(this._mode === MODE_FLY);
+    if (this._mode === MODE_FLY) {
       this.moveFpsView(input);
-    } else if (this._mode === "orbital") {
+    } else if (this._mode === MODE_ORBITAL) {
       this.moveOrbiterView(input, terrain);
-      this.rebuildBasisFromEuler();
+      if (this._renderer.algorithm === ALGORITHM_PANORAMA) {
+        this.lookAt(terrain.width * HALF, terrain.height * HALF, 0);
+      } else {
+        this.rebuildBasisFromEuler();
+      }
     }
 
     // Collision detection. Don't fly below the surface.
-    if (terrain.collide(this._posX, this._posY, this._posZ - 10)) {
-      this._posZ = terrain.getTerrainHeight(this._posX, this._posY) + 10;
+    if (terrain.collide(this._posX, this._posY, this._posZ - COLLISION_CLEARANCE)) {
+      this._posZ =
+        terrain.getTerrainHeight(this._posX, this._posY) + COLLISION_CLEARANCE;
+      if (
+        this._mode === MODE_ORBITAL &&
+        this._renderer.algorithm === ALGORITHM_PANORAMA
+      ) {
+        this.lookAt(terrain.width * HALF, terrain.height * HALF, 0);
+      }
     }
   }
 }
