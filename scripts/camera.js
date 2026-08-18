@@ -80,6 +80,14 @@ class Camera {
     return this._fov;
   }
 
+  get topColor() {
+    return this._topColor;
+  }
+
+  get bottomColor() {
+    return this._bottomColor;
+  }
+
   get renderScale() {
     return this._renderScale;
   }
@@ -261,7 +269,7 @@ class Camera {
   }
 
   render(terrain) {
-    this._renderer.render(terrain);
+    return this._renderer.render(terrain);
   }
 
   resize(canvas, width, height) {
@@ -276,6 +284,7 @@ class Camera {
       height: height,
       renderScale: this._renderScale,
     });
+    this._renderer.onFrameBufferResized();
 
     this._mustBeRecalcFov = true;
     this._mustBeRecalcDrawHeight = true;
@@ -303,12 +312,6 @@ class Camera {
         mousePitch + stickPitch - keyPitch,
         input.rollHold * KEY_LOOK_SENSITIVITY * dt * VMath.DEG_TO_RAD
       );
-      const f = input.forward;
-      const s = input.strafe;
-      const u = input.updown;
-      this._posX += (f * this._fwdX + s * this._rightX + u * this._upX) * dt;
-      this._posY += (f * this._fwdY + s * this._rightY + u * this._upY) * dt;
-      this._posZ += (f * this._fwdZ + s * this._rightZ + u * this._upZ) * dt;
     } else {
       this._angle -=
         look.x * MOUSE_LOOK_SENSITIVITY * VMath.DEG_TO_RAD + stickYaw + keyYaw;
@@ -323,18 +326,15 @@ class Camera {
       this._roll = 0;
       this.rebuildBasisFromEuler();
       this._mustBeRecalcHorizon = true;
-
-      const moveYaw = this._angle;
-      const fwdX = -Math.sin(moveYaw);
-      const fwdY = -Math.cos(moveYaw);
-      const rightX = Math.cos(moveYaw);
-      const rightY = -Math.sin(moveYaw);
-      this._posX += (input.forward * fwdX + input.strafe * rightX) * dt;
-      this._posY += (input.forward * fwdY + input.strafe * rightY) * dt;
-      if (input.updown != 0) {
-        this._posZ += input.updown * dt;
-      }
     }
+
+    const moveDt = dt * input.speedScale;
+    const f = input.forward;
+    const s = input.strafe;
+    const u = input.updown;
+    this._posX += (f * this._fwdX + s * this._rightX) * moveDt;
+    this._posY += (f * this._fwdY + s * this._rightY) * moveDt;
+    this._posZ += (f * this._fwdZ + s * this._rightZ + u) * moveDt;
   }
 
   clampPitchForClassic() {

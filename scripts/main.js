@@ -10,7 +10,9 @@ import { Color } from "./color.js";
 import {
   ALGORITHM_CLASSIC,
   ALGORITHM_PANORAMA,
+  panoRenderScaleForQuality,
 } from "./constants/renderer.js";
+import { DEFAULT_MULTITHREAD } from "./constants/threading.js";
 import { HALF } from "./constants/vmath.js";
 import {
   CANVAS_ID,
@@ -25,13 +27,47 @@ let input = null;
 let camera = null;
 let terrain = null;
 let algorithmSelector = null;
+let renderScaleElement = null;
+let classicRenderScale = null;
 let totalFrames = 0;
 let currentTime = 0;
 let lastTimeForFps = 0;
 let lastFps = 0;
 let fps = -1;
 
+function syncRenderScaleUi() {
+  if (!renderScaleElement) {
+    return;
+  }
+  const pano = camera.renderer.algorithm === ALGORITHM_PANORAMA;
+  renderScaleElement.disabled = pano;
+  renderScaleElement.value = camera.renderScale;
+}
+
+function applyPanoRenderScale() {
+  camera.set({
+    renderScale: panoRenderScaleForQuality(
+      camera.quality,
+      window.innerWidth,
+      window.innerHeight
+    ),
+  });
+  syncRenderScaleUi();
+}
+
+function applyAlgorithmRenderScale() {
+  const pano = camera.renderer.algorithm === ALGORITHM_PANORAMA;
+  if (pano) {
+    classicRenderScale = camera.renderScale;
+  } else if (classicRenderScale !== null) {
+    camera.set({ renderScale: classicRenderScale });
+    syncRenderScaleUi();
+  }
+  onResizeWindow();
+}
+
 function setRenderAlgorithm(algorithm) {
+  const prev = camera.renderer.algorithm;
   camera.renderer.algorithm = algorithm;
   if (algorithm === ALGORITHM_CLASSIC) {
     camera.clampPitchForClassic();
@@ -41,6 +77,11 @@ function setRenderAlgorithm(algorithm) {
   }
   document.body.classList.toggle("classic", algorithm === ALGORITHM_CLASSIC);
   document.body.classList.toggle("panorama", algorithm === ALGORITHM_PANORAMA);
+  if (prev !== algorithm) {
+    applyAlgorithmRenderScale();
+  } else {
+    syncRenderScaleUi();
+  }
 }
 
 function run() {
@@ -52,9 +93,10 @@ function run() {
     setRenderAlgorithm(next);
   }
   camera.move(input, terrain);
-  camera.render(terrain);
-  totalFrames++;
-  window.requestAnimationFrame(run);
+  Promise.resolve(camera.render(terrain)).then(() => {
+    totalFrames++;
+    window.requestAnimationFrame(run);
+  });
 }
 
 function loadMap(mapName) {
@@ -79,6 +121,9 @@ function loadMap(mapName) {
 }
 
 function onResizeWindow() {
+  if (camera.renderer.algorithm === ALGORITHM_PANORAMA) {
+    applyPanoRenderScale();
+  }
   camera.resize(
     document.getElementById(CANVAS_ID),
     window.innerWidth,
@@ -132,12 +177,13 @@ function initSettings() {
       camera.set({ farClip: parseFloat(e.target.value) });
     }
   );
-  const renderScaleElement = initRangeElement(
+  renderScaleElement = initRangeElement(
     "id_render_scale",
     config.settings.renderScale,
     camera.renderScale,
     (e) => {
       camera.set({ renderScale: parseFloat(e.target.value) });
+      classicRenderScale = camera.renderScale;
       onResizeWindow();
     }
   );
@@ -163,6 +209,9 @@ function initSettings() {
     camera.quality,
     (e) => {
       camera.set({ quality: parseFloat(e.target.value) });
+      if (camera.renderer.algorithm === ALGORITHM_PANORAMA) {
+        onResizeWindow();
+      }
     }
   );
   const applyFogElement = initCheckboxElement(
@@ -177,6 +226,20 @@ function initSettings() {
     camera.renderer.repeat,
     (e) => {
       camera.renderer.repeat = e.target.checked;
+    }
+  );
+  const multithreadDefault =
+    config.settings.multithread.default;
+  if (multithreadDefault === undefined) {
+    camera.renderer.multithread = DEFAULT_MULTITHREAD;
+  } else {
+    camera.renderer.multithread = multithreadDefault;
+  }
+  const multithreadElement = initCheckboxElement(
+    "id_multithread",
+    camera.renderer.multithread,
+    (e) => {
+      camera.renderer.multithread = e.target.checked;
     }
   );
   const mapSelector = initOptionElement(
@@ -225,6 +288,7 @@ function printFps() {
 function init() {
   terrain = new Terrain();
   camera = new Camera(config.camera);
+  classicRenderScale = camera.renderScale;
   input = new Input({
     canvas: document.getElementById(CANVAS_ID),
   });

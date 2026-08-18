@@ -15,6 +15,7 @@ import {
   KEY_STRAFE_SPEED,
   KEY_UPDOWN_SPEED,
   TOUCH_UPDOWN_SPEED,
+  SPRINT_MULTIPLIER,
   KeyCode,
 } from "./constants/input.js";
 import { HALF } from "./constants/vmath.js";
@@ -50,6 +51,10 @@ class Input {
 
   get stickLookY() {
     return this._stickLookY;
+  }
+
+  get speedScale() {
+    return this._keys[KeyCode.SHIFT] ? SPRINT_MULTIPLIER : 1;
   }
 
   get zoom() {
@@ -170,7 +175,7 @@ class Input {
     this.bindStick(
       elements.moveStick,
       (dx, dy) => {
-        this._stickStrafe = dx;
+        this._stickStrafe = dx * STICK_FORWARD_SCALE;
         this._stickForward = -dy * STICK_FORWARD_SCALE;
       },
       () => {
@@ -331,7 +336,7 @@ class Input {
 
   refreshUpDown() {
     let up = 0;
-    if (this._keys[KeyCode.R] || this._keys[KeyCode.SHIFT]) {
+    if (this._keys[KeyCode.R] || this._keys[KeyCode.SPACE]) {
       up += KEY_UPDOWN_SPEED;
     }
     if (this._keys[KeyCode.F] || this._keys[KeyCode.CTRL]) {
@@ -341,6 +346,17 @@ class Input {
   }
 
   detectKeysDown(e) {
+    if (e.keyCode === KeyCode.SPACE) {
+      const tag = e.target && e.target.tagName;
+      if (
+        tag !== "INPUT" &&
+        tag !== "SELECT" &&
+        tag !== "BUTTON" &&
+        tag !== "TEXTAREA"
+      ) {
+        e.preventDefault();
+      }
+    }
     this._keys[e.keyCode] = true;
     switch (e.keyCode) {
       case KeyCode.LEFT:
@@ -363,7 +379,7 @@ class Input {
         break;
       case KeyCode.R:
       case KeyCode.F:
-      case KeyCode.SHIFT:
+      case KeyCode.SPACE:
       case KeyCode.CTRL:
         this.refreshUpDown();
         break;
@@ -405,7 +421,7 @@ class Input {
         break;
       case KeyCode.R:
       case KeyCode.F:
-      case KeyCode.SHIFT:
+      case KeyCode.SPACE:
       case KeyCode.CTRL:
         this.refreshUpDown();
         break;

@@ -8,6 +8,15 @@ import {
   HEIGHTMAP_MAX,
 } from "./constants/terrain.js";
 
+export function mapOffsetAt(x, y, width, height, shift) {
+  const mapWidthPeriod = width - 1;
+  const mapHeightPeriod = height - 1;
+  return (
+    ((((y | 0) & mapWidthPeriod) << shift) + ((x | 0) & mapHeightPeriod)) |
+    0
+  );
+}
+
 class Terrain {
   get width() {
     return this._width;
@@ -45,27 +54,56 @@ class Terrain {
     this._colorMap = new Uint32Array(this._width * this._height);
     this._heightMap = new Uint8Array(this._width * this._height);
     this._skyColor = Color.WHITE;
+    this._exportedMaps = null;
+    this._mapsGeneration = 0;
   }
 
   getOffset(x, y, width, height, shift) {
-    const mapWidthPeriod = width - 1;
-    const mapHeightPeriod = height - 1;
-
-    const mapOffset =
-      ((((y | 0) & mapWidthPeriod) << shift) +
-        ((x | 0) & mapHeightPeriod)) |
-      0;
-
-    return mapOffset;
+    return mapOffsetAt(x, y, width, height, shift);
   }
 
   getMapOffset(x, y) {
-    return this.getOffset(x, y, this._width, this._height, this._mapShift);
+    return mapOffsetAt(x, y, this._width, this._height, this._mapShift);
   }
 
   getTerrainHeight(x, y) {
     return (this._heightMap[this.getMapOffset(x, y)] / HEIGHTMAP_MAX) *
       this._altitude;
+  }
+
+  getTerrainHeightAndColor(x, y, out) {
+    const offset = this.getMapOffset(x, y);
+    out.height = (this._heightMap[offset] / HEIGHTMAP_MAX) * this._altitude;
+    out.color = this._colorMap[offset];
+  }
+
+  exportMaps() {
+    if (this._exportedMaps) {
+      return this._exportedMaps;
+    }
+    const n = (this._width * this._height) | 0;
+    const heights = new Uint8Array(n);
+    const colors = new Uint32Array(n);
+    const w = this._width;
+    const h = this._height;
+    for (let y = 0; (y < h) | 0; y = (y + 1) | 0) {
+      for (let x = 0; (x < w) | 0; x = (x + 1) | 0) {
+        const offset = this.getMapOffset(x, y);
+        heights[offset] = this._heightMap[offset];
+        colors[offset] = this._colorMap[offset];
+      }
+    }
+    this._mapsGeneration = (this._mapsGeneration + 1) | 0;
+    this._exportedMaps = {
+      heightMap: heights,
+      colorMap: colors,
+      width: w,
+      height: h,
+      mapShift: this._mapShift,
+      altitude: this._altitude,
+      generation: this._mapsGeneration,
+    };
+    return this._exportedMaps;
   }
 
   getTerrainSDF(x, y, z) {
@@ -135,6 +173,7 @@ class Terrain {
     this._mapShift = Math.log2(mapImages.colorMap.width);
     this._width = mapImages.colorMap.width;
     this._height = mapImages.colorMap.height;
+    this._exportedMaps = null;
   }
 
   collide(x, y, z) {

@@ -1,0 +1,353 @@
+"use strict";
+
+import Threading from "./threading.js";
+import {
+  MSG_INIT_MAPS,
+  MSG_INIT_PANO,
+  MSG_RENDER_CLASSIC,
+  MSG_RENDER_PANORAMA,
+  MSG_RENDER_PANO_VIEW,
+  MSG_RESULT_CLASSIC,
+  MSG_RESULT_PANORAMA,
+  MSG_RESULT_PANO_VIEW,
+  MSG_WORKER_ERROR,
+  WORKER_CHUNK_MAX,
+  WORKER_CHUNK_MIN,
+} from "./constants/threading.js";
+import { PIXEL_OFFSET_ALIGN } from "./constants/renderer.js";
+
+function chunkSizeFor(columnCount, workerCount, align) {
+  let size = Math.ceil(columnCount / workerCount);
+  if ((align > 1) | 0) {
+    size = Math.ceil(size / align) * align;
+    if ((size < align) | 0) size = align;
+  }
+  if ((size < 1) | 0) size = 1;
+  if ((size > WORKER_CHUNK_MAX) | 0) size = WORKER_CHUNK_MAX;
+  if ((size < WORKER_CHUNK_MIN) | 0 && (columnCount >= WORKER_CHUNK_MIN) | 0) {
+    size = WORKER_CHUNK_MIN;
+  }
+  if ((align > 1) | 0) {
+    size = Math.floor(size / align) * align;
+    if ((size < align) | 0) size = align;
+  }
+  return size;
+}
+
+function splitRanges(count, size) {
+  const ranges = [];
+  let start = 0;
+  while ((start < count) | 0) {
+    let end = start + size;
+    if ((end > count) | 0) end = count;
+    ranges.push({ start: start, end: end });
+    start = end;
+  }
+  return ranges;
+}
+
+class ColumnPool {
+  constructor() {
+    this._slots = [];
+    this._jobId = 0;
+    this._mapsGeneration = null;
+    this._panoGeneration = null;
+    this._active = null;
+  }
+
+  get jobId() {
+    return this._jobId;
+  }
+
+  ensureWorkers() {
+    if (this._slots.length) {
+      return;
+    }
+    const n = Threading.numberOfCores;
+    for (let i = 0; (i < n) | 0; i = (i + 1) | 0) {
+      const worker = new Worker(new URL("./columnworker.js", import.meta.url), {
+        type: "module",
+      });
+      const slot = { worker: worker, busy: 0, chunkIndex: -1 };
+      worker.onerror = (err) => {
+        console.error("column worker", err && err.message);
+      };
+      worker.onmessage = (e) => {
+        this._onMessage(slot, e.data);
+      };
+      this._slots.push(slot);
+    }
+  }
+
+  cancel() {
+    this._jobId = (this._jobId + 1) | 0;
+    if (this._active) {
+      const finish = this._active.finish;
+      this._active = null;
+      finish(null);
+    }
+  }
+
+  initMaps(snapshot) {
+    this.ensureWorkers();
+    if (this._mapsGeneration === snapshot.generation) {
+      return;
+    }
+    this._mapsGeneration = snapshot.generation;
+    const n = snapshot.heightMap.length;
+    for (let i = 0; (i < this._slots.length) | 0; i = (i + 1) | 0) {
+      const heights = new Uint8Array(n);
+      heights.set(snapshot.heightMap);
+      const colors = new Uint32Array(n);
+      colors.set(snapshot.colorMap);
+      this._slots[i].worker.postMessage(
+        {
+          type: MSG_INIT_MAPS,
+          heightMap: heights.buffer,
+          colorMap: colors.buffer,
+          width: snapshot.width,
+          height: snapshot.height,
+          mapShift: snapshot.mapShift,
+          altitude: snapshot.altitude,
+        },
+        [heights.buffer, colors.buffer]
+      );
+    }
+  }
+
+  setPanorama(snapshot) {
+    this.ensureWorkers();
+    if (this._panoGeneration === snapshot.generation) {
+      return;
+    }
+    this._panoGeneration = snapshot.generation;
+    const n = snapshot.pixels.length;
+    const hn = snapshot.horizon.length;
+    for (let i = 0; (i < this._slots.length) | 0; i = (i + 1) | 0) {
+      const pixels = new Uint32Array(n);
+      pixels.set(snapshot.pixels);
+      const horizon = new Int32Array(hn);
+      horizon.set(snapshot.horizon);
+      this._slots[i].worker.postMessage(
+        {
+          type: MSG_INIT_PANO,
+          pixels: pixels.buffer,
+          horizon: horizon.buffer,
+          width: snapshot.width,
+          height: snapshot.height,
+        },
+        [pixels.buffer, horizon.buffer]
+      );
+    }
+  }
+
+  renderClassic(params) {
+    return this._runJob(MSG_RENDER_CLASSIC, params, params.screenWidth, PIXEL_OFFSET_ALIGN);
+  }
+
+  renderPanorama(params) {
+    return this._runJob(MSG_RENDER_PANORAMA, params, params.width, 1);
+  }
+
+  renderPanoramaView(params) {
+    return this._runJob(MSG_RENDER_PANO_VIEW, params, params.screenWidth, 1);
+  }
+
+  _runJob(msgType, params, columnCount, align) {
+    this.ensureWorkers();
+    if (this._active) {
+      this.cancel();
+    }
+    this._jobId = (this._jobId + 1) | 0;
+    const jobId = this._jobId;
+    const workerCount = this._slots.length;
+    const size = chunkSizeFor(columnCount, workerCount, align);
+    const ranges = splitRanges(columnCount, size);
+
+    return new Promise((resolve) => {
+      if (ranges.length === 0) {
+        resolve([]);
+        return;
+      }
+
+      const results = new Array(ranges.length);
+      let remaining = ranges.length;
+      let next = 0;
+      let settled = 0;
+
+      const finish = (value) => {
+        if (settled) {
+          return;
+        }
+        settled = 1;
+        if (this._active && this._active.jobId === jobId) {
+          this._active = null;
+        }
+        resolve(value);
+      };
+
+      const postNext = (slot) => {
+        if (jobId !== this._jobId) {
+          return;
+        }
+        if ((next >= ranges.length) | 0) {
+          return;
+        }
+        const index = next;
+        next = (next + 1) | 0;
+        const range = ranges[index];
+        slot.busy = 1;
+        slot.chunkIndex = index;
+
+        if (msgType === MSG_RENDER_CLASSIC) {
+          const localW = (range.end - range.start) | 0;
+          const pixels = new Uint32Array((localW * params.screenHeight) | 0);
+          slot.worker.postMessage(
+            {
+              type: MSG_RENDER_CLASSIC,
+              jobId: jobId,
+              startColumn: range.start,
+              endColumn: range.end,
+              pixels: pixels.buffer,
+              screenWidth: params.screenWidth,
+              screenHeight: params.screenHeight,
+              camX: params.camX,
+              camY: params.camY,
+              camZ: params.camZ,
+              sinAngle: params.sinAngle,
+              cosAngle: params.cosAngle,
+              tanHalfFovX: params.tanHalfFovX,
+              dstToProjPlane: params.dstToProjPlane,
+              screenHorizon: params.screenHorizon,
+              nearClip: params.nearClip,
+              farClip: params.farClip,
+              minDeltaZ: params.minDeltaZ,
+              quality: params.quality,
+              applyFog: params.applyFog,
+              repeat: params.repeat,
+            },
+            [pixels.buffer]
+          );
+        } else if (msgType === MSG_RENDER_PANO_VIEW) {
+          const localW = (range.end - range.start) | 0;
+          const pixels = new Uint32Array((localW * params.screenHeight) | 0);
+          slot.worker.postMessage(
+            {
+              type: MSG_RENDER_PANO_VIEW,
+              jobId: jobId,
+              startColumn: range.start,
+              endColumn: range.end,
+              pixels: pixels.buffer,
+              screenWidth: params.screenWidth,
+              screenHeight: params.screenHeight,
+              fovY: params.fovY,
+              skyColor: params.skyColor,
+              horizonColor: params.horizonColor,
+              rightX: params.rightX,
+              rightY: params.rightY,
+              rightZ: params.rightZ,
+              upX: params.upX,
+              upY: params.upY,
+              upZ: params.upZ,
+              fwdX: params.fwdX,
+              fwdY: params.fwdY,
+              fwdZ: params.fwdZ,
+            },
+            [pixels.buffer]
+          );
+        } else {
+          const localW = (range.end - range.start) | 0;
+          const pixels = new Uint32Array((localW * params.height) | 0);
+          const horizon = new Int32Array(localW);
+          slot.worker.postMessage(
+            {
+              type: MSG_RENDER_PANORAMA,
+              jobId: jobId,
+              startPx: range.start,
+              endPx: range.end,
+              pixels: pixels.buffer,
+              horizon: horizon.buffer,
+              width: params.width,
+              height: params.height,
+              camX: params.camX,
+              camY: params.camY,
+              camZ: params.camZ,
+              farClip: params.farClip,
+              nearClip: params.nearClip,
+              applyFog: params.applyFog,
+              repeat: params.repeat,
+              skyColor: params.skyColor,
+              initialStep: params.initialStep,
+            },
+            [pixels.buffer, horizon.buffer]
+          );
+        }
+      };
+
+      this._active = {
+        jobId: jobId,
+        finish: finish,
+        postNext: postNext,
+        results: results,
+        remaining: remaining,
+        onChunk: (index, data) => {
+          if (jobId !== this._jobId) {
+            return;
+          }
+          results[index] = data;
+          remaining = (remaining - 1) | 0;
+          if (this._active) {
+            this._active.remaining = remaining;
+          }
+          if (remaining === 0) {
+            finish(results);
+          }
+        },
+      };
+
+      for (let i = 0; (i < this._slots.length) | 0; i = (i + 1) | 0) {
+        postNext(this._slots[i]);
+      }
+    });
+  }
+
+  _onMessage(slot, data) {
+    slot.busy = 0;
+    const active = this._active;
+    if (!active || data.jobId !== active.jobId) {
+      return;
+    }
+
+    const index = slot.chunkIndex;
+    if (data.type === MSG_RESULT_CLASSIC) {
+      active.onChunk(index, {
+        startColumn: data.startColumn,
+        endColumn: data.endColumn,
+        pixels: new Uint32Array(data.pixels),
+      });
+    } else if (data.type === MSG_RESULT_PANORAMA) {
+      active.onChunk(index, {
+        startPx: data.startPx,
+        endPx: data.endPx,
+        pixels: new Uint32Array(data.pixels),
+        horizon: new Int32Array(data.horizon),
+      });
+    } else if (data.type === MSG_RESULT_PANO_VIEW) {
+      active.onChunk(index, {
+        startColumn: data.startColumn,
+        endColumn: data.endColumn,
+        pixels: new Uint32Array(data.pixels),
+      });
+    } else if (data.type === MSG_WORKER_ERROR) {
+      console.error("column worker message", data.type, data.message, data.stack);
+      active.finish(null);
+      return;
+    }
+
+    if (this._active && this._active.jobId === data.jobId) {
+      this._active.postNext(slot);
+    }
+  }
+}
+
+export default ColumnPool;

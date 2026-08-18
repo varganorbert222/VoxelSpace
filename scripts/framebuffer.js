@@ -4,6 +4,8 @@ import ColorPalette from "./colorpalette.js";
 import { Color } from "./color.js";
 import {
   SKY_PALETTE_STEPS,
+  UNFILLED_PIXEL,
+  skyPaletteT,
 } from "./constants/framebuffer.js";
 import { BYTES_PER_PIXEL } from "./constants/image.js";
 import { HALF } from "./constants/vmath.js";
@@ -39,10 +41,17 @@ class FrameBuffer {
 
     this._width = 0;
     this._height = 0;
+    this._cachedHorizon = NaN;
   }
 
-  drawBackground() {
-    if (!this._mustBeRecalcBuffer32bit) {
+  drawBackground(screenHorizon) {
+    const h2 = this._height * HALF;
+    const horizon = screenHorizon ?? h2;
+    const horizonKey = horizon | 0;
+    if (
+      !this._mustBeRecalcBuffer32bit &&
+      this._cachedHorizon === horizonKey
+    ) {
       const n = this._width * this._height;
       for (let i = 0; (i < n) | 0; i++) {
         this._buffer32bit[i] = this._cachedBuffer32bit[i];
@@ -50,12 +59,12 @@ class FrameBuffer {
       return;
     }
     this._mustBeRecalcBuffer32bit = false;
+    this._cachedHorizon = horizonKey;
 
-    const h2 = this._height * HALF;
     let t = 0;
     let color = Color.BLACK;
     for (let i = 0; (i < this._height) | 0; i = (i + 1) | 0) {
-      t = i / h2;
+      t = skyPaletteT((i - horizon) / h2 + 1);
       color = this._colorPalette.getColor(t);
       this._buffer32bit[i * this._width] = color;
       this._cachedBuffer32bit[i * this._width] = color;
@@ -87,6 +96,23 @@ class FrameBuffer {
       for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
         this._buffer32bit[offset] = col;
         offset = (offset + this._width) | 0;
+      }
+    }
+  }
+
+  blitTerrainColumns(src, startColumn, endColumn) {
+    const dest = this._buffer32bit;
+    const w = this._width;
+    const h = this._height;
+    const sliceW = (endColumn - startColumn) | 0;
+    for (let y = 0; (y < h) | 0; y = (y + 1) | 0) {
+      const srcRow = (y * sliceW) | 0;
+      const dstRow = (y * w + startColumn) | 0;
+      for (let x = 0; (x < sliceW) | 0; x = (x + 1) | 0) {
+        const c = src[srcRow + x];
+        if (c !== UNFILLED_PIXEL) {
+          dest[dstRow + x] = c;
+        }
       }
     }
   }
@@ -137,11 +163,13 @@ class FrameBuffer {
     );
 
     this._mustBeRecalcBuffer32bit = true;
+    this._cachedHorizon = NaN;
   }
 
   setColors(topColor, bottomColor) {
     this._colorPalette = new ColorPalette(topColor, bottomColor, SKY_PALETTE_STEPS);
     this._mustBeRecalcBuffer32bit = true;
+    this._cachedHorizon = NaN;
   }
 }
 

@@ -116,3 +116,8 @@ a {
 body.classic .pano-only {
   display: none;
 }
+
+body.panorama .classic-only {
+  opacity: 0.45;
+  pointer-events: none;
+}

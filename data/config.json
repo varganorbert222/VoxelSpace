@@ -28,6 +28,9 @@
     },
     "renderAlgorithms": {
       "values": ["classic", "panorama"]
+    },
+    "multithread": {
+      "default": false
     }
   },
   "camera": {
