@@ -163,6 +163,7 @@ class Renderer {
       mapH: maps.height,
       mapShift: maps.mapShift,
       altitude: maps.altitude,
+      maxHeight: maps.maxHeight,
       startColumn: 0,
       endColumn: this._frameBuffer.width,
       screenWidth: this._frameBuffer.width,
@@ -458,6 +459,7 @@ class Renderer {
       repeat: this._repeat,
       skyColor: terrain.skyColor,
       initialStep: camera.minDeltaZ,
+      quality: camera.quality,
     });
     if (!slices) {
       return false;
@@ -508,6 +510,7 @@ class Renderer {
           repeat: this._repeat,
           skyColor: terrain.skyColor,
           initialStep: camera.minDeltaZ,
+          quality: camera.quality,
           pixels: this._panoramaPixels,
           horizon: this._panoramaHorizon,
           depth: this._panoramaDepth,

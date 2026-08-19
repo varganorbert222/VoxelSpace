@@ -5,12 +5,13 @@ import config from "../data/config.json" with { type: "json" };
 import Camera from "./camera.js";
 import Terrain from "./terrain.js";
 import Input from "./input.js";
+import Time from "./time.js";
 import { loadImagesAsync } from "./imageutil.js";
 import { Color } from "./color.js";
 import {
   ALGORITHM_CLASSIC,
   ALGORITHM_PANORAMA,
-  panoRenderScaleForQuality,
+  renderScaleForQuality,
 } from "./constants/renderer.js";
 import { DEFAULT_MULTITHREAD } from "./constants/threading.js";
 import { HALF } from "./constants/vmath.js";
@@ -28,7 +29,6 @@ let camera = null;
 let terrain = null;
 let algorithmSelector = null;
 let renderScaleElement = null;
-let classicRenderScale = null;
 let totalFrames = 0;
 let currentTime = 0;
 let lastTimeForFps = 0;
@@ -39,31 +39,20 @@ function syncRenderScaleUi() {
   if (!renderScaleElement) {
     return;
   }
-  const pano = camera.renderer.algorithm === ALGORITHM_PANORAMA;
-  renderScaleElement.disabled = pano;
+  renderScaleElement.disabled = true;
   renderScaleElement.value = camera.renderScale;
 }
 
-function applyPanoRenderScale() {
-  camera.set({
-    renderScale: panoRenderScaleForQuality(
-      camera.quality,
-      window.innerWidth,
-      window.innerHeight
-    ),
-  });
-  syncRenderScaleUi();
-}
-
-function applyAlgorithmRenderScale() {
-  const pano = camera.renderer.algorithm === ALGORITHM_PANORAMA;
-  if (pano) {
-    classicRenderScale = camera.renderScale;
-  } else if (classicRenderScale !== null) {
-    camera.set({ renderScale: classicRenderScale });
-    syncRenderScaleUi();
+function applyQualityRenderScale() {
+  const next = renderScaleForQuality(
+    camera.quality,
+    window.innerWidth,
+    window.innerHeight
+  );
+  if (next !== camera.renderScale) {
+    camera.set({ renderScale: next });
   }
-  onResizeWindow();
+  syncRenderScaleUi();
 }
 
 function setRenderAlgorithm(algorithm) {
@@ -78,13 +67,14 @@ function setRenderAlgorithm(algorithm) {
   document.body.classList.toggle("classic", algorithm === ALGORITHM_CLASSIC);
   document.body.classList.toggle("panorama", algorithm === ALGORITHM_PANORAMA);
   if (prev !== algorithm) {
-    applyAlgorithmRenderScale();
+    onResizeWindow();
   } else {
     syncRenderScaleUi();
   }
 }
 
 function run() {
+  Time.tick();
   if (input.consumeToggleRenderAlgorithm) {
     const next =
       camera.renderer.algorithm === ALGORITHM_CLASSIC
@@ -121,9 +111,7 @@ function loadMap(mapName) {
 }
 
 function onResizeWindow() {
-  if (camera.renderer.algorithm === ALGORITHM_PANORAMA) {
-    applyPanoRenderScale();
-  }
+  applyQualityRenderScale();
   camera.resize(
     document.getElementById(CANVAS_ID),
     window.innerWidth,
@@ -181,12 +169,9 @@ function initSettings() {
     "id_render_scale",
     config.settings.renderScale,
     camera.renderScale,
-    (e) => {
-      camera.set({ renderScale: parseFloat(e.target.value) });
-      classicRenderScale = camera.renderScale;
-      onResizeWindow();
-    }
+    () => {}
   );
+  renderScaleElement.disabled = true;
   const fovElement = initRangeElement(
     "id_fov",
     config.settings.fov,
@@ -209,9 +194,7 @@ function initSettings() {
     camera.quality,
     (e) => {
       camera.set({ quality: parseFloat(e.target.value) });
-      if (camera.renderer.algorithm === ALGORITHM_PANORAMA) {
-        onResizeWindow();
-      }
+      onResizeWindow();
     }
   );
   const applyFogElement = initCheckboxElement(
@@ -288,7 +271,6 @@ function printFps() {
 function init() {
   terrain = new Terrain();
   camera = new Camera(config.camera);
-  classicRenderScale = camera.renderScale;
   input = new Input({
     canvas: document.getElementById(CANVAS_ID),
   });

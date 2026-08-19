@@ -117,7 +117,8 @@ body.classic .pano-only {
   display: none;
 }
 
-body.panorama .classic-only {
+#id_render_scale:disabled,
+label[for="id_render_scale"] {
   opacity: 0.45;
   pointer-events: none;
 }

@@ -95,11 +95,26 @@ class ColumnPool {
     }
     this._mapsGeneration = snapshot.generation;
     const n = snapshot.heightMap.length;
+    const mips = snapshot.panoMips;
+    const extraCount =
+      mips && mips.count > 1 ? (mips.count - 1) | 0 : 0;
     for (let i = 0; (i < this._slots.length) | 0; i = (i + 1) | 0) {
       const heights = new Uint8Array(n);
       heights.set(snapshot.heightMap);
       const colors = new Uint32Array(n);
       colors.set(snapshot.colorMap);
+      const transfer = [heights.buffer, colors.buffer];
+      const mipHeightMaps = [];
+      const mipColorMaps = [];
+      for (let m = 1; (m <= extraCount) | 0; m = (m + 1) | 0) {
+        const hm = new Uint8Array(mips.heightMaps[m].length);
+        hm.set(mips.heightMaps[m]);
+        const cm = new Uint32Array(mips.colorMaps[m].length);
+        cm.set(mips.colorMaps[m]);
+        mipHeightMaps.push(hm.buffer);
+        mipColorMaps.push(cm.buffer);
+        transfer.push(hm.buffer, cm.buffer);
+      }
       this._slots[i].worker.postMessage(
         {
           type: MSG_INIT_MAPS,
@@ -109,8 +124,15 @@ class ColumnPool {
           height: snapshot.height,
           mapShift: snapshot.mapShift,
           altitude: snapshot.altitude,
+          maxHeight: snapshot.maxHeight,
+          mipCount: mips ? mips.count : 1,
+          mipWidths: mips ? mips.widths : [snapshot.width],
+          mipHeights: mips ? mips.heights : [snapshot.height],
+          mipShifts: mips ? mips.shifts : [snapshot.mapShift],
+          mipHeightMaps: mipHeightMaps,
+          mipColorMaps: mipColorMaps,
         },
-        [heights.buffer, colors.buffer]
+        transfer
       );
     }
   }
@@ -288,6 +310,7 @@ class ColumnPool {
               repeat: params.repeat,
               skyColor: params.skyColor,
               initialStep: params.initialStep,
+              quality: params.quality,
             },
             [pixels.buffer, horizon.buffer, depth.buffer]
           );

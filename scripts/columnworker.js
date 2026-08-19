@@ -21,6 +21,8 @@ let mapW = 0;
 let mapH = 0;
 let mapShift = 0;
 let altitude = 0;
+let maxHeight = 0;
+let panoMips = null;
 let panoPixels = null;
 let panoHorizon = null;
 let panoDepth = null;
@@ -37,6 +39,27 @@ self.onmessage = (e) => {
       mapH = msg.height;
       mapShift = msg.mapShift;
       altitude = msg.altitude;
+      maxHeight = msg.maxHeight == null ? altitude : msg.maxHeight;
+      const mipCount = msg.mipCount | 0;
+      const heightMaps = [heightMap];
+      const colorMaps = [colorMap];
+      const extraHeights = msg.mipHeightMaps;
+      const extraColors = msg.mipColorMaps;
+      if (extraHeights && extraColors) {
+        const extraN = extraHeights.length;
+        for (let m = 0; (m < extraN) | 0; m = (m + 1) | 0) {
+          heightMaps.push(new Uint8Array(extraHeights[m]));
+          colorMaps.push(new Uint32Array(extraColors[m]));
+        }
+      }
+      panoMips = {
+        count: mipCount > 0 ? mipCount : heightMaps.length,
+        heightMaps: heightMaps,
+        colorMaps: colorMaps,
+        widths: msg.mipWidths || [mapW],
+        heights: msg.mipHeights || [mapH],
+        shifts: msg.mipShifts || [mapShift],
+      };
       return;
     }
 
@@ -59,6 +82,7 @@ self.onmessage = (e) => {
         mapH,
         mapShift,
         altitude,
+        maxHeight,
         startColumn: msg.startColumn,
         endColumn: msg.endColumn,
         screenWidth: msg.screenWidth,
@@ -105,6 +129,7 @@ self.onmessage = (e) => {
         mapH,
         mapShift,
         altitude,
+        maxHeight,
         camX: msg.camX,
         camY: msg.camY,
         camZ: msg.camZ,
@@ -118,9 +143,11 @@ self.onmessage = (e) => {
         repeat: msg.repeat,
         skyColor: msg.skyColor,
         initialStep: msg.initialStep,
+        quality: msg.quality,
         pixels,
         horizon,
         depth,
+        panoMips,
       });
       self.postMessage(
         {

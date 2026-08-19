@@ -19,8 +19,23 @@ import {
   MIN_SAMPLE_DISTANCE,
   NON_REPEAT_GROUND_OFFSET,
   PIXEL_OFFSETS,
-  STEP_GROWTH,
+  INITIAL_STEP_SCALE_BY_QUALITY,
+  STEP_GROWTH_BY_QUALITY,
+  qualityIndex,
 } from "./constants/renderer.js";
+
+let hiddenYScratch = new Int32Array(1);
+const deltasScratch = new Float64Array(LOD_BAND_COUNT);
+const lodDistancesScratch = new Float64Array(LOD_BAND_COUNT + 1);
+let hiddenYCapacity = 1;
+
+function hiddenYBuffer(width) {
+  if ((width > hiddenYCapacity) | 0) {
+    hiddenYCapacity = width;
+    hiddenYScratch = new Int32Array(width);
+  }
+  return hiddenYScratch;
+}
 
 function drawVerticalLine(pixels, stride, x, ytop, ybottom, col, width, xEnd) {
   x = x | 0;
@@ -55,6 +70,7 @@ export function renderClassicColumns({
   mapH,
   mapShift,
   altitude,
+  maxHeight,
   startColumn,
   endColumn,
   screenWidth,
@@ -79,8 +95,10 @@ export function renderClassicColumns({
 }) {
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;
-  const hiddenY = new Int32Array(localWidth);
+  const hiddenY = hiddenYBuffer(localWidth);
   const fogRange = farClip - nearClip;
+  const ceiling = maxHeight == null ? altitude : maxHeight;
+  const ceilingSdf = camZ - ceiling;
 
   if (fillUnfilled) {
     const n = (localWidth * screenHeight) | 0;
@@ -89,18 +107,21 @@ export function renderClassicColumns({
     }
   }
 
-  const deltas = new Float64Array(LOD_BAND_COUNT);
-  deltas[0] = minDeltaZ;
+  const q = qualityIndex(quality);
+  const stepGrowth = STEP_GROWTH_BY_QUALITY[q];
+  const stepScale = INITIAL_STEP_SCALE_BY_QUALITY[q];
+
+  const deltas = deltasScratch;
+  deltas[0] = minDeltaZ * stepScale;
   for (let i = 0; (i < LOD_FAR_DELTAS.length) | 0; i = (i + 1) | 0) {
     deltas[i + 1] = LOD_FAR_DELTAS[i];
   }
 
-  const zStart = Math.max(nearClip, minDeltaZ, MIN_SAMPLE_DISTANCE);
-  const lodDistances = new Float64Array(LOD_BAND_COUNT + 1);
+  const zStart = Math.max(nearClip, deltas[0], MIN_SAMPLE_DISTANCE);
+  const lodDistances = lodDistancesScratch;
   lodDistances[0] = zStart;
   for (let i = 0; (i < LOD_DISTANCE_FRACTIONS.length) | 0; i = (i + 1) | 0) {
-    lodDistances[i + 1] =
-      LOD_DISTANCE_FRACTIONS[i] * farClip * quality;
+    lodDistances[i + 1] = LOD_DISTANCE_FRACTIONS[i] * farClip;
   }
   lodDistances[LOD_BAND_COUNT] = farClip;
   for (let i = 1; (i < LOD_BAND_COUNT) | 0; i = (i + 1) | 0) {
@@ -165,6 +186,18 @@ export function renderClassicColumns({
         const isOk = inside | (repeat | 0);
 
         if (isOk) {
+          const ceilingOnScreen = projectToScreen(
+            ceilingSdf,
+            z,
+            dstToProjPlane,
+            screenHorizon
+          );
+          if ((ceilingOnScreen >= colHidden) | 0) {
+            plx += dx * pxOffset;
+            ply += dy * pxOffset;
+            continue;
+          }
+
           const offset = mapOffsetAt(plx, ply, mapW, mapH, mapShift);
           const terrainHeight =
             (heightMap[offset] / HEIGHTMAP_MAX) * altitude;
@@ -244,7 +277,7 @@ export function renderClassicColumns({
         ply += dy * pxOffset;
       }
 
-      step += STEP_GROWTH;
+      step += stepGrowth;
     }
   }
 }

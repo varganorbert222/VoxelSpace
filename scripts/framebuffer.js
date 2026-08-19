@@ -42,6 +42,8 @@ class FrameBuffer {
     this._width = 0;
     this._height = 0;
     this._cachedHorizon = NaN;
+    this._topColor = NaN;
+    this._bottomColor = NaN;
   }
 
   drawBackground(screenHorizon) {
@@ -52,10 +54,7 @@ class FrameBuffer {
       !this._mustBeRecalcBuffer32bit &&
       this._cachedHorizon === horizonKey
     ) {
-      const n = this._width * this._height;
-      for (let i = 0; (i < n) | 0; i++) {
-        this._buffer32bit[i] = this._cachedBuffer32bit[i];
-      }
+      this._buffer32bit.set(this._cachedBuffer32bit);
       return;
     }
     this._mustBeRecalcBuffer32bit = false;
@@ -139,9 +138,21 @@ class FrameBuffer {
   }
 
   set(bufferData) {
+    const width = (bufferData.width * bufferData.renderScale) | 0;
+    const height = (bufferData.height * bufferData.renderScale) | 0;
+    if (
+      this._canvas === bufferData.canvas &&
+      this._width === width &&
+      this._height === height &&
+      this._buffer32bit &&
+      this._cachedBuffer32bit
+    ) {
+      return;
+    }
+
     this._canvas = bufferData.canvas;
-    this._width = (bufferData.width * bufferData.renderScale) | 0;
-    this._height = (bufferData.height * bufferData.renderScale) | 0;
+    this._width = width;
+    this._height = height;
     this._canvas.width = this._width;
     this._canvas.height = this._height;
 
@@ -153,20 +164,27 @@ class FrameBuffer {
       );
     }
 
-    this._colorBuffer = new ArrayBuffer(
-      this._imageDataForContext.width * this._imageDataForContext.height * BYTES_PER_PIXEL
-    );
+    const pixelCount =
+      this._imageDataForContext.width * this._imageDataForContext.height;
+    this._colorBuffer = new ArrayBuffer(pixelCount * BYTES_PER_PIXEL);
     this._buffer8bit = new Uint8Array(this._colorBuffer);
     this._buffer32bit = new Uint32Array(this._colorBuffer);
-    this._cachedBuffer32bit = new ArrayBuffer(
-      this._imageDataForContext.width * this._imageDataForContext.height * BYTES_PER_PIXEL
-    );
+    this._cachedBuffer32bit = new Uint32Array(pixelCount);
 
     this._mustBeRecalcBuffer32bit = true;
     this._cachedHorizon = NaN;
   }
 
   setColors(topColor, bottomColor) {
+    if (
+      this._colorPalette &&
+      this._topColor === topColor &&
+      this._bottomColor === bottomColor
+    ) {
+      return;
+    }
+    this._topColor = topColor;
+    this._bottomColor = bottomColor;
     this._colorPalette = new ColorPalette(topColor, bottomColor, SKY_PALETTE_STEPS);
     this._mustBeRecalcBuffer32bit = true;
     this._cachedHorizon = NaN;

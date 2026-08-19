@@ -14,7 +14,7 @@ export const DEFAULT_QUALITY = 2;
 export const DEFAULT_FOV = 90;
 export const DEFAULT_ORBIT_RADIUS = 500;
 
-export const MOVE_DT_SCALE = 0.03;
+export const MOVE_DT_SCALE = 30;
 export const MOUSE_LOOK_SENSITIVITY = 0.12;
 export const STICK_LOOK_SENSITIVITY = 2.4;
 export const KEY_LOOK_SENSITIVITY = 2;

@@ -14,6 +14,7 @@ export function generateSphericalPanorama({
   repeat,
   skyColor,
   initialStep,
+  quality,
   pixels,
   horizon,
   depth,
@@ -27,6 +28,7 @@ export function generateSphericalPanorama({
     mapH: maps.height,
     mapShift: maps.mapShift,
     altitude: maps.altitude,
+    maxHeight: maps.maxHeight,
     camX,
     camY,
     camZ,
@@ -39,9 +41,11 @@ export function generateSphericalPanorama({
     repeat,
     skyColor,
     initialStep,
+    quality,
     pixels,
     horizon,
     depth,
     tMax,
+    panoMips: maps.panoMips,
   });
 }

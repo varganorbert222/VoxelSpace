@@ -110,6 +110,7 @@ class Input {
     this._mouseposition = null;
     this._toggleRenderAlgorithm = false;
     this._flyLook = true;
+    this._rollEnabled = false;
     this._touchLook = false;
     this._canvas = config.canvas;
     this._keys = Object.create(null);
@@ -157,6 +158,13 @@ class Input {
     this._flyLook = !!enabled;
     if (!this._flyLook && this.pointerLocked) {
       document.exitPointerLock();
+    }
+  }
+
+  setRollEnabled(enabled) {
+    this._rollEnabled = !!enabled;
+    if (!this._rollEnabled) {
+      this._rollHold = 0;
     }
   }
 
@@ -384,10 +392,10 @@ class Input {
         this.refreshUpDown();
         break;
       case KeyCode.E:
-        this._rollHold = -1;
+        if (this._rollEnabled) this._rollHold = -1;
         break;
       case KeyCode.Q:
-        this._rollHold = 1;
+        if (this._rollEnabled) this._rollHold = 1;
         break;
       case KeyCode.P:
         if (!e.repeat) this._toggleRenderAlgorithm = true;

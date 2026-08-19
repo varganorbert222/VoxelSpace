@@ -273,10 +273,19 @@ class Camera {
   }
 
   resize(canvas, width, height) {
-    this._width = (width * this._renderScale) | 0;
-    this._height = (height * this._renderScale) | 0;
+    const nextWidth = (width * this._renderScale) | 0;
+    const nextHeight = (height * this._renderScale) | 0;
+    const sameSize =
+      ((this._frameBuffer.width === nextWidth) | 0) &
+      ((this._frameBuffer.height === nextHeight) | 0) &
+      ((nextWidth > 0) | 0);
+    this._width = nextWidth;
+    this._height = nextHeight;
     this._width2 = this._width * HALF;
     this._height2 = this._height * HALF;
+    if (sameSize) {
+      return;
+    }
 
     this._frameBuffer.set({
       canvas: canvas,
@@ -319,9 +328,6 @@ class Camera {
         look.y * MOUSE_LOOK_SENSITIVITY +
         input.stickLookY * STICK_LOOK_SENSITIVITY * dt +
         input.pitchHold * KEY_LOOK_SENSITIVITY * dt;
-      if (input.rollHold !== 0) {
-        this._pitch += input.rollHold * KEY_LOOK_SENSITIVITY * dt;
-      }
       this._pitch = VMath.clamp(CLASSIC_PITCH_MIN, CLASSIC_PITCH_MAX, this._pitch);
       this._roll = 0;
       this.rebuildBasisFromEuler();
@@ -357,7 +363,8 @@ class Camera {
 
     this._fwdX = -sinY * cosP;
     this._fwdY = -cosY * cosP;
-    this._fwdZ = sinP;
+    // Classic pitch is positive when looking down (horizon uses -pitch).
+    this._fwdZ = -sinP;
 
     let rightX = -this._fwdY;
     let rightY = this._fwdX;
@@ -567,6 +574,7 @@ class Camera {
 
   move(input, terrain) {
     input.setFlyLook(this._mode === MODE_FLY);
+    input.setRollEnabled(this._renderer.algorithm === ALGORITHM_PANORAMA);
     if (this._mode === MODE_FLY) {
       this.moveFpsView(input);
     } else if (this._mode === MODE_ORBITAL) {
