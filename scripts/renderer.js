@@ -11,6 +11,7 @@ import {
   PANO_SIZE_BY_QUALITY,
   PANO_WIDTH,
   PANO_HEIGHT,
+  farPlaneRayTMax,
 } from "./constants/renderer.js";
 import { DEFAULT_MULTITHREAD } from "./constants/threading.js";
 
@@ -70,18 +71,26 @@ class Renderer {
     this._panoHeight = PANO_HEIGHT;
     this._panoramaPixels = null;
     this._panoramaHorizon = null;
+    this._panoramaDepth = null;
     this._panoramaValid = false;
     this._panoramaDirty = true;
     this._panoCamX = 0;
     this._panoCamY = 0;
     this._panoCamZ = 0;
     this._panoFarClip = NaN;
-    this._panoApplyFog = null;
     this._panoRepeat = null;
     this._panoMinDeltaZ = NaN;
     this._panoSkyColor = null;
     this._panoQuality = NaN;
+    this._panoFov = NaN;
+    this._panoAspect = NaN;
     this._panoGen = 0;
+  }
+
+  _panoTMax() {
+    const fb = this._frameBuffer;
+    const aspect = fb.height ? fb.width / fb.height : 0;
+    return farPlaneRayTMax(this._camera.farClip, this._camera.fov, aspect);
   }
 
   _ensurePool() {
@@ -136,6 +145,7 @@ class Renderer {
       this._panoHeight = size.height;
       this._panoramaPixels = null;
       this._panoramaHorizon = null;
+      this._panoramaDepth = null;
       this.invalidatePanorama();
     }
   }
@@ -239,6 +249,10 @@ class Renderer {
     if (!this._panoramaPixels || this._panoramaPixels.length !== n) {
       this._panoramaPixels = new Uint32Array(n);
       this._panoramaHorizon = new Int32Array(this._panoWidth);
+      this._panoramaDepth = new Float32Array(n);
+      this._panoramaValid = false;
+    } else if (!this._panoramaDepth || this._panoramaDepth.length !== n) {
+      this._panoramaDepth = new Float32Array(n);
       this._panoramaValid = false;
     }
   }
@@ -249,9 +263,12 @@ class Renderer {
     }
 
     const camera = this._camera;
+    const fb = this._frameBuffer;
+    const aspect = fb.height ? fb.width / fb.height : 0;
     const settingsChanged =
       this._panoFarClip !== camera.farClip ||
-      this._panoApplyFog !== this._applyFog ||
+      this._panoFov !== camera.fov ||
+      this._panoAspect !== aspect ||
       this._panoRepeat !== this._repeat ||
       this._panoMinDeltaZ !== camera.minDeltaZ ||
       this._panoSkyColor !== terrain.skyColor ||
@@ -274,7 +291,10 @@ class Renderer {
     this._panoCamY = camera.posY;
     this._panoCamZ = camera.posZ;
     this._panoFarClip = camera.farClip;
-    this._panoApplyFog = this._applyFog;
+    this._panoFov = camera.fov;
+    this._panoAspect = this._frameBuffer.height
+      ? this._frameBuffer.width / this._frameBuffer.height
+      : 0;
     this._panoRepeat = this._repeat;
     this._panoMinDeltaZ = camera.minDeltaZ;
     this._panoSkyColor = terrain.skyColor;
@@ -293,8 +313,12 @@ class Renderer {
       fovY: camera.fov,
       frameBuffer: this._frameBuffer,
       horizon: this._panoramaHorizon,
+      depth: this._panoramaDepth,
       skyColor: camera.topColor,
       horizonColor: camera.bottomColor,
+      nearClip: camera.nearClip,
+      farClip: camera.farClip,
+      applyFog: this._applyFog,
       rightX: camera.rightX,
       rightY: camera.rightY,
       rightZ: camera.rightZ,
@@ -308,12 +332,13 @@ class Renderer {
   }
 
   _uploadPanoramaToWorkers() {
-    if (!this._panoramaPixels || !this._panoramaHorizon) {
+    if (!this._panoramaPixels || !this._panoramaHorizon || !this._panoramaDepth) {
       return;
     }
     this._ensurePool().setPanorama({
       pixels: this._panoramaPixels,
       horizon: this._panoramaHorizon,
+      depth: this._panoramaDepth,
       width: this._panoWidth,
       height: this._panoHeight,
       generation: this._panoGen,
@@ -334,6 +359,9 @@ class Renderer {
       fovY: camera.fov,
       skyColor: camera.topColor,
       horizonColor: camera.bottomColor,
+      nearClip: camera.nearClip,
+      farClip: camera.farClip,
+      applyFog: this._applyFog,
       rightX: camera.rightX,
       rightY: camera.rightY,
       rightZ: camera.rightZ,
@@ -383,6 +411,7 @@ class Renderer {
     const height = this._panoHeight;
     const dest = this._panoramaPixels;
     const destH = this._panoramaHorizon;
+    const destD = this._panoramaDepth;
     for (let i = 0; (i < slices.length) | 0; i = (i + 1) | 0) {
       const slice = slices[i];
       const startPx = slice.startPx;
@@ -392,6 +421,7 @@ class Renderer {
         const srcRow = (y * localWidth) | 0;
         const dstRow = (y * width + startPx) | 0;
         dest.set(slice.pixels.subarray(srcRow, srcRow + localWidth), dstRow);
+        destD.set(slice.depth.subarray(srcRow, srcRow + localWidth), dstRow);
       }
     }
   }
@@ -401,13 +431,14 @@ class Renderer {
     const pool = this._ensurePool();
     pool.initMaps(maps);
     const camera = this._camera;
+    const tMax = this._panoTMax();
     const token = {
       algorithm: this._algorithm,
       width: this._panoWidth,
       height: this._panoHeight,
       quality: camera.quality,
       farClip: camera.farClip,
-      applyFog: this._applyFog,
+      tMax: tMax,
       repeat: this._repeat,
       minDeltaZ: camera.minDeltaZ,
       camX: camera.posX,
@@ -423,7 +454,7 @@ class Renderer {
       camZ: camera.posZ,
       farClip: camera.farClip,
       nearClip: camera.nearClip,
-      applyFog: this._applyFog,
+      tMax: tMax,
       repeat: this._repeat,
       skyColor: terrain.skyColor,
       initialStep: camera.minDeltaZ,
@@ -437,7 +468,7 @@ class Renderer {
       this._panoHeight !== token.height ||
       camera.quality !== token.quality ||
       camera.farClip !== token.farClip ||
-      this._applyFog !== token.applyFog ||
+      this._panoTMax() !== token.tMax ||
       this._repeat !== token.repeat ||
       camera.minDeltaZ !== token.minDeltaZ ||
       camera.posX !== token.camX ||
@@ -473,12 +504,13 @@ class Renderer {
           height: this._panoHeight,
           farClip: camera.farClip,
           nearClip: camera.nearClip,
-          applyFog: this._applyFog,
+          tMax: this._panoTMax(),
           repeat: this._repeat,
           skyColor: terrain.skyColor,
           initialStep: camera.minDeltaZ,
           pixels: this._panoramaPixels,
           horizon: this._panoramaHorizon,
+          depth: this._panoramaDepth,
         });
       }
       this._commitPanoramaCache(terrain);

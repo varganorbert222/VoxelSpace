@@ -7,17 +7,10 @@ import {
   SKY_PALETTE_STEPS,
   skyPaletteT,
 } from "./constants/framebuffer.js";
-import {
-  CHANNEL_MASK,
-  CHANNEL_MAX,
-  SHIFT_ALPHA,
-  SHIFT_GREEN,
-  SHIFT_RED,
-} from "./constants/color.js";
 import { EPSILON } from "./constants/camera.js";
 import { HEIGHTMAP_MAX } from "./constants/terrain.js";
 import {
-  FOG_SATURATED,
+  FAR_PLANE_T_SCALE,
   MIN_SAMPLE_DISTANCE,
   STEP_GROWTH,
 } from "./constants/renderer.js";
@@ -66,26 +59,36 @@ export function renderPanoramaColumns({
   endPx,
   farClip,
   nearClip,
-  applyFog,
   repeat,
   skyColor,
   initialStep,
   pixels,
   horizon,
+  depth,
+  tMax,
   tanMin,
 }) {
   const localWidth = (endPx - startPx) | 0;
   fillSkySlice(pixels, localWidth, height, skyColor);
+  if (depth) {
+    const dn = (localWidth * height) | 0;
+    for (let i = 0; (i < dn) | 0; i = (i + 1) | 0) {
+      depth[i] = 0;
+    }
+  }
 
   const lut = tanMin || buildTanMinLut(height);
-  const fogRange = farClip - nearClip;
   let step0 = initialStep;
   if ((step0 <= 0) | 0) step0 = MIN_SAMPLE_DISTANCE;
   const t0 = Math.max(nearClip, initialStep, MIN_SAMPLE_DISTANCE);
+  let tStop = tMax;
+  if (!(tStop > 0)) {
+    tStop = farClip * FAR_PLANE_T_SCALE;
+  }
 
   for (let px = startPx; (px < endPx) | 0; px = (px + 1) | 0) {
     const localX = (px - startPx) | 0;
-    const theta = (px / width) * TWO_PI;
+    const theta = ((px + HALF) / width) * TWO_PI;
     const dirX = -Math.sin(theta);
     const dirY = -Math.cos(theta);
     let H = height;
@@ -95,8 +98,14 @@ export function renderPanoramaColumns({
     let step = step0;
     let wasInside = 0;
 
-    while ((t < farClip) | 0) {
+    while (t < tStop) {
       if (H === 0) {
+        break;
+      }
+
+      const sealed = (H !== height) | 0;
+      const tanH = sealed ? lut[H] : 0;
+      if (sealed && tanH >= 0 && altitude < camZ + t * tanH - EPSILON) {
         break;
       }
 
@@ -123,65 +132,30 @@ export function renderPanoramaColumns({
       const offset = mapOffsetAt(wx, wy, mapW, mapH, mapShift);
       const h = (heightMap[offset] / HEIGHTMAP_MAX) * altitude;
 
-      if ((H !== height) | 0) {
-        const tanH = lut[H];
-        if (Number.isFinite(tanH)) {
-          if (h < camZ + t * tanH - EPSILON) {
-            t += step;
-            step += STEP_GROWTH;
-            continue;
-          }
-        }
+      if (sealed && h < camZ + t * tanH - EPSILON) {
+        t += step;
+        step += STEP_GROWTH;
+        continue;
       }
 
-      const phiHit = Math.atan2(h - camZ, t);
+      const dh = h - camZ;
+      const phiHit = Math.atan2(dh, t);
       let yHit = ((HALF - phiHit / Math.PI) * height) | 0;
       if ((yHit < 0) | 0) yHit = 0;
-      if ((yHit > height) | 0) yHit = height;
-
-      const depth =
-        fogRange === 0
-          ? FOG_SATURATED
-          : (t - nearClip) / fogRange;
-      const fogWhite =
-        (applyFog | 0) & ((depth >= FOG_SATURATED) | 0);
+      if ((yHit >= height) | 0) yHit = (height - 1) | 0;
 
       if ((yHit < H) | 0) {
-        let color = Color.WHITE;
-        if (!fogWhite) {
-          color = colorMap[offset];
-          if (applyFog) {
-            const a = (color >>> SHIFT_ALPHA) & CHANNEL_MASK;
-            const r = (color >>> SHIFT_RED) & CHANNEL_MASK;
-            const g = (color >>> SHIFT_GREEN) & CHANNEL_MASK;
-            const b = color & CHANNEL_MASK;
-            const fogT = depth < 0 ? 0 : depth > FOG_SATURATED ? FOG_SATURATED : depth;
-            color =
-              ((a + (CHANNEL_MAX - a) * fogT) << SHIFT_ALPHA) |
-              ((r + (CHANNEL_MAX - r) * fogT) << SHIFT_RED) |
-              ((g + (CHANNEL_MAX - g) * fogT) << SHIFT_GREEN) |
-              (b + (CHANNEL_MAX - b) * fogT);
-          }
-        }
+        const color = colorMap[offset];
+        const dist = Math.hypot(t, dh);
         for (let y = yHit; (y < H) | 0; y = (y + 1) | 0) {
-          pixels[(y * localWidth + localX) | 0] = color;
+          const idx = (y * localWidth + localX) | 0;
+          pixels[idx] = color;
+          if (depth) {
+            depth[idx] = dist;
+          }
         }
         H = yHit;
         horizon[localX] = H;
-      }
-
-      if (fogWhite) {
-        if (H === 0) {
-          break;
-        }
-        if ((H !== height) | 0) {
-          const tanH = lut[H];
-          if (Number.isFinite(tanH) && tanH >= 0) {
-            if (altitude < camZ + t * tanH - EPSILON) {
-              break;
-            }
-          }
-        }
       }
 
       t += step;

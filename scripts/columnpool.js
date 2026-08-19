@@ -128,15 +128,20 @@ class ColumnPool {
       pixels.set(snapshot.pixels);
       const horizon = new Int32Array(hn);
       horizon.set(snapshot.horizon);
+      const depth = new Float32Array(n);
+      if (snapshot.depth) {
+        depth.set(snapshot.depth);
+      }
       this._slots[i].worker.postMessage(
         {
           type: MSG_INIT_PANO,
           pixels: pixels.buffer,
           horizon: horizon.buffer,
+          depth: depth.buffer,
           width: snapshot.width,
           height: snapshot.height,
         },
-        [pixels.buffer, horizon.buffer]
+        [pixels.buffer, horizon.buffer, depth.buffer]
       );
     }
   }
@@ -243,6 +248,9 @@ class ColumnPool {
               fovY: params.fovY,
               skyColor: params.skyColor,
               horizonColor: params.horizonColor,
+              nearClip: params.nearClip,
+              farClip: params.farClip,
+              applyFog: params.applyFog,
               rightX: params.rightX,
               rightY: params.rightY,
               rightZ: params.rightZ,
@@ -259,6 +267,7 @@ class ColumnPool {
           const localW = (range.end - range.start) | 0;
           const pixels = new Uint32Array((localW * params.height) | 0);
           const horizon = new Int32Array(localW);
+          const depth = new Float32Array((localW * params.height) | 0);
           slot.worker.postMessage(
             {
               type: MSG_RENDER_PANORAMA,
@@ -267,6 +276,7 @@ class ColumnPool {
               endPx: range.end,
               pixels: pixels.buffer,
               horizon: horizon.buffer,
+              depth: depth.buffer,
               width: params.width,
               height: params.height,
               camX: params.camX,
@@ -274,12 +284,12 @@ class ColumnPool {
               camZ: params.camZ,
               farClip: params.farClip,
               nearClip: params.nearClip,
-              applyFog: params.applyFog,
+              tMax: params.tMax,
               repeat: params.repeat,
               skyColor: params.skyColor,
               initialStep: params.initialStep,
             },
-            [pixels.buffer, horizon.buffer]
+            [pixels.buffer, horizon.buffer, depth.buffer]
           );
         }
       };
@@ -331,6 +341,7 @@ class ColumnPool {
         endPx: data.endPx,
         pixels: new Uint32Array(data.pixels),
         horizon: new Int32Array(data.horizon),
+        depth: new Float32Array(data.depth),
       });
     } else if (data.type === MSG_RESULT_PANO_VIEW) {
       active.onChunk(index, {

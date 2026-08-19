@@ -9,7 +9,28 @@ import {
   UNFILLED_PIXEL,
   skyPaletteT,
 } from "./constants/framebuffer.js";
+import {
+  CHANNEL_MASK,
+  CHANNEL_MAX,
+  SHIFT_ALPHA,
+  SHIFT_GREEN,
+  SHIFT_RED,
+} from "./constants/color.js";
+import { FOG_SATURATED } from "./constants/renderer.js";
 import { HALF, TWO_PI } from "./constants/vmath.js";
+
+function fogColor(color, fogT) {
+  const a = (color >>> SHIFT_ALPHA) & CHANNEL_MASK;
+  const r = (color >>> SHIFT_RED) & CHANNEL_MASK;
+  const g = (color >>> SHIFT_GREEN) & CHANNEL_MASK;
+  const b = color & CHANNEL_MASK;
+  return (
+    ((a + (CHANNEL_MAX - a) * fogT) << SHIFT_ALPHA) |
+    ((r + (CHANNEL_MAX - r) * fogT) << SHIFT_RED) |
+    ((g + (CHANNEL_MAX - g) * fogT) << SHIFT_GREEN) |
+    (b + (CHANNEL_MAX - b) * fogT)
+  );
+}
 
 export function renderPanoramaViewColumns({
   panorama,
@@ -24,8 +45,12 @@ export function renderPanoramaViewColumns({
   pixelWidth,
   fillUnfilled,
   horizon,
+  depth,
   skyColor,
   horizonColor,
+  nearClip,
+  farClip,
+  applyFog,
   rightX,
   rightY,
   rightZ,
@@ -52,32 +77,35 @@ export function renderPanoramaViewColumns({
   );
 
   const aspect = screenWidth / screenHeight;
-  const tanHalf = Math.tan(fovY * VMath.DEG_TO_RAD * HALF);
+  const tanHalfY = Math.tan(fovY * VMath.DEG_TO_RAD * HALF);
+  const tanHalfX = tanHalfY * aspect;
   const invWidth = 1 / screenWidth;
   const invHeight = 1 / screenHeight;
   const panoLast = (panoramaHeight - 1) | 0;
+  const fogRange = farClip - nearClip;
+  const invFogRange = fogRange === 0 ? 0 : 1 / fogRange;
+  const useFog = !!applyFog;
 
   for (let sy = 0; (sy < screenHeight) | 0; sy = (sy + 1) | 0) {
     const ndcY = 1 - (sy + PIXEL_CENTER) * invHeight * NDC_SCALE;
-    const cyBase = ndcY * tanHalf;
+    const planeY = ndcY * tanHalfY;
     const row = (sy * stride) | 0;
 
     for (let sx = startColumn; (sx < endColumn) | 0; sx = (sx + 1) | 0) {
       const ndcX = (sx + PIXEL_CENTER) * invWidth * NDC_SCALE - 1;
-      let cx = ndcX * aspect * tanHalf;
-      let cy = cyBase;
-      let cz = 1;
-      const invLen = 1 / Math.sqrt(cx * cx + cy * cy + cz * cz);
-      cx *= invLen;
-      cy *= invLen;
-      cz *= invLen;
+      const planeX = ndcX * tanHalfX;
+      const invLen = 1 / Math.sqrt(planeX * planeX + planeY * planeY + 1);
+      const camX = planeX * invLen;
+      const camY = planeY * invLen;
+      const camZ = invLen;
 
-      const worldX = rightX * cx + upX * cy + fwdX * cz;
-      const worldY = rightY * cx + upY * cy + fwdY * cz;
-      const worldZ = rightZ * cx + upZ * cy + fwdZ * cz;
+      const worldX = rightX * camX + upX * camY + fwdX * camZ;
+      const worldY = rightY * camX + upY * camY + fwdY * camZ;
+      const worldZ = rightZ * camX + upZ * camY + fwdZ * camZ;
 
       const theta = Math.atan2(-worldX, -worldY);
-      const phi = Math.asin(VMath.clamp(-1, 1, worldZ));
+      const horiz = Math.hypot(worldX, worldY);
+      const phi = Math.atan2(worldZ, horiz);
       let u = theta / TWO_PI;
       u = ((u % 1) + 1) % 1;
       const v = VMath.clamp(0, 1, HALF - phi / Math.PI);
@@ -89,11 +117,35 @@ export function renderPanoramaViewColumns({
 
       const dest = (row + ((sx - startColumn) | 0)) | 0;
       if ((py < horizon[px]) | 0) {
-        pixels[dest] = palette.getColor(skyPaletteT(v * 2));
+        const planeZ = rightZ * planeX + upZ * planeY + fwdZ;
+        pixels[dest] = palette.getColor(skyPaletteT(1 - planeZ / tanHalfY));
         continue;
       }
 
-      pixels[dest] = panorama[(py * panoramaWidth + px) | 0];
+      const panoIdx = (py * panoramaWidth + px) | 0;
+      const dist = depth ? depth[panoIdx] : 0;
+      const zPlane = dist * camZ;
+      if ((zPlane < nearClip) | 0 || ((zPlane >= farClip) | 0 && !useFog)) {
+        const planeZ = rightZ * planeX + upZ * planeY + fwdZ;
+        pixels[dest] = palette.getColor(skyPaletteT(1 - planeZ / tanHalfY));
+        continue;
+      }
+
+      let color = panorama[panoIdx];
+      if (useFog) {
+        const fogT =
+          fogRange === 0
+            ? FOG_SATURATED
+            : (zPlane - nearClip) * invFogRange;
+        if (fogT >= FOG_SATURATED) {
+          pixels[dest] = Color.WHITE;
+          continue;
+        }
+        if (fogT > 0) {
+          color = fogColor(color, fogT);
+        }
+      }
+      pixels[dest] = color;
     }
   }
 }
@@ -105,8 +157,12 @@ export function renderPanoramaView({
   fovY,
   frameBuffer,
   horizon,
+  depth,
   skyColor,
   horizonColor,
+  nearClip,
+  farClip,
+  applyFog,
   rightX,
   rightY,
   rightZ,
@@ -130,8 +186,12 @@ export function renderPanoramaView({
     pixelWidth: frameBuffer.width,
     fillUnfilled: 0,
     horizon,
+    depth,
     skyColor,
     horizonColor,
+    nearClip,
+    farClip,
+    applyFog,
     rightX,
     rightY,
     rightZ,

@@ -23,6 +23,7 @@ let mapShift = 0;
 let altitude = 0;
 let panoPixels = null;
 let panoHorizon = null;
+let panoDepth = null;
 let panoWidth = 0;
 let panoHeight = 0;
 
@@ -42,6 +43,7 @@ self.onmessage = (e) => {
     if (msg.type === MSG_INIT_PANO) {
       panoPixels = new Uint32Array(msg.pixels);
       panoHorizon = new Int32Array(msg.horizon);
+      panoDepth = msg.depth ? new Float32Array(msg.depth) : null;
       panoWidth = msg.width;
       panoHeight = msg.height;
       return;
@@ -95,6 +97,7 @@ self.onmessage = (e) => {
     if (msg.type === MSG_RENDER_PANORAMA) {
       const pixels = new Uint32Array(msg.pixels);
       const horizon = new Int32Array(msg.horizon);
+      const depth = new Float32Array(msg.depth);
       renderPanoramaColumns({
         heightMap,
         colorMap,
@@ -111,12 +114,13 @@ self.onmessage = (e) => {
         endPx: msg.endPx,
         farClip: msg.farClip,
         nearClip: msg.nearClip,
-        applyFog: msg.applyFog,
+        tMax: msg.tMax,
         repeat: msg.repeat,
         skyColor: msg.skyColor,
         initialStep: msg.initialStep,
         pixels,
         horizon,
+        depth,
       });
       self.postMessage(
         {
@@ -126,8 +130,9 @@ self.onmessage = (e) => {
           endPx: msg.endPx,
           pixels: pixels.buffer,
           horizon: horizon.buffer,
+          depth: depth.buffer,
         },
-        [pixels.buffer, horizon.buffer]
+        [pixels.buffer, horizon.buffer, depth.buffer]
       );
       return;
     }
@@ -148,8 +153,12 @@ self.onmessage = (e) => {
         pixelWidth: localWidth,
         fillUnfilled: 1,
         horizon: panoHorizon,
+        depth: panoDepth,
         skyColor: msg.skyColor,
         horizonColor: msg.horizonColor,
+        nearClip: msg.nearClip,
+        farClip: msg.farClip,
+        applyFog: msg.applyFog,
         rightX: msg.rightX,
         rightY: msg.rightY,
         rightZ: msg.rightZ,

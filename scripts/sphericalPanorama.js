@@ -11,12 +11,13 @@ export function generateSphericalPanorama({
   height,
   farClip,
   nearClip,
-  applyFog,
   repeat,
   skyColor,
   initialStep,
   pixels,
   horizon,
+  depth,
+  tMax,
 }) {
   const maps = terrain.exportMaps();
   return renderPanoramaColumns({
@@ -35,11 +36,12 @@ export function generateSphericalPanorama({
     endPx: width,
     farClip,
     nearClip,
-    applyFog,
     repeat,
     skyColor,
     initialStep,
     pixels,
     horizon,
+    depth,
+    tMax,
   });
 }

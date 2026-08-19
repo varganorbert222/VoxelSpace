@@ -70,3 +70,15 @@ export const STEP_GROWTH = 0.005;
 export const MIN_SAMPLE_DISTANCE = 1;
 export const NON_REPEAT_GROUND_OFFSET = 20;
 export const FOG_SATURATED = 1;
+export const FAR_PLANE_T_SCALE = 3;
+
+export function farPlaneRayTMax(farClip, fovYDeg, aspect) {
+  let a = aspect;
+  if (!(a > 0)) {
+    a = 16 / 9;
+  }
+  const tanHalfY = Math.tan(fovYDeg * Math.PI * 0.5 / 180);
+  const tanHalfX = tanHalfY * a;
+  const scale = Math.hypot(1, tanHalfX, tanHalfY);
+  return farClip * (scale > 1 ? scale : 1);
+}
