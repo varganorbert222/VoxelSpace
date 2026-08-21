@@ -11,8 +11,6 @@ import {
   MSG_RESULT_PANORAMA,
   MSG_RESULT_PANO_VIEW,
   MSG_WORKER_ERROR,
-  WORKER_CHUNK_MAX,
-  WORKER_CHUNK_MIN,
 } from "./constants/threading.js";
 import { PIXEL_OFFSET_ALIGN } from "./constants/renderer.js";
 
@@ -23,14 +21,7 @@ function chunkSizeFor(columnCount, workerCount, align) {
     if ((size < align) | 0) size = align;
   }
   if ((size < 1) | 0) size = 1;
-  if ((size > WORKER_CHUNK_MAX) | 0) size = WORKER_CHUNK_MAX;
-  if ((size < WORKER_CHUNK_MIN) | 0 && (columnCount >= WORKER_CHUNK_MIN) | 0) {
-    size = WORKER_CHUNK_MIN;
-  }
-  if ((align > 1) | 0) {
-    size = Math.floor(size / align) * align;
-    if ((size < align) | 0) size = align;
-  }
+  if ((size > columnCount) | 0) size = columnCount;
   return size;
 }
 
@@ -57,6 +48,11 @@ class ColumnPool {
 
   get jobId() {
     return this._jobId;
+  }
+
+  get workerCount() {
+    this.ensureWorkers();
+    return this._slots.length;
   }
 
   ensureWorkers() {
@@ -169,7 +165,12 @@ class ColumnPool {
   }
 
   renderClassic(params) {
-    return this._runJob(MSG_RENDER_CLASSIC, params, params.screenWidth, PIXEL_OFFSET_ALIGN);
+    return this._runJob(
+      MSG_RENDER_CLASSIC,
+      params,
+      params.screenWidth,
+      PIXEL_OFFSET_ALIGN
+    );
   }
 
   renderPanorama(params) {
@@ -227,93 +228,72 @@ class ColumnPool {
         slot.chunkIndex = index;
 
         if (msgType === MSG_RENDER_CLASSIC) {
-          const localW = (range.end - range.start) | 0;
-          const pixels = new Uint32Array((localW * params.screenHeight) | 0);
-          slot.worker.postMessage(
-            {
-              type: MSG_RENDER_CLASSIC,
-              jobId: jobId,
-              startColumn: range.start,
-              endColumn: range.end,
-              pixels: pixels.buffer,
-              screenWidth: params.screenWidth,
-              screenHeight: params.screenHeight,
-              camX: params.camX,
-              camY: params.camY,
-              camZ: params.camZ,
-              sinAngle: params.sinAngle,
-              cosAngle: params.cosAngle,
-              tanHalfFovX: params.tanHalfFovX,
-              dstToProjPlane: params.dstToProjPlane,
-              screenHorizon: params.screenHorizon,
-              nearClip: params.nearClip,
-              farClip: params.farClip,
-              minDeltaZ: params.minDeltaZ,
-              quality: params.quality,
-              applyFog: params.applyFog,
-              repeat: params.repeat,
-            },
-            [pixels.buffer]
-          );
+          slot.worker.postMessage({
+            type: MSG_RENDER_CLASSIC,
+            jobId: jobId,
+            startColumn: range.start,
+            endColumn: range.end,
+            screenWidth: params.screenWidth,
+            screenHeight: params.screenHeight,
+            camX: params.camX,
+            camY: params.camY,
+            camZ: params.camZ,
+            sinAngle: params.sinAngle,
+            cosAngle: params.cosAngle,
+            tanHalfFovX: params.tanHalfFovX,
+            dstToProjPlane: params.dstToProjPlane,
+            screenHorizon: params.screenHorizon,
+            nearClip: params.nearClip,
+            farClip: params.farClip,
+            minDeltaZ: params.minDeltaZ,
+            quality: params.quality,
+            applyFog: params.applyFog,
+            repeat: params.repeat,
+            rowColors: params.rowColors,
+          });
         } else if (msgType === MSG_RENDER_PANO_VIEW) {
-          const localW = (range.end - range.start) | 0;
-          const pixels = new Uint32Array((localW * params.screenHeight) | 0);
-          slot.worker.postMessage(
-            {
-              type: MSG_RENDER_PANO_VIEW,
-              jobId: jobId,
-              startColumn: range.start,
-              endColumn: range.end,
-              pixels: pixels.buffer,
-              screenWidth: params.screenWidth,
-              screenHeight: params.screenHeight,
-              fovY: params.fovY,
-              skyColor: params.skyColor,
-              horizonColor: params.horizonColor,
-              nearClip: params.nearClip,
-              farClip: params.farClip,
-              applyFog: params.applyFog,
-              rightX: params.rightX,
-              rightY: params.rightY,
-              rightZ: params.rightZ,
-              upX: params.upX,
-              upY: params.upY,
-              upZ: params.upZ,
-              fwdX: params.fwdX,
-              fwdY: params.fwdY,
-              fwdZ: params.fwdZ,
-            },
-            [pixels.buffer]
-          );
+          slot.worker.postMessage({
+            type: MSG_RENDER_PANO_VIEW,
+            jobId: jobId,
+            startColumn: range.start,
+            endColumn: range.end,
+            screenWidth: params.screenWidth,
+            screenHeight: params.screenHeight,
+            fovY: params.fovY,
+            skyColor: params.skyColor,
+            horizonColor: params.horizonColor,
+            nearClip: params.nearClip,
+            farClip: params.farClip,
+            applyFog: params.applyFog,
+            rightX: params.rightX,
+            rightY: params.rightY,
+            rightZ: params.rightZ,
+            upX: params.upX,
+            upY: params.upY,
+            upZ: params.upZ,
+            fwdX: params.fwdX,
+            fwdY: params.fwdY,
+            fwdZ: params.fwdZ,
+          });
         } else {
-          const localW = (range.end - range.start) | 0;
-          const pixels = new Uint32Array((localW * params.height) | 0);
-          const horizon = new Int32Array(localW);
-          const depth = new Float32Array((localW * params.height) | 0);
-          slot.worker.postMessage(
-            {
-              type: MSG_RENDER_PANORAMA,
-              jobId: jobId,
-              startPx: range.start,
-              endPx: range.end,
-              pixels: pixels.buffer,
-              horizon: horizon.buffer,
-              depth: depth.buffer,
-              width: params.width,
-              height: params.height,
-              camX: params.camX,
-              camY: params.camY,
-              camZ: params.camZ,
-              farClip: params.farClip,
-              nearClip: params.nearClip,
-              tMax: params.tMax,
-              repeat: params.repeat,
-              skyColor: params.skyColor,
-              initialStep: params.initialStep,
-              quality: params.quality,
-            },
-            [pixels.buffer, horizon.buffer, depth.buffer]
-          );
+          slot.worker.postMessage({
+            type: MSG_RENDER_PANORAMA,
+            jobId: jobId,
+            startPx: range.start,
+            endPx: range.end,
+            width: params.width,
+            height: params.height,
+            camX: params.camX,
+            camY: params.camY,
+            camZ: params.camZ,
+            farClip: params.farClip,
+            nearClip: params.nearClip,
+            tMax: params.tMax,
+            repeat: params.repeat,
+            skyColor: params.skyColor,
+            initialStep: params.initialStep,
+            quality: params.quality,
+          });
         }
       };
 

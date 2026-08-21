@@ -100,6 +100,10 @@ class Renderer {
     return this._pool;
   }
 
+  _useWorkers() {
+    return this._multithread && this._ensurePool().workerCount > 1;
+  }
+
   _cancelJobs() {
     if (this._pool) {
       this._pool.cancel();
@@ -200,7 +204,12 @@ class Renderer {
     const maps = terrain.exportMaps();
     const pool = this._ensurePool();
     pool.initMaps(maps);
+    this.drawBackground();
+    const rowColors = this._frameBuffer.copySkyRowColors(
+      new Uint32Array(this._frameBuffer.height)
+    );
     const params = this._classicParams(maps);
+    params.rowColors = rowColors;
     const token = {
       algorithm: this._algorithm,
       width: this._frameBuffer.width,
@@ -233,9 +242,11 @@ class Renderer {
     ) {
       return false;
     }
-    this.drawBackground();
     for (let i = 0; (i < slices.length) | 0; i = (i + 1) | 0) {
       const slice = slices[i];
+      if (!slice || !slice.pixels) {
+        return false;
+      }
       this._frameBuffer.blitTerrainColumns(
         slice.pixels,
         slice.startColumn,
@@ -385,6 +396,9 @@ class Renderer {
     }
     for (let i = 0; (i < slices.length) | 0; i = (i + 1) | 0) {
       const slice = slices[i];
+      if (!slice || !slice.pixels) {
+        return false;
+      }
       this._frameBuffer.blitTerrainColumns(
         slice.pixels,
         slice.startColumn,
@@ -395,7 +409,7 @@ class Renderer {
   }
 
   async _presentPanorama() {
-    if (this._multithread) {
+    if (this._useWorkers()) {
       const ok = await this._viewPanoramaMulti();
       if (!ok) {
         this._viewPanoramaLocal();
@@ -415,6 +429,9 @@ class Renderer {
     const destD = this._panoramaDepth;
     for (let i = 0; (i < slices.length) | 0; i = (i + 1) | 0) {
       const slice = slices[i];
+      if (!slice || !slice.pixels || !slice.horizon || !slice.depth) {
+        return false;
+      }
       const startPx = slice.startPx;
       const localWidth = (slice.endPx - startPx) | 0;
       destH.set(slice.horizon, startPx);
@@ -425,6 +442,29 @@ class Renderer {
         destD.set(slice.depth.subarray(srcRow, srcRow + localWidth), dstRow);
       }
     }
+    return true;
+  }
+
+  _generatePanoramaLocal(terrain) {
+    const camera = this._camera;
+    generateSphericalPanorama({
+      terrain,
+      camX: camera.posX,
+      camY: camera.posY,
+      camZ: camera.posZ,
+      width: this._panoWidth,
+      height: this._panoHeight,
+      farClip: camera.farClip,
+      nearClip: camera.nearClip,
+      tMax: this._panoTMax(),
+      repeat: this._repeat,
+      skyColor: terrain.skyColor,
+      initialStep: camera.minDeltaZ,
+      quality: camera.quality,
+      pixels: this._panoramaPixels,
+      horizon: this._panoramaHorizon,
+      depth: this._panoramaDepth,
+    });
   }
 
   async _generatePanoramaMulti(terrain) {
@@ -480,7 +520,9 @@ class Renderer {
     ) {
       return false;
     }
-    this._copyPanoSlices(slices);
+    if (!this._copyPanoSlices(slices)) {
+      return false;
+    }
     return true;
   }
 
@@ -489,34 +531,17 @@ class Renderer {
     this._ensurePanoramaBuffers();
 
     if (this._shouldRegeneratePanorama(terrain)) {
-      if (this._multithread) {
-        const ok = await this._generatePanoramaMulti(terrain);
-        if (!ok) {
-          await this._presentPanorama();
-          return;
-        }
-      } else {
-        const camera = this._camera;
-        generateSphericalPanorama({
-          terrain,
-          camX: camera.posX,
-          camY: camera.posY,
-          camZ: camera.posZ,
-          width: this._panoWidth,
-          height: this._panoHeight,
-          farClip: camera.farClip,
-          nearClip: camera.nearClip,
-          tMax: this._panoTMax(),
-          repeat: this._repeat,
-          skyColor: terrain.skyColor,
-          initialStep: camera.minDeltaZ,
-          quality: camera.quality,
-          pixels: this._panoramaPixels,
-          horizon: this._panoramaHorizon,
-          depth: this._panoramaDepth,
-        });
+      let generated = false;
+      if (this._useWorkers()) {
+        generated = await this._generatePanoramaMulti(terrain);
+      }
+      if (!generated) {
+        this._generatePanoramaLocal(terrain);
       }
       this._commitPanoramaCache(terrain);
+      this._viewPanoramaLocal();
+      this.writeToContext();
+      return;
     }
 
     await this._presentPanorama();
@@ -527,13 +552,12 @@ class Renderer {
       await this._renderPanorama(terrain);
       return;
     }
-    if (this._multithread) {
+    if (this._useWorkers()) {
       const ok = await this._renderTerrainMulti(terrain);
-      if (!ok) {
+      if (ok) {
+        this.writeToContext();
         return;
       }
-      this.writeToContext();
-      return;
     }
     this.drawBackground();
     this.renderTerrain(terrain);

@@ -6,3 +6,5 @@ export const FPS_UPDATE_MS = 500;
 export const MS_PER_SECOND = 1000;
 export const FPS_DECIMALS = 1;
 export const SPAWN_HEIGHT_OFFSET = 50;
+export const SETTINGS_STORAGE_KEY = "voxelspace.settings";
+export const SETTINGS_STORAGE_VERSION = 1;

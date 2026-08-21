@@ -1,9 +1,7 @@
 "use strict";
 
 export const DEFAULT_WORKER_COUNT = 4;
-export const MAX_WORKERS = 8;
-export const WORKER_CHUNK_MIN = 32;
-export const WORKER_CHUNK_MAX = 64;
+export const MAX_WORKERS = 16;
 export const DEFAULT_MULTITHREAD = false;
 
 export const MSG_INIT_MAPS = "initMaps";

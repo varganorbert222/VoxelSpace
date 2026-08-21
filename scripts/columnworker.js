@@ -74,7 +74,14 @@ self.onmessage = (e) => {
 
     if (msg.type === MSG_RENDER_CLASSIC) {
       const localWidth = (msg.endColumn - msg.startColumn) | 0;
-      const pixels = new Uint32Array(msg.pixels);
+      const pixels = new Uint32Array((localWidth * msg.screenHeight) | 0);
+      const rowColors = msg.rowColors;
+      if (rowColors) {
+        for (let y = 0; (y < msg.screenHeight) | 0; y = (y + 1) | 0) {
+          const row = (y * localWidth) | 0;
+          pixels.fill(rowColors[y], row, row + localWidth);
+        }
+      }
       renderClassicColumns({
         heightMap,
         colorMap,
@@ -103,7 +110,7 @@ self.onmessage = (e) => {
         repeat: msg.repeat,
         pixels,
         pixelWidth: localWidth,
-        fillUnfilled: 1,
+        fillUnfilled: rowColors ? 0 : 1,
       });
       self.postMessage(
         {
@@ -119,9 +126,10 @@ self.onmessage = (e) => {
     }
 
     if (msg.type === MSG_RENDER_PANORAMA) {
-      const pixels = new Uint32Array(msg.pixels);
-      const horizon = new Int32Array(msg.horizon);
-      const depth = new Float32Array(msg.depth);
+      const localWidth = (msg.endPx - msg.startPx) | 0;
+      const pixels = new Uint32Array((localWidth * msg.height) | 0);
+      const horizon = new Int32Array(localWidth);
+      const depth = new Float32Array((localWidth * msg.height) | 0);
       renderPanoramaColumns({
         heightMap,
         colorMap,
@@ -166,7 +174,7 @@ self.onmessage = (e) => {
 
     if (msg.type === MSG_RENDER_PANO_VIEW) {
       const localWidth = (msg.endColumn - msg.startColumn) | 0;
-      const pixels = new Uint32Array(msg.pixels);
+      const pixels = new Uint32Array((localWidth * msg.screenHeight) | 0);
       renderPanoramaViewColumns({
         panorama: panoPixels,
         panoramaWidth: panoWidth,

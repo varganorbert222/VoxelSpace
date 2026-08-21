@@ -4,7 +4,6 @@ import ColorPalette from "./colorpalette.js";
 import { Color } from "./color.js";
 import {
   SKY_PALETTE_STEPS,
-  UNFILLED_PIXEL,
   skyPaletteT,
 } from "./constants/framebuffer.js";
 import { BYTES_PER_PIXEL } from "./constants/image.js";
@@ -106,14 +105,22 @@ class FrameBuffer {
     const sliceW = (endColumn - startColumn) | 0;
     for (let y = 0; (y < h) | 0; y = (y + 1) | 0) {
       const srcRow = (y * sliceW) | 0;
-      const dstRow = (y * w + startColumn) | 0;
-      for (let x = 0; (x < sliceW) | 0; x = (x + 1) | 0) {
-        const c = src[srcRow + x];
-        if (c !== UNFILLED_PIXEL) {
-          dest[dstRow + x] = c;
-        }
-      }
+      dest.set(
+        src.subarray(srcRow, srcRow + sliceW),
+        (y * w + startColumn) | 0
+      );
     }
+  }
+
+  copySkyRowColors(out) {
+    const dest = out;
+    const src = this._buffer32bit;
+    const w = this._width;
+    const h = this._height;
+    for (let y = 0; (y < h) | 0; y = (y + 1) | 0) {
+      dest[y] = src[(y * w) | 0];
+    }
+    return dest;
   }
 
   copyFromBuffer(frameBuffer, startIndex, endIndex, width, height) {
