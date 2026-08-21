@@ -1,34 +1,34 @@
 "use strict";
 
-import ColorPalette from "./colorpalette.js";
-import { Color } from "./color.js";
+import ColorPalette from "../math/colorPalette.js";
+import { Color } from "../math/color.js";
 import { getPanoYHitLut, panoYHitFromHat } from "./panoramamarch.js";
 import {
   PIXEL_CENTER,
   NDC_SCALE,
   PANO_VIEW_ATAN_LUT_SIZE,
   PANO_VIEW_SKY_LUT_SIZE,
-} from "./constants/panoramaViewer.js";
+} from "../constants/panoramaViewer.js";
 import {
   SKY_PALETTE_STEPS,
   UNFILLED_PIXEL,
   skyPaletteT,
-} from "./constants/framebuffer.js";
+} from "../constants/framebuffer.js";
 import {
   CHANNEL_MASK,
   CHANNEL_MAX,
   SHIFT_ALPHA,
   SHIFT_GREEN,
   SHIFT_RED,
-} from "./constants/color.js";
-import { FOG_SATURATED } from "./constants/renderer.js";
-import { EPSILON } from "./constants/camera.js";
+} from "../constants/color.js";
+import { FOG_SATURATED } from "../constants/quality.js";
 import {
   DEG_TO_RAD,
+  EPSILON,
   HALF,
   HALF_PI,
   INV_TWO_PI,
-} from "./constants/vmath.js";
+} from "../constants/vmath.js";
 
 const atanLutLast = (PANO_VIEW_ATAN_LUT_SIZE - 1) | 0;
 const atanLut = new Float64Array(PANO_VIEW_ATAN_LUT_SIZE);

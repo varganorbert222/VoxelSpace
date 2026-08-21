@@ -1,12 +1,9 @@
 "use strict";
 
-import { readAlphaFromImage, readBlueFromImage, readColorFromImage, readGreenFromImage, readRedFromImage } from "./image.js";
-import { BYTES_PER_PIXEL } from "./constants/image.js";
+import { readColorFromImage, readRedFromImage } from "./image.js";
 
-
-// Util class for downloading the png
 function loadImagesAsync(urls) {
-  return new Promise(function (resolve, reject) {
+  return new Promise(function (resolve) {
     let pending = urls.length;
     const result = [];
     if (pending === 0) {
@@ -30,8 +27,8 @@ function loadImagesAsync(urls) {
         result[i] = {
           data: tempcontext.getImageData(0, 0, width, height).data,
           width: width,
-          height: height
-        }
+          height: height,
+        };
 
         pending--;
         if (pending === 0) {
@@ -44,47 +41,20 @@ function loadImagesAsync(urls) {
 
 function loadRGBAImageToArray(image) {
   const n = image.width * image.height;
-  const data = new ArrayBuffer(n * BYTES_PER_PIXEL);
+  const data = new Uint32Array(n);
   for (let i = 0; i < n; i++) {
     data[i] = readColorFromImage(image.data, i);
   }
   return data;
 }
 
-function loadAImageToArray(image) {
-  const n = image.width * image.height;
-  const data = new ArrayBuffer(n);
-  for (let i = 0; i < n; i++) {
-    data[i] = readAlphaFromImage(image.data, i);
-  }
-  return data;
-}
-
 function loadRImageToArray(image) {
   const n = image.width * image.height;
-  const data = new ArrayBuffer(n);
+  const data = new Uint8Array(n);
   for (let i = 0; i < n; i++) {
     data[i] = readRedFromImage(image.data, i);
   }
   return data;
 }
 
-function loadGImageToArray(image) {
-  const n = image.width * image.height;
-  const data = new ArrayBuffer(n);
-  for (let i = 0; i < n; i++) {
-    data[i] = readGreenFromImage(image.data, i);
-  }
-  return data;
-}
-
-function loadBImageToArray(image) {
-  const n = image.width * image.height;
-  const data = new ArrayBuffer(n);
-  for (let i = 0; i < n; i++) {
-    data[i] = readBlueFromImage(image.data, i);
-  }
-  return data;
-}
-
-export { loadImagesAsync, loadRGBAImageToArray, loadAImageToArray, loadRImageToArray, loadGImageToArray, loadBImageToArray };
+export { loadImagesAsync, loadRGBAImageToArray, loadRImageToArray };

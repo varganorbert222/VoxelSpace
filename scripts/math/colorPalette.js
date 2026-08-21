@@ -1,3 +1,5 @@
+"use strict";
+
 import { Color } from "./color.js";
 
 class ColorPalette {
@@ -6,8 +8,8 @@ class ColorPalette {
     return this._palette[index];
   }
 
-  constructor(color1, color2, bit) {
-    this._colorCount = bit;
+  constructor(color1, color2, stepCount) {
+    this._colorCount = stepCount;
     this._palette = new Array(this._colorCount);
 
     for (let i = 0; i < this._colorCount; i++) {

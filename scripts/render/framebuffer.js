@@ -1,13 +1,13 @@
 "use strict";
 
-import ColorPalette from "./colorpalette.js";
-import { Color } from "./color.js";
+import ColorPalette from "../math/colorPalette.js";
+import { Color } from "../math/color.js";
 import {
   SKY_PALETTE_STEPS,
   skyPaletteT,
-} from "./constants/framebuffer.js";
-import { BYTES_PER_PIXEL } from "./constants/image.js";
-import { HALF } from "./constants/vmath.js";
+} from "../constants/framebuffer.js";
+import { BYTES_PER_PIXEL } from "../constants/image.js";
+import { HALF } from "../constants/vmath.js";
 
 class FrameBuffer {
   get colorBuffer() {
@@ -73,29 +73,6 @@ class FrameBuffer {
         this._cachedBuffer32bit[i * this._width + j] = this._buffer32bit[i * this._width];
       }
     }
-  } 
-
-  drawVerticalLine(x, ytop, ybottom, col, width = 1) {
-    x = x | 0;
-    ytop = ytop | 0;
-    ybottom = ybottom | 0;
-    col = col | 0;
-    if ((ytop < 0) | 0) ytop = 0;
-    if ((ytop > ybottom) | 0) return;
-
-    let offset = 0;
-    // get offset on screen for the vertical line
-    for (
-      let j = 0;
-      ((j < width) | 0) & ((x + j < this._width) | 0);
-      j = (j + 1) | 0
-    ) {
-      offset = (ytop * this._width + x + j) | 0;
-      for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
-        this._buffer32bit[offset] = col;
-        offset = (offset + this._width) | 0;
-      }
-    }
   }
 
   blitTerrainColumns(src, startColumn, endColumn) {
@@ -123,22 +100,6 @@ class FrameBuffer {
     return dest;
   }
 
-  copyFromBuffer(frameBuffer, startIndex, endIndex, width, height) {
-    const slice = (endIndex - startIndex) | 0;
-    let offsetTo = 0;
-    let offsetFrom = 0;
-    for (let x = startIndex; (x < endIndex) | 0; x = (x + 1) | 0) {
-      offsetTo = x | 0;
-      offsetFrom = (x - slice) | 0;
-      for (let y = 0; (y < height) | 0; y = (y + 1) | 0) {
-        this._buffer32bit[offsetTo] = frameBuffer[offsetFrom];
-        offsetTo = (offsetTo + width) | 0;
-        offsetFrom = offsetFrom | slice | 0;
-      }
-    }
-  }
-
-  // Show the back buffer on screen
   writeToContext() {
     this._imageDataForContext.data.set(this._buffer8bit);
     this._contextForCanvas.putImageData(this._imageDataForContext, 0, 0);

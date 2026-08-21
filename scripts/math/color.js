@@ -1,35 +1,20 @@
+"use strict";
+
 import {
   CHANNEL_MAX,
   CHANNEL_MASK,
   SHIFT_ALPHA,
   SHIFT_RED,
   SHIFT_GREEN,
-} from "./constants/color.js";
+} from "../constants/color.js";
 
 class Color {
-
   static get WHITE() {
     return 0xffffffff;
   }
 
   static get BLACK() {
     return 0xff000000;
-  }
-
-  static get RED() {
-    return 0xff0000ff;
-  }
-
-  static get GREEN() {
-    return 0xff00ff00;
-  }
-
-  static get BLUE() {
-    return 0xffff0000;
-  }
-
-  static get YELLOW() {
-    return 0xff00ffff;
   }
 
   static makeColor(r, g, b, a) {
@@ -50,30 +35,6 @@ class Color {
     };
   }
 
-  static add4(color1, color2, color3, color4) {
-    const c1 = Color.unpackColor(color1);
-    const c2 = Color.unpackColor(color2);
-    const c3 = Color.unpackColor(color3);
-    const c4 = Color.unpackColor(color4);
-    return Color.makeColor(
-      c1.r + c2.r + c3.r + c4.r,
-      c1.g + c2.g + c3.g + c4.g,
-      c1.b + c2.b + c3.b + c4.b,
-      c1.a + c2.a + c3.a + c4.a
-    );
-  }
-
-  static multiply(color1, color2) {
-    const c1 = Color.unpackColor(color1);
-    const c2 = Color.unpackColor(color2);
-    return Color.makeColor(c1.r * c2.r, c1.g * c2.g, c1.b * c2.b, c1.a * c2.a);
-  }
-
-  static multiplyWithValue(color1, value) {
-    const c = Color.unpackColor(color1);
-    return Color.makeColor(c.r * value, c.g * value, c.b * value, c.a * value);
-  }
-
   static hexToRgb(hex) {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result
@@ -90,18 +51,9 @@ class Color {
     return Color.makeColor(rgb.r, rgb.g, rgb.b, CHANNEL_MAX);
   }
 
-  static randomColor() {
-    return Color.makeColor(
-      (Math.random() * CHANNEL_MAX) | 0,
-      (Math.random() * CHANNEL_MAX) | 0,
-      (Math.random() * CHANNEL_MAX) | 0,
-      CHANNEL_MAX
-    );
-  }
-
   static lerp(color1, color2, time) {
-    let c = Color.unpackColor(color1);
-    let s = Color.unpackColor(color2);
+    const c = Color.unpackColor(color1);
+    const s = Color.unpackColor(color2);
 
     const cr = c.r + (s.r - c.r) * time;
     const cg = c.g + (s.g - c.g) * time;

@@ -1,30 +1,31 @@
 "use strict";
 
-import { Color } from "./color.js";
-import ColorPalette from "./colorpalette.js";
-import { mapOffsetAt } from "./terrain.js";
+import { Color } from "../math/color.js";
+import ColorPalette from "../math/colorPalette.js";
+import { mapOffsetAt } from "../terrain/mapOffset.js";
 import {
   SKY_PALETTE_STEPS,
   skyPaletteT,
-} from "./constants/framebuffer.js";
-import { EPSILON } from "./constants/camera.js";
-import { HEIGHTMAP_MAX } from "./constants/terrain.js";
+} from "../constants/framebuffer.js";
+import { EPSILON, HALF, TWO_PI } from "../constants/vmath.js";
+import { HEIGHTMAP_MAX } from "../constants/terrain.js";
+import {
+  INITIAL_STEP_SCALE_BY_QUALITY,
+  MIN_SAMPLE_DISTANCE,
+  STEP_GROWTH_BY_QUALITY,
+  qualityIndex,
+} from "../constants/quality.js";
 import {
   FAR_PLANE_T_SCALE,
-  MIN_SAMPLE_DISTANCE,
   PANO_DIR_RESYNC,
-  INITIAL_STEP_SCALE_BY_QUALITY,
   PANO_MIP_COUNT,
   PANO_MIP_INV_SCALE,
   PANO_MIP_STEP_MAX_BY_QUALITY,
   PANO_MIP_STEP_SCALE,
   PANO_MIP_T_FRACTIONS_BY_QUALITY,
-  STEP_GROWTH_BY_QUALITY,
   PANO_YHIT_LUT_SIZE,
   PANO_YHIT_SLOPE_INF,
-  qualityIndex,
-} from "./constants/renderer.js";
-import { HALF, TWO_PI } from "./constants/vmath.js";
+} from "../constants/panorama.js";
 
 const tanMinCache = new Map();
 const yHitLutCache = new Map();

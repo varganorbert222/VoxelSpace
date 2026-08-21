@@ -1,8 +1,5 @@
 "use strict";
 
-export const ALGORITHM_CLASSIC = "classic";
-export const ALGORITHM_PANORAMA = "panorama";
-
 export const PANO_SIZE_BY_QUALITY = Object.freeze([
   Object.freeze({ width: 0, height: 0 }),
   Object.freeze({ width: 1024, height: 512 }),
@@ -63,14 +60,6 @@ export function renderScaleForQuality(quality, screenW, screenH) {
   return s;
 }
 
-export const LOD_BAND_COUNT = 7;
-export const PIXEL_OFFSETS = Object.freeze([1, 2, 2, 4, 4, 8, 8]);
-export const PIXEL_OFFSET_ALIGN = PIXEL_OFFSETS[PIXEL_OFFSETS.length - 1];
-export const LOD_FAR_DELTAS = Object.freeze([1, 2, 3, 5, 8, 14]);
-export const LOD_DISTANCE_FRACTIONS = Object.freeze([
-  0.12, 0.28, 0.44, 0.58, 0.72, 0.86,
-]);
-
 export const STEP_GROWTH_BY_QUALITY = Object.freeze([
   0,
   0.0038,
@@ -85,40 +74,6 @@ export const INITIAL_STEP_SCALE_BY_QUALITY = Object.freeze([
   0.88,
   0.82,
 ]);
-export const PANO_MIP_COUNT = 3;
-export const PANO_MIP_KERNEL = 2;
-export const PANO_MIP_MIN_SIZE = 2;
-export const PANO_MIP_INV_SCALE = Object.freeze([1, 0.5, 0.25]);
-export const PANO_MIP_T_FRACTIONS_BY_QUALITY = Object.freeze([
-  Object.freeze([0, 0]),
-  Object.freeze([0.26, 0.52]),
-  Object.freeze([0.32, 0.58]),
-  Object.freeze([0.38, 0.64]),
-  Object.freeze([0.45, 0.72]),
-]);
-export const PANO_MIP_STEP_SCALE = 2;
-export const PANO_MIP_STEP_MAX_BY_QUALITY = Object.freeze([
-  Object.freeze([0, 0, 0]),
-  Object.freeze([4, 8, 13]),
-  Object.freeze([3, 6, 10]),
-  Object.freeze([2, 5, 8]),
-  Object.freeze([1, 3, 6]),
-]);
-export const PANO_DIR_RESYNC = 32;
-export const PANO_YHIT_LUT_SIZE = 4096;
-export const PANO_YHIT_SLOPE_INF = 1e9;
-export const MIN_SAMPLE_DISTANCE = 0.5;
-export const NON_REPEAT_GROUND_OFFSET = 20;
-export const FOG_SATURATED = 1;
-export const FAR_PLANE_T_SCALE = 3;
 
-export function farPlaneRayTMax(farClip, fovYDeg, aspect) {
-  let a = aspect;
-  if (!(a > 0)) {
-    a = 16 / 9;
-  }
-  const tanHalfY = Math.tan(fovYDeg * Math.PI * 0.5 / 180);
-  const tanHalfX = tanHalfY * a;
-  const scale = Math.hypot(1, tanHalfX, tanHalfY);
-  return farClip * (scale > 1 ? scale : 1);
-}
+export const MIN_SAMPLE_DISTANCE = 0.5;
+export const FOG_SATURATED = 1;

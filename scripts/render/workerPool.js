@@ -11,8 +11,11 @@ import {
   MSG_RESULT_PANORAMA,
   MSG_RESULT_PANO_VIEW,
   MSG_WORKER_ERROR,
-} from "./constants/threading.js";
-import { PIXEL_OFFSET_ALIGN } from "./constants/renderer.js";
+  classicRenderPayload,
+  panoramaViewPayload,
+  panoramaGeneratePayload,
+} from "./jobProtocol.js";
+import { PIXEL_OFFSET_ALIGN } from "../constants/classic.js";
 
 function chunkSizeFor(columnCount, workerCount, align) {
   let size = Math.ceil(columnCount / workerCount);
@@ -37,7 +40,7 @@ function splitRanges(count, size) {
   return ranges;
 }
 
-class ColumnPool {
+class WorkerPool {
   constructor() {
     this._slots = [];
     this._jobId = 0;
@@ -92,8 +95,7 @@ class ColumnPool {
     this._mapsGeneration = snapshot.generation;
     const n = snapshot.heightMap.length;
     const mips = snapshot.panoMips;
-    const extraCount =
-      mips && mips.count > 1 ? (mips.count - 1) | 0 : 0;
+    const extraCount = mips && mips.count > 1 ? (mips.count - 1) | 0 : 0;
     for (let i = 0; (i < this._slots.length) | 0; i = (i + 1) | 0) {
       const heights = new Uint8Array(n);
       heights.set(snapshot.heightMap);
@@ -228,72 +230,11 @@ class ColumnPool {
         slot.chunkIndex = index;
 
         if (msgType === MSG_RENDER_CLASSIC) {
-          slot.worker.postMessage({
-            type: MSG_RENDER_CLASSIC,
-            jobId: jobId,
-            startColumn: range.start,
-            endColumn: range.end,
-            screenWidth: params.screenWidth,
-            screenHeight: params.screenHeight,
-            camX: params.camX,
-            camY: params.camY,
-            camZ: params.camZ,
-            sinAngle: params.sinAngle,
-            cosAngle: params.cosAngle,
-            tanHalfFovX: params.tanHalfFovX,
-            dstToProjPlane: params.dstToProjPlane,
-            screenHorizon: params.screenHorizon,
-            nearClip: params.nearClip,
-            farClip: params.farClip,
-            minDeltaZ: params.minDeltaZ,
-            quality: params.quality,
-            applyFog: params.applyFog,
-            repeat: params.repeat,
-            rowColors: params.rowColors,
-          });
+          slot.worker.postMessage(classicRenderPayload(jobId, range, params));
         } else if (msgType === MSG_RENDER_PANO_VIEW) {
-          slot.worker.postMessage({
-            type: MSG_RENDER_PANO_VIEW,
-            jobId: jobId,
-            startColumn: range.start,
-            endColumn: range.end,
-            screenWidth: params.screenWidth,
-            screenHeight: params.screenHeight,
-            fovY: params.fovY,
-            skyColor: params.skyColor,
-            horizonColor: params.horizonColor,
-            nearClip: params.nearClip,
-            farClip: params.farClip,
-            applyFog: params.applyFog,
-            rightX: params.rightX,
-            rightY: params.rightY,
-            rightZ: params.rightZ,
-            upX: params.upX,
-            upY: params.upY,
-            upZ: params.upZ,
-            fwdX: params.fwdX,
-            fwdY: params.fwdY,
-            fwdZ: params.fwdZ,
-          });
+          slot.worker.postMessage(panoramaViewPayload(jobId, range, params));
         } else {
-          slot.worker.postMessage({
-            type: MSG_RENDER_PANORAMA,
-            jobId: jobId,
-            startPx: range.start,
-            endPx: range.end,
-            width: params.width,
-            height: params.height,
-            camX: params.camX,
-            camY: params.camY,
-            camZ: params.camZ,
-            farClip: params.farClip,
-            nearClip: params.nearClip,
-            tMax: params.tMax,
-            repeat: params.repeat,
-            skyColor: params.skyColor,
-            initialStep: params.initialStep,
-            quality: params.quality,
-          });
+          slot.worker.postMessage(panoramaGeneratePayload(jobId, range, params));
         }
       };
 
@@ -353,7 +294,12 @@ class ColumnPool {
         pixels: new Uint32Array(data.pixels),
       });
     } else if (data.type === MSG_WORKER_ERROR) {
-      console.error("column worker message", data.type, data.message, data.stack);
+      console.error(
+        "column worker message",
+        data.type,
+        data.message,
+        data.stack
+      );
       active.finish(null);
       return;
     }
@@ -364,4 +310,4 @@ class ColumnPool {
   }
 }
 
-export default ColumnPool;
+export default WorkerPool;

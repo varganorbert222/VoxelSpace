@@ -3,7 +3,7 @@
 import {
   DEFAULT_WORKER_COUNT,
   MAX_WORKERS,
-} from "./constants/threading.js";
+} from "../constants/threading.js";
 
 class Threading {
   static get numberOfCores() {

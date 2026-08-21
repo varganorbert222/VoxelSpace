@@ -1,28 +1,30 @@
 "use strict";
 
-import { Color } from "./color.js";
-import { mapOffsetAt } from "./terrain.js";
+import { Color } from "../math/color.js";
+import { mapOffsetAt } from "../terrain/mapOffset.js";
 import {
   CHANNEL_MASK,
   CHANNEL_MAX,
   SHIFT_ALPHA,
   SHIFT_GREEN,
   SHIFT_RED,
-} from "./constants/color.js";
-import { HEIGHTMAP_MAX } from "./constants/terrain.js";
-import { UNFILLED_PIXEL } from "./constants/framebuffer.js";
+} from "../constants/color.js";
+import { HEIGHTMAP_MAX } from "../constants/terrain.js";
+import { UNFILLED_PIXEL } from "../constants/framebuffer.js";
 import {
-  FOG_SATURATED,
   LOD_BAND_COUNT,
   LOD_DISTANCE_FRACTIONS,
   LOD_FAR_DELTAS,
-  MIN_SAMPLE_DISTANCE,
   NON_REPEAT_GROUND_OFFSET,
   PIXEL_OFFSETS,
+} from "../constants/classic.js";
+import {
+  FOG_SATURATED,
   INITIAL_STEP_SCALE_BY_QUALITY,
+  MIN_SAMPLE_DISTANCE,
   STEP_GROWTH_BY_QUALITY,
   qualityIndex,
-} from "./constants/renderer.js";
+} from "../constants/quality.js";
 
 let hiddenYScratch = new Int32Array(1);
 const deltasScratch = new Float64Array(LOD_BAND_COUNT);

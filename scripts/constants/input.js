@@ -18,21 +18,31 @@ export const STICK_FORWARD_SCALE = KEY_MOVE_SPEED;
 export const STICK_KNOB_TRAVEL_PX = 28;
 export const SPRINT_MULTIPLIER = 3;
 
-export const KeyCode = Object.freeze({
-  SHIFT: 16,
-  CTRL: 17,
-  SPACE: 32,
-  LEFT: 37,
-  UP: 38,
-  RIGHT: 39,
-  DOWN: 40,
-  A: 65,
-  D: 68,
-  E: 69,
-  Q: 81,
-  R: 82,
-  S: 83,
-  W: 87,
-  F: 70,
-  P: 80,
+export const Key = Object.freeze({
+  SHIFT: "Shift",
+  CTRL: "Control",
+  SPACE: "Space",
+  LEFT: "ArrowLeft",
+  UP: "ArrowUp",
+  RIGHT: "ArrowRight",
+  DOWN: "ArrowDown",
+  A: "KeyA",
+  D: "KeyD",
+  E: "KeyE",
+  Q: "KeyQ",
+  R: "KeyR",
+  S: "KeyS",
+  W: "KeyW",
+  F: "KeyF",
+  P: "KeyP",
 });
+
+export function keyFromCode(code) {
+  if (code === "ShiftLeft" || code === "ShiftRight") {
+    return Key.SHIFT;
+  }
+  if (code === "ControlLeft" || code === "ControlRight") {
+    return Key.CTRL;
+  }
+  return code;
+}

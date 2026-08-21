@@ -29,6 +29,3 @@ export const ORBIT_THETA_MIN_PANORAMA = 0.05;
 export const ORBIT_PITCH_SCALE = 60;
 
 export const COLLISION_CLEARANCE = 10;
-
-export const EPSILON = 1e-6;
-export const EPSILON_TINY = 1e-8;

@@ -1,10 +1,6 @@
 "use strict";
 
-import {
-  DEG_TO_RAD,
-  RAD_TO_DEG,
-  FEET_TO_METER,
-} from "./constants/vmath.js";
+import { DEG_TO_RAD, RAD_TO_DEG } from "../constants/vmath.js";
 
 class VMath {
   static get DEG_TO_RAD() {
@@ -15,20 +11,8 @@ class VMath {
     return RAD_TO_DEG;
   }
 
-  static get FEET_TO_METER() {
-    return FEET_TO_METER;
-  }
-
   static clamp(min, max, value) {
     return Math.min(Math.max(value, min), max);
-  }
-
-  static feetToMeter(feet) {
-    return feet * VMath.FEET_TO_METER;
-  }
-
-  static invLerp(from, to, value) {
-    return (value - from) / (to - from);
   }
 
   static lerp(from, to, time) {
