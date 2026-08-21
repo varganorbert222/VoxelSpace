@@ -7,7 +7,11 @@ import {
   skyPaletteT,
 } from "../constants/framebuffer.js";
 import { EPSILON, HALF, TWO_PI } from "../constants/vmath.js";
-import { HEIGHTMAP_MAX } from "../constants/terrain.js";
+import {
+  GROUND_CLIP_OFFSET,
+  GROUND_HEIGHT,
+  HEIGHTMAP_MAX,
+} from "../constants/terrain.js";
 import {
   INITIAL_STEP_SCALE_BY_QUALITY,
   MIN_SAMPLE_DISTANCE,
@@ -185,7 +189,16 @@ export function renderPanoramaColumns({
   const mipTFractions = PANO_MIP_T_FRACTIONS_BY_QUALITY[q];
   let step0 = initialStep * INITIAL_STEP_SCALE_BY_QUALITY[q];
   if ((step0 <= 0) | 0) step0 = MIN_SAMPLE_DISTANCE;
-  const t0 = Math.max(nearClip, step0, MIN_SAMPLE_DISTANCE);
+  const lastRow = (height - 1) | 0;
+  const tanLast = lut[lastRow];
+  const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
+  let t0 = Math.max(nearClip, step0, MIN_SAMPLE_DISTANCE);
+  if ((camZ > clipZ) & (tanLast < 0)) {
+    const tGroundPole = (clipZ - camZ) / tanLast;
+    if ((tGroundPole > 0) & (tGroundPole < t0)) {
+      t0 = nearClip > tGroundPole ? nearClip : tGroundPole;
+    }
+  }
   let tStop = tMax;
   if (!(tStop > 0)) {
     tStop = farClip * FAR_PLANE_T_SCALE;
@@ -216,6 +229,8 @@ export function renderPanoramaColumns({
   const rotS = Math.sin(dTheta);
   const altScale = altitude / HEIGHTMAP_MAX;
   const ceiling = maxHeight == null ? altitude : maxHeight;
+  const dhGround = clipZ - camZ;
+  const absGround = dhGround < 0 ? -dhGround : dhGround;
   const theta0 = ((startPx + HALF) / width) * TWO_PI;
   let dirX = -Math.sin(theta0);
   let dirY = -Math.cos(theta0);
@@ -325,13 +340,28 @@ export function renderPanoramaColumns({
       if ((yHit >= height) | 0) yHit = (height - 1) | 0;
 
       if ((yHit < H) | 0) {
-        const color = mipColorMaps[mip][offset];
-        const dist = Math.sqrt(t * t + dh * dh);
-        for (let y = yHit; (y < H) | 0; y = (y + 1) | 0) {
-          const pix = (y * localWidth + localX) | 0;
-          pixels[pix] = color;
-          if (depth) {
-            depth[pix] = dist;
+        let yBottom = H;
+        const tanG = dhGround / t;
+        let yGround;
+        if (tanG > tanLast) {
+          const sHatG = dhGround / (t + absGround);
+          let gIdx = ((sHatG + 1) * yHitLutScale) | 0;
+          if ((gIdx < 0) | 0) gIdx = 0;
+          if ((gIdx > yHitLutLast) | 0) gIdx = yHitLutLast;
+          yGround = yHitLut[gIdx];
+        } else {
+          yGround = height;
+        }
+        if ((yGround < yBottom) | 0) yBottom = yGround;
+        if ((yHit < yBottom) | 0) {
+          const color = mipColorMaps[mip][offset];
+          const dist = Math.sqrt(t * t + dh * dh);
+          for (let y = yHit; (y < yBottom) | 0; y = (y + 1) | 0) {
+            const pix = (y * localWidth + localX) | 0;
+            pixels[pix] = color;
+            if (depth) {
+              depth[pix] = dist;
+            }
           }
         }
         H = yHit;

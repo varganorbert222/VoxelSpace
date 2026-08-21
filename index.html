@@ -2,15 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
-      name="description"
-      content="Voxel Space"
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
+    <meta name="theme-color" content="#0a0e06" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="description" content="Voxel Space" />
     <meta name="author" content="Norbert Varga" />
     <meta
       name="keywords"
       content="Voxel, VoxelSpace, Voxel Space, Comanche, landscape, rendering"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap"
+      rel="stylesheet"
     />
     <link rel="stylesheet" href="styles/styles.css" />
     <script type="module" src="scripts/main.js" defer></script>
@@ -18,86 +28,184 @@
     <link rel="icon" type="image/x-icon" href="favicon.png" />
   </head>
 
-  <body>
-    <div id="id_fps"></div>
-
-    <div id="id_info">
-      Fly controls
-      <b>WASD</b> move / strafe, <b>Shift</b> faster, <b>click</b> mouse look, <b>arrows</b> look,
-      <b>R|F</b> or <b>Space|Ctrl</b> up | down, <b>Q|E</b> roll (panorama),
-      <b>P</b> classic 2.5D | spherical panorama
-      <br />
-
-      <label for="id_mapselector">Map</label>
-      <select id="id_mapselector" title="MapSelector" name="MapSelector" autocomplete="off">
-        <option value="">Please select map</option>
-      </select>
-
-      <label for="id_render_distance">Distance</label>
-      <input id="id_render_distance" type="range" autocomplete="off" />
-
-      <label for="id_delta_z">Delta Z</label>
-      <input id="id_delta_z" type="range" autocomplete="off" />
-
-      <label for="id_render_scale">Render Scale</label>
-      <input id="id_render_scale" type="range" disabled autocomplete="off" />
-
-      <label for="id_fov">FOV</label>
-      <input id="id_fov" type="range" autocomplete="off" />
-
-      <label for="id_quality">Quality</label>
-      <select
-        id="id_quality"
-        title="quality"
-        name="quality"
-        autocomplete="off"
-      ></select>
-
-      <label for="id_apply_fog">Apply fog</label>
-      <input
-        id="id_apply_fog"
-        title="applyFog"
-        name="applyfog"
-        type="checkbox"
-        autocomplete="off"
-      />
-
-      <label for="id_repeat">Repeat</label>
-      <input
-        id="id_repeat"
-        title="repeat"
-        name="repeat"
-        type="checkbox"
-        autocomplete="off"
-      />
-
-      <label for="id_multithread">Multithread</label>
-      <input
-        id="id_multithread"
-        title="multithread"
-        name="multithread"
-        type="checkbox"
-        autocomplete="off"
-      />
-
-      <label for="id_cameraselector">Camera</label>
-      <select id="id_cameraselector" title="CameraSelector" name="CameraSelector" autocomplete="off">
-        <option value="">Please select mode</option>
-      </select>
-
-      <label for="id_algorithmselector">Renderer</label>
-      <select id="id_algorithmselector" title="AlgorithmSelector" name="AlgorithmSelector" autocomplete="off">
-        <option value="">Please select algorithm</option>
-      </select>
-
-      <a href="https://github.com/varganorbert222/VoxelSpace"
-        >Github project</a
-      >
-    </div>
-
+  <body class="hud-closed">
     <canvas id="id_fullscreen_canvas" width="800" height="400">
       Your browser does not support the canvas element.
     </canvas>
+
+    <header class="hud-top" aria-label="Status">
+      <div class="hud-brand">
+        <span class="hud-brand-mark" aria-hidden="true"></span>
+        <span class="hud-brand-name">Voxel Space</span>
+      </div>
+      <div class="hud-status">
+        <span class="hud-chip" id="id_hud_map">----</span>
+        <span class="hud-chip hud-chip--cyan" id="id_hud_algorithm">----</span>
+        <span class="hud-chip hud-chip--green" id="id_hud_camera">----</span>
+      </div>
+      <div class="hud-top-right">
+        <div id="id_fps" class="hud-fps" aria-live="polite"></div>
+        <button type="button" id="id_hud_toggle" aria-expanded="false" aria-controls="id_info">
+          Menu
+        </button>
+      </div>
+    </header>
+
+    <div id="id_hud_backdrop" class="hud-backdrop" hidden></div>
+
+    <aside id="id_info" class="hud-panel" aria-label="Command panel">
+      <div class="hud-sheet-handle" aria-hidden="true"></div>
+      <section class="hud-section">
+        <h2 class="hud-section-title"><span>01</span> Mission</h2>
+        <div class="control">
+          <div class="control-head">
+            <label for="id_mapselector">Map</label>
+          </div>
+          <select id="id_mapselector" title="MapSelector" name="MapSelector" autocomplete="off">
+            <option value="">Please select map</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="hud-section">
+        <h2 class="hud-section-title"><span>02</span> Engine</h2>
+        <div class="control-grid">
+          <div class="control">
+            <div class="control-head">
+              <label for="id_algorithmselector">Renderer</label>
+            </div>
+            <select
+              id="id_algorithmselector"
+              title="AlgorithmSelector"
+              name="AlgorithmSelector"
+              autocomplete="off"
+            >
+              <option value="">Please select algorithm</option>
+            </select>
+          </div>
+          <div class="control">
+            <div class="control-head">
+              <label for="id_quality">Quality</label>
+            </div>
+            <select id="id_quality" title="quality" name="quality" autocomplete="off"></select>
+          </div>
+          <div class="control control--span">
+            <div class="control-head">
+              <label for="id_cameraselector">Camera</label>
+            </div>
+            <select
+              id="id_cameraselector"
+              title="CameraSelector"
+              name="CameraSelector"
+              autocomplete="off"
+            >
+              <option value="">Please select mode</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="hud-section">
+        <h2 class="hud-section-title"><span>03</span> View</h2>
+        <div class="control">
+          <div class="control-head">
+            <label for="id_render_distance">Distance</label>
+            <span class="control-value" data-for="id_render_distance"></span>
+          </div>
+          <input id="id_render_distance" type="range" autocomplete="off" />
+        </div>
+        <div class="control">
+          <div class="control-head">
+            <label for="id_delta_z">Delta Z</label>
+            <span class="control-value" data-for="id_delta_z"></span>
+          </div>
+          <input id="id_delta_z" type="range" autocomplete="off" />
+        </div>
+        <div class="control">
+          <div class="control-head">
+            <label for="id_fov">FOV</label>
+            <span class="control-value" data-for="id_fov"></span>
+          </div>
+          <input id="id_fov" type="range" autocomplete="off" />
+        </div>
+        <div class="control">
+          <div class="control-head">
+            <label for="id_render_scale">Scale</label>
+            <span class="control-value" data-for="id_render_scale"></span>
+          </div>
+          <input id="id_render_scale" type="range" disabled autocomplete="off" />
+        </div>
+      </section>
+
+      <section class="hud-section">
+        <h2 class="hud-section-title"><span>04</span> Flags</h2>
+        <div class="flag-grid">
+          <label class="check" for="id_apply_fog">
+            <input
+              id="id_apply_fog"
+              title="applyFog"
+              name="applyfog"
+              type="checkbox"
+              autocomplete="off"
+            />
+            <span class="check-box" aria-hidden="true"></span>
+            Fog
+          </label>
+          <label class="check" for="id_repeat">
+            <input id="id_repeat" title="repeat" name="repeat" type="checkbox" autocomplete="off" />
+            <span class="check-box" aria-hidden="true"></span>
+            Repeat
+          </label>
+          <label class="check" for="id_multithread">
+            <input
+              id="id_multithread"
+              title="multithread"
+              name="multithread"
+              type="checkbox"
+              autocomplete="off"
+            />
+            <span class="check-box" aria-hidden="true"></span>
+            Threads
+          </label>
+        </div>
+      </section>
+
+      <section class="hud-section hud-section--keys">
+        <h2 class="hud-section-title"><span>05</span> Input</h2>
+        <dl class="key-legend">
+          <div><dt>WASD</dt><dd>Move / strafe</dd></div>
+          <div><dt>Shift</dt><dd>Faster</dd></div>
+          <div><dt>Click</dt><dd>Mouse look</dd></div>
+          <div><dt>Arrows</dt><dd>Look</dd></div>
+          <div><dt>R F</dt><dd>Up / down</dd></div>
+          <div><dt>Space Ctrl</dt><dd>Up / down</dd></div>
+          <div class="pano-only"><dt>Q E</dt><dd>Roll</dd></div>
+          <div><dt>P</dt><dd>Classic / pano</dd></div>
+          <div><dt>H</dt><dd>Toggle HUD</dd></div>
+          <div><dt>Esc</dt><dd>Close panel</dd></div>
+        </dl>
+      </section>
+
+      <section class="hud-section hud-section--touch">
+        <h2 class="hud-section-title"><span>05</span> Touch</h2>
+        <dl class="key-legend">
+          <div><dt>L Stick</dt><dd>Move / strafe</dd></div>
+          <div><dt>R Stick</dt><dd>Look</dd></div>
+          <div><dt>Up Down</dt><dd>Altitude</dd></div>
+          <div class="pano-only"><dt>Roll</dt><dd>Bank left / right</dd></div>
+        </dl>
+      </section>
+
+      <section class="hud-section hud-section--link">
+        <h2 class="hud-section-title"><span>06</span> Link</h2>
+        <a class="hud-link" href="https://github.com/varganorbert222/VoxelSpace"
+          >Github project</a
+        >
+      </section>
+      <button type="button" class="hud-done" id="id_hud_done">Done</button>
+    </aside>
+
+    <p class="hud-hint" id="id_hud_hint">H · Toggle HUD</p>
 
     <div id="id_touch_controls">
       <div id="id_stick_move" class="stick" aria-label="Move">
@@ -109,8 +217,8 @@
       <div id="id_touch_buttons">
         <button type="button" id="id_btn_up">Up</button>
         <button type="button" id="id_btn_down">Down</button>
-        <button type="button" id="id_btn_roll_left" class="pano-only">Roll L</button>
-        <button type="button" id="id_btn_roll_right" class="pano-only">Roll R</button>
+        <button type="button" id="id_btn_roll_left" class="pano-only">L</button>
+        <button type="button" id="id_btn_roll_right" class="pano-only">R</button>
       </div>
     </div>
   </body>

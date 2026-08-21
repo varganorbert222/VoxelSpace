@@ -9,6 +9,7 @@ import FrameBuffer from "../render/framebuffer.js";
 import Renderer from "../render/renderer.js";
 import FpsCounter from "./fpsCounter.js";
 import SettingsForm from "./settingsForm.js";
+import { initHud } from "./hud.js";
 import { loadMap } from "./mapLoader.js";
 import { startGameLoop } from "./gameLoop.js";
 import {
@@ -64,6 +65,7 @@ class App {
     this.fpsCounter.start();
 
     this.settingsForm.init();
+    initHud();
     this.setRenderAlgorithm(this.renderer.algorithm);
 
     this.input.bindTouchControls({
