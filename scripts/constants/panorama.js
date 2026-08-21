@@ -31,6 +31,6 @@ export function farPlaneRayTMax(farClip, fovYDeg, aspect) {
   }
   const tanHalfY = Math.tan((fovYDeg * Math.PI * 0.5) / 180);
   const tanHalfX = tanHalfY * a;
-  const scale = Math.hypot(1, tanHalfX, tanHalfY);
+  const scale = Math.sqrt(1 + tanHalfX * tanHalfX + tanHalfY * tanHalfY);
   return farClip * (scale > 1 ? scale : 1);
 }

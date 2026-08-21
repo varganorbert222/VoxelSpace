@@ -176,6 +176,7 @@ function renderPanoView(msg) {
     panoramaWidth: workerState.panoWidth,
     panoramaHeight: workerState.panoHeight,
     fovY: msg.fovY,
+    dstToProjPlane: msg.dstToProjPlane,
     screenWidth: msg.screenWidth,
     screenHeight: msg.screenHeight,
     startColumn: msg.startColumn,

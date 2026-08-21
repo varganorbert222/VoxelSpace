@@ -10,14 +10,17 @@ export function calculateFov(camera) {
   camera._fovDirty = false;
 
   const halfFovY = camera.fov * VMath.DEG_TO_RAD * HALF;
+  const tanHalfY = Math.tan(halfFovY);
   const aspect = camera.width / camera.height;
-  const halfFovX = Math.atan(Math.tan(halfFovY) * aspect);
+  const halfFovX = Math.atan(tanHalfY * aspect);
 
   camera._cachedFov = {
     fovX: halfFovX * 2 * VMath.RAD_TO_DEG,
     fovY: camera.fov,
     halfFovX: halfFovX,
     halfFovY: halfFovY,
+    tanHalfY: tanHalfY,
+    tanHalfX: tanHalfY * aspect,
   };
 
   return camera._cachedFov;
@@ -29,8 +32,8 @@ export function calculateProjPlane(camera) {
   }
   camera._projPlaneDirty = false;
 
-  const halfFovY = camera.fov * VMath.DEG_TO_RAD * HALF;
-  camera._cachedProjPlane = camera._height2 / Math.tan(halfFovY);
+  const fov = calculateFov(camera);
+  camera._cachedProjPlane = camera._height2 / fov.tanHalfY;
 
   return camera._cachedProjPlane;
 }

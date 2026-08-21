@@ -59,6 +59,7 @@ export function panoramaViewPayload(jobId, range, params) {
     screenWidth: params.screenWidth,
     screenHeight: params.screenHeight,
     fovY: params.fovY,
+    dstToProjPlane: params.dstToProjPlane,
     skyColor: params.skyColor,
     horizonColor: params.horizonColor,
     nearClip: params.nearClip,

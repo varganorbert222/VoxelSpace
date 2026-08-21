@@ -5,7 +5,7 @@ import { renderClassicColumns } from "./classicmarch.js";
 function classicParams(renderer, maps) {
   const camera = renderer.camera;
   const frameBuffer = renderer.frameBuffer;
-  const halfFovX = camera.calculateFov().halfFovX;
+  const fov = camera.calculateFov();
   const dstToProjPlane = camera.calculateProjPlane();
   const screenHorizon = camera.calculateHorizon(dstToProjPlane);
   const cameraAngle = camera.angle;
@@ -26,7 +26,7 @@ function classicParams(renderer, maps) {
     camZ: camera.posZ,
     sinAngle: Math.sin(cameraAngle),
     cosAngle: Math.cos(cameraAngle),
-    tanHalfFovX: Math.tan(halfFovX),
+    tanHalfFovX: fov.tanHalfX,
     dstToProjPlane: dstToProjPlane,
     screenHorizon: screenHorizon,
     nearClip: camera.nearClip,

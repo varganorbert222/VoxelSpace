@@ -2,12 +2,11 @@
 
 import ColorPalette from "../math/colorPalette.js";
 import { Color } from "../math/color.js";
-import { getPanoYHitLut, panoYHitFromHat } from "./panoramamarch.js";
+import { getPanoYHitLutSin, panoYHitFromHat } from "./panoramamarch.js";
 import {
   PIXEL_CENTER,
   NDC_SCALE,
   PANO_VIEW_ATAN_LUT_SIZE,
-  PANO_VIEW_SKY_LUT_SIZE,
 } from "../constants/panoramaViewer.js";
 import {
   SKY_PALETTE_STEPS,
@@ -35,6 +34,13 @@ const atanLut = new Float64Array(PANO_VIEW_ATAN_LUT_SIZE);
 for (let i = 0; (i <= atanLutLast) | 0; i = (i + 1) | 0) {
   atanLut[i] = Math.atan(i / atanLutLast);
 }
+
+const skyLutCache = {
+  skyColor: NaN,
+  horizonColor: NaN,
+  height: 0,
+  lut: null,
+};
 
 function atan2Lut(y, x) {
   const ax = x < 0 ? -x : x;
@@ -73,11 +79,38 @@ function fogColor(color, fogT) {
   );
 }
 
+function getSkyLut(skyColor, horizonColor, height) {
+  if (
+    skyLutCache.lut &&
+    skyLutCache.height === height &&
+    skyLutCache.skyColor === skyColor &&
+    skyLutCache.horizonColor === horizonColor
+  ) {
+    return skyLutCache.lut;
+  }
+  const palette = new ColorPalette(
+    skyColor ?? Color.WHITE,
+    horizonColor ?? Color.WHITE,
+    SKY_PALETTE_STEPS
+  );
+  const lut = new Uint32Array(height);
+  const h2 = height * HALF;
+  for (let i = 0; (i < height) | 0; i = (i + 1) | 0) {
+    lut[i] = palette.getColor(skyPaletteT(i / h2));
+  }
+  skyLutCache.skyColor = skyColor;
+  skyLutCache.horizonColor = horizonColor;
+  skyLutCache.height = height;
+  skyLutCache.lut = lut;
+  return lut;
+}
+
 export function renderPanoramaViewColumns({
   panorama,
   panoramaWidth,
   panoramaHeight,
   fovY,
+  dstToProjPlane,
   screenWidth,
   screenHeight,
   startColumn,
@@ -85,7 +118,6 @@ export function renderPanoramaViewColumns({
   pixels,
   pixelWidth,
   fillUnfilled,
-  horizon,
   depth,
   skyColor,
   horizonColor,
@@ -107,100 +139,83 @@ export function renderPanoramaViewColumns({
     pixels.fill(UNFILLED_PIXEL);
   }
 
-  const palette = new ColorPalette(
-    skyColor ?? Color.WHITE,
-    horizonColor ?? Color.WHITE,
-    SKY_PALETTE_STEPS
-  );
-  const skyLutLast = (PANO_VIEW_SKY_LUT_SIZE - 1) | 0;
-  const skyLut = new Uint32Array(PANO_VIEW_SKY_LUT_SIZE);
-  for (let i = 0; (i <= skyLutLast) | 0; i = (i + 1) | 0) {
-    skyLut[i] = palette.getColor(skyPaletteT(i / skyLutLast));
-  }
-
-  const aspect = screenWidth / screenHeight;
-  const tanHalfY = Math.tan(fovY * DEG_TO_RAD * HALF);
-  const tanHalfX = tanHalfY * aspect;
-  const invWidth = 1 / screenWidth;
-  const invHeight = 1 / screenHeight;
-  const invTanHalfY = 1 / tanHalfY;
   const panoLast = (panoramaHeight - 1) | 0;
   const panoW = panoramaWidth;
+  const skyLut = getSkyLut(skyColor, horizonColor, panoramaHeight);
+  const yHitLut = getPanoYHitLutSin(panoramaHeight);
+  const depthBuf = depth;
+
+  const aspect = screenWidth / screenHeight;
+  let tanHalfY = Math.tan(fovY * DEG_TO_RAD * HALF);
+  if (!(tanHalfY > 0) && dstToProjPlane > 0) {
+    tanHalfY = (screenHeight * HALF) / dstToProjPlane;
+  }
+  const tanHalfX = tanHalfY * aspect;
+  const invW = 1 / screenWidth;
+  const invH = 1 / screenHeight;
   const fogRange = farClip - nearClip;
   const invFogRange = fogRange === 0 ? 0 : 1 / fogRange;
-  const useFog = !!applyFog;
-  const yHitLut = getPanoYHitLut(panoramaHeight);
-
-  const dPlaneX = NDC_SCALE * tanHalfX * invWidth;
-  const planeX0 =
-    ((startColumn + PIXEL_CENTER) * invWidth * NDC_SCALE - 1) * tanHalfX;
-  const rdx = rightX * dPlaneX;
-  const rdy = rightY * dPlaneX;
-  const rdz = rightZ * dPlaneX;
+  const useFog = applyFog | 0;
+  const dCamX = NDC_SCALE * tanHalfX * invW;
+  const camX0 =
+    ((startColumn + PIXEL_CENTER) * invW * NDC_SCALE - 1) * tanHalfX;
+  const pxScale = panoW * INV_TWO_PI;
+  const rdx = rightX * dCamX;
+  const rdy = rightY * dCamX;
+  const rdz = rightZ * dCamX;
 
   for (let sy = 0; (sy < screenHeight) | 0; sy = (sy + 1) | 0) {
-    const ndcY = 1 - (sy + PIXEL_CENTER) * invHeight * NDC_SCALE;
-    const planeY = ndcY * tanHalfY;
+    const camY = (1 - (sy + PIXEL_CENTER) * invH * NDC_SCALE) * tanHalfY;
     const row = (sy * stride) | 0;
-    const rowHyp2 = planeY * planeY + 1;
-    let planeX = planeX0;
-    let dx = rightX * planeX0 + upX * planeY + fwdX;
-    let dy = rightY * planeX0 + upY * planeY + fwdY;
-    let dz = rightZ * planeX0 + upZ * planeY + fwdZ;
+    const viewLen2Base = camY * camY + 1;
+    let camX = camX0;
+    let dx = rightX * camX0 + upX * camY + fwdX;
+    let dy = rightY * camX0 + upY * camY + fwdY;
+    let dz = rightZ * camX0 + upZ * camY + fwdZ;
 
     for (
       let sx = startColumn, localX = 0;
       (sx < endColumn) | 0;
       sx = (sx + 1) | 0, localX = (localX + 1) | 0
     ) {
-      const horiz = Math.sqrt(dx * dx + dy * dy);
-      const absZ = dz < 0 ? -dz : dz;
-      let py = panoYHitFromHat(dz / (horiz + absZ), yHitLut);
+      const invViewLen = 1 / Math.sqrt(camX * camX + viewLen2Base);
+      let py = panoYHitFromHat(dz * invViewLen, yHitLut);
       if ((py < 0) | 0) py = 0;
       if ((py > panoLast) | 0) py = panoLast;
 
       const theta = atan2Lut(-dx, -dy);
-      let px = ((theta * INV_TWO_PI + 1) * panoW) | 0;
+      let px = (theta * pxScale + panoW) | 0;
       if ((px >= panoW) | 0) px = (px - panoW) | 0;
       if ((px < 0) | 0) px = (px + panoW) | 0;
 
       const dest = (row + localX) | 0;
-      if ((py < horizon[px]) | 0) {
-        let si = ((1 - dz * invTanHalfY) * skyLutLast) | 0;
-        if ((si < 0) | 0) si = 0;
-        if ((si > skyLutLast) | 0) si = skyLutLast;
-        pixels[dest] = skyLut[si];
+      const panoIdx = (py * panoW + px) | 0;
+      const dist = depthBuf[panoIdx];
+
+      if ((dist <= 0) | 0) {
+        pixels[dest] = panorama[panoIdx];
       } else {
-        const panoIdx = (py * panoW + px) | 0;
-        const dist = depth ? depth[panoIdx] : 0;
-        const camZ = 1 / Math.sqrt(planeX * planeX + rowHyp2);
-        const zPlane = dist * camZ;
-        if ((zPlane < nearClip) | 0 || ((zPlane >= farClip) | 0 && !useFog)) {
-          let si = ((1 - dz * invTanHalfY) * skyLutLast) | 0;
-          if ((si < 0) | 0) si = 0;
-          if ((si > skyLutLast) | 0) si = skyLutLast;
-          pixels[dest] = skyLut[si];
-        } else {
-          let color = panorama[panoIdx];
-          if (useFog) {
-            const fogT =
-              fogRange === 0
-                ? FOG_SATURATED
-                : (zPlane - nearClip) * invFogRange;
-            if (fogT >= FOG_SATURATED) {
-              pixels[dest] = Color.WHITE;
-            } else {
-              if (fogT > 0) {
-                color = fogColor(color, fogT);
-              }
-              pixels[dest] = color;
-            }
+        const viewZ = dist * invViewLen;
+        if (
+          ((useFog ^ 1) | 0) &
+          (((viewZ >= farClip) | 0) | ((viewZ < nearClip) | 0))
+        ) {
+          pixels[dest] = skyLut[py];
+        } else if (useFog) {
+          const fogT =
+            fogRange === 0 ? FOG_SATURATED : (viewZ - nearClip) * invFogRange;
+          if (fogT >= FOG_SATURATED) {
+            pixels[dest] = Color.WHITE;
+          } else if (fogT > 0) {
+            pixels[dest] = fogColor(panorama[panoIdx], fogT);
           } else {
-            pixels[dest] = color;
+            pixels[dest] = panorama[panoIdx];
           }
+        } else {
+          pixels[dest] = panorama[panoIdx];
         }
       }
-      planeX += dPlaneX;
+      camX += dCamX;
       dx += rdx;
       dy += rdy;
       dz += rdz;
@@ -213,6 +228,7 @@ export function renderPanoramaView({
   panoramaWidth,
   panoramaHeight,
   fovY,
+  dstToProjPlane,
   frameBuffer,
   horizon,
   depth,
@@ -236,6 +252,7 @@ export function renderPanoramaView({
     panoramaWidth,
     panoramaHeight,
     fovY,
+    dstToProjPlane,
     screenWidth: frameBuffer.width,
     screenHeight: frameBuffer.height,
     startColumn: 0,

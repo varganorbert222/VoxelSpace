@@ -2,7 +2,6 @@
 
 import { Color } from "../math/color.js";
 import ColorPalette from "../math/colorPalette.js";
-import { mapOffsetAt } from "../terrain/mapOffset.js";
 import {
   SKY_PALETTE_STEPS,
   skyPaletteT,
@@ -17,7 +16,6 @@ import {
 } from "../constants/quality.js";
 import {
   FAR_PLANE_T_SCALE,
-  PANO_DIR_RESYNC,
   PANO_MIP_COUNT,
   PANO_MIP_INV_SCALE,
   PANO_MIP_STEP_MAX_BY_QUALITY,
@@ -29,8 +27,11 @@ import {
 
 const tanMinCache = new Map();
 const yHitLutCache = new Map();
+const yHitLutSinCache = new Map();
 const mipSwitchT = new Float64Array(PANO_MIP_COUNT);
 const mipInvScale = new Float64Array(PANO_MIP_COUNT);
+const mipWMaskScratch = new Int32Array(PANO_MIP_COUNT);
+const mipHMaskScratch = new Int32Array(PANO_MIP_COUNT);
 const yHitLutLast = (PANO_YHIT_LUT_SIZE - 1) | 0;
 const yHitLutScale = PANO_YHIT_LUT_SIZE * HALF;
 
@@ -95,6 +96,32 @@ function buildYHitLut(height, tanMin) {
 
 export function getPanoYHitLut(height) {
   return buildYHitLut(height, buildTanMinLut(height));
+}
+
+function buildYHitLutSin(height, tanMin) {
+  let table = yHitLutSinCache.get(height);
+  if (table) {
+    return table;
+  }
+  table = new Int16Array(PANO_YHIT_LUT_SIZE);
+  for (let i = 0; (i < PANO_YHIT_LUT_SIZE) | 0; i = (i + 1) | 0) {
+    const sinPhi = (i + HALF) / yHitLutScale - 1;
+    const cos2 = 1 - sinPhi * sinPhi;
+    const cosPhi = cos2 > 0 ? Math.sqrt(cos2) : 0;
+    const s =
+      cosPhi > EPSILON
+        ? sinPhi / cosPhi
+        : sinPhi < 0
+          ? -PANO_YHIT_SLOPE_INF
+          : PANO_YHIT_SLOPE_INF;
+    table[i] = yHitFromSlope(s, tanMin, height);
+  }
+  yHitLutSinCache.set(height, table);
+  return table;
+}
+
+export function getPanoYHitLutSin(height) {
+  return buildYHitLutSin(height, buildTanMinLut(height));
 }
 
 export function panoYHitFromHat(sHat, table) {
@@ -189,21 +216,18 @@ export function renderPanoramaColumns({
   const rotS = Math.sin(dTheta);
   const altScale = altitude / HEIGHTMAP_MAX;
   const ceiling = maxHeight == null ? altitude : maxHeight;
-  let dirX = 0;
-  let dirY = 0;
+  const theta0 = ((startPx + HALF) / width) * TWO_PI;
+  let dirX = -Math.sin(theta0);
+  let dirY = -Math.cos(theta0);
+  const mipWMask = mipWMaskScratch;
+  const mipHMask = mipHMaskScratch;
+  for (let m = 0; (m < mipCount) | 0; m = (m + 1) | 0) {
+    mipWMask[m] = (mipWidths[m] - 1) | 0;
+    mipHMask[m] = (mipHeights[m] - 1) | 0;
+  }
 
   for (let px = startPx; (px < endPx) | 0; px = (px + 1) | 0) {
     const localX = (px - startPx) | 0;
-    if ((((px - startPx) | 0) % PANO_DIR_RESYNC) === 0) {
-      const theta = ((px + HALF) / width) * TWO_PI;
-      dirX = -Math.sin(theta);
-      dirY = -Math.cos(theta);
-    } else {
-      const nextX = dirX * rotC + dirY * rotS;
-      const nextY = dirY * rotC - dirX * rotS;
-      dirX = nextX;
-      dirY = nextY;
-    }
     let H = height;
     horizon[localX] = H;
 
@@ -277,13 +301,10 @@ export function renderPanoramaColumns({
       }
 
       const inv = mipInvScale[mip];
-      const offset = mapOffsetAt(
-        wx * inv,
-        wy * inv,
-        mipWidths[mip],
-        mipHeights[mip],
-        mipShifts[mip]
-      );
+      const offset =
+        (((((wy * inv) | 0) & mipWMask[mip]) << mipShifts[mip]) +
+          (((wx * inv) | 0) & mipHMask[mip])) |
+        0;
       const h = mipHeightMaps[mip][offset] * altScale;
 
       if (sealed && h < camZ + t * tanH - EPSILON) {
@@ -305,7 +326,7 @@ export function renderPanoramaColumns({
 
       if ((yHit < H) | 0) {
         const color = mipColorMaps[mip][offset];
-        const dist = Math.hypot(t, dh);
+        const dist = Math.sqrt(t * t + dh * dh);
         for (let y = yHit; (y < H) | 0; y = (y + 1) | 0) {
           const pix = (y * localWidth + localX) | 0;
           pixels[pix] = color;
@@ -321,6 +342,11 @@ export function renderPanoramaColumns({
       step += stepGrowth;
       if (step > stepCap) step = stepCap;
     }
+
+    const nextX = dirX * rotC + dirY * rotS;
+    const nextY = dirY * rotC - dirX * rotS;
+    dirX = nextX;
+    dirY = nextY;
   }
 
   return pixels;

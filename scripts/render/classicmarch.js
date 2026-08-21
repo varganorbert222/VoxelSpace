@@ -1,7 +1,6 @@
 "use strict";
 
 import { Color } from "../math/color.js";
-import { mapOffsetAt } from "../terrain/mapOffset.js";
 import {
   CHANNEL_MASK,
   CHANNEL_MAX,
@@ -61,10 +60,6 @@ function drawVerticalLine(pixels, stride, x, ytop, ybottom, col, width, xEnd) {
   }
 }
 
-function projectToScreen(y, z, dstToProjPlane, screenHorizon) {
-  return ((y / z) * dstToProjPlane + screenHorizon) | 0;
-}
-
 export function renderClassicColumns({
   heightMap,
   colorMap,
@@ -99,8 +94,12 @@ export function renderClassicColumns({
   const stride = pixelWidth;
   const hiddenY = hiddenYBuffer(localWidth);
   const fogRange = farClip - nearClip;
+  const invFogRange = fogRange === 0 ? 0 : 1 / fogRange;
+  const useFog = applyFog | 0;
+  const altScale = altitude / HEIGHTMAP_MAX;
   const ceiling = maxHeight == null ? altitude : maxHeight;
   const ceilingSdf = camZ - ceiling;
+  const yGround = camZ + NON_REPEAT_GROUND_OFFSET;
 
   if (fillUnfilled) {
     const n = (localWidth * screenHeight) | 0;
@@ -133,6 +132,14 @@ export function renderClassicColumns({
   }
 
   const screenWidthScaler = 1 / screenWidth;
+  const mapWMask = (mapW - 1) | 0;
+  const mapHMask = (mapH - 1) | 0;
+  const kRightX = cosAngle * tanHalfFovX;
+  const kRightY = -sinAngle * tanHalfFovX;
+  const kLeftX = -sinAngle - kRightX;
+  const kLeftY = -cosAngle - kRightY;
+  const kDx = (kRightX + kRightX) * screenWidthScaler;
+  const kDy = (kRightY + kRightY) * screenWidthScaler;
 
   for (let lod = LOD_BAND_COUNT; (lod > 0) | 0; lod = (lod - 1) | 0) {
     const startIndex = lodDistances[lod - 1];
@@ -153,19 +160,23 @@ export function renderClassicColumns({
       ((z < endIndex) | 0) & ((z < farClip) | 0);
       z = z + step
     ) {
-      const viewX = -sinAngle * z;
-      const viewY = -cosAngle * z;
-      const rightX = cosAngle * tanHalfFovX * z;
-      const rightY = -sinAngle * tanHalfFovX * z;
-      let plx = viewX - rightX + camX;
-      let ply = viewY - rightY + camY;
-      const prx = viewX + rightX + camX;
-      const pry = viewY + rightY + camY;
-      const dx = (prx - plx) * screenWidthScaler;
-      const dy = (pry - ply) * screenWidthScaler;
-
-      plx += dx * startColumn;
-      ply += dy * startColumn;
+      const zScale = dstToProjPlane / z;
+      const ceilingOnScreen = (ceilingSdf * zScale + screenHorizon) | 0;
+      const groundOnScreen = (yGround * zScale + screenHorizon) | 0;
+      const fogTRaw =
+        fogRange === 0 ? FOG_SATURATED : (z - nearClip) * invFogRange;
+      const fogT =
+        fogTRaw < 0
+          ? 0
+          : fogTRaw > FOG_SATURATED
+            ? FOG_SATURATED
+            : fogTRaw;
+      const fogWhite = useFog & ((fogT >= FOG_SATURATED) | 0);
+      const applyFogT = useFog & ((fogT > 0) | 0) & (fogWhite ^ 1);
+      const dx = kDx * z;
+      const dy = kDy * z;
+      let plx = kLeftX * z + camX + dx * startColumn;
+      let ply = kLeftY * z + camY + dy * startColumn;
 
       for (
         let i = startColumn;
@@ -188,55 +199,29 @@ export function renderClassicColumns({
         const isOk = inside | (repeat | 0);
 
         if (isOk) {
-          const ceilingOnScreen = projectToScreen(
-            ceilingSdf,
-            z,
-            dstToProjPlane,
-            screenHorizon
-          );
           if ((ceilingOnScreen >= colHidden) | 0) {
             plx += dx * pxOffset;
             ply += dy * pxOffset;
             continue;
           }
 
-          const offset = mapOffsetAt(plx, ply, mapW, mapH, mapShift);
-          const terrainHeight =
-            (heightMap[offset] / HEIGHTMAP_MAX) * altitude;
+          const offset =
+            ((((ply | 0) & mapWMask) << mapShift) + ((plx | 0) & mapHMask)) | 0;
+          const terrainHeight = heightMap[offset] * altScale;
           const terrainSDF = camZ - terrainHeight;
-          const heightOnScreen = projectToScreen(
-            terrainSDF,
-            z,
-            dstToProjPlane,
-            screenHorizon
-          );
+          const heightOnScreen = (terrainSDF * zScale + screenHorizon) | 0;
 
           let heightOnScreenBottom = colHidden;
           if (!repeat) {
-            const ground = projectToScreen(
-              camZ + NON_REPEAT_GROUND_OFFSET,
-              z,
-              dstToProjPlane,
-              screenHorizon
-            );
-            if ((ground < heightOnScreenBottom) | 0) {
-              heightOnScreenBottom = ground;
+            if ((groundOnScreen < heightOnScreenBottom) | 0) {
+              heightOnScreenBottom = groundOnScreen;
             }
           }
-
-          const depth =
-            fogRange === 0
-              ? FOG_SATURATED
-              : (z - nearClip) / fogRange;
-          const fogWhite =
-            (applyFog | 0) & ((depth >= FOG_SATURATED) | 0);
 
           let plotColor = Color.WHITE;
           if (!fogWhite) {
             plotColor = colorMap[offset];
-            if (applyFog) {
-              const fogT =
-                depth < 0 ? 0 : depth > FOG_SATURATED ? FOG_SATURATED : depth;
+            if (applyFogT) {
               const a = (plotColor >>> SHIFT_ALPHA) & CHANNEL_MASK;
               const r = (plotColor >>> SHIFT_RED) & CHANNEL_MASK;
               const g = (plotColor >>> SHIFT_GREEN) & CHANNEL_MASK;
