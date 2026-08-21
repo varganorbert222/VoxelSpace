@@ -4,6 +4,8 @@ import Threading from "./threading.js";
 import {
   MSG_INIT_MAPS,
   MSG_INIT_PANO,
+  MSG_INIT_KERNEL,
+  MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
   MSG_RENDER_PANORAMA,
   MSG_RENDER_PANO_VIEW,
@@ -16,6 +18,7 @@ import {
   panoramaGeneratePayload,
 } from "./jobProtocol.js";
 import { PIXEL_OFFSET_ALIGN } from "../constants/classic.js";
+import { BACKEND_JS } from "../constants/backend.js";
 
 function chunkSizeFor(columnCount, workerCount, align) {
   let size = Math.ceil(columnCount / workerCount);
@@ -41,12 +44,16 @@ function splitRanges(count, size) {
 }
 
 class WorkerPool {
-  constructor() {
+  constructor(options) {
     this._slots = [];
     this._jobId = 0;
     this._mapsGeneration = null;
     this._panoGeneration = null;
     this._active = null;
+    this._kernelBackend =
+      options && options.kernelBackend ? options.kernelBackend : BACKEND_JS;
+    this._ready = Promise.resolve();
+    this._kernelWait = null;
   }
 
   get jobId() {
@@ -76,6 +83,22 @@ class WorkerPool {
       };
       this._slots.push(slot);
     }
+    if (this._kernelBackend !== BACKEND_JS) {
+      this._ready = new Promise((resolve, reject) => {
+        this._kernelWait = {
+          left: this._slots.length,
+          resolve,
+          reject,
+        };
+      });
+      this._ready.catch(() => {});
+      for (let i = 0; (i < this._slots.length) | 0; i = (i + 1) | 0) {
+        this._slots[i].worker.postMessage({
+          type: MSG_INIT_KERNEL,
+          backend: this._kernelBackend,
+        });
+      }
+    }
   }
 
   cancel() {
@@ -89,6 +112,11 @@ class WorkerPool {
 
   dispose() {
     this.cancel();
+    if (this._kernelWait) {
+      const wait = this._kernelWait;
+      this._kernelWait = null;
+      wait.reject(new Error("worker pool disposed"));
+    }
     for (let i = 0; (i < this._slots.length) | 0; i = (i + 1) | 0) {
       this._slots[i].worker.terminate();
     }
@@ -170,6 +198,7 @@ class WorkerPool {
           depth: depth.buffer,
           width: snapshot.width,
           height: snapshot.height,
+          generation: snapshot.generation,
         },
         [pixels.buffer, horizon.buffer, depth.buffer]
       );
@@ -177,20 +206,31 @@ class WorkerPool {
   }
 
   renderClassic(params) {
-    return this._runJob(
-      MSG_RENDER_CLASSIC,
-      params,
-      params.screenWidth,
-      PIXEL_OFFSET_ALIGN
+    return this._whenReady().then(() =>
+      this._runJob(
+        MSG_RENDER_CLASSIC,
+        params,
+        params.screenWidth,
+        PIXEL_OFFSET_ALIGN
+      )
     );
   }
 
   renderPanorama(params) {
-    return this._runJob(MSG_RENDER_PANORAMA, params, params.width, 1);
+    return this._whenReady().then(() =>
+      this._runJob(MSG_RENDER_PANORAMA, params, params.width, 1)
+    );
   }
 
   renderPanoramaView(params) {
-    return this._runJob(MSG_RENDER_PANO_VIEW, params, params.screenWidth, 1);
+    return this._whenReady().then(() =>
+      this._runJob(MSG_RENDER_PANO_VIEW, params, params.screenWidth, 1)
+    );
+  }
+
+  _whenReady() {
+    this.ensureWorkers();
+    return this._ready || Promise.resolve();
   }
 
   _runJob(msgType, params, columnCount, align) {
@@ -276,6 +316,23 @@ class WorkerPool {
   }
 
   _onMessage(slot, data) {
+    if (data && data.type === MSG_KERNEL_READY) {
+      const wait = this._kernelWait;
+      if (wait) {
+        wait.left = (wait.left - 1) | 0;
+        if (wait.left <= 0) {
+          this._kernelWait = null;
+          wait.resolve();
+        }
+      }
+      return;
+    }
+    if (data && data.type === MSG_WORKER_ERROR && this._kernelWait) {
+      const wait = this._kernelWait;
+      this._kernelWait = null;
+      wait.reject(new Error(data.message || "kernel init failed"));
+      return;
+    }
     slot.busy = 0;
     const active = this._active;
     if (!active || data.jobId !== active.jobId) {

@@ -1,11 +1,14 @@
 "use strict";
 
+import ClassicRenderer from "../../render/classicRenderer.js";
+import PanoramaRenderer from "../../render/panoramaRenderer.js";
+import WorkerPool from "../../render/workerPool.js";
+import { ALGORITHM_PANORAMA } from "../../constants/algorithm.js";
 import { BACKEND_WASM } from "../../constants/backend.js";
+import { instantiateMarch, marchModuleSupported } from "../../wasm/instantiate.js";
+import { createWasmKernels } from "../../wasm/kernels.js";
 
-// Kernels come from WASM_MARCH_PROMPT.md: clang -O3 scalar module embedded in
-// the ES graph, copies into linear memory, never SharedArrayBuffer, never
-// transfer exports.memory.buffer. Present stays Canvas 2D. One instance per
-// worker realm when this runtime is live.
+let availableCache = null;
 
 class WasmBackend {
   static get id() {
@@ -13,30 +16,133 @@ class WasmBackend {
   }
 
   static async isAvailable() {
-    return false;
+    if (availableCache !== null) {
+      return availableCache;
+    }
+    try {
+      availableCache = marchModuleSupported();
+      return availableCache;
+    } catch (err) {
+      console.warn("WASM runtime unavailable:", err);
+      availableCache = false;
+      return false;
+    }
   }
 
-  async init() {
-    throw new Error("WASM runtime is not implemented yet");
+  constructor() {
+    this._host = null;
+    this._classic = null;
+    this._panorama = null;
+    this._pool = null;
+    this._maps = null;
+    this._kernels = null;
   }
 
-  async setMaps() {
-    throw new Error("WASM runtime is not implemented yet");
+  get kernels() {
+    return this._kernels;
+  }
+
+  async init(ctx) {
+    const instance = await instantiateMarch();
+    this._kernels = createWasmKernels(instance);
+    this._host = ctx.renderer;
+    this._classic = new ClassicRenderer(this);
+    this._panorama = new PanoramaRenderer(this);
+  }
+
+  get camera() {
+    return this._host.camera;
+  }
+
+  get frameBuffer() {
+    return this._host.frameBuffer;
+  }
+
+  get pool() {
+    return this._pool;
+  }
+
+  get applyFog() {
+    return this._host.applyFog;
+  }
+
+  get repeat() {
+    return this._host.repeat;
+  }
+
+  get algorithm() {
+    return this._host.algorithm;
+  }
+
+  get multithread() {
+    return this._host.multithread;
+  }
+
+  ensurePool() {
+    if (!this._pool) {
+      this._pool = new WorkerPool({ kernelBackend: BACKEND_WASM });
+      if (this._maps) {
+        this._pool.initMaps(this._maps);
+      }
+    }
+    return this._pool;
+  }
+
+  useWorkers() {
+    return this._host.multithread && this.ensurePool().workerCount > 1;
+  }
+
+  cancelJobs() {
+    if (this._pool) {
+      this._pool.cancel();
+    }
+  }
+
+  drawBackground() {
+    this._host.drawBackground();
+  }
+
+  writeToContext() {
+    this._host.writeToContext();
+  }
+
+  async setMaps(exportedMaps) {
+    this._maps = exportedMaps;
+    if (this._pool && exportedMaps) {
+      this._pool.initMaps(exportedMaps);
+    }
   }
 
   async resize() {
-    throw new Error("WASM runtime is not implemented yet");
+    this.cancelJobs();
   }
 
   invalidatePanorama() {
-    throw new Error("WASM runtime is not implemented yet");
+    if (this._panorama) {
+      this._panorama.invalidate();
+    }
   }
 
-  async render() {
-    throw new Error("WASM runtime is not implemented yet");
+  async render(frame) {
+    if (frame.algorithm === ALGORITHM_PANORAMA) {
+      await this._panorama.render(frame.terrain);
+      return;
+    }
+    await this._classic.render(frame.terrain);
   }
 
-  dispose() {}
+  dispose() {
+    this.cancelJobs();
+    if (this._pool) {
+      this._pool.dispose();
+      this._pool = null;
+    }
+    this._classic = null;
+    this._panorama = null;
+    this._host = null;
+    this._maps = null;
+    this._kernels = null;
+  }
 }
 
 export default WasmBackend;

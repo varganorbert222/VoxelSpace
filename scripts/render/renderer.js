@@ -21,6 +21,7 @@ class Renderer {
     this._multithreadWanted = DEFAULT_MULTITHREAD;
     this._backendId = BACKEND_JS;
     this._backend = null;
+    this._opQueue = Promise.resolve();
   }
 
   setCamera(camera) {
@@ -154,7 +155,20 @@ class Renderer {
     this._multithread = false;
   }
 
+  _enqueue(fn) {
+    const run = this._opQueue.then(fn);
+    this._opQueue = run.then(
+      () => {},
+      () => {}
+    );
+    return run;
+  }
+
   async setBackend(id) {
+    return this._enqueue(() => this._swapBackend(id));
+  }
+
+  async _swapBackend(id) {
     if (id === this._backendId && this._backend) {
       return true;
     }
@@ -165,7 +179,7 @@ class Renderer {
       console.warn("Render runtime unavailable:", id);
       if (!this._backend) {
         if (id !== BACKEND_JS) {
-          return this.setBackend(BACKEND_JS);
+          return this._swapBackend(BACKEND_JS);
         }
         return false;
       }
@@ -186,7 +200,7 @@ class Renderer {
         created.dispose();
       }
       if (id !== BACKEND_JS) {
-        return this.setBackend(BACKEND_JS);
+        return this._swapBackend(BACKEND_JS);
       }
       return false;
     }
@@ -210,6 +224,10 @@ class Renderer {
   }
 
   async render(terrain) {
+    return this._enqueue(() => this._renderNow(terrain));
+  }
+
+  async _renderNow(terrain) {
     if (!this._backend) {
       return;
     }

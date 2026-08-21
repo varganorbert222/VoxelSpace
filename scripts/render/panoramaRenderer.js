@@ -10,6 +10,20 @@ import {
 } from "../constants/quality.js";
 import { farPlaneRayTMax } from "../constants/panorama.js";
 
+function panoGenerate(renderer) {
+  return (
+    (renderer.kernels && renderer.kernels.renderPanoramaColumns) ||
+    renderPanoramaColumns
+  );
+}
+
+function panoView(renderer) {
+  return (
+    (renderer.kernels && renderer.kernels.renderPanoramaView) ||
+    renderPanoramaView
+  );
+}
+
 class PanoramaRenderer {
   constructor(renderer) {
     this._renderer = renderer;
@@ -131,7 +145,7 @@ class PanoramaRenderer {
   _viewPanoramaLocal() {
     const renderer = this._renderer;
     const camera = renderer.camera;
-    renderPanoramaView({
+    panoView(renderer)({
       panorama: this._panoramaPixels,
       panoramaWidth: this._panoWidth,
       panoramaHeight: this._panoHeight,
@@ -140,6 +154,7 @@ class PanoramaRenderer {
       frameBuffer: renderer.frameBuffer,
       horizon: this._panoramaHorizon,
       depth: this._panoramaDepth,
+      panoGeneration: this._panoGen,
       skyColor: camera.topColor,
       horizonColor: camera.bottomColor,
       nearClip: camera.nearClip,
@@ -266,7 +281,7 @@ class PanoramaRenderer {
     const renderer = this._renderer;
     const camera = renderer.camera;
     const maps = terrain.exportMaps();
-    renderPanoramaColumns({
+    panoGenerate(renderer)({
       heightMap: maps.heightMap,
       colorMap: maps.colorMap,
       mapW: maps.width,
@@ -292,6 +307,7 @@ class PanoramaRenderer {
       horizon: this._panoramaHorizon,
       depth: this._panoramaDepth,
       panoMips: maps.panoMips,
+      mapsGeneration: maps.generation,
     });
   }
 

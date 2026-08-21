@@ -2,6 +2,13 @@
 
 import { renderClassicColumns } from "./classicmarch.js";
 
+function classicKernel(renderer) {
+  return (
+    (renderer.kernels && renderer.kernels.renderClassicColumns) ||
+    renderClassicColumns
+  );
+}
+
 function classicParams(renderer, maps) {
   const camera = renderer.camera;
   const frameBuffer = renderer.frameBuffer;
@@ -35,6 +42,8 @@ function classicParams(renderer, maps) {
     quality: camera.quality,
     applyFog: renderer.applyFog,
     repeat: renderer.repeat,
+    panoMips: maps.panoMips,
+    mapsGeneration: maps.generation,
   };
 }
 
@@ -59,16 +68,29 @@ function isClassicTokenStale(token, renderer) {
 class ClassicRenderer {
   constructor(renderer) {
     this._renderer = renderer;
+    this._rowColors = new Uint32Array(1);
   }
 
   renderLocal(terrain) {
     const maps = terrain.exportMaps();
     const params = classicParams(this._renderer, maps);
-    renderClassicColumns({
-      ...params,
-      pixels: this._renderer.frameBuffer.buffer32bit,
-      pixelWidth: this._renderer.frameBuffer.width,
+    const frameBuffer = this._renderer.frameBuffer;
+    const extras = {
+      pixels: frameBuffer.buffer32bit,
+      pixelWidth: frameBuffer.width,
       fillUnfilled: 0,
+    };
+    if (this._renderer.kernels) {
+      const height = frameBuffer.height | 0;
+      if ((this._rowColors.length < height) | 0) {
+        this._rowColors = new Uint32Array(height);
+      }
+      frameBuffer.copySkyRowColors(this._rowColors);
+      extras.rowColors = this._rowColors;
+    }
+    classicKernel(this._renderer)({
+      ...params,
+      ...extras,
     });
   }
 

@@ -17,20 +17,28 @@ export function startGameLoop(app) {
   const algorithms = config.settings.renderAlgorithms.values;
   const run = () => {
     time.tick();
+    const backendSwitch = app.input.consumeToggleRenderBackend
+      ? cycleAvailableBackend(app.renderer.backend)
+      : null;
     if (app.input.consumeToggleRenderAlgorithm) {
       app.setRenderAlgorithm(cycleValue(algorithms, app.renderer.algorithm));
     }
-    if (app.input.consumeToggleRenderBackend) {
-      const next = cycleAvailableBackend(app.renderer.backend);
-      if (next !== app.renderer.backend) {
-        app.setRenderBackend(next);
-      }
-    }
+    const switchPromise =
+      backendSwitch && backendSwitch !== app.renderer.backend
+        ? app.setRenderBackend(backendSwitch)
+        : Promise.resolve();
     app.camera.move(time.deltaTime, app.input, app.terrain);
-    Promise.resolve(app.renderer.render(app.terrain)).then(() => {
-      app.fpsCounter.addFrame();
-      window.requestAnimationFrame(run);
-    });
+    switchPromise
+      .then(() => app.renderer.render(app.terrain))
+      .then(() => {
+        app.fpsCounter.addFrame();
+      })
+      .catch((err) => {
+        console.error("render", err);
+      })
+      .then(() => {
+        window.requestAnimationFrame(run);
+      });
   };
   run();
 }

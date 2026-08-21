@@ -1,11 +1,13 @@
 "use strict";
 
-import { renderClassicColumns } from "./classicmarch.js";
-import { renderPanoramaColumns } from "./panoramamarch.js";
-import { renderPanoramaViewColumns } from "./panoramaViewer.js";
+import { renderClassicColumns as renderClassicColumnsJs } from "./classicmarch.js";
+import { renderPanoramaColumns as renderPanoramaColumnsJs } from "./panoramamarch.js";
+import { renderPanoramaViewColumns as renderPanoramaViewColumnsJs } from "./panoramaViewer.js";
 import {
   MSG_INIT_MAPS,
   MSG_INIT_PANO,
+  MSG_INIT_KERNEL,
+  MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
   MSG_RENDER_PANORAMA,
   MSG_RENDER_PANO_VIEW,
@@ -14,6 +16,7 @@ import {
   MSG_RESULT_PANO_VIEW,
   MSG_WORKER_ERROR,
 } from "./jobProtocol.js";
+import { BACKEND_WASM } from "../constants/backend.js";
 
 const workerState = {
   heightMap: null,
@@ -23,13 +26,35 @@ const workerState = {
   mapShift: 0,
   altitude: 0,
   maxHeight: 0,
+  mapsGeneration: 0,
   panoMips: null,
   panoPixels: null,
   panoHorizon: null,
   panoDepth: null,
   panoWidth: 0,
   panoHeight: 0,
+  panoGeneration: 0,
 };
+
+let renderClassicColumns = renderClassicColumnsJs;
+let renderPanoramaColumns = renderPanoramaColumnsJs;
+let renderPanoramaViewColumns = renderPanoramaViewColumnsJs;
+
+async function setKernelBackend(backend) {
+  if (backend === BACKEND_WASM) {
+    const { instantiateMarch } = await import("../wasm/instantiate.js");
+    const { createWasmKernels } = await import("../wasm/kernels.js");
+    const instance = await instantiateMarch();
+    const kernels = createWasmKernels(instance);
+    renderClassicColumns = kernels.renderClassicColumns;
+    renderPanoramaColumns = kernels.renderPanoramaColumns;
+    renderPanoramaViewColumns = kernels.renderPanoramaViewColumns;
+    return;
+  }
+  renderClassicColumns = renderClassicColumnsJs;
+  renderPanoramaColumns = renderPanoramaColumnsJs;
+  renderPanoramaViewColumns = renderPanoramaViewColumnsJs;
+}
 
 function initMaps(msg) {
   workerState.heightMap = new Uint8Array(msg.heightMap);
@@ -40,6 +65,7 @@ function initMaps(msg) {
   workerState.altitude = msg.altitude;
   workerState.maxHeight =
     msg.maxHeight == null ? workerState.altitude : msg.maxHeight;
+  workerState.mapsGeneration = (workerState.mapsGeneration + 1) | 0;
   const mipCount = msg.mipCount | 0;
   const heightMaps = [workerState.heightMap];
   const colorMaps = [workerState.colorMap];
@@ -68,6 +94,7 @@ function initPano(msg) {
   workerState.panoDepth = msg.depth ? new Float32Array(msg.depth) : null;
   workerState.panoWidth = msg.width;
   workerState.panoHeight = msg.height;
+  workerState.panoGeneration = msg.generation | 0;
 }
 
 function renderClassic(msg) {
@@ -88,6 +115,8 @@ function renderClassic(msg) {
     mapShift: workerState.mapShift,
     altitude: workerState.altitude,
     maxHeight: workerState.maxHeight,
+    mapsGeneration: workerState.mapsGeneration,
+    panoMips: workerState.panoMips,
     startColumn: msg.startColumn,
     endColumn: msg.endColumn,
     screenWidth: msg.screenWidth,
@@ -109,6 +138,7 @@ function renderClassic(msg) {
     pixels,
     pixelWidth: localWidth,
     fillUnfilled: rowColors ? 0 : 1,
+    rowColors: rowColors || null,
   });
   self.postMessage(
     {
@@ -135,6 +165,7 @@ function renderPanorama(msg) {
     mapShift: workerState.mapShift,
     altitude: workerState.altitude,
     maxHeight: workerState.maxHeight,
+    mapsGeneration: workerState.mapsGeneration,
     camX: msg.camX,
     camY: msg.camY,
     camZ: msg.camZ,
@@ -186,6 +217,7 @@ function renderPanoView(msg) {
     fillUnfilled: 1,
     horizon: workerState.panoHorizon,
     depth: workerState.panoDepth,
+    panoGeneration: workerState.panoGeneration,
     skyColor: msg.skyColor,
     horizonColor: msg.horizonColor,
     nearClip: msg.nearClip,
@@ -213,34 +245,45 @@ function renderPanoView(msg) {
   );
 }
 
+async function handleMessage(msg) {
+  if (msg.type === MSG_INIT_KERNEL) {
+    await setKernelBackend(msg.backend);
+    self.postMessage({ type: MSG_KERNEL_READY });
+    return;
+  }
+  if (msg.type === MSG_INIT_MAPS) {
+    initMaps(msg);
+    return;
+  }
+  if (msg.type === MSG_INIT_PANO) {
+    initPano(msg);
+    return;
+  }
+  if (msg.type === MSG_RENDER_CLASSIC) {
+    renderClassic(msg);
+    return;
+  }
+  if (msg.type === MSG_RENDER_PANORAMA) {
+    renderPanorama(msg);
+    return;
+  }
+  if (msg.type === MSG_RENDER_PANO_VIEW) {
+    renderPanoView(msg);
+  }
+}
+
+let chain = Promise.resolve();
+
 self.onmessage = (e) => {
   const msg = e.data;
-  try {
-    if (msg.type === MSG_INIT_MAPS) {
-      initMaps(msg);
-      return;
-    }
-    if (msg.type === MSG_INIT_PANO) {
-      initPano(msg);
-      return;
-    }
-    if (msg.type === MSG_RENDER_CLASSIC) {
-      renderClassic(msg);
-      return;
-    }
-    if (msg.type === MSG_RENDER_PANORAMA) {
-      renderPanorama(msg);
-      return;
-    }
-    if (msg.type === MSG_RENDER_PANO_VIEW) {
-      renderPanoView(msg);
-    }
-  } catch (err) {
-    self.postMessage({
-      type: MSG_WORKER_ERROR,
-      jobId: msg && msg.jobId,
-      message: String(err && err.message ? err.message : err),
-      stack: err && err.stack ? String(err.stack) : "",
+  chain = chain
+    .then(() => handleMessage(msg))
+    .catch((err) => {
+      self.postMessage({
+        type: MSG_WORKER_ERROR,
+        jobId: msg && msg.jobId,
+        message: String(err && err.message ? err.message : err),
+        stack: err && err.stack ? String(err.stack) : "",
+      });
     });
-  }
 };

@@ -6,6 +6,8 @@ export const DEFAULT_MULTITHREAD = false;
 
 export const MSG_INIT_MAPS = "initMaps";
 export const MSG_INIT_PANO = "initPano";
+export const MSG_INIT_KERNEL = "initKernel";
+export const MSG_KERNEL_READY = "kernelReady";
 export const MSG_RENDER_CLASSIC = "renderClassic";
 export const MSG_RENDER_PANORAMA = "renderPanorama";
 export const MSG_RENDER_PANO_VIEW = "renderPanoView";

@@ -1,6 +1,9 @@
 # Local scratch (prompts, notes, dumps) — never versioned
 temp/
 
+# WASM toolchain output (committed artifact is scripts/wasm/march.bytes.js)
+tools/wasm/out/
+
 # Editor / AI tooling — local only
 .cursor/
 .cursorrules
