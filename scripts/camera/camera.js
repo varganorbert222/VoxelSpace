@@ -248,9 +248,12 @@ class Camera {
   resize(canvas, width, height) {
     const nextWidth = (width * this._renderScale) | 0;
     const nextHeight = (height * this._renderScale) | 0;
+    const gpu = canvas && canvas.dataset && canvas.dataset.present === "webgpu";
     const sameSize =
-      ((this._frameBuffer.width === nextWidth) | 0) &
-      ((this._frameBuffer.height === nextHeight) | 0) &
+      ((this._width === nextWidth) | 0) &
+      ((this._height === nextHeight) | 0) &
+      ((canvas.width === nextWidth) | 0) &
+      ((canvas.height === nextHeight) | 0) &
       ((nextWidth > 0) | 0);
     this._width = nextWidth;
     this._height = nextHeight;
@@ -259,12 +262,17 @@ class Camera {
       return;
     }
 
-    this._frameBuffer.set({
-      canvas: canvas,
-      width: width,
-      height: height,
-      renderScale: this._renderScale,
-    });
+    if (gpu) {
+      canvas.width = nextWidth;
+      canvas.height = nextHeight;
+    } else {
+      this._frameBuffer.set({
+        canvas: canvas,
+        width: width,
+        height: height,
+        renderScale: this._renderScale,
+      });
+    }
     if (this._onResized) {
       this._onResized();
     }

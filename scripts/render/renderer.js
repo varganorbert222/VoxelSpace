@@ -3,6 +3,7 @@
 import {
   BACKEND_CHIP,
   BACKEND_JS,
+  usesCanvas2d,
   usesWorkers,
 } from "../constants/backend.js";
 import { ALGORITHM_CLASSIC } from "../constants/algorithm.js";
@@ -186,6 +187,27 @@ class Renderer {
       return false;
     }
 
+    const nextPresent = usesCanvas2d(id) ? "2d" : "webgpu";
+    const prevPresent = this._backend
+      ? usesCanvas2d(this._backendId)
+        ? "2d"
+        : "webgpu"
+      : "2d";
+
+    if (this._backend && nextPresent !== prevPresent) {
+      try {
+        this._backend.dispose();
+      } catch (err) {
+        console.warn("Render runtime dispose failed:", err);
+      }
+      this._backend = null;
+      if (nextPresent === "webgpu") {
+        this._surface.replaceForWebgpu();
+      } else {
+        this._surface.restoreForSoftware();
+      }
+    }
+
     const created = createBackend(id);
     try {
       await created.init({
@@ -193,11 +215,17 @@ class Renderer {
         camera: this._camera,
         frameBuffer: this._frameBuffer,
         surface: this._surface,
+        onDeviceLost: () => {
+          this.setBackend(BACKEND_JS);
+        },
       });
     } catch (err) {
       console.warn("Render runtime init failed:", id, err);
       if (created.dispose) {
         created.dispose();
+      }
+      if (nextPresent === "webgpu") {
+        this._surface.restoreForSoftware();
       }
       if (id !== BACKEND_JS) {
         return this._swapBackend(BACKEND_JS);

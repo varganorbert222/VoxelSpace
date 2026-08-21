@@ -106,6 +106,13 @@ class FrameBuffer {
   }
 
   set(bufferData) {
+    if (
+      bufferData.canvas &&
+      bufferData.canvas.dataset &&
+      bufferData.canvas.dataset.present === "webgpu"
+    ) {
+      return;
+    }
     const width = (bufferData.width * bufferData.renderScale) | 0;
     const height = (bufferData.height * bufferData.renderScale) | 0;
     if (
@@ -126,6 +133,9 @@ class FrameBuffer {
 
     if (this._canvas.getContext) {
       this._contextForCanvas = this._canvas.getContext("2d");
+      if (!this._contextForCanvas) {
+        return;
+      }
       this._imageDataForContext = this._contextForCanvas.createImageData(
         this._width,
         this._height

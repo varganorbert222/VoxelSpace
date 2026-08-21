@@ -10,37 +10,61 @@ import {
 } from "../constants/input.js";
 
 export function bindPointer(input, canvas) {
-  canvas.addEventListener("mousedown", (e) => {
-    detectMouseDown(input, e);
-  });
-  canvas.addEventListener("mouseup", () => {
-    detectMouseUp(input);
-  });
-  canvas.addEventListener("mousemove", (e) => {
-    detectMouseMove(input, e);
-  });
+  if (input._pointerAbort) {
+    input._pointerAbort.abort();
+  }
+  input._pointerAbort = new AbortController();
+  const signal = input._pointerAbort.signal;
+  canvas.addEventListener(
+    "mousedown",
+    (e) => {
+      detectMouseDown(input, e);
+    },
+    { signal: signal }
+  );
+  canvas.addEventListener(
+    "mouseup",
+    () => {
+      detectMouseUp(input);
+    },
+    { signal: signal }
+  );
+  canvas.addEventListener(
+    "mousemove",
+    (e) => {
+      detectMouseMove(input, e);
+    },
+    { signal: signal }
+  );
   canvas.addEventListener(
     "wheel",
     (e) => {
       detectMouseWheel(input, e);
     },
-    { passive: false }
+    { signal: signal, passive: false }
   );
-  canvas.addEventListener("click", () => {
-    tryPointerLock(input);
-  });
+  canvas.addEventListener(
+    "click",
+    () => {
+      tryPointerLock(input);
+    },
+    { signal: signal }
+  );
 
-  document.addEventListener("pointerlockchange", () => {
-    if (!input.pointerLocked) {
-      input._lookX = 0;
-      input._lookY = 0;
-    }
-  });
-  document.addEventListener("mousemove", (e) => {
-    if (!input.pointerLocked) return;
-    input._lookX += e.movementX;
-    input._lookY += e.movementY;
-  });
+  if (!input._pointerDocBound) {
+    input._pointerDocBound = true;
+    document.addEventListener("pointerlockchange", () => {
+      if (!input.pointerLocked) {
+        input._lookX = 0;
+        input._lookY = 0;
+      }
+    });
+    document.addEventListener("mousemove", (e) => {
+      if (!input.pointerLocked) return;
+      input._lookX += e.movementX;
+      input._lookY += e.movementY;
+    });
+  }
 }
 
 export function tryPointerLock(input) {

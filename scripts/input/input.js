@@ -126,6 +126,9 @@ class Input {
 
   setCanvas(canvas) {
     this._canvas = canvas;
+    if (canvas) {
+      bindPointer(this, canvas);
+    }
   }
 
   bindTouchControls(elements) {

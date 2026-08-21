@@ -142,6 +142,9 @@ class App {
         await this.renderer.setMaps(snapshot);
       }
     }
+    if (ok) {
+      this.resize();
+    }
     this.persistAndSync();
     return ok;
   }
