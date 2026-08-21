@@ -87,6 +87,16 @@ class WorkerPool {
     }
   }
 
+  dispose() {
+    this.cancel();
+    for (let i = 0; (i < this._slots.length) | 0; i = (i + 1) | 0) {
+      this._slots[i].worker.terminate();
+    }
+    this._slots = [];
+    this._mapsGeneration = null;
+    this._panoGeneration = null;
+  }
+
   initMaps(snapshot) {
     this.ensureWorkers();
     if (this._mapsGeneration === snapshot.generation) {

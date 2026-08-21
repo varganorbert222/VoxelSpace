@@ -41,6 +41,7 @@
       <div class="hud-status">
         <span class="hud-chip" id="id_hud_map">----</span>
         <span class="hud-chip hud-chip--cyan" id="id_hud_algorithm">----</span>
+        <span class="hud-chip" id="id_hud_backend">----</span>
         <span class="hud-chip hud-chip--green" id="id_hud_camera">----</span>
       </div>
       <div class="hud-top-right">
@@ -72,7 +73,7 @@
         <div class="control-grid">
           <div class="control" data-tip="Classic: column voxel space. Panorama: 360° spherical view.">
             <div class="control-head">
-              <label for="id_algorithmselector">Renderer</label>
+              <label for="id_algorithmselector">Algorithm</label>
             </div>
             <select
               id="id_algorithmselector"
@@ -82,6 +83,22 @@
               <option value="">Please select algorithm</option>
             </select>
           </div>
+          <div
+            class="control"
+            data-tip="Where pixels are produced. CPU · JS is live. WASM and WebGPU stay listed until those runtimes ship."
+          >
+            <div class="control-head">
+              <label for="id_backendselector">Runtime</label>
+            </div>
+            <select
+              id="id_backendselector"
+              title="BackendSelector"
+              name="BackendSelector"
+              autocomplete="off"
+            >
+              <option value="">Please select runtime</option>
+            </select>
+          </div>
           <div class="control" data-tip="1 fastest, 4 sharpest. Higher uses a larger buffer.">
             <div class="control-head">
               <label for="id_quality">Quality</label>
@@ -89,7 +106,7 @@
             <select id="id_quality" name="quality" autocomplete="off"></select>
           </div>
           <div
-            class="control control--span"
+            class="control"
             data-tip="Fly: free flight. Orbital: circle the map center."
           >
             <div class="control-head">
@@ -183,7 +200,8 @@
           <div><dt>R F</dt><dd>Up / down</dd></div>
           <div><dt>Space Ctrl</dt><dd>Up / down</dd></div>
           <div class="pano-only"><dt>Q E</dt><dd>Roll</dd></div>
-          <div><dt>P</dt><dd>Classic / pano</dd></div>
+          <div><dt>P</dt><dd>Cycle algorithm</dd></div>
+          <div><dt>B</dt><dd>Cycle runtime</dd></div>
           <div><dt>H</dt><dd>Toggle HUD</dd></div>
           <div><dt>Esc</dt><dd>Close panel</dd></div>
         </dl>

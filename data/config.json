@@ -29,6 +29,10 @@
     "renderAlgorithms": {
       "values": ["classic", "panorama"]
     },
+    "renderBackends": {
+      "values": ["js", "wasm", "webgpu"],
+      "default": "js"
+    },
     "multithread": {
       "default": false
     }

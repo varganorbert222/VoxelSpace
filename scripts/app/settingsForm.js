@@ -4,6 +4,8 @@ import maps from "../../data/maps.json" with { type: "json" };
 import config from "../../data/config.json" with { type: "json" };
 import { SPAWN_HEIGHT_OFFSET } from "../constants/main.js";
 import { HALF } from "../constants/vmath.js";
+import { BACKEND_CHIP, usesWorkers } from "../constants/backend.js";
+import { listBackends } from "../backends/contract.js";
 
 function prepareControl(element) {
   element.setAttribute("autocomplete", "off");
@@ -66,6 +68,31 @@ function initOptionElement(id, optionConfig, value, onChange) {
   });
   element.value = String(value);
   element.addEventListener("change", onChange);
+  return element;
+}
+
+function initBackendElement(id, backends, value, onChange, getCurrent) {
+  const element = prepareControl(document.getElementById(id));
+  while (element.firstChild) {
+    element.removeChild(element.firstChild);
+  }
+  backends.forEach((b) => {
+    const option = document.createElement("option");
+    option.value = b.id;
+    option.text = b.label;
+    option.title = b.title;
+    option.disabled = !b.available;
+    element.append(option);
+  });
+  element.value = String(value);
+  element.addEventListener("change", (e) => {
+    const selected = backends.find((b) => b.id === e.target.value);
+    if (!selected || !selected.available) {
+      e.target.value = String(getCurrent ? getCurrent() : value);
+      return;
+    }
+    onChange(e);
+  });
   return element;
 }
 
@@ -186,6 +213,15 @@ class SettingsForm {
           app.setRenderAlgorithm(e.target.value);
         }
       ),
+      backend: initBackendElement(
+        "id_backendselector",
+        listBackends(),
+        options.backend,
+        (e) => {
+          app.setRenderBackend(e.target.value);
+        },
+        () => app.renderer.backend
+      ),
     };
     this._elements.renderScale.disabled = true;
     this.sync();
@@ -209,6 +245,7 @@ class SettingsForm {
       map,
       cameraMode,
       algorithm,
+      backend,
     } = this._elements;
     renderDistance.value = camera.farClip;
     updateBoundValue("id_render_distance", camera.farClip);
@@ -223,11 +260,14 @@ class SettingsForm {
     applyFog.checked = options.applyFog;
     repeat.checked = options.repeat;
     multithread.checked = options.multithread;
+    multithread.disabled = !usesWorkers(options.backend);
     map.value = this._app.currentMapName;
     cameraMode.value = camera.mode;
     algorithm.value = options.algorithm;
+    backend.value = options.backend;
     setChip("id_hud_map", this._app.currentMapName);
     setChip("id_hud_algorithm", options.algorithm);
+    setChip("id_hud_backend", BACKEND_CHIP[options.backend] || options.backend);
     setChip("id_hud_camera", camera.mode);
   }
 

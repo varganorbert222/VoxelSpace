@@ -64,6 +64,12 @@ class Input {
     return pressed;
   }
 
+  get consumeToggleRenderBackend() {
+    const pressed = this._toggleRenderBackend;
+    this._toggleRenderBackend = false;
+    return pressed;
+  }
+
   consumeLookDelta() {
     const x = this._lookX;
     const y = this._lookY;
@@ -90,6 +96,7 @@ class Input {
     this._zoom = ZOOM_DEFAULT;
     this._mouseposition = null;
     this._toggleRenderAlgorithm = false;
+    this._toggleRenderBackend = false;
     this._flyLook = true;
     this._rollEnabled = false;
     this._canvas = config.canvas;
@@ -115,6 +122,10 @@ class Input {
 
   tryPointerLock() {
     tryPointerLock(this);
+  }
+
+  setCanvas(canvas) {
+    this._canvas = canvas;
   }
 
   bindTouchControls(elements) {

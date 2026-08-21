@@ -4,6 +4,7 @@ import {
   SETTINGS_STORAGE_KEY,
   SETTINGS_STORAGE_VERSION,
 } from "../constants/main.js";
+import { BACKEND_JS } from "../constants/backend.js";
 import VMath from "../math/vmath.js";
 
 function finiteOr(value, fallback) {
@@ -26,10 +27,16 @@ export function readPersistedSettings() {
       return null;
     }
     const data = JSON.parse(raw);
-    if (!data || data.version !== SETTINGS_STORAGE_VERSION) {
+    if (!data) {
       return null;
     }
-    return data;
+    if (data.version === SETTINGS_STORAGE_VERSION) {
+      return data;
+    }
+    if (data.version === 1) {
+      return { ...data, version: SETTINGS_STORAGE_VERSION, backend: BACKEND_JS };
+    }
+    return null;
   } catch {
     return null;
   }
@@ -74,5 +81,6 @@ export function sanitizeSettings(data, defaults, bounds) {
     multithread: boolOr(data.multithread, defaults.multithread),
     map: pickAllowed(data.map, bounds.mapNames, defaults.map),
     algorithm: pickAllowed(data.algorithm, bounds.algorithms, defaults.algorithm),
+    backend: pickAllowed(data.backend, bounds.backends, defaults.backend),
   };
 }

@@ -62,6 +62,10 @@ class Terrain {
     );
   }
 
+  peekExportedMaps() {
+    return this._exportedMaps;
+  }
+
   exportMaps() {
     if (this._exportedMaps) {
       return this._exportedMaps;

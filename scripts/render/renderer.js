@@ -1,22 +1,26 @@
 "use strict";
 
-import ClassicRenderer from "./classicRenderer.js";
-import PanoramaRenderer from "./panoramaRenderer.js";
-import WorkerPool from "./workerPool.js";
-import { ALGORITHM_CLASSIC, ALGORITHM_PANORAMA } from "../constants/algorithm.js";
+import {
+  BACKEND_CHIP,
+  BACKEND_JS,
+  usesWorkers,
+} from "../constants/backend.js";
+import { ALGORITHM_CLASSIC } from "../constants/algorithm.js";
 import { DEFAULT_MULTITHREAD } from "../constants/threading.js";
+import { createBackend, listBackends } from "../backends/contract.js";
 
 class Renderer {
-  constructor(frameBuffer) {
+  constructor(frameBuffer, surface) {
     this._frameBuffer = frameBuffer;
+    this._surface = surface;
     this._camera = null;
     this._applyFog = true;
     this._repeat = true;
     this._algorithm = ALGORITHM_CLASSIC;
     this._multithread = DEFAULT_MULTITHREAD;
-    this._pool = null;
-    this._classic = new ClassicRenderer(this);
-    this._panorama = new PanoramaRenderer(this);
+    this._multithreadWanted = DEFAULT_MULTITHREAD;
+    this._backendId = BACKEND_JS;
+    this._backend = null;
   }
 
   setCamera(camera) {
@@ -31,8 +35,8 @@ class Renderer {
     return this._frameBuffer;
   }
 
-  get pool() {
-    return this._pool;
+  get surface() {
+    return this._surface;
   }
 
   get applyFog() {
@@ -51,6 +55,14 @@ class Renderer {
     return this._multithread;
   }
 
+  get backend() {
+    return this._backendId;
+  }
+
+  get backendChip() {
+    return BACKEND_CHIP[this._backendId] || this._backendId;
+  }
+
   set algorithm(value) {
     if (this._algorithm !== value) {
       this.cancelJobs();
@@ -60,14 +72,15 @@ class Renderer {
 
   set multithread(value) {
     const next = !!value;
+    this._multithreadWanted = next;
+    if (!usesWorkers(this._backendId)) {
+      return;
+    }
     if (this._multithread === next) {
       return;
     }
     this._multithread = next;
     this.cancelJobs();
-    if (next) {
-      this.ensurePool();
-    }
   }
 
   getOptions() {
@@ -75,7 +88,8 @@ class Renderer {
       applyFog: this._applyFog,
       repeat: this._repeat,
       algorithm: this._algorithm,
-      multithread: this._multithread,
+      multithread: this._multithreadWanted,
+      backend: this._backendId,
     };
   }
 
@@ -92,31 +106,34 @@ class Renderer {
     if (options.multithread !== undefined) {
       this.multithread = options.multithread;
     }
-  }
-
-  ensurePool() {
-    if (!this._pool) {
-      this._pool = new WorkerPool();
+    if (options.backend !== undefined && !this._backend) {
+      this._backendId = options.backend;
     }
-    return this._pool;
-  }
-
-  useWorkers() {
-    return this._multithread && this.ensurePool().workerCount > 1;
   }
 
   cancelJobs() {
-    if (this._pool) {
-      this._pool.cancel();
+    if (this._backend && this._backend.cancelJobs) {
+      this._backend.cancelJobs();
     }
   }
 
   onFrameBufferResized() {
     this.cancelJobs();
+    if (this._backend && this._backend.resize) {
+      this._backend.resize(this._surface);
+    }
   }
 
   invalidatePanorama() {
-    this._panorama.invalidate();
+    if (this._backend) {
+      this._backend.invalidatePanorama();
+    }
+  }
+
+  async setMaps(exportedMaps) {
+    if (this._backend && exportedMaps) {
+      await this._backend.setMaps(exportedMaps);
+    }
   }
 
   drawBackground() {
@@ -129,12 +146,82 @@ class Renderer {
     this._frameBuffer.writeToContext();
   }
 
-  async render(terrain) {
-    if (this._algorithm === ALGORITHM_PANORAMA) {
-      await this._panorama.render(terrain);
+  _syncWorkerFlag() {
+    if (usesWorkers(this._backendId)) {
+      this._multithread = this._multithreadWanted;
       return;
     }
-    await this._classic.render(terrain);
+    this._multithread = false;
+  }
+
+  async setBackend(id) {
+    if (id === this._backendId && this._backend) {
+      return true;
+    }
+
+    const listed = listBackends();
+    const meta = listed.find((b) => b.id === id);
+    if (!meta || !meta.available) {
+      console.warn("Render runtime unavailable:", id);
+      if (!this._backend) {
+        if (id !== BACKEND_JS) {
+          return this.setBackend(BACKEND_JS);
+        }
+        return false;
+      }
+      return false;
+    }
+
+    const created = createBackend(id);
+    try {
+      await created.init({
+        renderer: this,
+        camera: this._camera,
+        frameBuffer: this._frameBuffer,
+        surface: this._surface,
+      });
+    } catch (err) {
+      console.warn("Render runtime init failed:", id, err);
+      if (created.dispose) {
+        created.dispose();
+      }
+      if (id !== BACKEND_JS) {
+        return this.setBackend(BACKEND_JS);
+      }
+      return false;
+    }
+
+    const prev = this._backend;
+    this._backend = created;
+    this._backendId = id;
+    this._syncWorkerFlag();
+    if (prev && prev.dispose) {
+      try {
+        prev.dispose();
+      } catch (err) {
+        console.warn("Render runtime dispose failed:", err);
+      }
+    }
+    this.invalidatePanorama();
+    if (this._backend.resize) {
+      await this._backend.resize(this._surface);
+    }
+    return true;
+  }
+
+  async render(terrain) {
+    if (!this._backend) {
+      return;
+    }
+    await this._backend.render({
+      algorithm: this._algorithm,
+      camera: this._camera,
+      terrain,
+      applyFog: this._applyFog,
+      repeat: this._repeat,
+      screenWidth: this._frameBuffer.width,
+      screenHeight: this._frameBuffer.height,
+    });
   }
 }
 

@@ -6,6 +6,7 @@ import Camera from "../camera/camera.js";
 import Terrain from "../terrain/terrain.js";
 import Input from "../input/input.js";
 import FrameBuffer from "../render/framebuffer.js";
+import Surface from "../render/surface.js";
 import Renderer from "../render/renderer.js";
 import FpsCounter from "./fpsCounter.js";
 import SettingsForm from "./settingsForm.js";
@@ -22,6 +23,8 @@ import {
   ALGORITHM_CLASSIC,
   ALGORITHM_PANORAMA,
 } from "../constants/algorithm.js";
+import { BACKEND_JS } from "../constants/backend.js";
+import { detectBackends } from "../backends/contract.js";
 import { renderScaleForQuality } from "../constants/quality.js";
 import { DEFAULT_MULTITHREAD } from "../constants/threading.js";
 import { CANVAS_ID } from "../constants/main.js";
@@ -31,21 +34,26 @@ class App {
     this.terrain = null;
     this.camera = null;
     this.renderer = null;
+    this.surface = null;
     this.input = null;
     this.fpsCounter = new FpsCounter();
     this.settingsForm = new SettingsForm(this);
     this.currentMapName = null;
   }
 
-  start() {
+  async start() {
+    await detectBackends();
+
     const canvas = document.getElementById(CANVAS_ID);
     const frameBuffer = new FrameBuffer();
+    this.surface = new Surface(canvas, frameBuffer);
     this.terrain = new Terrain();
-    this.renderer = new Renderer(frameBuffer);
+    this.renderer = new Renderer(frameBuffer, this.surface);
     this.camera = new Camera(config.camera, frameBuffer);
     this.renderer.setCamera(this.camera);
     this.camera.setResizeHandler(() => this.renderer.onFrameBufferResized());
-    this.input = new Input({ canvas });
+    this.input = new Input({ canvas: this.surface.getCanvas() });
+    this.surface.setInput(this.input);
 
     const multithreadDefault = config.settings.multithread.default;
     this.renderer.setOptions({
@@ -53,6 +61,7 @@ class App {
         multithreadDefault === undefined
           ? DEFAULT_MULTITHREAD
           : multithreadDefault,
+      backend: config.settings.renderBackends.default || BACKEND_JS,
     });
     this.currentMapName = maps[0].name;
     this._applyPersistedSettings(readPersistedSettings());
@@ -66,6 +75,7 @@ class App {
 
     this.settingsForm.init();
     initHud();
+    await this.setRenderBackend(this.renderer.backend);
     this.setRenderAlgorithm(this.renderer.algorithm);
 
     this.input.bindTouchControls({
@@ -98,6 +108,7 @@ class App {
       multithread: options.multithread,
       mode: this.camera.mode,
       algorithm: options.algorithm,
+      backend: options.backend,
     });
     this.settingsForm.sync();
   }
@@ -123,6 +134,18 @@ class App {
     this.persistAndSync();
   }
 
+  async setRenderBackend(id) {
+    const ok = await this.renderer.setBackend(id);
+    if (ok && this.terrain) {
+      const snapshot = this.terrain.peekExportedMaps();
+      if (snapshot) {
+        await this.renderer.setMaps(snapshot);
+      }
+    }
+    this.persistAndSync();
+    return ok;
+  }
+
   resize() {
     const next = renderScaleForQuality(
       this.camera.quality,
@@ -134,7 +157,7 @@ class App {
     }
     this.settingsForm.syncRenderScale();
     this.camera.resize(
-      document.getElementById(CANVAS_ID),
+      this.surface ? this.surface.getCanvas() : document.getElementById(CANVAS_ID),
       window.innerWidth,
       window.innerHeight
     );
@@ -158,6 +181,7 @@ class App {
         multithread: this.renderer.multithread,
         map: this.currentMapName,
         algorithm: this.renderer.algorithm,
+        backend: this.renderer.backend,
       },
       {
         renderDistance: config.settings.renderDistance,
@@ -166,6 +190,7 @@ class App {
         qualities: config.settings.quality.values.map(Number),
         modes: config.settings.cameraModes.values,
         algorithms: config.settings.renderAlgorithms.values,
+        backends: config.settings.renderBackends.values,
         mapNames: maps.map((m) => m.name),
       }
     );
@@ -184,6 +209,7 @@ class App {
       repeat: sanitized.repeat,
       multithread: sanitized.multithread,
       algorithm: sanitized.algorithm,
+      backend: sanitized.backend,
     });
     this.currentMapName = sanitized.map;
   }

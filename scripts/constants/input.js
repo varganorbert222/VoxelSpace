@@ -35,6 +35,7 @@ export const Key = Object.freeze({
   W: "KeyW",
   F: "KeyF",
   P: "KeyP",
+  B: "KeyB",
 });
 
 export function keyFromCode(code) {

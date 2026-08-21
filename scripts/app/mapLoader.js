@@ -18,6 +18,7 @@ export function loadMap(app, mapName) {
       colorMap: images[0],
       heightMap: images[1],
     });
+    app.renderer.setMaps(app.terrain.exportMaps());
     app.renderer.invalidatePanorama();
     app.camera.set({
       topColor: app.terrain.skyColor,

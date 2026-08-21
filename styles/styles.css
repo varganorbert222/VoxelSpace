@@ -147,6 +147,12 @@ canvas {
   color: var(--hud-green);
 }
 
+@media (max-width: 960px) {
+  #id_hud_backend {
+    display: none;
+  }
+}
+
 .hud-top-right {
   display: flex;
   align-items: center;
@@ -510,6 +516,15 @@ input[type="range"]::-moz-range-thumb {
 
 .control:has(#id_render_scale:disabled) input[type="range"] {
   pointer-events: none;
+}
+
+.check:has(#id_multithread:disabled) {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+option:disabled {
+  color: var(--hud-muted);
 }
 
 .flag-grid {

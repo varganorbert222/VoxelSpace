@@ -84,6 +84,9 @@ function detectKeysDown(input, e) {
     case Key.P:
       if (!e.repeat) input._toggleRenderAlgorithm = true;
       break;
+    case Key.B:
+      if (!e.repeat) input._toggleRenderBackend = true;
+      break;
     default:
       return;
   }
