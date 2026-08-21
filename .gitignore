@@ -1,2 +1,9 @@
-temp
-temp/*
+# Local scratch (prompts, notes, dumps) — never versioned
+temp/
+
+# Editor / AI tooling — local only
+.cursor/
+.cursorrules
+.cursorignore
+AGENTS.md
+.vscode/

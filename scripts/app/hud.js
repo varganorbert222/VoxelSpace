@@ -1,5 +1,7 @@
 "use strict";
 
+import { dismissHudTooltip, initTooltips } from "./tooltip.js";
+
 const FORM_TAGS = new Set(["INPUT", "SELECT", "BUTTON", "TEXTAREA"]);
 
 function isTouchLayout() {
@@ -26,6 +28,9 @@ export function initHud() {
         : open
           ? "H · Close HUD"
           : "H · Toggle HUD";
+    }
+    if (!open) {
+      dismissHudTooltip();
     }
   }
 
@@ -60,4 +65,6 @@ export function initHud() {
     }
     setHudOpen(!document.body.classList.contains("hud-open"));
   });
+
+  initTooltips();
 }

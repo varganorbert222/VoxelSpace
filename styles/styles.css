@@ -52,6 +52,8 @@ canvas {
 .hud-hint,
 .hud-fps,
 .hud-done,
+.tip-mark,
+.hud-tip,
 #id_touch_buttons button {
   font-family: var(--hud-font);
   -webkit-font-smoothing: none;
@@ -303,9 +305,8 @@ body.hud-closed .hud-backdrop {
 
 .control-head {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 4px;
 }
 
@@ -319,10 +320,115 @@ body.hud-closed .hud-backdrop {
 }
 
 .control-value {
+  margin-left: auto;
   font-size: 20px;
   color: var(--hud-amber);
   letter-spacing: 0.04em;
   min-height: 1em;
+}
+
+.tip-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  font-family: var(--hud-font);
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #140f00;
+  background: var(--hud-amber);
+  border: 2px solid;
+  border-color: var(--hud-border-hi) var(--hud-border-lo) var(--hud-border-lo)
+    var(--hud-border-hi);
+  box-shadow: 2px 2px 0 #000;
+  cursor: help;
+  touch-action: manipulation;
+}
+
+.tip-mark:active {
+  box-shadow: 1px 1px 0 #000;
+  transform: translate(1px, 1px);
+}
+
+.tip-mark[aria-expanded="true"] {
+  background: var(--hud-cyan);
+}
+
+.hud-tip {
+  position: fixed;
+  z-index: 160;
+  max-width: 240px;
+  padding: 8px 10px 10px;
+  background: var(--hud-bg);
+  border: 2px solid;
+  border-color: var(--hud-border-hi) var(--hud-border-lo) var(--hud-border-lo)
+    var(--hud-border-hi);
+  box-shadow: var(--hud-shadow);
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 120ms steps(3, end);
+}
+
+.hud-tip[hidden] {
+  display: none;
+}
+
+.hud-tip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 2px,
+    rgba(0, 0, 0, 0.14) 2px,
+    rgba(0, 0, 0, 0.14) 3px
+  );
+  opacity: 0.5;
+}
+
+.hud-tip-title {
+  position: relative;
+  z-index: 1;
+  margin: 0 0 4px;
+  font-family: var(--hud-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--hud-amber);
+}
+
+.hud-tip-title:empty {
+  display: none;
+}
+
+.hud-tip-body {
+  position: relative;
+  z-index: 1;
+  font-family: var(--hud-mono);
+  font-size: 12px;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  color: var(--hud-text);
+}
+
+.hud-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .control-grid {
@@ -400,6 +506,9 @@ input[type="range"]::-moz-range-thumb {
 
 .control:has(#id_render_scale:disabled) {
   opacity: 0.45;
+}
+
+.control:has(#id_render_scale:disabled) input[type="range"] {
   pointer-events: none;
 }
 
@@ -407,6 +516,18 @@ input[type="range"]::-moz-range-thumb {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px 10px;
+}
+
+.check-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.check-wrap .check {
+  flex: 1;
+  min-width: 0;
 }
 
 .check {
@@ -677,8 +798,15 @@ body.classic .pano-only {
     height: 28px;
   }
 
-  .check {
+  .check,
+  .check-wrap {
     min-height: 44px;
+  }
+
+  .tip-mark {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
   }
 
   .check-box {

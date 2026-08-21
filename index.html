@@ -57,11 +57,11 @@
       <div class="hud-sheet-handle" aria-hidden="true"></div>
       <section class="hud-section">
         <h2 class="hud-section-title"><span>01</span> Mission</h2>
-        <div class="control">
+        <div class="control" data-tip="Height and color maps from Comanche missions.">
           <div class="control-head">
             <label for="id_mapselector">Map</label>
           </div>
-          <select id="id_mapselector" title="MapSelector" name="MapSelector" autocomplete="off">
+          <select id="id_mapselector" name="MapSelector" autocomplete="off">
             <option value="">Please select map</option>
           </select>
         </div>
@@ -70,32 +70,33 @@
       <section class="hud-section">
         <h2 class="hud-section-title"><span>02</span> Engine</h2>
         <div class="control-grid">
-          <div class="control">
+          <div class="control" data-tip="Classic: column voxel space. Panorama: 360° spherical view.">
             <div class="control-head">
               <label for="id_algorithmselector">Renderer</label>
             </div>
             <select
               id="id_algorithmselector"
-              title="AlgorithmSelector"
               name="AlgorithmSelector"
               autocomplete="off"
             >
               <option value="">Please select algorithm</option>
             </select>
           </div>
-          <div class="control">
+          <div class="control" data-tip="1 fastest, 4 sharpest. Higher uses a larger buffer.">
             <div class="control-head">
               <label for="id_quality">Quality</label>
             </div>
-            <select id="id_quality" title="quality" name="quality" autocomplete="off"></select>
+            <select id="id_quality" name="quality" autocomplete="off"></select>
           </div>
-          <div class="control control--span">
+          <div
+            class="control control--span"
+            data-tip="Fly: free flight. Orbital: circle the map center."
+          >
             <div class="control-head">
               <label for="id_cameraselector">Camera</label>
             </div>
             <select
               id="id_cameraselector"
-              title="CameraSelector"
               name="CameraSelector"
               autocomplete="off"
             >
@@ -107,28 +108,28 @@
 
       <section class="hud-section">
         <h2 class="hud-section-title"><span>03</span> View</h2>
-        <div class="control">
+        <div class="control" data-tip="How far terrain is drawn (far clip).">
           <div class="control-head">
             <label for="id_render_distance">Distance</label>
             <span class="control-value" data-for="id_render_distance"></span>
           </div>
           <input id="id_render_distance" type="range" autocomplete="off" />
         </div>
-        <div class="control">
+        <div class="control" data-tip="Ray step size. Lower is denser and slower.">
           <div class="control-head">
             <label for="id_delta_z">Delta Z</label>
             <span class="control-value" data-for="id_delta_z"></span>
           </div>
           <input id="id_delta_z" type="range" autocomplete="off" />
         </div>
-        <div class="control">
+        <div class="control" data-tip="Horizontal field of view in degrees.">
           <div class="control-head">
             <label for="id_fov">FOV</label>
             <span class="control-value" data-for="id_fov"></span>
           </div>
           <input id="id_fov" type="range" autocomplete="off" />
         </div>
-        <div class="control">
+        <div class="control" data-tip="Internal resolution. Set automatically by quality.">
           <div class="control-head">
             <label for="id_render_scale">Scale</label>
             <span class="control-value" data-for="id_render_scale"></span>
@@ -140,10 +141,9 @@
       <section class="hud-section">
         <h2 class="hud-section-title"><span>04</span> Flags</h2>
         <div class="flag-grid">
-          <label class="check" for="id_apply_fog">
+          <label class="check" for="id_apply_fog" data-tip="Fade distant terrain into the sky.">
             <input
               id="id_apply_fog"
-              title="applyFog"
               name="applyfog"
               type="checkbox"
               autocomplete="off"
@@ -151,15 +151,18 @@
             <span class="check-box" aria-hidden="true"></span>
             Fog
           </label>
-          <label class="check" for="id_repeat">
-            <input id="id_repeat" title="repeat" name="repeat" type="checkbox" autocomplete="off" />
+          <label class="check" for="id_repeat" data-tip="Tile the map so the world wraps.">
+            <input id="id_repeat" name="repeat" type="checkbox" autocomplete="off" />
             <span class="check-box" aria-hidden="true"></span>
             Repeat
           </label>
-          <label class="check" for="id_multithread">
+          <label
+            class="check"
+            for="id_multithread"
+            data-tip="Split rendering across worker threads."
+          >
             <input
               id="id_multithread"
-              title="multithread"
               name="multithread"
               type="checkbox"
               autocomplete="off"
