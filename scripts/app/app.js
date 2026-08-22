@@ -18,6 +18,7 @@ import {
   persistSettings,
   readPersistedSettings,
   sanitizeSettings,
+  collectSettings,
 } from "./settingsStore.js";
 import { Color } from "../math/color.js";
 import {
@@ -29,9 +30,10 @@ import {
 import { BACKEND_JS } from "../constants/backend.js";
 import { detectBackends } from "../backends/contract.js";
 import { renderScaleForQuality, clampQualityForContext } from "../constants/quality.js";
-import { envOverlayAllowed } from "../constants/debugView.js";
+import { DEBUG_VIEW_COLOR } from "../constants/debugView.js";
 import { DEFAULT_MULTITHREAD } from "../constants/threading.js";
-import { CANVAS_ID, VIEWPORT_ID } from "../constants/main.js";
+import { CANVAS_ID, VIEWPORT_ID, SPAWN_HEIGHT_OFFSET } from "../constants/main.js";
+import { HALF } from "../constants/vmath.js";
 
 class App {
   constructor() {
@@ -44,6 +46,8 @@ class App {
     this.settingsForm = new SettingsForm(this);
     this.radar = new Radar();
     this.currentMapName = null;
+    this.hudChrome = true;
+    this.radarOpen = true;
   }
 
   async start() {
@@ -61,13 +65,21 @@ class App {
     this.surface.setInput(this.input);
 
     const multithreadDefault = config.settings.multithread.default;
+    this.hudChrome = config.settings.hudChrome.default !== false;
+    this.radarOpen = config.settings.radar.default !== false;
     this.renderer.setOptions({
       multithread:
         multithreadDefault === undefined
           ? DEFAULT_MULTITHREAD
           : multithreadDefault,
       backend: config.settings.renderBackends.default || BACKEND_JS,
+      algorithm: config.settings.renderAlgorithms.default || ALGORITHM_CLASSIC,
+      debugView: config.settings.debugViews.default || DEBUG_VIEW_COLOR,
+      debugOverlay: !!config.settings.debugOverlay.default,
     });
+    if (config.settings.cameraModes.default) {
+      this.camera.set({ mode: config.settings.cameraModes.default });
+    }
     this.currentMapName = maps[0].name;
     this._applyPersistedSettings(readPersistedSettings());
 
@@ -103,22 +115,7 @@ class App {
     if (!this.camera) {
       return;
     }
-    const options = this.renderer.getOptions();
-    persistSettings({
-      map: this.currentMapName,
-      farClip: this.camera.farClip,
-      minDeltaZ: this.camera.minDeltaZ,
-      fov: this.camera.fov,
-      quality: this.camera.quality,
-      applyFog: options.applyFog,
-      repeat: options.repeat,
-      multithread: options.multithread,
-      mode: this.camera.mode,
-      algorithm: options.algorithm,
-      backend: options.backend,
-      debugView: options.debugView,
-      debugOverlay: options.debugOverlay,
-    });
+    persistSettings(collectSettings(this));
     this.settingsForm.sync();
   }
 
@@ -226,6 +223,7 @@ class App {
   }
 
   _applyPersistedSettings(data) {
+    const options = this.renderer.getOptions();
     const sanitized = sanitizeSettings(
       data,
       {
@@ -234,14 +232,16 @@ class App {
         fov: this.camera.fov,
         quality: this.camera.quality,
         mode: this.camera.mode,
-        applyFog: this.renderer.applyFog,
-        repeat: this.renderer.repeat,
-        multithread: this.renderer.multithread,
+        applyFog: options.applyFog,
+        repeat: options.repeat,
+        multithread: options.multithread,
         map: this.currentMapName,
-        algorithm: this.renderer.algorithm,
-        backend: this.renderer.backend,
-        debugView: this.renderer.debugView,
-        debugOverlay: this.renderer.debugOverlay,
+        algorithm: options.algorithm,
+        backend: options.backend,
+        debugView: options.debugView,
+        debugOverlay: options.debugOverlay,
+        hudChrome: this.hudChrome,
+        radarOpen: this.radarOpen,
       },
       {
         renderDistance: config.settings.renderDistance,
@@ -272,9 +272,11 @@ class App {
       algorithm: sanitized.algorithm,
       backend: sanitized.backend,
       debugView: sanitized.debugView,
-      debugOverlay: sanitized.debugOverlay && envOverlayAllowed(sanitized.algorithm),
+      debugOverlay: sanitized.debugOverlay,
     });
     this.currentMapName = sanitized.map;
+    this.hudChrome = sanitized.hudChrome;
+    this.radarOpen = sanitized.radarOpen;
   }
 
   _clampQualityToRuntime() {

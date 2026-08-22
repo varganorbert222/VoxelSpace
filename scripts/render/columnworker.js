@@ -181,8 +181,9 @@ function renderPanorama(msg) {
   const pixels = new Uint32Array((localWidth * msg.height) | 0);
   const horizon = new Int32Array(localWidth);
   const depth = new Float32Array((localWidth * msg.height) | 0);
-  const heightBuf = new Uint32Array((localWidth * msg.height) | 0);
-  const iterBuf = new Uint32Array((localWidth * msg.height) | 0);
+  const pixN = (localWidth * msg.height) | 0;
+  const heightBuf = msg.wantHeight ? new Uint32Array(pixN) : null;
+  const iterBuf = msg.wantIter ? new Uint32Array(pixN) : null;
   renderPanoramaColumns({
     heightMap: workerState.heightMap,
     colorMap: workerState.colorMap,
@@ -204,6 +205,7 @@ function renderPanorama(msg) {
     tMax: msg.tMax,
     repeat: msg.repeat,
     skyColor: msg.skyColor,
+    horizonColor: msg.horizonColor,
     initialStep: msg.initialStep,
     quality: msg.quality,
     pixels,
@@ -213,6 +215,13 @@ function renderPanorama(msg) {
     iterBuf,
     panoMips: workerState.panoMips,
   });
+  const transfer = [pixels.buffer, horizon.buffer, depth.buffer];
+  if (heightBuf) {
+    transfer.push(heightBuf.buffer);
+  }
+  if (iterBuf) {
+    transfer.push(iterBuf.buffer);
+  }
   self.postMessage(
     {
       type: MSG_RESULT_PANORAMA,
@@ -222,10 +231,10 @@ function renderPanorama(msg) {
       pixels: pixels.buffer,
       horizon: horizon.buffer,
       depth: depth.buffer,
-      heightBuf: heightBuf.buffer,
-      iter: iterBuf.buffer,
+      heightBuf: heightBuf ? heightBuf.buffer : null,
+      iter: iterBuf ? iterBuf.buffer : null,
     },
-    [pixels.buffer, horizon.buffer, depth.buffer, heightBuf.buffer, iterBuf.buffer]
+    transfer
   );
 }
 

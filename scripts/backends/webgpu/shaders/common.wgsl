@@ -43,6 +43,90 @@ fn fogRgb(c: vec4f, fogT: f32) -> vec4f {
   return c + (vec4f(1.0) - c) * fogT;
 }
 
+const PI: f32 = 3.141592653589793;
+const SKY_PALETTE_STEPS: f32 = 24.0;
+const SKY_PALETTE_T_MAX: f32 = 23.0 / 24.0;
+const SKY_ZENITH_POWER: f32 = 2.75;
+const CUBE_FACE_C = array<vec3f, 6>(
+  vec3f(1.0, 0.0, 0.0),
+  vec3f(-1.0, 0.0, 0.0),
+  vec3f(0.0, 1.0, 0.0),
+  vec3f(0.0, -1.0, 0.0),
+  vec3f(0.0, 0.0, 1.0),
+  vec3f(0.0, 0.0, -1.0)
+);
+const CUBE_FACE_U = array<vec3f, 6>(
+  vec3f(0.0, -1.0, 0.0),
+  vec3f(0.0, 1.0, 0.0),
+  vec3f(1.0, 0.0, 0.0),
+  vec3f(-1.0, 0.0, 0.0),
+  vec3f(1.0, 0.0, 0.0),
+  vec3f(1.0, 0.0, 0.0)
+);
+const CUBE_FACE_V = array<vec3f, 6>(
+  vec3f(0.0, 0.0, 1.0),
+  vec3f(0.0, 0.0, 1.0),
+  vec3f(0.0, 0.0, 1.0),
+  vec3f(0.0, 0.0, 1.0),
+  vec3f(0.0, 1.0, 0.0),
+  vec3f(0.0, -1.0, 0.0)
+);
+
+fn skyPaletteT(linearT: f32) -> f32 {
+  var t = clamp(linearT, 0.0, 1.0);
+  t = pow(t, SKY_ZENITH_POWER);
+  if (t > SKY_PALETTE_T_MAX) {
+    t = SKY_PALETTE_T_MAX;
+  }
+  return t;
+}
+
+fn skyLinearFromHat(hat: f32) -> f32 {
+  return (2.0 * acos(clamp(hat, -1.0, 1.0))) / PI;
+}
+
+fn skyLutIndexFromHat(hat: f32, height: i32) -> u32 {
+  let last = u32(max(height, 1) - 1);
+  var idx = u32(skyLinearFromHat(hat) * f32(height) * 0.5);
+  if (idx > last) {
+    idx = last;
+  }
+  return idx;
+}
+
+fn skyColorFromHat(hat: f32, sky: vec4f, horizon: vec4f) -> vec4f {
+  let t = skyPaletteT(skyLinearFromHat(hat));
+  let idx = min(u32(t * SKY_PALETTE_STEPS), 23u);
+  return mix(sky, horizon, f32(idx) / SKY_PALETTE_STEPS);
+}
+
+fn cubePixelUV(i: i32, n: i32) -> f32 {
+  return (2.0 * (f32(i) + 0.5)) / f32(n) - 1.0;
+}
+
+fn cubeDirFromTexel(face: i32, i: i32, j: i32, n: i32) -> vec3f {
+  let u = cubePixelUV(i, n);
+  let v = -cubePixelUV(j, n);
+  var fi = face;
+  if (fi < 0) {
+    fi = 0;
+  }
+  if (fi > 5) {
+    fi = 5;
+  }
+  let k = u32(fi);
+  return CUBE_FACE_C[k] + CUBE_FACE_U[k] * u + CUBE_FACE_V[k] * v;
+}
+
+fn skyColorFromDir(dir: vec3f, sky: vec4f, horizon: vec4f) -> vec4f {
+  let len = length(dir);
+  var hat = 0.0;
+  if (len > 1e-6) {
+    hat = dir.z / len;
+  }
+  return skyColorFromHat(hat, sky, horizon);
+}
+
 fn flagFog(flags: u32) -> bool {
   return (flags & 1u) != 0u;
 }

@@ -196,13 +196,18 @@ class WorkerPool {
       if (snapshot.depth) {
         depth.set(snapshot.depth);
       }
-      const heightBuf = new Uint32Array(n);
+      const transfer = [pixels.buffer, horizon.buffer, depth.buffer];
+      let heightBuf = null;
+      let iter = null;
       if (snapshot.heightBuf) {
+        heightBuf = new Uint32Array(n);
         heightBuf.set(snapshot.heightBuf);
+        transfer.push(heightBuf.buffer);
       }
-      const iter = new Uint32Array(n);
       if (snapshot.iter) {
+        iter = new Uint32Array(n);
         iter.set(snapshot.iter);
+        transfer.push(iter.buffer);
       }
       this._slots[i].worker.postMessage(
         {
@@ -210,13 +215,13 @@ class WorkerPool {
           pixels: pixels.buffer,
           horizon: horizon.buffer,
           depth: depth.buffer,
-          heightBuf: heightBuf.buffer,
-          iter: iter.buffer,
+          heightBuf: heightBuf ? heightBuf.buffer : null,
+          iter: iter ? iter.buffer : null,
           width: snapshot.width,
           height: snapshot.height,
           generation: snapshot.generation,
         },
-        [pixels.buffer, horizon.buffer, depth.buffer, heightBuf.buffer, iter.buffer]
+        transfer
       );
     }
   }
@@ -235,25 +240,30 @@ class WorkerPool {
       if (snapshot.depth) {
         depth.set(snapshot.depth);
       }
-      const heightBuf = new Uint32Array(n);
+      const transfer = [color.buffer, depth.buffer];
+      let heightBuf = null;
+      let iter = null;
       if (snapshot.heightBuf) {
+        heightBuf = new Uint32Array(n);
         heightBuf.set(snapshot.heightBuf);
+        transfer.push(heightBuf.buffer);
       }
-      const iter = new Uint32Array(n);
       if (snapshot.iter) {
+        iter = new Uint32Array(n);
         iter.set(snapshot.iter);
+        transfer.push(iter.buffer);
       }
       this._slots[i].worker.postMessage(
         {
           type: MSG_INIT_CUBE,
           color: color.buffer,
           depth: depth.buffer,
-          heightBuf: heightBuf.buffer,
-          iter: iter.buffer,
+          heightBuf: heightBuf ? heightBuf.buffer : null,
+          iter: iter ? iter.buffer : null,
           n: snapshot.n,
           generation: snapshot.generation,
         },
-        [color.buffer, depth.buffer, heightBuf.buffer, iter.buffer]
+        transfer
       );
     }
   }

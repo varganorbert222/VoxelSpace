@@ -135,8 +135,20 @@ export function panoYHitFromHat(sHat, table) {
   return table[idx];
 }
 
-function fillSkySlice(pixels, localWidth, height, skyColor, heightBuf, iterBuf) {
-  const palette = new ColorPalette(skyColor, Color.WHITE, SKY_PALETTE_STEPS);
+function fillSkySlice(
+  pixels,
+  localWidth,
+  height,
+  skyColor,
+  horizonColor,
+  heightBuf,
+  iterBuf
+) {
+  const palette = new ColorPalette(
+    skyColor ?? Color.WHITE,
+    horizonColor ?? Color.WHITE,
+    SKY_PALETTE_STEPS
+  );
   const h2 = height * HALF;
   const n = (localWidth * height) | 0;
   for (let y = 0; (y < height) | 0; y = (y + 1) | 0) {
@@ -173,6 +185,7 @@ export function renderPanoramaColumns({
   nearClip,
   repeat,
   skyColor,
+  horizonColor,
   initialStep,
   quality,
   pixels,
@@ -185,7 +198,15 @@ export function renderPanoramaColumns({
   panoMips,
 }) {
   const localWidth = (endPx - startPx) | 0;
-  fillSkySlice(pixels, localWidth, height, skyColor, heightBuf, iterBuf);
+  fillSkySlice(
+    pixels,
+    localWidth,
+    height,
+    skyColor,
+    horizonColor,
+    heightBuf,
+    iterBuf
+  );
   if (depth) {
     depth.fill(0);
   }
@@ -367,18 +388,28 @@ export function renderPanoramaColumns({
         if ((yHit < yBottom) | 0) {
           const color = mipColorMaps[mip][offset];
           const dist = Math.sqrt(t * t + dh * dh);
-          const hByte = mipHeightMaps[mip][offset];
-          for (let y = yHit; (y < yBottom) | 0; y = (y + 1) | 0) {
-            const pix = (y * localWidth + localX) | 0;
-            pixels[pix] = color;
-            if (depth) {
-              depth[pix] = dist;
+          if (heightBuf || iterBuf) {
+            const hByte = heightBuf ? mipHeightMaps[mip][offset] : 0;
+            for (let y = yHit; (y < yBottom) | 0; y = (y + 1) | 0) {
+              const pix = (y * localWidth + localX) | 0;
+              pixels[pix] = color;
+              if (depth) {
+                depth[pix] = dist;
+              }
+              if (heightBuf) {
+                heightBuf[pix] = hByte;
+              }
+              if (iterBuf) {
+                iterBuf[pix] = k;
+              }
             }
-            if (heightBuf) {
-              heightBuf[pix] = hByte;
-            }
-            if (iterBuf) {
-              iterBuf[pix] = k;
+          } else {
+            for (let y = yHit; (y < yBottom) | 0; y = (y + 1) | 0) {
+              const pix = (y * localWidth + localX) | 0;
+              pixels[pix] = color;
+              if (depth) {
+                depth[pix] = dist;
+              }
             }
           }
         }

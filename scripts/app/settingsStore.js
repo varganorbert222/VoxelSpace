@@ -17,7 +17,17 @@ function boolOr(value, fallback) {
 }
 
 function pickAllowed(value, allowed, fallback) {
-  return allowed.includes(value) ? value : fallback;
+  return allowed && allowed.includes(value) ? value : fallback;
+}
+
+function migratePersisted(data) {
+  if (!data || typeof data !== "object") {
+    return null;
+  }
+  if (data.version === 1) {
+    return { ...data, version: SETTINGS_STORAGE_VERSION, backend: BACKEND_JS };
+  }
+  return data;
 }
 
 export function readPersistedSettings() {
@@ -26,17 +36,7 @@ export function readPersistedSettings() {
     if (!raw) {
       return null;
     }
-    const data = JSON.parse(raw);
-    if (!data) {
-      return null;
-    }
-    if (data.version === SETTINGS_STORAGE_VERSION) {
-      return data;
-    }
-    if (data.version === 1) {
-      return { ...data, version: SETTINGS_STORAGE_VERSION, backend: BACKEND_JS };
-    }
-    return null;
+    return migratePersisted(JSON.parse(raw));
   } catch {
     return null;
   }
@@ -52,6 +52,27 @@ export function persistSettings(snapshot) {
   } catch {
     // Ignore quota / private-mode failures.
   }
+}
+
+export function collectSettings(app) {
+  const options = app.renderer.getOptions();
+  return {
+    map: app.currentMapName,
+    farClip: app.camera.farClip,
+    minDeltaZ: app.camera.minDeltaZ,
+    fov: app.camera.fov,
+    quality: app.camera.quality,
+    applyFog: options.applyFog,
+    repeat: options.repeat,
+    multithread: options.multithread,
+    mode: app.camera.mode,
+    algorithm: options.algorithm,
+    backend: options.backend,
+    debugView: options.debugView,
+    debugOverlay: options.debugOverlay,
+    hudChrome: !!app.hudChrome,
+    radarOpen: !!app.radarOpen,
+  };
 }
 
 export function sanitizeSettings(data, defaults, bounds) {
@@ -84,5 +105,7 @@ export function sanitizeSettings(data, defaults, bounds) {
     backend: pickAllowed(data.backend, bounds.backends, defaults.backend),
     debugView: pickAllowed(data.debugView, bounds.debugViews, defaults.debugView),
     debugOverlay: boolOr(data.debugOverlay, defaults.debugOverlay),
+    hudChrome: boolOr(data.hudChrome, defaults.hudChrome),
+    radarOpen: boolOr(data.radarOpen, defaults.radarOpen),
   };
 }

@@ -4,7 +4,6 @@ import { DEBUG_VIEW_HEIGHT } from "../constants/debugView.js";
 import {
   RADAR_CANVAS_ID,
   RADAR_FOV_RADIUS,
-  RADAR_HEADING_LEN,
   RADAR_MARK_SIZE,
   RADAR_TEX_SIZE,
 } from "../constants/radar.js";
@@ -141,7 +140,6 @@ class Radar {
     const heading = Math.atan2(camera.fwdY, camera.fwdX);
     const halfFov = ((camera.fov || 90) * Math.PI) / 180 / 2;
     const radius = Math.min(w, h) * RADAR_FOV_RADIUS;
-    const headingLen = Math.min(w, h) * RADAR_HEADING_LEN;
 
     ctx.save();
     ctx.translate(px, py);
@@ -153,13 +151,6 @@ class Radar {
     ctx.fill();
     ctx.strokeStyle = "rgba(255, 191, 60, 0.85)";
     ctx.lineWidth = 1;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(heading) * headingLen, Math.sin(heading) * headingLen);
-    ctx.strokeStyle = "#6af0ff";
-    ctx.lineWidth = 2;
     ctx.stroke();
 
     ctx.fillStyle = "#9dff4a";

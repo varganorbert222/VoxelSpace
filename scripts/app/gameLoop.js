@@ -60,7 +60,9 @@ function applySettingsHotkeys(app) {
   }
   if (app.input.consumeToggleThreads) {
     if (usesWorkers(app.renderer.backend)) {
-      app.renderer.setOptions({ multithread: !app.renderer.multithread });
+      app.renderer.setOptions({
+        multithread: !app.renderer.getOptions().multithread,
+      });
       app.persistAndSync();
     }
   }

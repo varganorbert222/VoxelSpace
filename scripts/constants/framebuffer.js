@@ -13,3 +13,18 @@ export function skyPaletteT(linearT) {
   if (t > SKY_PALETTE_T_MAX) t = SKY_PALETTE_T_MAX;
   return t;
 }
+
+export function skyLinearFromHat(hat) {
+  let h = hat;
+  if (h > 1) h = 1;
+  if (h < -1) h = -1;
+  return (2 * Math.acos(h)) / Math.PI;
+}
+
+export function skyLutIndexFromHat(hat, height) {
+  const last = (height - 1) | 0;
+  let idx = (skyLinearFromHat(hat) * height * 0.5) | 0;
+  if (idx < 0) idx = 0;
+  if (idx > last) idx = last;
+  return idx;
+}

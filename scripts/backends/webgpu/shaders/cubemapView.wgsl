@@ -105,7 +105,10 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let dist = textureLoad(cubeDepth, vec2<i32>(sel.y, sel.z), sel.x, 0).r;
   let debugView = flagDebugView(frame.mapFlags.w);
   var outColor = packed;
-  let skyIdx = min(u32(sy), u32(arrayLength(&skyView) - 1u));
+  let skyIdx = min(
+    skyLutIndexFromHat(dz * invViewLen, screenH),
+    u32(arrayLength(&skyView) - 1u)
+  );
   if (debugView != DEBUG_COLOR) {
     let hByte = textureLoad(cubeHeight, vec2<i32>(sel.y, sel.z), sel.x, 0).r;
     let iter = textureLoad(cubeIter, vec2<i32>(sel.y, sel.z), sel.x, 0).r;

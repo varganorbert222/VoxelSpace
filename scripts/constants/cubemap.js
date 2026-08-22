@@ -111,3 +111,16 @@ export function cubeUVToTexel(u, v, n) {
 export function cubeFaceOffset(face, n) {
   return (face * n * n) | 0;
 }
+
+export function cubeDirFromTexel(face, i, j, n) {
+  const u = cubePixelUV(i, n);
+  const v = -cubePixelUV(j, n);
+  const c = CUBE_FACE_C[face];
+  const fu = CUBE_FACE_U[face];
+  const fv = CUBE_FACE_V[face];
+  return {
+    x: c[0] + fu[0] * u + fv[0] * v,
+    y: c[1] + fu[1] * u + fv[1] * v,
+    z: c[2] + fu[2] * u + fv[2] * v,
+  };
+}

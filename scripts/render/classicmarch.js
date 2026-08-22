@@ -103,12 +103,15 @@ export function renderClassicColumns({
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;
   const hiddenY = hiddenYBuffer(localWidth);
-  const sampleN = sampleNScratch;
-  sampleN.fill(0, 0, localWidth);
   const fogRange = farClip - nearClip;
   const invFogRange = fogRange === 0 ? 0 : 1 / fogRange;
   const useFog = applyFog | 0;
   const debug = isDebugColor(debugView) ? 0 : 1;
+  const countIter = debugView === DEBUG_VIEW_ITERATIONS ? 1 : 0;
+  const sampleN = countIter ? sampleNScratch : null;
+  if (sampleN) {
+    sampleN.fill(0, 0, localWidth);
+  }
   const altScale = altitude / HEIGHTMAP_MAX;
   const ceiling = maxHeight == null ? altitude : maxHeight;
   const ceilingSdf = camZ - ceiling;
@@ -220,8 +223,7 @@ export function renderClassicColumns({
 
           const offset =
             ((((ply | 0) & mapWMask) << mapShift) + ((plx | 0) & mapHMask)) | 0;
-          const hByte = heightMap[offset];
-          const terrainHeight = hByte * altScale;
+          const terrainHeight = heightMap[offset] * altScale;
           const terrainSDF = camZ - terrainHeight;
           const heightOnScreen = (terrainSDF * zScale + screenHorizon) | 0;
 
@@ -232,14 +234,16 @@ export function renderClassicColumns({
             }
           }
 
-          sampleN[localI] = (sampleN[localI] + 1) | 0;
           let plotColor = Color.WHITE;
           if (debug) {
+            if (countIter) {
+              sampleN[localI] = (sampleN[localI] + 1) | 0;
+            }
             if (debugView === DEBUG_VIEW_HEIGHT) {
-              plotColor = encodeHeight(hByte);
+              plotColor = encodeHeight(heightMap[offset]);
             } else if (debugView === DEBUG_VIEW_DEPTH) {
               plotColor = encodeUnit(farClip > 0 ? z / farClip : 0);
-            } else if (debugView === DEBUG_VIEW_ITERATIONS) {
+            } else if (countIter) {
               plotColor = encodeIter(sampleN[localI]);
             }
           } else if (!fogWhite) {

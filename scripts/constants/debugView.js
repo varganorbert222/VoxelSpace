@@ -119,6 +119,14 @@ export function isDebugColor(value) {
   return !value || value === DEBUG_VIEW_COLOR;
 }
 
+export function needsHeightBuf(value) {
+  return value === DEBUG_VIEW_HEIGHT;
+}
+
+export function needsIterBuf(value) {
+  return value === DEBUG_VIEW_ITERATIONS;
+}
+
 export function envOverlayAllowed(algorithm) {
   return algorithm === ALGORITHM_PANORAMA || algorithm === ALGORITHM_CUBEMAP;
 }

@@ -133,10 +133,10 @@ function classicSkyRows(height, horizon, topColor, bottomColor) {
   return rows;
 }
 
-function panoSkyRows(height, skyColor) {
+function panoSkyRows(height, skyColor, horizonColor) {
   const palette = new ColorPalette(
     skyColor ?? Color.WHITE,
-    Color.WHITE,
+    horizonColor ?? Color.WHITE,
     SKY_PALETTE_STEPS
   );
   const lut = new Uint32Array(height);
@@ -218,6 +218,7 @@ class WebGpuBackend {
     this._panoRepeat = null;
     this._panoMinDeltaZ = NaN;
     this._panoSkyColor = null;
+    this._panoHorizonColor = null;
     this._panoQuality = NaN;
     this._panoFov = NaN;
     this._panoAspect = NaN;
@@ -433,7 +434,7 @@ class WebGpuBackend {
     const yHit = Int32Array.from(getPanoYHitLut(height));
     const yHitSin = Int32Array.from(getPanoYHitLutSin(height));
     const dirs = buildDirLut(width);
-    const panoSky = panoSkyRows(height, genSky);
+    const panoSky = panoSkyRows(height, genSky, viewBottom);
     const viewSky = viewSkyRows(height, viewTop, viewBottom);
     destroyBuf(this._tanBuf);
     destroyBuf(this._yHitBuf);
@@ -491,6 +492,7 @@ class WebGpuBackend {
       this._panoRepeat !== this._host.repeat ||
       this._panoMinDeltaZ !== camera.minDeltaZ ||
       this._panoSkyColor !== terrain.skyColor ||
+      this._panoHorizonColor !== camera.bottomColor ||
       this._panoQuality !== camera.quality
     ) {
       return true;
@@ -512,6 +514,7 @@ class WebGpuBackend {
     this._panoRepeat = this._host.repeat;
     this._panoMinDeltaZ = camera.minDeltaZ;
     this._panoSkyColor = terrain.skyColor;
+    this._panoHorizonColor = camera.bottomColor;
     this._panoQuality = camera.quality;
     this._panoValid = true;
     this._panoDirty = false;

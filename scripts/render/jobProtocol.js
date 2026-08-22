@@ -134,7 +134,10 @@ export function panoramaGeneratePayload(jobId, range, params) {
     tMax: params.tMax,
     repeat: params.repeat,
     skyColor: params.skyColor,
+    horizonColor: params.horizonColor,
     initialStep: params.initialStep,
     quality: params.quality,
+    wantHeight: params.wantHeight | 0,
+    wantIter: params.wantIter | 0,
   };
 }

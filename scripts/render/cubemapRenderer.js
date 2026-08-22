@@ -5,6 +5,7 @@ import { renderCubemapView } from "./cubemapViewer.js";
 import { CUBE_FACE_COUNT, cubeSizeForQuality } from "../constants/cubemap.js";
 import { farPlaneRayTMax } from "../constants/panorama.js";
 import { blitRendererOverlay } from "./debugOverlay.js";
+import { needsHeightBuf, needsIterBuf } from "../constants/debugView.js";
 
 function cubeGenerate(renderer) {
   return (
@@ -37,6 +38,7 @@ class CubemapRenderer {
     this._repeat = null;
     this._minDeltaZ = NaN;
     this._skyColor = null;
+    this._horizonColor = null;
     this._quality = NaN;
     this._fov = NaN;
     this._aspect = NaN;
@@ -70,21 +72,29 @@ class CubemapRenderer {
 
   _ensureBuffers() {
     const count = (CUBE_FACE_COUNT * this._cubeN * this._cubeN) | 0;
+    const debugView = this._renderer.debugView;
+    const needH = needsHeightBuf(debugView);
+    const needI = needsIterBuf(debugView);
     if (!this._cubeColor || this._cubeColor.length !== count) {
       this._cubeColor = new Uint32Array(count);
       this._cubeDepth = new Float32Array(count);
-      this._cubeHeight = new Uint32Array(count);
-      this._cubeIter = new Uint32Array(count);
       this._cubeValid = false;
-    } else {
+    }
+    if (needH) {
       if (!this._cubeHeight || this._cubeHeight.length !== count) {
         this._cubeHeight = new Uint32Array(count);
         this._cubeValid = false;
       }
+    } else {
+      this._cubeHeight = null;
+    }
+    if (needI) {
       if (!this._cubeIter || this._cubeIter.length !== count) {
         this._cubeIter = new Uint32Array(count);
         this._cubeValid = false;
       }
+    } else {
+      this._cubeIter = null;
     }
   }
 
@@ -102,6 +112,7 @@ class CubemapRenderer {
       this._repeat !== this._renderer.repeat ||
       this._minDeltaZ !== camera.minDeltaZ ||
       this._skyColor !== terrain.skyColor ||
+      this._horizonColor !== camera.bottomColor ||
       this._quality !== camera.quality
     ) {
       return true;
@@ -126,6 +137,7 @@ class CubemapRenderer {
     this._repeat = this._renderer.repeat;
     this._minDeltaZ = camera.minDeltaZ;
     this._skyColor = terrain.skyColor;
+    this._horizonColor = camera.bottomColor;
     this._quality = camera.quality;
     this._cubeValid = true;
     this._cubeDirty = false;
@@ -153,6 +165,7 @@ class CubemapRenderer {
       tMax: this._tMax(),
       repeat: renderer.repeat,
       skyColor: terrain.skyColor,
+      horizonColor: camera.bottomColor,
       initialStep: camera.minDeltaZ,
       quality: camera.quality,
       pixels: this._cubeColor,

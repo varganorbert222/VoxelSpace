@@ -10,7 +10,6 @@
 
 const EPSILON: f32 = 1e-6;
 const HALF_PI: f32 = 1.5707963267948966;
-const PI: f32 = 3.141592653589793;
 const INV_TWO_PI: f32 = 0.15915494309189535;
 
 fn atan2Lut(y: f32, x: f32) -> f32 {

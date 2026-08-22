@@ -8,6 +8,7 @@ import {
 } from "../constants/panoramaViewer.js";
 import {
   SKY_PALETTE_STEPS,
+  skyLutIndexFromHat,
   skyPaletteT,
 } from "../constants/framebuffer.js";
 import {
@@ -125,7 +126,6 @@ export function renderCubemapViewColumns({
   const rdx = rightX * dCamX;
   const rdy = rightY * dCamX;
   const rdz = rightZ * dCamX;
-  const skyLast = (screenHeight - 1) | 0;
 
   for (let sy = 0; (sy < screenHeight) | 0; sy = (sy + 1) | 0) {
     const camY = (1 - (sy + PIXEL_CENTER) * invH * NDC_SCALE) * tanHalfY;
@@ -135,7 +135,6 @@ export function renderCubemapViewColumns({
     let dx = rightX * camX0 + upX * camY + fwdX;
     let dy = rightY * camX0 + upY * camY + fwdY;
     let dz = rightZ * camX0 + upZ * camY + fwdZ;
-    const sky = skyLut[sy > skyLast ? skyLast : sy];
 
     for (
       let sx = startColumn, localX = 0;
@@ -166,7 +165,7 @@ export function renderCubemapViewColumns({
           ((useFog ^ 1) | 0) &
           (((viewZ >= farClip) | 0) | ((viewZ < nearClip) | 0))
         ) {
-          pixels[dest] = sky;
+          pixels[dest] = skyLut[skyLutIndexFromHat(dz * invViewLen, screenHeight)];
         } else if (useFog) {
           const fogT =
             fogRange === 0 ? FOG_SATURATED : (viewZ - nearClip) * invFogRange;

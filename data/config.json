@@ -24,17 +24,29 @@
       "values": [1, 2, 3, 4, 5]
     },
     "cameraModes": {
-      "values": ["fly", "orbital"]
+      "values": ["fly", "orbital"],
+      "default": "fly"
     },
     "renderAlgorithms": {
-      "values": ["classic", "panorama", "cubemap"]
+      "values": ["classic", "panorama", "cubemap"],
+      "default": "classic"
     },
     "renderBackends": {
       "values": ["js", "wasm", "webgpu"],
       "default": "js"
     },
     "debugViews": {
-      "values": ["color", "height", "depth", "iterations"]
+      "values": ["color", "height", "depth", "iterations"],
+      "default": "color"
+    },
+    "debugOverlay": {
+      "default": false
+    },
+    "hudChrome": {
+      "default": true
+    },
+    "radar": {
+      "default": true
     },
     "multithread": {
       "default": false

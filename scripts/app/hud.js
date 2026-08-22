@@ -18,13 +18,22 @@ export function initHud(app) {
   const radarEl = document.getElementById(RADAR_ELEMENT_ID);
   const radarShow = document.getElementById(RADAR_SHOW_ID);
 
-  function setChromeOpen(open) {
+  function persistUi() {
+    if (app && app.persistAndSync) {
+      app.persistAndSync();
+    }
+  }
+
+  function setChromeOpen(open, persist) {
     document.body.classList.toggle("chrome-on", open);
     document.body.classList.toggle("chrome-off", !open);
     hudToggle.setAttribute("aria-expanded", String(open));
     hudToggle.textContent = open ? "Close" : "Toggle HUD";
     if (hint) {
       hint.textContent = open ? "H · Close HUD" : "H · Toggle HUD";
+    }
+    if (app) {
+      app.hudChrome = !!open;
     }
     if (!open) {
       dismissHudTooltip();
@@ -34,6 +43,9 @@ export function initHud(app) {
     } else if (backdrop) {
       backdrop.hidden =
         !document.body.classList.contains("menu-open") || !isTouchLayout();
+    }
+    if (persist) {
+      persistUi();
     }
   }
 
@@ -55,14 +67,20 @@ export function initHud(app) {
     }
   }
 
-  function setRadarOpen(open) {
+  function setRadarOpen(open, persist) {
     document.body.classList.toggle("radar-open", open);
     document.body.classList.toggle("radar-closed", !open);
+    if (app) {
+      app.radarOpen = !!open;
+    }
     if (app && app.radar) {
       app.radar.setVisible(open);
     }
     if (radarShow) {
       radarShow.hidden = !!open;
+    }
+    if (persist) {
+      persistUi();
     }
   }
 
@@ -70,12 +88,12 @@ export function initHud(app) {
     setMenuOpen(!document.body.classList.contains("menu-open"));
   }
 
-  setChromeOpen(true);
+  setChromeOpen(app && app.hudChrome !== undefined ? !!app.hudChrome : true);
   setMenuOpen(!isTouchLayout());
-  setRadarOpen(true);
+  setRadarOpen(app && app.radarOpen !== undefined ? !!app.radarOpen : true);
 
   hudToggle.addEventListener("click", () => {
-    setChromeOpen(!document.body.classList.contains("chrome-on"));
+    setChromeOpen(!document.body.classList.contains("chrome-on"), true);
   });
 
   if (menuToggle) {
@@ -94,10 +112,10 @@ export function initHud(app) {
   }
 
   if (radarEl) {
-    radarEl.addEventListener("click", () => setRadarOpen(false));
+    radarEl.addEventListener("click", () => setRadarOpen(false, true));
   }
   if (radarShow) {
-    radarShow.addEventListener("click", () => setRadarOpen(true));
+    radarShow.addEventListener("click", () => setRadarOpen(true, true));
   }
 
   window.addEventListener("keydown", (e) => {
@@ -112,13 +130,13 @@ export function initHud(app) {
       return;
     }
     if (e.code === "KeyK" && !e.repeat) {
-      setRadarOpen(!document.body.classList.contains("radar-open"));
+      setRadarOpen(!document.body.classList.contains("radar-open"), true);
       return;
     }
     if (e.code !== "KeyH" || e.repeat) {
       return;
     }
-    setChromeOpen(!document.body.classList.contains("chrome-on"));
+    setChromeOpen(!document.body.classList.contains("chrome-on"), true);
     if (!document.body.classList.contains("chrome-on") && document.activeElement) {
       document.activeElement.blur();
     }

@@ -112,7 +112,14 @@ export function createWasmKernels(instance) {
   let panoKey = "";
   let atanPtr = 0;
   const lut = { tanPtr: 0, yPtr: 0, ysPtr: 0, skyPtr: 0 };
-  const panoSlot = { ptr: 0, depthPtr: 0, heightPtr: 0, iterPtr: 0, cap: 0, fresh: 0 };
+  const panoSlot = {
+    ptr: 0,
+    depthPtr: 0,
+    heightPtr: 0,
+    iterPtr: 0,
+    cap: 0,
+    fresh: 0,
+  };
   const atanLut = buildAtanLut();
 
   function mustAlloc(bytes) {
@@ -271,18 +278,32 @@ export function createWasmKernels(instance) {
     lutKey = key;
   }
 
-  function ensurePanoSlots(bytes, dbytes) {
-    if (panoSlot.ptr && panoSlot.cap >= bytes) {
-      return;
+  function ensurePanoSlots(bytes, dbytes, wantHeight, wantIter) {
+    let grew = 0;
+    if (!panoSlot.ptr || panoSlot.cap < bytes) {
+      panoSlot.ptr = mustAlloc(bytes);
+      panoSlot.depthPtr = dbytes ? mustAlloc(dbytes) : 0;
+      panoSlot.heightPtr = wantHeight ? mustAlloc(bytes) : 0;
+      panoSlot.iterPtr = wantIter ? mustAlloc(bytes) : 0;
+      panoSlot.cap = bytes;
+      panoSlot.fresh = 0;
+      grew = 1;
+    } else {
+      if (wantHeight && !panoSlot.heightPtr) {
+        panoSlot.heightPtr = mustAlloc(bytes);
+        panoSlot.fresh = 0;
+        grew = 1;
+      }
+      if (wantIter && !panoSlot.iterPtr) {
+        panoSlot.iterPtr = mustAlloc(bytes);
+        panoSlot.fresh = 0;
+        grew = 1;
+      }
     }
-    panoSlot.ptr = mustAlloc(bytes);
-    panoSlot.depthPtr = dbytes ? mustAlloc(dbytes) : 0;
-    panoSlot.heightPtr = mustAlloc(bytes);
-    panoSlot.iterPtr = mustAlloc(bytes);
-    panoSlot.cap = bytes;
-    panoSlot.fresh = 0;
-    ex.commit_perm();
-    panoKey = "";
+    if (grew) {
+      ex.commit_perm();
+      panoKey = "";
+    }
   }
 
   function ensurePanoBuffers(pano, depth, heightBuf, iterBuf, generation) {
@@ -290,7 +311,7 @@ export function createWasmKernels(instance) {
     const dbytes = depth ? depth.byteLength : 0;
     const key =
       (generation != null ? generation : 0) + ":" + bytes + ":" + dbytes;
-    ensurePanoSlots(bytes, dbytes);
+    ensurePanoSlots(bytes, dbytes, !!heightBuf, !!iterBuf);
     if (panoSlot.fresh) {
       panoSlot.fresh = 0;
       panoKey = key;
@@ -419,19 +440,19 @@ export function createWasmKernels(instance) {
       params.depth.length === pixN;
 
     ex.reset_scratch();
-    writeLuts(height, params.skyColor, Color.WHITE);
+    writeLuts(height, params.skyColor, params.horizonColor ?? Color.WHITE);
     ex.reset_scratch();
     let pixelsPtr;
     let depthPtr;
     let heightPtr;
     let iterPtr;
     if (full) {
-      ensurePanoSlots(pixN * 4, pixN * 4);
+      ensurePanoSlots(pixN * 4, pixN * 4, !!params.heightBuf, !!params.iterBuf);
       ex.reset_scratch();
       pixelsPtr = panoSlot.ptr;
       depthPtr = panoSlot.depthPtr;
-      heightPtr = panoSlot.heightPtr;
-      iterPtr = panoSlot.iterPtr;
+      heightPtr = params.heightBuf ? panoSlot.heightPtr : 0;
+      iterPtr = params.iterBuf ? panoSlot.iterPtr : 0;
     } else {
       pixelsPtr = mustAlloc(pixN * 4);
       depthPtr = params.depth ? mustAlloc(pixN * 4) : 0;

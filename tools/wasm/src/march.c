@@ -438,7 +438,8 @@ WASM_EXPORT void classic_columns(
   f64 k_dy;
 
   i32 debug = debug_view | 0;
-  i32 sample_ok = local_width <= SAMPLE_N_MAX;
+  i32 count_iter = debug == DEBUG_ITER;
+  i32 sample_ok = count_iter && (local_width <= SAMPLE_N_MAX);
   if (sample_ok) {
     for (i = 0; i < local_width; i = (i + 1) | 0) {
       g_sample_n[i] = 0;
@@ -548,8 +549,7 @@ WASM_EXPORT void classic_columns(
           i32 offset =
               ((((i32)ply & map_w_mask) << g_map_shift) + ((i32)plx & map_h_mask)) |
               0;
-          u32 h_byte = (u32)height_map[offset];
-          f64 terrain_height = (f64)h_byte * g_alt_scale;
+          f64 terrain_height = (f64)height_map[offset] * g_alt_scale;
           f64 terrain_sdf = cam_z - terrain_height;
           i32 height_on_screen = (i32)(terrain_sdf * z_scale + screen_horizon);
           i32 height_on_screen_bottom = col_hidden;
@@ -563,6 +563,7 @@ WASM_EXPORT void classic_columns(
             g_sample_n[local_i] = (g_sample_n[local_i] + 1) | 0;
           }
           if (debug) {
+            u32 h_byte = (u32)height_map[offset];
             if (debug == DEBUG_HEIGHT) {
               plot_color = encode_height(h_byte);
             } else if (debug == DEBUG_DEPTH) {
@@ -829,19 +830,29 @@ WASM_EXPORT void pano_columns(
           if (y_hit < y_bottom) {
             u32 color = g_mip_c[mip][offset];
             f64 dist = wasm_sqrt(t * t + dh * dh);
-            u32 h_byte = (u32)g_mip_h[mip][offset];
             i32 y;
-            for (y = y_hit; y < y_bottom; y = (y + 1) | 0) {
-              i32 pix = (y * local_width + local_x) | 0;
-              pixels[pix] = color;
-              if (depth) {
-                depth[pix] = (float)dist;
+            if (height_buf || iter_buf) {
+              u32 h_byte = height_buf ? (u32)g_mip_h[mip][offset] : 0;
+              for (y = y_hit; y < y_bottom; y = (y + 1) | 0) {
+                i32 pix = (y * local_width + local_x) | 0;
+                pixels[pix] = color;
+                if (depth) {
+                  depth[pix] = (float)dist;
+                }
+                if (height_buf) {
+                  height_buf[pix] = h_byte;
+                }
+                if (iter_buf) {
+                  iter_buf[pix] = (u32)k;
+                }
               }
-              if (height_buf) {
-                height_buf[pix] = h_byte;
-              }
-              if (iter_buf) {
-                iter_buf[pix] = (u32)k;
+            } else {
+              for (y = y_hit; y < y_bottom; y = (y + 1) | 0) {
+                i32 pix = (y * local_width + local_x) | 0;
+                pixels[pix] = color;
+                if (depth) {
+                  depth[pix] = (float)dist;
+                }
               }
             }
           }

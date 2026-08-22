@@ -10,6 +10,7 @@ import {
 } from "../constants/quality.js";
 import { farPlaneRayTMax } from "../constants/panorama.js";
 import { blitRendererOverlay } from "./debugOverlay.js";
+import { needsHeightBuf, needsIterBuf } from "../constants/debugView.js";
 
 function panoGenerate(renderer) {
   return (
@@ -44,6 +45,7 @@ class PanoramaRenderer {
     this._panoRepeat = null;
     this._panoMinDeltaZ = NaN;
     this._panoSkyColor = null;
+    this._panoHorizonColor = null;
     this._panoQuality = NaN;
     this._panoFov = NaN;
     this._panoAspect = NaN;
@@ -89,27 +91,33 @@ class PanoramaRenderer {
 
   _ensurePanoramaBuffers() {
     const n = (this._panoWidth * this._panoHeight) | 0;
+    const debugView = this._renderer.debugView;
+    const needH = needsHeightBuf(debugView);
+    const needI = needsIterBuf(debugView);
     if (!this._panoramaPixels || this._panoramaPixels.length !== n) {
       this._panoramaPixels = new Uint32Array(n);
       this._panoramaHorizon = new Int32Array(this._panoWidth);
       this._panoramaDepth = new Float32Array(n);
-      this._panoramaHeight = new Uint32Array(n);
-      this._panoramaIter = new Uint32Array(n);
       this._panoramaValid = false;
     } else if (!this._panoramaDepth || this._panoramaDepth.length !== n) {
       this._panoramaDepth = new Float32Array(n);
-      this._panoramaHeight = new Uint32Array(n);
-      this._panoramaIter = new Uint32Array(n);
       this._panoramaValid = false;
-    } else {
+    }
+    if (needH) {
       if (!this._panoramaHeight || this._panoramaHeight.length !== n) {
         this._panoramaHeight = new Uint32Array(n);
         this._panoramaValid = false;
       }
+    } else {
+      this._panoramaHeight = null;
+    }
+    if (needI) {
       if (!this._panoramaIter || this._panoramaIter.length !== n) {
         this._panoramaIter = new Uint32Array(n);
         this._panoramaValid = false;
       }
+    } else {
+      this._panoramaIter = null;
     }
   }
 
@@ -128,6 +136,7 @@ class PanoramaRenderer {
       this._panoRepeat !== this._renderer.repeat ||
       this._panoMinDeltaZ !== camera.minDeltaZ ||
       this._panoSkyColor !== terrain.skyColor ||
+      this._panoHorizonColor !== camera.bottomColor ||
       this._panoQuality !== camera.quality;
 
     if (settingsChanged) {
@@ -154,6 +163,7 @@ class PanoramaRenderer {
     this._panoRepeat = this._renderer.repeat;
     this._panoMinDeltaZ = camera.minDeltaZ;
     this._panoSkyColor = terrain.skyColor;
+    this._panoHorizonColor = camera.bottomColor;
     this._panoQuality = camera.quality;
     this._panoramaValid = true;
     this._panoramaDirty = false;
@@ -346,6 +356,7 @@ class PanoramaRenderer {
       tMax: this._panoTMax(),
       repeat: renderer.repeat,
       skyColor: terrain.skyColor,
+      horizonColor: camera.bottomColor,
       initialStep: camera.minDeltaZ,
       quality: camera.quality,
       pixels: this._panoramaPixels,
@@ -378,6 +389,7 @@ class PanoramaRenderer {
       camY: camera.posY,
       camZ: camera.posZ,
       skyColor: terrain.skyColor,
+      horizonColor: camera.bottomColor,
     };
     const slices = await pool.renderPanorama({
       width: this._panoWidth,
@@ -390,8 +402,11 @@ class PanoramaRenderer {
       tMax: tMax,
       repeat: renderer.repeat,
       skyColor: terrain.skyColor,
+      horizonColor: camera.bottomColor,
       initialStep: camera.minDeltaZ,
       quality: camera.quality,
+      wantHeight: needsHeightBuf(renderer.debugView),
+      wantIter: needsIterBuf(renderer.debugView),
     });
     if (!slices) {
       return false;
@@ -408,7 +423,8 @@ class PanoramaRenderer {
       camera.posX !== token.camX ||
       camera.posY !== token.camY ||
       camera.posZ !== token.camZ ||
-      terrain.skyColor !== token.skyColor
+      terrain.skyColor !== token.skyColor ||
+      camera.bottomColor !== token.horizonColor
     ) {
       return false;
     }

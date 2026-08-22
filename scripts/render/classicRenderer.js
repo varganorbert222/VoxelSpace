@@ -130,6 +130,7 @@ class ClassicRenderer {
       farClip: camera.farClip,
       applyFog: renderer.applyFog,
       debugView: renderer.debugView,
+      repeat: renderer.repeat,
       minDeltaZ: camera.minDeltaZ,
       camX: camera.posX,
       camY: camera.posY,

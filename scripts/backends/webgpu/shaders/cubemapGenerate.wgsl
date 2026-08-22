@@ -69,17 +69,6 @@ fn horizonDirXY(face: i32, u: f32) -> vec2f {
   return vec2f(-u, -1.0);
 }
 
-fn skyColorAt(y: i32, n: i32) -> vec4f {
-  let tLin = f32(y) / max(f32(n) * 0.5, 1.0);
-  var t = clamp(tLin, 0.0, 1.0);
-  t = pow(t, 2.75);
-  let tmax = 23.0 / 24.0;
-  if (t > tmax) {
-    t = tmax;
-  }
-  return mix(frame.sky, vec4f(1.0), t);
-}
-
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) gid: vec3u) {
   let n = i32(frame.screenPano.z);
@@ -93,7 +82,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     if (y >= n) {
       break;
     }
-    let sky = packRgba(skyColorAt(y, n));
+    let sky = packRgba(skyColorFromDir(cubeDirFromTexel(face, col, y, n), frame.sky, frame.horizonColor));
     textureStore(faceColor, vec2<i32>(col, y), vec4<u32>(sky, 0u, 0u, 0u));
     textureStore(faceDepth, vec2<i32>(col, y), vec4<f32>(0.0, 0.0, 0.0, 0.0));
     textureStore(faceHeight, vec2<i32>(col, y), vec4<u32>(0u, 0u, 0u, 0u));
