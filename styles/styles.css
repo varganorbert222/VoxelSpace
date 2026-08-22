@@ -34,6 +34,22 @@ body {
   color-scheme: dark;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+*,
+*::before,
+*::after {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+::selection {
+  background: transparent;
+  color: inherit;
 }
 
 canvas {
@@ -57,6 +73,7 @@ canvas {
 #id_touch_buttons button {
   font-family: var(--hud-font);
   -webkit-font-smoothing: none;
+  -webkit-user-select: none;
   user-select: none;
   touch-action: manipulation;
 }

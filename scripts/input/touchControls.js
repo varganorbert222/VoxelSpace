@@ -39,12 +39,12 @@ export function bindTouchControls(input, elements) {
     else if (input._updown < 0) input._updown = 0;
   });
   bindHoldButton(elements.btnRollLeft, (down) => {
-    if (down) input._rollHold = -1;
-    else if (input._rollHold < 0) input._rollHold = 0;
-  });
-  bindHoldButton(elements.btnRollRight, (down) => {
     if (down) input._rollHold = 1;
     else if (input._rollHold > 0) input._rollHold = 0;
+  });
+  bindHoldButton(elements.btnRollRight, (down) => {
+    if (down) input._rollHold = -1;
+    else if (input._rollHold < 0) input._rollHold = 0;
   });
 }
 
