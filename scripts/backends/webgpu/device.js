@@ -1,44 +1,34 @@
 "use strict";
 
-// Default requestAdapter() is core WebGPU (Vulkan/D3D/Metal). Many phones
-// only expose a GLES compatibility adapter; that call returns null and the
-// selector stays disabled unless we also try featureLevel: "compatibility"
-// (Chrome 133+) and the older compatibilityMode flag.
+// Default requestAdapter() asks for core WebGPU. On this class of Android GPU
+// (Samsung Xclipse, crbug.com/40643150) the Vulkan core adapter is blocklisted,
+// so that call returns null even though about:gpu shows WebGPU as accelerated.
+// The usable adapter is OpenGL ES compatibility mode.
 
-const ADAPTER_TRIES = Object.freeze([
-  undefined,
-  { featureLevel: "compatibility" },
-  { compatibilityMode: true },
-  { powerPreference: "low-power" },
-  { powerPreference: "high-performance" },
-  { featureLevel: "compatibility", powerPreference: "low-power" },
-  { compatibilityMode: true, powerPreference: "low-power" },
-]);
-
-export async function requestGpuAdapter() {
+async function requestGpuAdapter() {
   if (typeof navigator === "undefined" || !navigator.gpu) {
     return null;
   }
-  for (let i = 0; i < ADAPTER_TRIES.length; i++) {
-    try {
-      const opts = ADAPTER_TRIES[i];
-      const adapter = opts
-        ? await navigator.gpu.requestAdapter(opts)
-        : await navigator.gpu.requestAdapter();
-      if (adapter) {
-        return adapter;
-      }
-    } catch {
-      void 0;
+  try {
+    const core = await navigator.gpu.requestAdapter();
+    if (core) {
+      return core;
     }
+  } catch {
+    void 0;
   }
-  return null;
+  try {
+    return await navigator.gpu.requestAdapter({
+      featureLevel: "compatibility",
+    });
+  } catch {
+    return null;
+  }
 }
 
 export async function isWebGpuAvailable() {
   try {
-    const adapter = await requestGpuAdapter();
-    return !!adapter;
+    return !!(await requestGpuAdapter());
   } catch {
     return false;
   }
