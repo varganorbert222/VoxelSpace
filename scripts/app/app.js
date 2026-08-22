@@ -10,6 +10,7 @@ import Surface from "../render/surface.js";
 import Renderer from "../render/renderer.js";
 import FpsCounter from "./fpsCounter.js";
 import SettingsForm from "./settingsForm.js";
+import Radar from "./radar.js";
 import { initHud } from "./hud.js";
 import { loadMap } from "./mapLoader.js";
 import { startGameLoop } from "./gameLoop.js";
@@ -30,7 +31,7 @@ import { detectBackends } from "../backends/contract.js";
 import { renderScaleForQuality, clampQualityForContext } from "../constants/quality.js";
 import { envOverlayAllowed } from "../constants/debugView.js";
 import { DEFAULT_MULTITHREAD } from "../constants/threading.js";
-import { CANVAS_ID } from "../constants/main.js";
+import { CANVAS_ID, VIEWPORT_ID } from "../constants/main.js";
 
 class App {
   constructor() {
@@ -41,6 +42,7 @@ class App {
     this.input = null;
     this.fpsCounter = new FpsCounter();
     this.settingsForm = new SettingsForm(this);
+    this.radar = new Radar();
     this.currentMapName = null;
   }
 
@@ -77,7 +79,9 @@ class App {
     this.fpsCounter.start();
 
     this.settingsForm.init();
-    initHud();
+    this.radar.init();
+    initHud(this);
+    this._bindViewportResize();
     await this.setRenderBackend(this.renderer.backend);
     this.setRenderAlgorithm(this.renderer.algorithm);
 
@@ -181,10 +185,11 @@ class App {
   }
 
   resize() {
+    const view = this._viewportSize();
     const next = renderScaleForQuality(
       this.camera.quality,
-      window.innerWidth,
-      window.innerHeight
+      view.w,
+      view.h
     );
     if (next !== this.camera.renderScale) {
       this.camera.set({ renderScale: next });
@@ -192,13 +197,32 @@ class App {
     this.settingsForm.syncRenderScale();
     this.camera.resize(
       this.surface ? this.surface.getCanvas() : document.getElementById(CANVAS_ID),
-      window.innerWidth,
-      window.innerHeight
+      view.w,
+      view.h
     );
     this.camera.set({
       topColor: this.terrain.skyColor,
       bottomColor: Color.WHITE,
     });
+  }
+
+  _viewportSize() {
+    const el = document.getElementById(VIEWPORT_ID);
+    const w = el && el.clientWidth;
+    const h = el && el.clientHeight;
+    return {
+      w: w > 0 ? w : window.innerWidth,
+      h: h > 0 ? h : window.innerHeight,
+    };
+  }
+
+  _bindViewportResize() {
+    const el = document.getElementById(VIEWPORT_ID);
+    if (!el || typeof ResizeObserver === "undefined") {
+      return;
+    }
+    this._viewportObserver = new ResizeObserver(() => this.resize());
+    this._viewportObserver.observe(el);
   }
 
   _applyPersistedSettings(data) {

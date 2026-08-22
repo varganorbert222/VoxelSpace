@@ -19,6 +19,9 @@ export function loadMap(app, mapName) {
       heightMap: images[1],
     });
     app.renderer.setMaps(app.terrain.exportMaps());
+    if (app.radar) {
+      app.radar.invalidate();
+    }
     app.renderer.invalidatePanorama();
     app.camera.set({
       topColor: app.terrain.skyColor,

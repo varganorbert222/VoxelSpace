@@ -17,6 +17,7 @@
   --hud-track: #2a3218;
   --hud-shadow: 4px 4px 0 #000;
   --hud-top-h: 52px;
+  --hud-handle-w: 24px;
   --hud-safe-top: env(safe-area-inset-top, 0px);
   --hud-safe-right: env(safe-area-inset-right, 0px);
   --hud-safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -32,6 +33,8 @@ body {
   height: 100dvh;
   overflow: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
   background: #000;
   color: var(--hud-text);
   color-scheme: dark;
@@ -66,11 +69,22 @@ canvas {
   display: block;
 }
 
+.viewport {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
 .hud-top,
 .hud-panel,
 .hud-hint,
 .hud-fps,
 .hud-done,
+.hud-radar,
+.hud-radar-tab,
+.hud-btn,
+.hud-menu-handle,
 .tip-mark,
 .hud-tip,
 #id_touch_buttons button {
@@ -82,12 +96,12 @@ canvas {
 }
 
 .hud-top {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  position: relative;
+  flex: 0 0 auto;
   z-index: 150;
-  height: var(--hud-top-h);
+  min-height: var(--hud-top-h);
+  height: auto;
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -194,7 +208,7 @@ canvas {
   text-shadow: 0 0 8px var(--hud-fps-glow);
 }
 
-#id_hud_toggle {
+.hud-btn {
   font-family: var(--hud-font);
   font-size: 20px;
   letter-spacing: 0.14em;
@@ -209,14 +223,16 @@ canvas {
   touch-action: manipulation;
 }
 
-#id_hud_toggle:active {
+.hud-btn:active {
   box-shadow: 1px 1px 0 #000;
   transform: translate(1px, 1px);
 }
 
 .hud-panel,
+.hud-radar,
 .hud-done,
-#id_hud_toggle,
+.hud-btn,
+.hud-menu-handle,
 select,
 .stick {
   box-sizing: border-box;
@@ -229,19 +245,76 @@ select,
 }
 
 .hud-backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 130;
   background: rgba(0, 0, 0, 0.35);
 }
 
-.hud-panel {
-  position: fixed;
-  top: calc(var(--hud-top-h) + var(--hud-safe-top) + 10px);
+.hud-menu-dock {
+  position: absolute;
+  top: 10px;
   right: calc(10px + var(--hud-safe-right));
-  bottom: calc(10px + var(--hud-safe-bottom));
+  bottom: 10px;
   z-index: 140;
-  width: min(360px, calc(100vw - 20px));
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  max-width: calc(100% - 20px);
+  pointer-events: none;
+  transition: transform 180ms steps(5, end);
+}
+
+body.menu-closed .hud-menu-dock {
+  transform: translateX(calc(100% - var(--hud-handle-w)));
+}
+
+.hud-menu-handle {
+  pointer-events: auto;
+  flex: 0 0 var(--hud-handle-w);
+  width: var(--hud-handle-w);
+  align-self: center;
+  min-height: 88px;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  background: var(--hud-bg);
+  border: 2px solid;
+  border-color: var(--hud-border-hi) var(--hud-border-lo) var(--hud-border-lo)
+    var(--hud-border-hi);
+  border-right-width: 0;
+  box-shadow: var(--hud-shadow);
+}
+
+body.menu-closed .hud-menu-handle {
+  border-right-width: 2px;
+}
+
+.hud-menu-handle-grip {
+  display: block;
+  width: 8px;
+  height: 40px;
+  margin: 0 auto;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--hud-amber) 0 3px,
+    transparent 3px 8px
+  );
+}
+
+.hud-menu-handle:active {
+  transform: translate(1px, 1px);
+}
+
+.hud-panel {
+  pointer-events: auto;
+  position: relative;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  z-index: 140;
+  width: min(360px, calc(100vw - 48px));
+  height: 100%;
   overflow: auto;
   overscroll-behavior: contain;
   padding: 10px 12px 16px;
@@ -251,10 +324,8 @@ select,
   box-shadow: var(--hud-shadow);
   color: var(--hud-text);
   font-size: 20px;
-  transform: translateX(calc(100% + 24px));
-  opacity: 0;
-  pointer-events: none;
-  transition: transform 180ms steps(5, end), opacity 180ms steps(5, end);
+  transform: none;
+  opacity: 1;
 }
 
 .hud-panel::after {
@@ -272,10 +343,8 @@ select,
   opacity: 0.5;
 }
 
-body.hud-open .hud-panel {
-  transform: none;
-  opacity: 1;
-  pointer-events: auto;
+body.menu-closed .hud-backdrop {
+  display: none;
 }
 
 .hud-panel::-webkit-scrollbar {
@@ -291,8 +360,99 @@ body.hud-open .hud-panel {
   border: 2px solid #000;
 }
 
-body.hud-closed .hud-backdrop {
+.hud-radar {
+  position: absolute;
+  top: 10px;
+  left: calc(10px + var(--hud-safe-left));
+  z-index: 140;
+  width: 196px;
+  padding: 0;
+  background: var(--hud-bg);
+  border: 2px solid;
+  border-color: var(--hud-border-hi) var(--hud-border-lo) var(--hud-border-lo)
+    var(--hud-border-hi);
+  box-shadow: var(--hud-shadow);
+  color: var(--hud-text);
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+  transition: transform 180ms steps(5, end), opacity 180ms steps(5, end);
+}
+
+body.radar-closed .hud-radar {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-12px);
+}
+
+#id_radar_canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  image-rendering: pixelated;
+  background: #000;
+  cursor: pointer;
+}
+
+.hud-radar-tab {
+  position: absolute;
+  top: 10px;
+  left: calc(10px + var(--hud-safe-left));
+  z-index: 140;
+  font-family: var(--hud-font);
+  font-size: 18px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #140f00;
+  background: var(--hud-amber);
+  border: 2px solid;
+  border-color: var(--hud-border-hi) var(--hud-border-lo) var(--hud-border-lo)
+    var(--hud-border-hi);
+  box-shadow: var(--hud-shadow);
+  padding: 4px 10px 2px;
+  cursor: pointer;
+}
+
+.hud-radar-tab[hidden] {
   display: none;
+}
+
+body.chrome-off .hud-brand,
+body.chrome-off .hud-status,
+body.chrome-off .hud-fps,
+body.chrome-off #id_menu_toggle {
+  display: none;
+}
+
+body.chrome-off .hud-top {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: auto;
+  width: auto;
+  min-height: 0;
+  height: auto;
+  padding: calc(8px + var(--hud-safe-top)) calc(12px + var(--hud-safe-right)) 8px 8px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  grid-template-columns: auto;
+  z-index: 200;
+}
+
+body.chrome-off .hud-top::after {
+  display: none;
+}
+
+body.chrome-off .hud-radar,
+body.chrome-off .hud-radar-tab,
+body.chrome-off .hud-menu-dock,
+body.chrome-off .hud-hint,
+body.chrome-off .hud-backdrop {
+  visibility: hidden;
+  pointer-events: none;
+  opacity: 0;
 }
 
 .hud-section {
@@ -665,7 +825,7 @@ option:disabled {
 }
 
 .hud-hint {
-  position: fixed;
+  position: absolute;
   left: 12px;
   bottom: 10px;
   z-index: 125;
@@ -758,7 +918,7 @@ body.classic .pano-only {
     display: block;
   }
 
-  body.hud-open #id_touch_controls {
+  body.menu-open #id_touch_controls {
     display: none;
   }
 
@@ -812,11 +972,15 @@ body.classic .pano-only {
     padding-bottom: var(--hud-safe-bottom);
   }
 
-  #id_hud_toggle {
+  .hud-btn {
     min-height: 44px;
     min-width: 76px;
     font-size: 18px;
     padding: 6px 14px 4px;
+  }
+
+  .hud-menu-handle {
+    min-height: 88px;
   }
 
   select {
@@ -866,6 +1030,10 @@ body.classic .pano-only {
     padding-bottom: calc(12px + var(--hud-safe-bottom));
     -webkit-overflow-scrolling: touch;
   }
+
+  .hud-radar-tab {
+    min-height: 44px;
+  }
 }
 
 @media (max-width: 720px) {
@@ -896,18 +1064,12 @@ body.classic .pano-only {
     justify-self: end;
   }
 
-  .hud-panel {
-    top: auto;
-    right: 0;
-    left: 0;
-    bottom: 0;
-    width: 100%;
-    max-height: min(78dvh, calc(100dvh - var(--hud-top-h) - var(--hud-safe-top) - 8px));
-    transform: translateY(110%);
+  .hud-radar {
+    width: 132px;
   }
 
-  body.hud-open .hud-panel {
-    transform: none;
+  .hud-panel {
+    width: min(320px, calc(100vw - 48px));
   }
 
   .control-grid,
@@ -991,17 +1153,11 @@ body.classic .pano-only {
   }
 
   .hud-panel {
-    top: calc(40px + var(--hud-safe-top));
-    right: 0;
-    left: auto;
-    bottom: 0;
-    width: min(340px, 52vw);
-    max-height: none;
-    transform: translateX(110%);
+    width: min(300px, 52vw);
   }
 
-  body.hud-open .hud-panel {
-    transform: none;
+  .hud-radar {
+    width: 110px;
   }
 
   .stick {

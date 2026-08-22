@@ -118,6 +118,9 @@ export function startGameLoop(app) {
         ? app.setRenderBackend(backendSwitch)
         : Promise.resolve();
     app.camera.move(time.deltaTime, app.input, app.terrain);
+    if (app.radar) {
+      app.radar.sync(app);
+    }
     switchPromise
       .then(() => app.renderer.render(app.terrain))
       .then(() => {

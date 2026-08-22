@@ -28,11 +28,7 @@
     <link rel="icon" type="image/x-icon" href="favicon.png" />
   </head>
 
-  <body class="hud-closed">
-    <canvas id="id_fullscreen_canvas" width="800" height="400">
-      Your browser does not support the canvas element.
-    </canvas>
-
+  <body class="chrome-on menu-closed radar-open">
     <header class="hud-top" aria-label="Status">
       <div class="hud-brand">
         <span class="hud-brand-mark" aria-hidden="true"></span>
@@ -47,14 +43,38 @@
       </div>
       <div class="hud-top-right">
         <div id="id_fps" class="hud-fps" aria-live="polite"></div>
-        <button type="button" id="id_hud_toggle" aria-expanded="false" aria-controls="id_info" aria-keyshortcuts="H">
+        <button type="button" id="id_menu_toggle" class="hud-btn" aria-expanded="false" aria-controls="id_info">
           Menu
+        </button>
+        <button type="button" id="id_hud_toggle" class="hud-btn" aria-expanded="true" aria-keyshortcuts="H">
+          Close
         </button>
       </div>
     </header>
 
+    <div id="id_viewport" class="viewport">
+    <canvas id="id_fullscreen_canvas" width="800" height="400">
+      Your browser does not support the canvas element.
+    </canvas>
+
+    <aside id="id_radar" class="hud-radar" aria-label="Radar">
+      <canvas id="id_radar_canvas" width="256" height="256"></canvas>
+    </aside>
+    <button type="button" id="id_radar_show" class="hud-radar-tab" hidden aria-keyshortcuts="K">Radar</button>
+
     <div id="id_hud_backdrop" class="hud-backdrop" hidden></div>
 
+    <div class="hud-menu-dock">
+      <button
+        type="button"
+        id="id_menu_handle"
+        class="hud-menu-handle"
+        aria-label="Toggle menu"
+        aria-controls="id_info"
+        aria-expanded="false"
+      >
+        <span class="hud-menu-handle-grip" aria-hidden="true"></span>
+      </button>
     <aside id="id_info" class="hud-panel" aria-label="Command panel">
       <div class="hud-sheet-handle" aria-hidden="true"></div>
       <section class="hud-section">
@@ -252,7 +272,8 @@
           <div><dt>P</dt><dd>Toggle repeat</dd></div>
           <div><dt>T</dt><dd>Toggle threads</dd></div>
           <div><dt>H</dt><dd>Toggle HUD</dd></div>
-          <div><dt>Esc</dt><dd>Close panel</dd></div>
+          <div><dt>K</dt><dd>Toggle radar</dd></div>
+          <div><dt>Esc</dt><dd>Close menu</dd></div>
         </dl>
       </section>
 
@@ -263,6 +284,8 @@
           <div><dt>R Stick</dt><dd>Look</dd></div>
           <div><dt>Up Down</dt><dd>Altitude</dd></div>
           <div class="pano-only"><dt>Roll</dt><dd>Bank left / right</dd></div>
+          <div><dt>Radar</dt><dd>Tap map to hide</dd></div>
+          <div><dt>Handle</dt><dd>Open / close menu</dd></div>
         </dl>
       </section>
 
@@ -274,6 +297,7 @@
       </section>
       <button type="button" class="hud-done" id="id_hud_done">Done</button>
     </aside>
+    </div>
 
     <p class="hud-hint" id="id_hud_hint">H · Toggle HUD</p>
 
@@ -290,6 +314,7 @@
         <button type="button" id="id_btn_roll_left" class="pano-only">L</button>
         <button type="button" id="id_btn_roll_right" class="pano-only">R</button>
       </div>
+    </div>
     </div>
   </body>
 </html>

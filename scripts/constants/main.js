@@ -1,6 +1,7 @@
 "use strict";
 
 export const CANVAS_ID = "id_fullscreen_canvas";
+export const VIEWPORT_ID = "id_viewport";
 export const FPS_ELEMENT_ID = "id_fps";
 export const FPS_UPDATE_MS = 500;
 export const MS_PER_SECOND = 1000;
