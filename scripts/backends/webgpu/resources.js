@@ -64,28 +64,44 @@ export function createColorTexture(device, width, height) {
   );
 }
 
-export function createScreenTarget(device, width, height) {
+export function createStorageTarget(device, width, height, format) {
   return createTexture(
     device,
     width,
     height,
-    "r32uint",
-    GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+    format,
+    GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC
   );
+}
+
+export function createSampleTarget(device, width, height, format) {
+  return createTexture(
+    device,
+    width,
+    height,
+    format,
+    GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+  );
+}
+
+export function copyTarget(encoder, src, dst, width, height) {
+  encoder.copyTextureToTexture(
+    { texture: src },
+    { texture: dst },
+    { width: width, height: height }
+  );
+}
+
+export function createScreenTarget(device, width, height) {
+  return createStorageTarget(device, width, height, "r32uint");
 }
 
 export function createPanoColorTarget(device, width, height) {
-  return createScreenTarget(device, width, height);
+  return createStorageTarget(device, width, height, "r32uint");
 }
 
 export function createPanoDepthTarget(device, width, height) {
-  return createTexture(
-    device,
-    width,
-    height,
-    "r32float",
-    GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
-  );
+  return createStorageTarget(device, width, height, "r32float");
 }
 
 export function uploadHeight(device, texture, heightMap, width, height) {

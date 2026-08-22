@@ -53,6 +53,8 @@ import {
   createColorTexture,
   createScreenTarget,
   createPanoDepthTarget,
+  createSampleTarget,
+  copyTarget,
   uploadHeight,
   uploadColor,
   writeBuffer,
@@ -176,8 +178,11 @@ class WebGpuBackend {
     this._dummyH = null;
     this._dummyC = null;
     this._screenTex = null;
+    this._screenSample = null;
     this._panoColor = null;
+    this._panoColorSample = null;
     this._panoDepth = null;
+    this._panoDepthSample = null;
     this._panoW = 0;
     this._panoH = 0;
     this._tanBuf = null;
@@ -291,7 +296,9 @@ class WebGpuBackend {
       return;
     }
     destroyTex(this._screenTex);
+    destroyTex(this._screenSample);
     this._screenTex = createScreenTarget(this._device, width, height);
+    this._screenSample = createSampleTarget(this._device, width, height, "r32uint");
   }
 
   _ensurePano(width, height) {
@@ -303,9 +310,23 @@ class WebGpuBackend {
       return;
     }
     destroyTex(this._panoColor);
+    destroyTex(this._panoColorSample);
     destroyTex(this._panoDepth);
+    destroyTex(this._panoDepthSample);
     this._panoColor = createScreenTarget(this._device, width, height);
+    this._panoColorSample = createSampleTarget(
+      this._device,
+      width,
+      height,
+      "r32uint"
+    );
     this._panoDepth = createPanoDepthTarget(this._device, width, height);
+    this._panoDepthSample = createSampleTarget(
+      this._device,
+      width,
+      height,
+      "r32float"
+    );
     this._panoW = width;
     this._panoH = height;
     this._uploadPanoLuts(
@@ -609,6 +630,7 @@ class WebGpuBackend {
     pass.setBindGroup(3, out);
     pass.dispatchWorkgroups(Math.ceil(screenW / WEBGPU_WORKGROUP_1D));
     pass.end();
+    copyTarget(encoder, this._screenTex, this._screenSample, screenW, screenH);
   }
 
   _dispatchGenerate(encoder, panoW) {
@@ -647,6 +669,8 @@ class WebGpuBackend {
     pass.setBindGroup(3, out);
     pass.dispatchWorkgroups(Math.ceil(panoW / WEBGPU_WORKGROUP_1D));
     pass.end();
+    copyTarget(encoder, this._panoColor, this._panoColorSample, this._panoW, this._panoH);
+    copyTarget(encoder, this._panoDepth, this._panoDepthSample, this._panoW, this._panoH);
   }
 
   _dispatchView(encoder, screenW, screenH) {
@@ -661,8 +685,8 @@ class WebGpuBackend {
     const sample = this._device.createBindGroup({
       layout: this._pipes.layouts.panoSample,
       entries: [
-        { binding: 0, resource: this._panoColor.createView() },
-        { binding: 1, resource: this._panoDepth.createView() },
+        { binding: 0, resource: this._panoColorSample.createView() },
+        { binding: 1, resource: this._panoDepthSample.createView() },
       ],
     });
     const out = this._device.createBindGroup({
@@ -680,13 +704,14 @@ class WebGpuBackend {
       Math.ceil(screenH / WEBGPU_WORKGROUP_2D)
     );
     pass.end();
+    copyTarget(encoder, this._screenTex, this._screenSample, screenW, screenH);
   }
 
   _blit(encoder) {
     const view = this._context.getCurrentTexture().createView();
     const bg = this._device.createBindGroup({
       layout: this._pipes.layouts.blit,
-      entries: [{ binding: 0, resource: this._screenTex.createView() }],
+      entries: [{ binding: 0, resource: this._screenSample.createView() }],
     });
     const pass = encoder.beginRenderPass({
       colorAttachments: [
@@ -758,8 +783,11 @@ class WebGpuBackend {
       void 0;
     }
     destroyTex(this._screenTex);
+    destroyTex(this._screenSample);
     destroyTex(this._panoColor);
+    destroyTex(this._panoColorSample);
     destroyTex(this._panoDepth);
+    destroyTex(this._panoDepthSample);
     destroyTex(this._dummyH);
     destroyTex(this._dummyC);
     for (let i = 0; i < 3; i = (i + 1) | 0) {
