@@ -8,7 +8,10 @@
   --hud-amber: #ffbf3c;
   --hud-amber-dim: #c48a12;
   --hud-green: #9dff4a;
+  --hud-red: #ff3c3c;
   --hud-cyan: #6af0ff;
+  --hud-fps-color: var(--hud-green);
+  --hud-fps-glow: rgba(157, 255, 74, 0.4);
   --hud-text: #e8ecc8;
   --hud-muted: #8a9270;
   --hud-track: #2a3218;
@@ -181,10 +184,10 @@ canvas {
   min-width: 88px;
   text-align: right;
   font-size: 22px;
-  color: var(--hud-green);
+  color: var(--hud-fps-color);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  text-shadow: 0 0 8px rgba(157, 255, 74, 0.4);
+  text-shadow: 0 0 8px var(--hud-fps-glow);
 }
 
 #id_hud_toggle {

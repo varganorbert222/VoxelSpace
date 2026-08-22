@@ -4,7 +4,12 @@ import { Color } from "./color.js";
 
 class ColorPalette {
   getColor(time) {
-    const index = (time * this._colorCount) | 0;
+    let index = (time * this._colorCount) | 0;
+    if (index < 0) {
+      index = 0;
+    } else if (index >= this._colorCount) {
+      index = this._colorCount - 1;
+    }
     return this._palette[index];
   }
 

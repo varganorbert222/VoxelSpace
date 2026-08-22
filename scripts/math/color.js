@@ -62,6 +62,26 @@ class Color {
 
     return Color.makeColor(cr, cg, cb, ca);
   }
+
+  static toCss(color) {
+    const c = Color.unpackColor(color);
+    return "rgb(" + (c.r | 0) + ", " + (c.g | 0) + ", " + (c.b | 0) + ")";
+  }
+
+  static toCssRgba(color, alpha) {
+    const c = Color.unpackColor(color);
+    return (
+      "rgba(" +
+      (c.r | 0) +
+      ", " +
+      (c.g | 0) +
+      ", " +
+      (c.b | 0) +
+      ", " +
+      alpha +
+      ")"
+    );
+  }
 }
 
 export { Color };
