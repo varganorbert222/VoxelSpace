@@ -3,17 +3,21 @@
 import { renderClassicColumns as renderClassicColumnsJs } from "./classicmarch.js";
 import { renderPanoramaColumns as renderPanoramaColumnsJs } from "./panoramamarch.js";
 import { renderPanoramaViewColumns as renderPanoramaViewColumnsJs } from "./panoramaViewer.js";
+import { renderCubemapViewColumns as renderCubemapViewColumnsJs } from "./cubemapViewer.js";
 import {
   MSG_INIT_MAPS,
   MSG_INIT_PANO,
+  MSG_INIT_CUBE,
   MSG_INIT_KERNEL,
   MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
   MSG_RENDER_PANORAMA,
   MSG_RENDER_PANO_VIEW,
+  MSG_RENDER_CUBE_VIEW,
   MSG_RESULT_CLASSIC,
   MSG_RESULT_PANORAMA,
   MSG_RESULT_PANO_VIEW,
+  MSG_RESULT_CUBE_VIEW,
   MSG_WORKER_ERROR,
 } from "./jobProtocol.js";
 import { BACKEND_WASM } from "../constants/backend.js";
@@ -34,6 +38,10 @@ const workerState = {
   panoWidth: 0,
   panoHeight: 0,
   panoGeneration: 0,
+  cubeColor: null,
+  cubeDepth: null,
+  cubeN: 0,
+  cubeGeneration: 0,
 };
 
 let renderClassicColumns = renderClassicColumnsJs;
@@ -95,6 +103,13 @@ function initPano(msg) {
   workerState.panoWidth = msg.width;
   workerState.panoHeight = msg.height;
   workerState.panoGeneration = msg.generation | 0;
+}
+
+function initCube(msg) {
+  workerState.cubeColor = new Uint32Array(msg.color);
+  workerState.cubeDepth = msg.depth ? new Float32Array(msg.depth) : null;
+  workerState.cubeN = msg.n | 0;
+  workerState.cubeGeneration = msg.generation | 0;
 }
 
 function renderClassic(msg) {
@@ -245,6 +260,49 @@ function renderPanoView(msg) {
   );
 }
 
+function renderCubeView(msg) {
+  const localWidth = (msg.endColumn - msg.startColumn) | 0;
+  const pixels = new Uint32Array((localWidth * msg.screenHeight) | 0);
+  renderCubemapViewColumnsJs({
+    cubeColor: workerState.cubeColor,
+    cubeDepth: workerState.cubeDepth,
+    cubeN: workerState.cubeN,
+    fovY: msg.fovY,
+    dstToProjPlane: msg.dstToProjPlane,
+    screenWidth: msg.screenWidth,
+    screenHeight: msg.screenHeight,
+    startColumn: msg.startColumn,
+    endColumn: msg.endColumn,
+    pixels,
+    pixelWidth: localWidth,
+    fillUnfilled: 1,
+    skyColor: msg.skyColor,
+    horizonColor: msg.horizonColor,
+    nearClip: msg.nearClip,
+    farClip: msg.farClip,
+    applyFog: msg.applyFog,
+    rightX: msg.rightX,
+    rightY: msg.rightY,
+    rightZ: msg.rightZ,
+    upX: msg.upX,
+    upY: msg.upY,
+    upZ: msg.upZ,
+    fwdX: msg.fwdX,
+    fwdY: msg.fwdY,
+    fwdZ: msg.fwdZ,
+  });
+  self.postMessage(
+    {
+      type: MSG_RESULT_CUBE_VIEW,
+      jobId: msg.jobId,
+      startColumn: msg.startColumn,
+      endColumn: msg.endColumn,
+      pixels: pixels.buffer,
+    },
+    [pixels.buffer]
+  );
+}
+
 async function handleMessage(msg) {
   if (msg.type === MSG_INIT_KERNEL) {
     await setKernelBackend(msg.backend);
@@ -259,6 +317,10 @@ async function handleMessage(msg) {
     initPano(msg);
     return;
   }
+  if (msg.type === MSG_INIT_CUBE) {
+    initCube(msg);
+    return;
+  }
   if (msg.type === MSG_RENDER_CLASSIC) {
     renderClassic(msg);
     return;
@@ -269,6 +331,10 @@ async function handleMessage(msg) {
   }
   if (msg.type === MSG_RENDER_PANO_VIEW) {
     renderPanoView(msg);
+    return;
+  }
+  if (msg.type === MSG_RENDER_CUBE_VIEW) {
+    renderCubeView(msg);
   }
 }
 

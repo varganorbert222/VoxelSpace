@@ -21,6 +21,11 @@ export async function createPipelines(device, canvasFormat) {
   const classicMod = await loadCompute(device, "classicMarch", "classicMarch.wgsl");
   const genMod = await loadCompute(device, "panoGenerate", "panoramaGenerate.wgsl");
   const viewMod = await loadCompute(device, "panoView", "panoramaView.wgsl");
+  const cubeGenMod = await loadCompute(device, "cubeGenerate", "cubemapGenerate.wgsl");
+  const cubePolarMod = await loadCompute(device, "cubePolar", "cubemapPolar.wgsl");
+  const cubeFillMod = await loadCompute(device, "cubeFill", "cubemapFill.wgsl");
+  const cubeStitchMod = await loadCompute(device, "cubeStitch", "cubemapStitch.wgsl");
+  const cubeViewMod = await loadCompute(device, "cubeView", "cubemapView.wgsl");
   const blitMod = await loadCompute(device, "blit", "blit.wgsl");
 
   const frameLayout = device.createBindGroupLayout({
@@ -136,6 +141,29 @@ export async function createPipelines(device, canvasFormat) {
     ],
   });
 
+  const cubeSampleLayout = device.createBindGroupLayout({
+    label: "cubeSample",
+    entries: [
+      {
+        binding: 0,
+        visibility: GPUShaderStage.COMPUTE,
+        texture: { sampleType: "uint", viewDimension: "2d-array" },
+      },
+      {
+        binding: 1,
+        visibility: GPUShaderStage.COMPUTE,
+        texture: { sampleType: "unfilterable-float", viewDimension: "2d-array" },
+      },
+    ],
+  });
+
+  const cubeSkyLayout = device.createBindGroupLayout({
+    label: "cubeSky",
+    entries: [
+      { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+    ],
+  });
+
   const classicPipe = device.createComputePipeline({
     label: "classic",
     layout: device.createPipelineLayout({
@@ -160,6 +188,46 @@ export async function createPipelines(device, canvasFormat) {
     compute: { module: viewMod, entryPoint: "main" },
   });
 
+  const cubeGenPipe = device.createComputePipeline({
+    label: "cubeGen",
+    layout: device.createPipelineLayout({
+      bindGroupLayouts: [frameLayout, mipsLayout, panoOutLayout],
+    }),
+    compute: { module: cubeGenMod, entryPoint: "main" },
+  });
+
+  const cubePolarPipe = device.createComputePipeline({
+    label: "cubePolar",
+    layout: device.createPipelineLayout({
+      bindGroupLayouts: [frameLayout, mipsLayout, panoOutLayout],
+    }),
+    compute: { module: cubePolarMod, entryPoint: "main" },
+  });
+
+  const cubeFillPipe = device.createComputePipeline({
+    label: "cubeFill",
+    layout: device.createPipelineLayout({
+      bindGroupLayouts: [frameLayout, panoOutLayout],
+    }),
+    compute: { module: cubeFillMod, entryPoint: "main" },
+  });
+
+  const cubeStitchPipe = device.createComputePipeline({
+    label: "cubeStitch",
+    layout: device.createPipelineLayout({
+      bindGroupLayouts: [frameLayout, cubeSampleLayout, panoOutLayout],
+    }),
+    compute: { module: cubeStitchMod, entryPoint: "main" },
+  });
+
+  const cubeViewPipe = device.createComputePipeline({
+    label: "cubeView",
+    layout: device.createPipelineLayout({
+      bindGroupLayouts: [frameLayout, cubeSampleLayout, viewOutLayout, cubeSkyLayout],
+    }),
+    compute: { module: cubeViewMod, entryPoint: "main" },
+  });
+
   const blitPipe = device.createRenderPipeline({
     label: "blit",
     layout: device.createPipelineLayout({
@@ -178,6 +246,11 @@ export async function createPipelines(device, canvasFormat) {
     classic: classicPipe,
     generate: genPipe,
     view: viewPipe,
+    cubeGenerate: cubeGenPipe,
+    cubePolar: cubePolarPipe,
+    cubeFill: cubeFillPipe,
+    cubeStitch: cubeStitchPipe,
+    cubeView: cubeViewPipe,
     blit: blitPipe,
     layouts: {
       frame: frameLayout,
@@ -190,6 +263,8 @@ export async function createPipelines(device, canvasFormat) {
       viewLut: viewLutLayout,
       panoSample: panoSampleLayout,
       viewOut: viewOutLayout,
+      cubeSample: cubeSampleLayout,
+      cubeSky: cubeSkyLayout,
       blit: blitLayout,
     },
     workgroup1d: 64,

@@ -2,8 +2,9 @@
 
 import ClassicRenderer from "../../render/classicRenderer.js";
 import PanoramaRenderer from "../../render/panoramaRenderer.js";
+import CubemapRenderer from "../../render/cubemapRenderer.js";
 import WorkerPool from "../../render/workerPool.js";
-import { ALGORITHM_PANORAMA } from "../../constants/algorithm.js";
+import { ALGORITHM_CUBEMAP, ALGORITHM_PANORAMA } from "../../constants/algorithm.js";
 import { BACKEND_JS } from "../../constants/backend.js";
 
 class JsBackend {
@@ -19,6 +20,7 @@ class JsBackend {
     this._host = null;
     this._classic = null;
     this._panorama = null;
+    this._cubemap = null;
     this._pool = null;
     this._maps = null;
   }
@@ -27,6 +29,7 @@ class JsBackend {
     this._host = ctx.renderer;
     this._classic = new ClassicRenderer(this);
     this._panorama = new PanoramaRenderer(this);
+    this._cubemap = new CubemapRenderer(this);
   }
 
   get camera() {
@@ -100,11 +103,18 @@ class JsBackend {
     if (this._panorama) {
       this._panorama.invalidate();
     }
+    if (this._cubemap) {
+      this._cubemap.invalidate();
+    }
   }
 
   async render(frame) {
     if (frame.algorithm === ALGORITHM_PANORAMA) {
       await this._panorama.render(frame.terrain);
+      return;
+    }
+    if (frame.algorithm === ALGORITHM_CUBEMAP) {
+      await this._cubemap.render(frame.terrain);
       return;
     }
     await this._classic.render(frame.terrain);
@@ -118,6 +128,7 @@ class JsBackend {
     }
     this._classic = null;
     this._panorama = null;
+    this._cubemap = null;
     this._host = null;
     this._maps = null;
   }

@@ -68,6 +68,7 @@ class Renderer {
   set algorithm(value) {
     if (this._algorithm !== value) {
       this.cancelJobs();
+      this.invalidatePanorama();
     }
     this._algorithm = value;
   }

@@ -27,7 +27,7 @@
       "values": ["fly", "orbital"]
     },
     "renderAlgorithms": {
-      "values": ["classic", "panorama"]
+      "values": ["classic", "panorama", "cubemap"]
     },
     "renderBackends": {
       "values": ["js", "wasm", "webgpu"],

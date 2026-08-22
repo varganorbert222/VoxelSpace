@@ -1,0 +1,253 @@
+@group(0) @binding(0) var<uniform> frame: Frame;
+@group(1) @binding(0) var height0: texture_2d<u32>;
+@group(1) @binding(1) var color0: texture_2d<f32>;
+@group(1) @binding(2) var height1: texture_2d<u32>;
+@group(1) @binding(3) var color1: texture_2d<f32>;
+@group(1) @binding(4) var height2: texture_2d<u32>;
+@group(1) @binding(5) var color2: texture_2d<f32>;
+@group(2) @binding(0) var faceColor: texture_storage_2d<r32uint, write>;
+@group(2) @binding(1) var faceDepth: texture_storage_2d<r32float, write>;
+
+const MAX_STEPS: u32 = 16384u;
+const EPSILON: f32 = 1e-6;
+
+fn sampleHeight(mip: i32, wx: f32, wy: f32) -> f32 {
+  let inv0 = frame.mipInvPixelCenter.x;
+  let inv1 = frame.mipInvPixelCenter.y;
+  let inv2 = frame.mipInvPixelCenter.z;
+  let altitude = frame.tMaxMinDzAltMaxH.z;
+  let altScale = altitude / 255.0;
+  if (mip <= 0) {
+    let ix = i32(wx * inv0) & i32(frame.mipSize1.w);
+    let iy = i32(wy * inv0) & i32(frame.mipSize1.z);
+    return f32(textureLoad(height0, vec2<i32>(ix, iy), 0).r) * altScale;
+  }
+  if (mip == 1) {
+    let ix = i32(wx * inv1) & i32(frame.mipMask1.y);
+    let iy = i32(wy * inv1) & i32(frame.mipMask1.x);
+    return f32(textureLoad(height1, vec2<i32>(ix, iy), 0).r) * altScale;
+  }
+  let ix = i32(wx * inv2) & i32(frame.mipMask1.w);
+  let iy = i32(wy * inv2) & i32(frame.mipMask1.z);
+  return f32(textureLoad(height2, vec2<i32>(ix, iy), 0).r) * altScale;
+}
+
+fn sampleColor(mip: i32, wx: f32, wy: f32) -> vec4f {
+  let inv0 = frame.mipInvPixelCenter.x;
+  let inv1 = frame.mipInvPixelCenter.y;
+  let inv2 = frame.mipInvPixelCenter.z;
+  if (mip <= 0) {
+    let ix = i32(wx * inv0) & i32(frame.mipSize1.w);
+    let iy = i32(wy * inv0) & i32(frame.mipSize1.z);
+    return textureLoad(color0, vec2<i32>(ix, iy), 0);
+  }
+  if (mip == 1) {
+    let ix = i32(wx * inv1) & i32(frame.mipMask1.y);
+    let iy = i32(wy * inv1) & i32(frame.mipMask1.x);
+    return textureLoad(color1, vec2<i32>(ix, iy), 0);
+  }
+  let ix = i32(wx * inv2) & i32(frame.mipMask1.w);
+  let iy = i32(wy * inv2) & i32(frame.mipMask1.z);
+  return textureLoad(color2, vec2<i32>(ix, iy), 0);
+}
+
+fn horizonDirXY(face: i32, u: f32) -> vec2f {
+  if (face == 0) {
+    return vec2f(1.0, -u);
+  }
+  if (face == 1) {
+    return vec2f(-1.0, u);
+  }
+  if (face == 2) {
+    return vec2f(u, 1.0);
+  }
+  return vec2f(-u, -1.0);
+}
+
+fn skyColorAt(y: i32, n: i32) -> vec4f {
+  let tLin = f32(y) / max(f32(n) * 0.5, 1.0);
+  var t = clamp(tLin, 0.0, 1.0);
+  t = pow(t, 2.75);
+  let tmax = 23.0 / 24.0;
+  if (t > tmax) {
+    t = tmax;
+  }
+  return mix(frame.sky, vec4f(1.0), t);
+}
+
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) gid: vec3u) {
+  let n = i32(frame.screenPano.z);
+  let col = i32(gid.x);
+  if (col >= n) {
+    return;
+  }
+  let face = i32(frame.extra.w);
+  var y = 0;
+  loop {
+    if (y >= n) {
+      break;
+    }
+    let sky = packRgba(skyColorAt(y, n));
+    textureStore(faceColor, vec2<i32>(col, y), vec4<u32>(sky, 0u, 0u, 0u));
+    textureStore(faceDepth, vec2<i32>(col, y), vec4<f32>(0.0, 0.0, 0.0, 0.0));
+    y = y + 1;
+  }
+
+  let camX = frame.camPosTanHalfX.x;
+  let camY = frame.camPosTanHalfX.y;
+  let camZ = frame.camPosTanHalfX.z;
+  let nearClip = frame.sinCosNearFar.z;
+  let farClip = frame.sinCosNearFar.w;
+  var tStop = frame.tMaxMinDzAltMaxH.x;
+  if (!(tStop > 0.0)) {
+    tStop = farClip * 3.0;
+  }
+  let repeat = flagRepeat(frame.mapFlags.w);
+  let mapW = f32(frame.mapFlags.x);
+  let mapH = f32(frame.mapFlags.y);
+  let ceiling = frame.tMaxMinDzAltMaxH.w;
+  let clipZ = frame.clipDhTanLastGrowth.x;
+  let stepGrowth = frame.clipDhTanLastGrowth.w;
+  let step0 = frame.stepScaleCaps.x;
+  var stepCap0 = frame.stepScaleCaps.y;
+  var stepCap1 = frame.stepScaleCaps.z;
+  var stepCap2 = frame.stepScaleCaps.w;
+  if (stepCap0 < step0) {
+    stepCap0 = step0;
+  }
+  if (stepCap1 < step0) {
+    stepCap1 = step0;
+  }
+  if (stepCap2 < step0) {
+    stepCap2 = step0;
+  }
+  let switchT0 = frame.mipSwitchYHit.x;
+  let switchT1 = frame.mipSwitchYHit.y;
+  let mipStepScale = frame.mipSwitchYHit.z;
+  var lastMip = i32(frame.mipShiftCount.w) - 1;
+  let pixelCenter = frame.mipInvPixelCenter.w;
+  let u = (2.0 * (f32(col) + pixelCenter) / f32(n)) - 1.0;
+  let dirRaw = horizonDirXY(face, u);
+  let lenXY = length(dirRaw);
+  var invLen = 1.0;
+  if (lenXY > EPSILON) {
+    invLen = 1.0 / lenXY;
+  }
+  let dirX = dirRaw.x * invLen;
+  let dirY = dirRaw.y * invLen;
+  let halfN = f32(n) * 0.5;
+  let dst = halfN * lenXY;
+  let horizon = halfN;
+  var t0 = frame.camFwdPad.w;
+  if (t0 < nearClip) {
+    t0 = nearClip;
+  }
+  var t = t0;
+  var step = step0;
+  var H = n;
+  var wasInside = 0;
+  var mip = 0;
+  var stepCap = stepCap0;
+  var tStopCol = tStop;
+  var k = 0u;
+
+  loop {
+    if ((t >= tStopCol) || (H <= 0) || (k >= MAX_STEPS)) {
+      break;
+    }
+    k = k + 1u;
+    loop {
+      var switchT = switchT0;
+      if (mip >= 1) {
+        switchT = switchT1;
+      }
+      if ((mip >= lastMip) || (t < switchT)) {
+        break;
+      }
+      mip = mip + 1;
+      step = step * mipStepScale;
+      if (mip == 1) {
+        stepCap = stepCap1;
+      } else {
+        stepCap = stepCap2;
+      }
+      if (step > stepCap) {
+        step = stepCap;
+      }
+    }
+
+    let wx = camX + dirX * t;
+    let wy = camY + dirY * t;
+    if (!repeat) {
+      let inside = (wx >= 0.0) && (wx < mapW) && (wy >= 0.0) && (wy < mapH);
+      if (!inside) {
+        if (wasInside != 0) {
+          break;
+        }
+        t = t + step;
+        step = step + stepGrowth;
+        if (step > stepCap) {
+          step = stepCap;
+        }
+        continue;
+      }
+      wasInside = 1;
+    }
+
+    let h = sampleHeight(mip, wx, wy);
+    if (h > ceiling + EPSILON) {
+      t = t + step;
+      step = step + stepGrowth;
+      if (step > stepCap) {
+        step = stepCap;
+      }
+      continue;
+    }
+
+    let zScale = dst / t;
+    var yHit = i32((camZ - h) * zScale + horizon);
+    if (yHit < 0) {
+      yHit = 0;
+    }
+    if (yHit > n - 1) {
+      t = t + step;
+      step = step + stepGrowth;
+      if (step > stepCap) {
+        step = stepCap;
+      }
+      continue;
+    }
+    if (yHit < H) {
+      var yBottom = H;
+      var yGround = i32((camZ - clipZ) * zScale + horizon);
+      if (yGround < 0) {
+        yGround = 0;
+      }
+      if (yGround < yBottom) {
+        yBottom = yGround;
+      }
+      if (yHit < yBottom) {
+        let color = sampleColor(mip, wx, wy);
+        let dh = h - camZ;
+        let dist = sqrt(t * t + dh * dh);
+        var yy = yHit;
+        loop {
+          if (yy >= yBottom) {
+            break;
+          }
+          textureStore(faceColor, vec2<i32>(col, yy), vec4<u32>(packRgba(color), 0u, 0u, 0u));
+          textureStore(faceDepth, vec2<i32>(col, yy), vec4<f32>(dist, 0.0, 0.0, 0.0));
+          yy = yy + 1;
+        }
+      }
+      H = yHit;
+    }
+
+    t = t + step;
+    step = step + stepGrowth;
+    if (step > stepCap) {
+      step = stepCap;
+    }
+  }
+}

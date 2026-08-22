@@ -88,7 +88,7 @@ export function packFrame(packer, p) {
   f[56] = p.fovY;
   f[57] = p.tanHalfY;
   f[58] = p.ndcScale;
-  f[59] = p.epsilon;
+  f[59] = Number.isFinite(p.cubeFace) ? p.cubeFace : p.epsilon;
   u[60] = p.quality | 0;
   u[61] = p.lodCount | 0;
   u[62] = p.yHitLast | 0;

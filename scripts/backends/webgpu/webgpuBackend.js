@@ -1,7 +1,7 @@
 "use strict";
 
 import { BACKEND_WEBGPU } from "../../constants/backend.js";
-import { ALGORITHM_PANORAMA } from "../../constants/algorithm.js";
+import { ALGORITHM_CUBEMAP, ALGORITHM_PANORAMA } from "../../constants/algorithm.js";
 import {
   LOD_BAND_COUNT,
   LOD_DISTANCE_FRACTIONS,
@@ -10,6 +10,7 @@ import {
   ULTRA_LOD_FAR_DELTAS,
   ULTRA_PIXEL_OFFSETS,
 } from "../../constants/classic.js";
+import { cubeSizeForQuality } from "../../constants/cubemap.js";
 import {
   INITIAL_STEP_SCALE_BY_QUALITY,
   MIN_SAMPLE_DISTANCE,
@@ -58,6 +59,8 @@ import {
   createPanoDepthTarget,
   createSampleTarget,
   copyTarget,
+  copyTargetToLayer,
+  createCubeArray,
   uploadHeight,
   uploadColor,
   writeBuffer,
@@ -208,6 +211,11 @@ class WebGpuBackend {
     this._panoFov = NaN;
     this._panoAspect = NaN;
     this._panoLutKey = "";
+    this._cubeN = 0;
+    this._cubeScratchColor = null;
+    this._cubeScratchDepth = null;
+    this._cubeColorArray = null;
+    this._cubeDepthArray = null;
     this._lost = false;
     this._disposing = false;
   }
@@ -342,6 +350,22 @@ class WebGpuBackend {
     this.invalidatePanorama();
   }
 
+  _ensureCube(n) {
+    if (this._cubeColorArray && this._cubeN === n) {
+      return;
+    }
+    destroyTex(this._cubeScratchColor);
+    destroyTex(this._cubeScratchDepth);
+    destroyTex(this._cubeColorArray);
+    destroyTex(this._cubeDepthArray);
+    this._cubeScratchColor = createScreenTarget(this._device, n, n);
+    this._cubeScratchDepth = createPanoDepthTarget(this._device, n, n);
+    this._cubeColorArray = createCubeArray(this._device, n, "r32uint");
+    this._cubeDepthArray = createCubeArray(this._device, n, "r32float");
+    this._cubeN = n;
+    this.invalidatePanorama();
+  }
+
   _uploadPanoLuts(width, height, genSky, viewTop, viewBottom) {
     const key =
       width +
@@ -453,7 +477,7 @@ class WebGpuBackend {
     return kind === "h" ? this._dummyH : this._dummyC;
   }
 
-  _pack(camera, terrain, screenW, screenH, panoW, panoH) {
+  _pack(camera, terrain, screenW, screenH, panoW, panoH, cubeFace) {
     const maps = this._maps;
     const q = qualityIndex(camera.quality);
     const fov = camera.calculateFov();
@@ -549,6 +573,7 @@ class WebGpuBackend {
       epsilon: EPSILON,
       quality: q,
       lodCount: LOD_BAND_COUNT,
+      cubeFace: cubeFace,
       yHitLast: (PANO_YHIT_LUT_SIZE - 1) | 0,
       atanLast: (PANO_VIEW_ATAN_LUT_SIZE - 1) | 0,
       mipShift0: shifts[0] | 0,
@@ -637,6 +662,141 @@ class WebGpuBackend {
     pass.setBindGroup(2, maps);
     pass.setBindGroup(3, out);
     pass.dispatchWorkgroups(Math.ceil(screenW / WEBGPU_WORKGROUP_1D));
+    pass.end();
+    copyTarget(encoder, this._screenTex, this._screenSample, screenW, screenH);
+  }
+
+  _cubeMipsBind() {
+    return this._device.createBindGroup({
+      layout: this._pipes.layouts.mips,
+      entries: [
+        { binding: 0, resource: this._mipOrDummy("h", 0).createView() },
+        { binding: 1, resource: this._mipOrDummy("c", 0).createView() },
+        { binding: 2, resource: this._mipOrDummy("h", 1).createView() },
+        { binding: 3, resource: this._mipOrDummy("c", 1).createView() },
+        { binding: 4, resource: this._mipOrDummy("h", 2).createView() },
+        { binding: 5, resource: this._mipOrDummy("c", 2).createView() },
+      ],
+    });
+  }
+
+  _cubeScratchOut() {
+    return this._device.createBindGroup({
+      layout: this._pipes.layouts.panoOut,
+      entries: [
+        { binding: 0, resource: this._cubeScratchColor.createView() },
+        { binding: 1, resource: this._cubeScratchDepth.createView() },
+      ],
+    });
+  }
+
+  _copyCubeFace(encoder, layer) {
+    copyTargetToLayer(
+      encoder,
+      this._cubeScratchColor,
+      this._cubeColorArray,
+      this._cubeN,
+      this._cubeN,
+      layer
+    );
+    copyTargetToLayer(
+      encoder,
+      this._cubeScratchDepth,
+      this._cubeDepthArray,
+      this._cubeN,
+      this._cubeN,
+      layer
+    );
+  }
+
+  _dispatchCubeGenerate(camera, terrain, screenW, screenH) {
+    const n = this._cubeN;
+    const mips = this._cubeMipsBind();
+    const out = this._cubeScratchOut();
+    const wg = Math.ceil(n / WEBGPU_WORKGROUP_2D);
+    for (let face = 0; face < 4; face = (face + 1) | 0) {
+      this._pack(camera, terrain, screenW, screenH, n, n, face);
+      const encoder = this._device.createCommandEncoder();
+      const pass = encoder.beginComputePass();
+      pass.setPipeline(this._pipes.cubeGenerate);
+      pass.setBindGroup(0, this._frameBind());
+      pass.setBindGroup(1, mips);
+      pass.setBindGroup(2, out);
+      pass.dispatchWorkgroups(Math.ceil(n / WEBGPU_WORKGROUP_1D));
+      pass.end();
+      this._copyCubeFace(encoder, face);
+      this._device.queue.submit([encoder.finish()]);
+    }
+    for (let face = 4; face < 6; face = (face + 1) | 0) {
+      this._pack(camera, terrain, screenW, screenH, n, n, face);
+      const encoder = this._device.createCommandEncoder();
+      const fill = encoder.beginComputePass();
+      fill.setPipeline(this._pipes.cubeFill);
+      fill.setBindGroup(0, this._frameBind());
+      fill.setBindGroup(1, out);
+      fill.dispatchWorkgroups(wg, wg);
+      fill.end();
+      const polar = encoder.beginComputePass();
+      polar.setPipeline(this._pipes.cubePolar);
+      polar.setBindGroup(0, this._frameBind());
+      polar.setBindGroup(1, mips);
+      polar.setBindGroup(2, out);
+      polar.dispatchWorkgroups(Math.ceil((n * 4) / WEBGPU_WORKGROUP_1D));
+      polar.end();
+      this._copyCubeFace(encoder, face);
+      this._device.queue.submit([encoder.finish()]);
+    }
+    this._dispatchCubeStitch();
+  }
+
+  _dispatchCubeStitch() {
+    const n = this._cubeN;
+    const wg = Math.ceil(n / WEBGPU_WORKGROUP_2D);
+    const sample = this._device.createBindGroup({
+      layout: this._pipes.layouts.cubeSample,
+      entries: [
+        { binding: 0, resource: this._cubeColorArray.createView() },
+        { binding: 1, resource: this._cubeDepthArray.createView() },
+      ],
+    });
+    const encoder = this._device.createCommandEncoder();
+    const pass = encoder.beginComputePass();
+    pass.setPipeline(this._pipes.cubeStitch);
+    pass.setBindGroup(0, this._frameBind());
+    pass.setBindGroup(1, sample);
+    pass.setBindGroup(2, this._cubeScratchOut());
+    pass.dispatchWorkgroups(wg, wg);
+    pass.end();
+    this._copyCubeFace(encoder, 5);
+    this._device.queue.submit([encoder.finish()]);
+  }
+
+  _dispatchCubeView(encoder, screenW, screenH) {
+    const sample = this._device.createBindGroup({
+      layout: this._pipes.layouts.cubeSample,
+      entries: [
+        { binding: 0, resource: this._cubeColorArray.createView() },
+        { binding: 1, resource: this._cubeDepthArray.createView() },
+      ],
+    });
+    const out = this._device.createBindGroup({
+      layout: this._pipes.layouts.viewOut,
+      entries: [{ binding: 0, resource: this._screenTex.createView() }],
+    });
+    const sky = this._device.createBindGroup({
+      layout: this._pipes.layouts.cubeSky,
+      entries: [{ binding: 0, resource: { buffer: this._skyRowBuf } }],
+    });
+    const pass = encoder.beginComputePass();
+    pass.setPipeline(this._pipes.cubeView);
+    pass.setBindGroup(0, this._frameBind());
+    pass.setBindGroup(1, sample);
+    pass.setBindGroup(2, out);
+    pass.setBindGroup(3, sky);
+    pass.dispatchWorkgroups(
+      Math.ceil(screenW / WEBGPU_WORKGROUP_2D),
+      Math.ceil(screenH / WEBGPU_WORKGROUP_2D)
+    );
     pass.end();
     copyTarget(encoder, this._screenTex, this._screenSample, screenW, screenH);
   }
@@ -750,13 +910,32 @@ class WebGpuBackend {
       return;
     }
     this._ensureScreen(screenW, screenH);
-    const size = panoSize(camera.quality);
-    this._ensurePano(size.width, size.height);
     const dst = camera.calculateProjPlane();
     const horizon = camera.calculateHorizon(dst);
     this._writeSkyRows(
       classicSkyRows(screenH, horizon, camera.topColor, camera.bottomColor)
     );
+
+    if (frame.algorithm === ALGORITHM_CUBEMAP) {
+      const n = cubeSizeForQuality(camera.quality);
+      this._ensureCube(n);
+      this._writeSkyRows(
+        viewSkyRows(screenH, camera.topColor, camera.bottomColor)
+      );
+      if (this._shouldRegen(terrain, camera, screenW, screenH)) {
+        this._dispatchCubeGenerate(camera, terrain, screenW, screenH);
+        this._commitPano(terrain, camera, screenW, screenH);
+      }
+      this._pack(camera, terrain, screenW, screenH, n, n);
+      const encoder = this._device.createCommandEncoder();
+      this._dispatchCubeView(encoder, screenW, screenH);
+      this._blit(encoder);
+      this._device.queue.submit([encoder.finish()]);
+      return;
+    }
+
+    const size = panoSize(camera.quality);
+    this._ensurePano(size.width, size.height);
     this._uploadPanoLuts(
       size.width,
       size.height,
@@ -798,6 +977,10 @@ class WebGpuBackend {
     destroyTex(this._panoDepthSample);
     destroyTex(this._dummyH);
     destroyTex(this._dummyC);
+    destroyTex(this._cubeScratchColor);
+    destroyTex(this._cubeScratchDepth);
+    destroyTex(this._cubeColorArray);
+    destroyTex(this._cubeDepthArray);
     for (let i = 0; i < 3; i = (i + 1) | 0) {
       destroyTex(this._heightTex[i]);
       destroyTex(this._colorTex[i]);

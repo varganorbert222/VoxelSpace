@@ -4,18 +4,22 @@ import Threading from "./threading.js";
 import {
   MSG_INIT_MAPS,
   MSG_INIT_PANO,
+  MSG_INIT_CUBE,
   MSG_INIT_KERNEL,
   MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
   MSG_RENDER_PANORAMA,
   MSG_RENDER_PANO_VIEW,
+  MSG_RENDER_CUBE_VIEW,
   MSG_RESULT_CLASSIC,
   MSG_RESULT_PANORAMA,
   MSG_RESULT_PANO_VIEW,
+  MSG_RESULT_CUBE_VIEW,
   MSG_WORKER_ERROR,
   classicRenderPayload,
   panoramaViewPayload,
   panoramaGeneratePayload,
+  cubemapViewPayload,
 } from "./jobProtocol.js";
 import { PIXEL_OFFSET_ALIGN } from "../constants/classic.js";
 import { BACKEND_JS } from "../constants/backend.js";
@@ -49,6 +53,7 @@ class WorkerPool {
     this._jobId = 0;
     this._mapsGeneration = null;
     this._panoGeneration = null;
+    this._cubeGeneration = null;
     this._active = null;
     this._kernelBackend =
       options && options.kernelBackend ? options.kernelBackend : BACKEND_JS;
@@ -123,6 +128,7 @@ class WorkerPool {
     this._slots = [];
     this._mapsGeneration = null;
     this._panoGeneration = null;
+    this._cubeGeneration = null;
   }
 
   initMaps(snapshot) {
@@ -205,6 +211,33 @@ class WorkerPool {
     }
   }
 
+  setCubemap(snapshot) {
+    this.ensureWorkers();
+    if (this._cubeGeneration === snapshot.generation) {
+      return;
+    }
+    this._cubeGeneration = snapshot.generation;
+    const n = snapshot.color.length;
+    for (let i = 0; (i < this._slots.length) | 0; i = (i + 1) | 0) {
+      const color = new Uint32Array(n);
+      color.set(snapshot.color);
+      const depth = new Float32Array(n);
+      if (snapshot.depth) {
+        depth.set(snapshot.depth);
+      }
+      this._slots[i].worker.postMessage(
+        {
+          type: MSG_INIT_CUBE,
+          color: color.buffer,
+          depth: depth.buffer,
+          n: snapshot.n,
+          generation: snapshot.generation,
+        },
+        [color.buffer, depth.buffer]
+      );
+    }
+  }
+
   renderClassic(params) {
     return this._whenReady().then(() =>
       this._runJob(
@@ -225,6 +258,12 @@ class WorkerPool {
   renderPanoramaView(params) {
     return this._whenReady().then(() =>
       this._runJob(MSG_RENDER_PANO_VIEW, params, params.screenWidth, 1)
+    );
+  }
+
+  renderCubemapView(params) {
+    return this._whenReady().then(() =>
+      this._runJob(MSG_RENDER_CUBE_VIEW, params, params.screenWidth, 1)
     );
   }
 
@@ -283,6 +322,8 @@ class WorkerPool {
           slot.worker.postMessage(classicRenderPayload(jobId, range, params));
         } else if (msgType === MSG_RENDER_PANO_VIEW) {
           slot.worker.postMessage(panoramaViewPayload(jobId, range, params));
+        } else if (msgType === MSG_RENDER_CUBE_VIEW) {
+          slot.worker.postMessage(cubemapViewPayload(jobId, range, params));
         } else {
           slot.worker.postMessage(panoramaGeneratePayload(jobId, range, params));
         }
@@ -355,6 +396,12 @@ class WorkerPool {
         depth: new Float32Array(data.depth),
       });
     } else if (data.type === MSG_RESULT_PANO_VIEW) {
+      active.onChunk(index, {
+        startColumn: data.startColumn,
+        endColumn: data.endColumn,
+        pixels: new Uint32Array(data.pixels),
+      });
+    } else if (data.type === MSG_RESULT_CUBE_VIEW) {
       active.onChunk(index, {
         startColumn: data.startColumn,
         endColumn: data.endColumn,
