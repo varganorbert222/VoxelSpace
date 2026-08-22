@@ -18,6 +18,12 @@ export const STICK_FORWARD_SCALE = KEY_MOVE_SPEED;
 export const STICK_KNOB_TRAVEL_PX = 28;
 export const SPRINT_MULTIPLIER = 3;
 
+export const FORM_TAGS = new Set(["INPUT", "SELECT", "BUTTON", "TEXTAREA"]);
+
+export function isFormTarget(target) {
+  return !!(target && FORM_TAGS.has(target.tagName));
+}
+
 export const Key = Object.freeze({
   SHIFT: "Shift",
   CTRL: "Control",
@@ -34,10 +40,23 @@ export const Key = Object.freeze({
   S: "KeyS",
   W: "KeyW",
   F: "KeyF",
-  P: "KeyP",
-  B: "KeyB",
-  V: "KeyV",
-  O: "KeyO",
+});
+
+// Typed characters (e.key), first unused letter of the HUD label.
+// Skips movement: WASD, R/F, Q/E, Space, Ctrl.
+export const SettingChar = Object.freeze({
+  MAP: "m",
+  ALGORITHM: "l",
+  RUNTIME: "b",
+  CAMERA: "c",
+  DISTANCE: "i",
+  DELTA_Z: "z",
+  FOV: "o",
+  DEBUG_VIEW: "v",
+  ENV_ATLAS: "n",
+  FOG: "g",
+  REPEAT: "p",
+  THREADS: "t",
 });
 
 export function keyFromCode(code) {

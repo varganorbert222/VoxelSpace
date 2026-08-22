@@ -2,8 +2,6 @@
 
 import maps from "../../data/maps.json" with { type: "json" };
 import config from "../../data/config.json" with { type: "json" };
-import { SPAWN_HEIGHT_OFFSET } from "../constants/main.js";
-import { HALF } from "../constants/vmath.js";
 import { BACKEND_CHIP, usesWorkers } from "../constants/backend.js";
 import {
   DEBUG_VIEW_COLOR,
@@ -210,9 +208,7 @@ class SettingsForm {
         config.settings.quality.values,
         camera.quality,
         (e) => {
-          camera.set({ quality: parseFloat(e.target.value) });
-          app.resize();
-          persist();
+          app.setQuality(e.target.value);
         },
         () => app.renderer.backend
       ),
@@ -245,13 +241,7 @@ class SettingsForm {
         config.settings.cameraModes,
         camera.mode,
         (e) => {
-          camera.set({
-            mode: e.target.value,
-            posX: app.terrain.width * HALF,
-            posY: app.terrain.height * HALF,
-            posZ: app.terrain.altitude + SPAWN_HEIGHT_OFFSET,
-          });
-          persist();
+          app.setCameraMode(e.target.value);
         }
       ),
       algorithm: initOptionElement(

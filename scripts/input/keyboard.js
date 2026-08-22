@@ -5,10 +5,10 @@ import {
   KEY_STRAFE_SPEED,
   KEY_UPDOWN_SPEED,
   Key,
+  SettingChar,
+  isFormTarget,
   keyFromCode,
 } from "../constants/input.js";
-
-const FORM_TAGS = new Set(["INPUT", "SELECT", "BUTTON", "TEXTAREA"]);
 
 export function bindKeyboard(input) {
   window.addEventListener("keydown", (e) => {
@@ -41,13 +41,78 @@ function refreshUpDown(input) {
   input._updown = up;
 }
 
+function settingChar(e) {
+  if (e.ctrlKey || e.altKey || e.metaKey) {
+    return "";
+  }
+  if (e.key.length !== 1) {
+    return "";
+  }
+  return e.key.toLowerCase();
+}
+
+function detectSettingHotkey(input, e) {
+  const ch = settingChar(e);
+  if (!ch) {
+    return;
+  }
+  const dir = e.shiftKey ? 1 : -1;
+  switch (ch) {
+    case SettingChar.ALGORITHM:
+      if (!e.repeat) input._toggleRenderAlgorithm = true;
+      break;
+    case SettingChar.RUNTIME:
+      if (!e.repeat) input._toggleRenderBackend = true;
+      break;
+    case SettingChar.DEBUG_VIEW:
+      if (!e.repeat) input._toggleDebugView = true;
+      break;
+    case SettingChar.ENV_ATLAS:
+      if (!e.repeat) input._toggleDebugOverlay = true;
+      break;
+    case SettingChar.FOG:
+      if (!e.repeat) input._toggleFog = true;
+      break;
+    case SettingChar.REPEAT:
+      if (!e.repeat) input._toggleRepeat = true;
+      break;
+    case SettingChar.THREADS:
+      if (!e.repeat) input._toggleThreads = true;
+      break;
+    case SettingChar.MAP:
+      if (!e.repeat) input._cycleMap = true;
+      break;
+    case SettingChar.CAMERA:
+      if (!e.repeat) input._cycleCamera = true;
+      break;
+    case SettingChar.DISTANCE:
+      input._nudgeDistance += dir;
+      break;
+    case SettingChar.DELTA_Z:
+      input._nudgeDeltaZ += dir;
+      break;
+    case SettingChar.FOV:
+      input._nudgeFov += dir;
+      break;
+    case "1":
+    case "2":
+    case "3":
+    case "4":
+    case "5":
+      if (!e.repeat) input._setQuality = Number(ch);
+      break;
+    default:
+      break;
+  }
+}
+
 function detectKeysDown(input, e) {
+  if (isFormTarget(e.target)) {
+    return;
+  }
   const key = keyFromCode(e.code);
   if (key === Key.SPACE) {
-    const tag = e.target && e.target.tagName;
-    if (!FORM_TAGS.has(tag)) {
-      e.preventDefault();
-    }
+    e.preventDefault();
   }
   input._keys[key] = true;
   switch (key) {
@@ -81,22 +146,10 @@ function detectKeysDown(input, e) {
     case Key.Q:
       if (input._rollEnabled) input._rollHold = 1;
       break;
-    case Key.P:
-      if (!e.repeat) input._toggleRenderAlgorithm = true;
-      break;
-    case Key.B:
-      if (!e.repeat) input._toggleRenderBackend = true;
-      break;
-    case Key.V:
-      if (!e.repeat) input._toggleDebugView = true;
-      break;
-    case Key.O:
-      if (!e.repeat) input._toggleDebugOverlay = true;
-      break;
     default:
-      return;
+      break;
   }
-  return false;
+  detectSettingHotkey(input, e);
 }
 
 function detectKeysUp(input, e) {

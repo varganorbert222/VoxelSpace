@@ -1,8 +1,7 @@
 "use strict";
 
 import { dismissHudTooltip, initTooltips } from "./tooltip.js";
-
-const FORM_TAGS = new Set(["INPUT", "SELECT", "BUTTON", "TEXTAREA"]);
+import { isFormTarget } from "../constants/input.js";
 
 function isTouchLayout() {
   return window.matchMedia("(pointer: coarse), (hover: none)").matches;
@@ -49,21 +48,23 @@ export function initHud() {
   }
 
   window.addEventListener("keydown", (e) => {
-    if (e.code !== "KeyH" && e.code !== "Escape") {
-      return;
-    }
-    const tag = e.target && e.target.tagName;
-    if (FORM_TAGS.has(tag)) {
-      return;
-    }
     if (e.code === "Escape") {
+      if (document.activeElement && document.activeElement.blur) {
+        document.activeElement.blur();
+      }
       setHudOpen(false);
       return;
     }
-    if (e.repeat) {
+    if (e.code !== "KeyH" || e.repeat) {
+      return;
+    }
+    if (isFormTarget(e.target) && document.body.classList.contains("hud-open")) {
       return;
     }
     setHudOpen(!document.body.classList.contains("hud-open"));
+    if (!document.body.classList.contains("hud-open") && document.activeElement) {
+      document.activeElement.blur();
+    }
   });
 
   initTooltips();

@@ -82,6 +82,60 @@ class Input {
     return pressed;
   }
 
+  get consumeToggleFog() {
+    const pressed = this._toggleFog;
+    this._toggleFog = false;
+    return pressed;
+  }
+
+  get consumeToggleRepeat() {
+    const pressed = this._toggleRepeat;
+    this._toggleRepeat = false;
+    return pressed;
+  }
+
+  get consumeToggleThreads() {
+    const pressed = this._toggleThreads;
+    this._toggleThreads = false;
+    return pressed;
+  }
+
+  get consumeCycleMap() {
+    const pressed = this._cycleMap;
+    this._cycleMap = false;
+    return pressed;
+  }
+
+  get consumeCycleCamera() {
+    const pressed = this._cycleCamera;
+    this._cycleCamera = false;
+    return pressed;
+  }
+
+  get consumeSetQuality() {
+    const q = this._setQuality;
+    this._setQuality = 0;
+    return q;
+  }
+
+  get consumeNudgeDistance() {
+    const n = this._nudgeDistance;
+    this._nudgeDistance = 0;
+    return n;
+  }
+
+  get consumeNudgeDeltaZ() {
+    const n = this._nudgeDeltaZ;
+    this._nudgeDeltaZ = 0;
+    return n;
+  }
+
+  get consumeNudgeFov() {
+    const n = this._nudgeFov;
+    this._nudgeFov = 0;
+    return n;
+  }
+
   consumeLookDelta() {
     const x = this._lookX;
     const y = this._lookY;
@@ -111,6 +165,15 @@ class Input {
     this._toggleRenderBackend = false;
     this._toggleDebugView = false;
     this._toggleDebugOverlay = false;
+    this._toggleFog = false;
+    this._toggleRepeat = false;
+    this._toggleThreads = false;
+    this._cycleMap = false;
+    this._cycleCamera = false;
+    this._setQuality = 0;
+    this._nudgeDistance = 0;
+    this._nudgeDeltaZ = 0;
+    this._nudgeFov = 0;
     this._flyLook = true;
     this._rollEnabled = false;
     this._canvas = config.canvas;

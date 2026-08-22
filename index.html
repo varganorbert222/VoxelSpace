@@ -47,7 +47,7 @@
       </div>
       <div class="hud-top-right">
         <div id="id_fps" class="hud-fps" aria-live="polite"></div>
-        <button type="button" id="id_hud_toggle" aria-expanded="false" aria-controls="id_info">
+        <button type="button" id="id_hud_toggle" aria-expanded="false" aria-controls="id_info" aria-keyshortcuts="H">
           Menu
         </button>
       </div>
@@ -63,7 +63,7 @@
           <div class="control-head">
             <label for="id_mapselector">Map</label>
           </div>
-          <select id="id_mapselector" name="MapSelector" autocomplete="off">
+          <select id="id_mapselector" name="MapSelector" autocomplete="off" aria-keyshortcuts="M">
             <option value="">Please select map</option>
           </select>
         </div>
@@ -80,6 +80,7 @@
               id="id_algorithmselector"
               name="AlgorithmSelector"
               autocomplete="off"
+              aria-keyshortcuts="L"
             >
               <option value="">Please select algorithm</option>
             </select>
@@ -96,6 +97,7 @@
               title="BackendSelector"
               name="BackendSelector"
               autocomplete="off"
+              aria-keyshortcuts="B"
             >
               <option value="">Please select runtime</option>
             </select>
@@ -104,7 +106,7 @@
             <div class="control-head">
               <label for="id_quality">Quality</label>
             </div>
-            <select id="id_quality" name="quality" autocomplete="off"></select>
+              <select id="id_quality" name="quality" autocomplete="off" aria-keyshortcuts="1 2 3 4 5"></select>
           </div>
           <div
             class="control"
@@ -117,6 +119,7 @@
               id="id_cameraselector"
               name="CameraSelector"
               autocomplete="off"
+              aria-keyshortcuts="C"
             >
               <option value="">Please select mode</option>
             </select>
@@ -131,21 +134,21 @@
             <label for="id_render_distance">Distance</label>
             <span class="control-value" data-for="id_render_distance"></span>
           </div>
-          <input id="id_render_distance" type="range" autocomplete="off" />
+          <input id="id_render_distance" type="range" autocomplete="off" aria-keyshortcuts="I Shift+I" />
         </div>
         <div class="control" data-tip="Ray step size. Lower is denser and slower.">
           <div class="control-head">
             <label for="id_delta_z">Delta Z</label>
             <span class="control-value" data-for="id_delta_z"></span>
           </div>
-          <input id="id_delta_z" type="range" autocomplete="off" />
+          <input id="id_delta_z" type="range" autocomplete="off" aria-keyshortcuts="Z Shift+Z" />
         </div>
         <div class="control" data-tip="Horizontal field of view in degrees.">
           <div class="control-head">
             <label for="id_fov">FOV</label>
             <span class="control-value" data-for="id_fov"></span>
           </div>
-          <input id="id_fov" type="range" autocomplete="off" />
+          <input id="id_fov" type="range" autocomplete="off" aria-keyshortcuts="O Shift+O" />
         </div>
         <div class="control" data-tip="Internal resolution. Set automatically by quality.">
           <div class="control-head">
@@ -165,7 +168,7 @@
           <div class="control-head">
             <label for="id_debugview">Debug view</label>
           </div>
-          <select id="id_debugview" name="DebugView" autocomplete="off">
+          <select id="id_debugview" name="DebugView" autocomplete="off" aria-keyshortcuts="V">
             <option value="">Please select debug view</option>
           </select>
         </div>
@@ -180,6 +183,7 @@
               name="debugoverlay"
               type="checkbox"
               autocomplete="off"
+              aria-keyshortcuts="N"
             />
             <span class="check-box" aria-hidden="true"></span>
             Env atlas
@@ -196,12 +200,13 @@
               name="applyfog"
               type="checkbox"
               autocomplete="off"
+              aria-keyshortcuts="G"
             />
             <span class="check-box" aria-hidden="true"></span>
             Fog
           </label>
           <label class="check" for="id_repeat" data-tip="Tile the map so the world wraps.">
-            <input id="id_repeat" name="repeat" type="checkbox" autocomplete="off" />
+            <input id="id_repeat" name="repeat" type="checkbox" autocomplete="off" aria-keyshortcuts="P" />
             <span class="check-box" aria-hidden="true"></span>
             Repeat
           </label>
@@ -215,6 +220,7 @@
               name="multithread"
               type="checkbox"
               autocomplete="off"
+              aria-keyshortcuts="T"
             />
             <span class="check-box" aria-hidden="true"></span>
             Threads
@@ -232,10 +238,19 @@
           <div><dt>R F</dt><dd>Up / down</dd></div>
           <div><dt>Space Ctrl</dt><dd>Up / down</dd></div>
           <div class="pano-only"><dt>Q E</dt><dd>Roll</dd></div>
-          <div><dt>P</dt><dd>Cycle algorithm</dd></div>
+          <div><dt>M</dt><dd>Cycle map</dd></div>
+          <div><dt>L</dt><dd>Cycle algorithm</dd></div>
           <div><dt>B</dt><dd>Cycle runtime</dd></div>
+          <div><dt>1-5</dt><dd>Quality</dd></div>
+          <div><dt>C</dt><dd>Cycle camera</dd></div>
+          <div><dt>I Shift+I</dt><dd>Distance</dd></div>
+          <div><dt>Z Shift+Z</dt><dd>Delta Z</dd></div>
+          <div><dt>O Shift+O</dt><dd>FOV</dd></div>
           <div><dt>V</dt><dd>Cycle debug view</dd></div>
-          <div class="pano-only"><dt>O</dt><dd>Toggle env atlas</dd></div>
+          <div class="pano-only"><dt>N</dt><dd>Toggle env atlas</dd></div>
+          <div><dt>G</dt><dd>Toggle fog</dd></div>
+          <div><dt>P</dt><dd>Toggle repeat</dd></div>
+          <div><dt>T</dt><dd>Toggle threads</dd></div>
           <div><dt>H</dt><dd>Toggle HUD</dd></div>
           <div><dt>Esc</dt><dd>Close panel</dd></div>
         </dl>

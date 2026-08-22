@@ -122,6 +122,29 @@ class App {
     loadMap(this, mapName);
   }
 
+  setCameraMode(mode) {
+    if (!this.camera || !this.terrain) {
+      return;
+    }
+    this.camera.set({
+      mode,
+      posX: this.terrain.width * HALF,
+      posY: this.terrain.height * HALF,
+      posZ: this.terrain.altitude + SPAWN_HEIGHT_OFFSET,
+    });
+    this.persistAndSync();
+  }
+
+  setQuality(quality) {
+    if (!this.camera) {
+      return;
+    }
+    const q = clampQualityForContext(Number(quality), this.renderer.backend);
+    this.camera.set({ quality: q });
+    this.resize();
+    this.persistAndSync();
+  }
+
   setRenderAlgorithm(algorithm) {
     const prev = this.renderer.algorithm;
     this.renderer.setOptions({ algorithm });
