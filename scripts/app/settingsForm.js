@@ -7,7 +7,6 @@ import {
   DEBUG_VIEW_COLOR,
   DEBUG_VIEW_LABEL,
   envOverlayAllowed,
-  isDebugColor,
 } from "../constants/debugView.js";
 import {
   QUALITY_LABEL,
@@ -341,14 +340,12 @@ class SettingsForm {
     setChip("id_hud_algorithm", options.algorithm);
     setChip("id_hud_backend", BACKEND_CHIP[options.backend] || options.backend);
     setChip("id_hud_camera", camera.mode);
-    const debugChip = document.getElementById("id_hud_debug");
-    if (debugChip) {
-      const showDebug = !isDebugColor(options.debugView);
-      debugChip.hidden = !showDebug;
-      debugChip.textContent = showDebug
-        ? DEBUG_VIEW_LABEL[options.debugView] || options.debugView
-        : "----";
-    }
+    setChip(
+      "id_hud_quality",
+      QUALITY_LABEL[camera.quality] || String(camera.quality)
+    );
+    const debugViewName = options.debugView || DEBUG_VIEW_COLOR;
+    setChip("id_hud_debug", DEBUG_VIEW_LABEL[debugViewName] || debugViewName);
   }
 
   syncRenderScale() {
