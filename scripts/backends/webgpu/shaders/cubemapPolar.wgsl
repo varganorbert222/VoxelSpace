@@ -7,30 +7,35 @@
 @group(1) @binding(5) var color2: texture_2d<f32>;
 @group(2) @binding(0) var faceColor: texture_storage_2d<r32uint, write>;
 @group(2) @binding(1) var faceDepth: texture_storage_2d<r32float, write>;
+@group(2) @binding(2) var faceHeight: texture_storage_2d<r32uint, write>;
+@group(2) @binding(3) var faceIter: texture_storage_2d<r32uint, write>;
 
 const MAX_STEPS: u32 = 16384u;
 const EPSILON: f32 = 1e-6;
 const TWO_PI: f32 = 6.283185307179586;
 
-fn sampleHeight(mip: i32, wx: f32, wy: f32) -> f32 {
+fn sampleHeightByte(mip: i32, wx: f32, wy: f32) -> u32 {
   let inv0 = frame.mipInvPixelCenter.x;
   let inv1 = frame.mipInvPixelCenter.y;
   let inv2 = frame.mipInvPixelCenter.z;
-  let altitude = frame.tMaxMinDzAltMaxH.z;
-  let altScale = altitude / 255.0;
   if (mip <= 0) {
     let ix = i32(wx * inv0) & i32(frame.mipSize1.w);
     let iy = i32(wy * inv0) & i32(frame.mipSize1.z);
-    return f32(textureLoad(height0, vec2<i32>(ix, iy), 0).r) * altScale;
+    return textureLoad(height0, vec2<i32>(ix, iy), 0).r;
   }
   if (mip == 1) {
     let ix = i32(wx * inv1) & i32(frame.mipMask1.y);
     let iy = i32(wy * inv1) & i32(frame.mipMask1.x);
-    return f32(textureLoad(height1, vec2<i32>(ix, iy), 0).r) * altScale;
+    return textureLoad(height1, vec2<i32>(ix, iy), 0).r;
   }
   let ix = i32(wx * inv2) & i32(frame.mipMask1.w);
   let iy = i32(wy * inv2) & i32(frame.mipMask1.z);
-  return f32(textureLoad(height2, vec2<i32>(ix, iy), 0).r) * altScale;
+  return textureLoad(height2, vec2<i32>(ix, iy), 0).r;
+}
+
+fn sampleHeight(mip: i32, wx: f32, wy: f32) -> f32 {
+  let altitude = frame.tMaxMinDzAltMaxH.z;
+  return f32(sampleHeightByte(mip, wx, wy)) * (altitude / 255.0);
 }
 
 fn sampleColor(mip: i32, wx: f32, wy: f32) -> vec4f {
@@ -79,7 +84,7 @@ fn uvToTexel(n: i32, u: f32, v: f32) -> vec2i {
   );
 }
 
-fn plotPolar(n: i32, i: i32, j: i32, color: vec4f, dist: f32) {
+fn plotPolar(n: i32, i: i32, j: i32, color: vec4f, dist: f32, hByte: u32, iter: u32) {
   let packed = packRgba(color);
   var dj = 0;
   loop {
@@ -94,13 +99,15 @@ fn plotPolar(n: i32, i: i32, j: i32, color: vec4f, dist: f32) {
       let p = clampTexel(n, i + di, j + dj);
       textureStore(faceColor, p, vec4<u32>(packed, 0u, 0u, 0u));
       textureStore(faceDepth, p, vec4<f32>(dist, 0.0, 0.0, 0.0));
+      textureStore(faceHeight, p, vec4<u32>(hByte, 0u, 0u, 0u));
+      textureStore(faceIter, p, vec4<u32>(iter, 0u, 0u, 0u));
       di = di + 1;
     }
     dj = dj + 1;
   }
 }
 
-fn fillSpoke(n: i32, su: f32, sv: f32, r0: f32, r1: f32, color: vec4f, dist: f32) {
+fn fillSpoke(n: i32, su: f32, sv: f32, r0: f32, r1: f32, color: vec4f, dist: f32, hByte: u32, iter: u32) {
   let rMax = 1.0 / max(max(abs(su), abs(sv)), EPSILON);
   var a = max(r0, 0.0);
   var b = min(r1, rMax);
@@ -129,7 +136,7 @@ fn fillSpoke(n: i32, su: f32, sv: f32, r0: f32, r1: f32, color: vec4f, dist: f32
     if (guard >= 2048u) {
       break;
     }
-    plotPolar(n, x0, y0, color, dist);
+    plotPolar(n, x0, y0, color, dist, hByte, iter);
     if ((x0 == x1) && (y0 == y1)) {
       break;
     }
@@ -206,6 +213,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   var rInnerDown = 0.0;
   var lastDownColor = vec4f(0.0);
   var lastDownDist = 0.0;
+  var lastDownHeight = 0u;
+  var lastDownIter = 0u;
   var hadDown = 0;
 
   loop {
@@ -264,11 +273,12 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let dh = h - camZ;
     let slope = dh / t;
     let color = sampleColor(mip, wx, wy);
+    let hByte = sampleHeightByte(mip, wx, wy);
     let dist = sqrt(t * t + dh * dh);
     if (face == 4 && slope > EPSILON) {
       let r = 1.0 / slope;
       if (r < rOuterUp) {
-        fillSpoke(n, dirX, dirY, r, rOuterUp, color, dist);
+        fillSpoke(n, dirX, dirY, r, rOuterUp, color, dist, hByte, k);
         rOuterUp = r;
       }
     } else if (face == 5 && slope < -EPSILON) {
@@ -276,14 +286,16 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       if (r > rInnerDown) {
         if (rInnerDown < rMaxSpoke) {
           if (r <= rMaxSpoke) {
-            fillSpoke(n, dirX, -dirY, rInnerDown, r, color, dist);
+            fillSpoke(n, dirX, -dirY, rInnerDown, r, color, dist, hByte, k);
           } else if (rInnerDown > 0.0) {
-            fillSpoke(n, dirX, -dirY, rInnerDown, rMaxSpoke, color, dist);
+            fillSpoke(n, dirX, -dirY, rInnerDown, rMaxSpoke, color, dist, hByte, k);
           }
         }
         rInnerDown = r;
         lastDownColor = color;
         lastDownDist = dist;
+        lastDownHeight = hByte;
+        lastDownIter = k;
         hadDown = 1;
       }
     }
@@ -298,6 +310,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     }
   }
   if (face == 5 && hadDown != 0 && rInnerDown > 0.0 && rInnerDown < rMaxSpoke) {
-    fillSpoke(n, dirX, -dirY, rInnerDown, rMaxSpoke, lastDownColor, lastDownDist);
+    fillSpoke(n, dirX, -dirY, rInnerDown, rMaxSpoke, lastDownColor, lastDownDist, lastDownHeight, lastDownIter);
   }
 }

@@ -1,6 +1,8 @@
 @group(0) @binding(0) var<uniform> frame: Frame;
 @group(1) @binding(0) var cubeColor: texture_2d_array<u32>;
 @group(1) @binding(1) var cubeDepth: texture_2d_array<f32>;
+@group(1) @binding(2) var cubeHeight: texture_2d_array<u32>;
+@group(1) @binding(3) var cubeIter: texture_2d_array<u32>;
 @group(2) @binding(0) var outTex: texture_storage_2d<r32uint, write>;
 @group(3) @binding(0) var<storage, read> skyView: array<u32>;
 
@@ -101,9 +103,18 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let sel = cubeSelect(dx, dy, dz);
   let packed = textureLoad(cubeColor, vec2<i32>(sel.y, sel.z), sel.x, 0).r;
   let dist = textureLoad(cubeDepth, vec2<i32>(sel.y, sel.z), sel.x, 0).r;
+  let debugView = flagDebugView(frame.mapFlags.w);
   var outColor = packed;
   let skyIdx = min(u32(sy), u32(arrayLength(&skyView) - 1u));
-  if (dist > 0.0) {
+  if (debugView != DEBUG_COLOR) {
+    let hByte = textureLoad(cubeHeight, vec2<i32>(sel.y, sel.z), sel.x, 0).r;
+    let iter = textureLoad(cubeIter, vec2<i32>(sel.y, sel.z), sel.x, 0).r;
+    var viewZ = 0.0;
+    if (dist > 0.0) {
+      viewZ = dist * invViewLen;
+    }
+    outColor = encodeCamera(debugView, dist, hByte, iter, viewZ, farClip);
+  } else if (dist > 0.0) {
     let viewZ = dist * invViewLen;
     if (!useFog && ((viewZ >= farClip) || (viewZ < nearClip))) {
       outColor = skyView[skyIdx];

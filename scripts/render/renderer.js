@@ -7,6 +7,7 @@ import {
   usesWorkers,
 } from "../constants/backend.js";
 import { ALGORITHM_CLASSIC } from "../constants/algorithm.js";
+import { DEBUG_VIEW_COLOR } from "../constants/debugView.js";
 import { DEFAULT_MULTITHREAD } from "../constants/threading.js";
 import { createBackend, listBackends } from "../backends/contract.js";
 
@@ -17,6 +18,8 @@ class Renderer {
     this._camera = null;
     this._applyFog = true;
     this._repeat = true;
+    this._debugView = DEBUG_VIEW_COLOR;
+    this._debugOverlay = false;
     this._algorithm = ALGORITHM_CLASSIC;
     this._multithread = DEFAULT_MULTITHREAD;
     this._multithreadWanted = DEFAULT_MULTITHREAD;
@@ -47,6 +50,14 @@ class Renderer {
 
   get repeat() {
     return this._repeat;
+  }
+
+  get debugView() {
+    return this._debugView;
+  }
+
+  get debugOverlay() {
+    return this._debugOverlay;
   }
 
   get algorithm() {
@@ -93,6 +104,8 @@ class Renderer {
       algorithm: this._algorithm,
       multithread: this._multithreadWanted,
       backend: this._backendId,
+      debugView: this._debugView,
+      debugOverlay: this._debugOverlay,
     };
   }
 
@@ -102,6 +115,12 @@ class Renderer {
     }
     if (options.repeat !== undefined) {
       this._repeat = options.repeat;
+    }
+    if (options.debugView !== undefined) {
+      this._debugView = options.debugView;
+    }
+    if (options.debugOverlay !== undefined) {
+      this._debugOverlay = !!options.debugOverlay;
     }
     if (options.algorithm !== undefined) {
       this.algorithm = options.algorithm;

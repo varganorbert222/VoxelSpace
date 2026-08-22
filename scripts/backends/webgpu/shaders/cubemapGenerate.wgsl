@@ -7,29 +7,34 @@
 @group(1) @binding(5) var color2: texture_2d<f32>;
 @group(2) @binding(0) var faceColor: texture_storage_2d<r32uint, write>;
 @group(2) @binding(1) var faceDepth: texture_storage_2d<r32float, write>;
+@group(2) @binding(2) var faceHeight: texture_storage_2d<r32uint, write>;
+@group(2) @binding(3) var faceIter: texture_storage_2d<r32uint, write>;
 
 const MAX_STEPS: u32 = 16384u;
 const EPSILON: f32 = 1e-6;
 
-fn sampleHeight(mip: i32, wx: f32, wy: f32) -> f32 {
+fn sampleHeightByte(mip: i32, wx: f32, wy: f32) -> u32 {
   let inv0 = frame.mipInvPixelCenter.x;
   let inv1 = frame.mipInvPixelCenter.y;
   let inv2 = frame.mipInvPixelCenter.z;
-  let altitude = frame.tMaxMinDzAltMaxH.z;
-  let altScale = altitude / 255.0;
   if (mip <= 0) {
     let ix = i32(wx * inv0) & i32(frame.mipSize1.w);
     let iy = i32(wy * inv0) & i32(frame.mipSize1.z);
-    return f32(textureLoad(height0, vec2<i32>(ix, iy), 0).r) * altScale;
+    return textureLoad(height0, vec2<i32>(ix, iy), 0).r;
   }
   if (mip == 1) {
     let ix = i32(wx * inv1) & i32(frame.mipMask1.y);
     let iy = i32(wy * inv1) & i32(frame.mipMask1.x);
-    return f32(textureLoad(height1, vec2<i32>(ix, iy), 0).r) * altScale;
+    return textureLoad(height1, vec2<i32>(ix, iy), 0).r;
   }
   let ix = i32(wx * inv2) & i32(frame.mipMask1.w);
   let iy = i32(wy * inv2) & i32(frame.mipMask1.z);
-  return f32(textureLoad(height2, vec2<i32>(ix, iy), 0).r) * altScale;
+  return textureLoad(height2, vec2<i32>(ix, iy), 0).r;
+}
+
+fn sampleHeight(mip: i32, wx: f32, wy: f32) -> f32 {
+  let altitude = frame.tMaxMinDzAltMaxH.z;
+  return f32(sampleHeightByte(mip, wx, wy)) * (altitude / 255.0);
 }
 
 fn sampleColor(mip: i32, wx: f32, wy: f32) -> vec4f {
@@ -91,6 +96,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let sky = packRgba(skyColorAt(y, n));
     textureStore(faceColor, vec2<i32>(col, y), vec4<u32>(sky, 0u, 0u, 0u));
     textureStore(faceDepth, vec2<i32>(col, y), vec4<f32>(0.0, 0.0, 0.0, 0.0));
+    textureStore(faceHeight, vec2<i32>(col, y), vec4<u32>(0u, 0u, 0u, 0u));
+    textureStore(faceIter, vec2<i32>(col, y), vec4<u32>(0u, 0u, 0u, 0u));
     y = y + 1;
   }
 
@@ -229,6 +236,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       }
       if (yHit < yBottom) {
         let color = sampleColor(mip, wx, wy);
+        let hByte = sampleHeightByte(mip, wx, wy);
         let dh = h - camZ;
         let dist = sqrt(t * t + dh * dh);
         var yy = yHit;
@@ -238,6 +246,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
           }
           textureStore(faceColor, vec2<i32>(col, yy), vec4<u32>(packRgba(color), 0u, 0u, 0u));
           textureStore(faceDepth, vec2<i32>(col, yy), vec4<f32>(dist, 0.0, 0.0, 0.0));
+          textureStore(faceHeight, vec2<i32>(col, yy), vec4<u32>(hByte, 0u, 0u, 0u));
+          textureStore(faceIter, vec2<i32>(col, yy), vec4<u32>(k, 0u, 0u, 0u));
           yy = yy + 1;
         }
       }

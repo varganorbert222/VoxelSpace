@@ -9,6 +9,7 @@ import {
   PANO_HEIGHT,
 } from "../constants/quality.js";
 import { farPlaneRayTMax } from "../constants/panorama.js";
+import { blitRendererOverlay } from "./debugOverlay.js";
 
 function panoGenerate(renderer) {
   return (
@@ -32,6 +33,8 @@ class PanoramaRenderer {
     this._panoramaPixels = null;
     this._panoramaHorizon = null;
     this._panoramaDepth = null;
+    this._panoramaHeight = null;
+    this._panoramaIter = null;
     this._panoramaValid = false;
     this._panoramaDirty = true;
     this._panoCamX = 0;
@@ -78,6 +81,8 @@ class PanoramaRenderer {
       this._panoramaPixels = null;
       this._panoramaHorizon = null;
       this._panoramaDepth = null;
+      this._panoramaHeight = null;
+      this._panoramaIter = null;
       this.invalidate();
     }
   }
@@ -88,10 +93,23 @@ class PanoramaRenderer {
       this._panoramaPixels = new Uint32Array(n);
       this._panoramaHorizon = new Int32Array(this._panoWidth);
       this._panoramaDepth = new Float32Array(n);
+      this._panoramaHeight = new Uint32Array(n);
+      this._panoramaIter = new Uint32Array(n);
       this._panoramaValid = false;
     } else if (!this._panoramaDepth || this._panoramaDepth.length !== n) {
       this._panoramaDepth = new Float32Array(n);
+      this._panoramaHeight = new Uint32Array(n);
+      this._panoramaIter = new Uint32Array(n);
       this._panoramaValid = false;
+    } else {
+      if (!this._panoramaHeight || this._panoramaHeight.length !== n) {
+        this._panoramaHeight = new Uint32Array(n);
+        this._panoramaValid = false;
+      }
+      if (!this._panoramaIter || this._panoramaIter.length !== n) {
+        this._panoramaIter = new Uint32Array(n);
+        this._panoramaValid = false;
+      }
     }
   }
 
@@ -154,12 +172,15 @@ class PanoramaRenderer {
       frameBuffer: renderer.frameBuffer,
       horizon: this._panoramaHorizon,
       depth: this._panoramaDepth,
+      heightBuf: this._panoramaHeight,
+      iterBuf: this._panoramaIter,
       panoGeneration: this._panoGen,
       skyColor: camera.topColor,
       horizonColor: camera.bottomColor,
       nearClip: camera.nearClip,
       farClip: camera.farClip,
       applyFog: renderer.applyFog,
+      debugView: renderer.debugView,
       rightX: camera.rightX,
       rightY: camera.rightY,
       rightZ: camera.rightZ,
@@ -180,6 +201,8 @@ class PanoramaRenderer {
       pixels: this._panoramaPixels,
       horizon: this._panoramaHorizon,
       depth: this._panoramaDepth,
+      heightBuf: this._panoramaHeight,
+      iter: this._panoramaIter,
       width: this._panoWidth,
       height: this._panoHeight,
       generation: this._panoGen,
@@ -205,6 +228,7 @@ class PanoramaRenderer {
       nearClip: camera.nearClip,
       farClip: camera.farClip,
       applyFog: renderer.applyFog,
+      debugView: renderer.debugView,
       rightX: camera.rightX,
       rightY: camera.rightY,
       rightZ: camera.rightZ,
@@ -246,11 +270,24 @@ class PanoramaRenderer {
       if (!ok) {
         this._viewPanoramaLocal();
       }
+      this._blitOverlay();
       renderer.writeToContext();
       return;
     }
     this._viewPanoramaLocal();
+    this._blitOverlay();
     renderer.writeToContext();
+  }
+
+  _blitOverlay() {
+    blitRendererOverlay(this._renderer, {
+      panoColor: this._panoramaPixels,
+      panoDepth: this._panoramaDepth,
+      panoHeight: this._panoramaHeight,
+      panoIter: this._panoramaIter,
+      panoW: this._panoWidth,
+      panoH: this._panoHeight,
+    });
   }
 
   _copyPanoSlices(slices) {
@@ -259,6 +296,8 @@ class PanoramaRenderer {
     const dest = this._panoramaPixels;
     const destH = this._panoramaHorizon;
     const destD = this._panoramaDepth;
+    const destHt = this._panoramaHeight;
+    const destI = this._panoramaIter;
     for (let i = 0; (i < slices.length) | 0; i = (i + 1) | 0) {
       const slice = slices[i];
       if (!slice || !slice.pixels || !slice.horizon || !slice.depth) {
@@ -272,6 +311,12 @@ class PanoramaRenderer {
         const dstRow = (y * width + startPx) | 0;
         dest.set(slice.pixels.subarray(srcRow, srcRow + localWidth), dstRow);
         destD.set(slice.depth.subarray(srcRow, srcRow + localWidth), dstRow);
+        if (slice.heightBuf && destHt) {
+          destHt.set(slice.heightBuf.subarray(srcRow, srcRow + localWidth), dstRow);
+        }
+        if (slice.iter && destI) {
+          destI.set(slice.iter.subarray(srcRow, srcRow + localWidth), dstRow);
+        }
       }
     }
     return true;
@@ -306,6 +351,8 @@ class PanoramaRenderer {
       pixels: this._panoramaPixels,
       horizon: this._panoramaHorizon,
       depth: this._panoramaDepth,
+      heightBuf: this._panoramaHeight,
+      iterBuf: this._panoramaIter,
       panoMips: maps.panoMips,
       mapsGeneration: maps.generation,
     });
@@ -386,6 +433,7 @@ class PanoramaRenderer {
       }
       this._commitPanoramaCache(terrain);
       this._viewPanoramaLocal();
+      this._blitOverlay();
       renderer.writeToContext();
       return;
     }

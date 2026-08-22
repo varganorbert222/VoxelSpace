@@ -28,6 +28,7 @@ import {
 import { BACKEND_JS } from "../constants/backend.js";
 import { detectBackends } from "../backends/contract.js";
 import { renderScaleForQuality, clampQualityForContext } from "../constants/quality.js";
+import { envOverlayAllowed } from "../constants/debugView.js";
 import { DEFAULT_MULTITHREAD } from "../constants/threading.js";
 import { CANVAS_ID } from "../constants/main.js";
 
@@ -111,6 +112,8 @@ class App {
       mode: this.camera.mode,
       algorithm: options.algorithm,
       backend: options.backend,
+      debugView: options.debugView,
+      debugOverlay: options.debugOverlay,
     });
     this.settingsForm.sync();
   }
@@ -190,6 +193,8 @@ class App {
         map: this.currentMapName,
         algorithm: this.renderer.algorithm,
         backend: this.renderer.backend,
+        debugView: this.renderer.debugView,
+        debugOverlay: this.renderer.debugOverlay,
       },
       {
         renderDistance: config.settings.renderDistance,
@@ -199,6 +204,7 @@ class App {
         modes: config.settings.cameraModes.values,
         algorithms: config.settings.renderAlgorithms.values,
         backends: config.settings.renderBackends.values,
+        debugViews: config.settings.debugViews.values,
         mapNames: maps.map((m) => m.name),
       }
     );
@@ -218,6 +224,8 @@ class App {
       multithread: sanitized.multithread,
       algorithm: sanitized.algorithm,
       backend: sanitized.backend,
+      debugView: sanitized.debugView,
+      debugOverlay: sanitized.debugOverlay && envOverlayAllowed(sanitized.algorithm),
     });
     this.currentMapName = sanitized.map;
   }

@@ -135,15 +135,22 @@ export function panoYHitFromHat(sHat, table) {
   return table[idx];
 }
 
-function fillSkySlice(pixels, localWidth, height, skyColor) {
+function fillSkySlice(pixels, localWidth, height, skyColor, heightBuf, iterBuf) {
   const palette = new ColorPalette(skyColor, Color.WHITE, SKY_PALETTE_STEPS);
   const h2 = height * HALF;
+  const n = (localWidth * height) | 0;
   for (let y = 0; (y < height) | 0; y = (y + 1) | 0) {
     const color = palette.getColor(skyPaletteT(y / h2));
     const row = (y * localWidth) | 0;
     for (let x = 0; (x < localWidth) | 0; x = (x + 1) | 0) {
       pixels[row + x] = color;
     }
+  }
+  if (heightBuf) {
+    heightBuf.fill(0, 0, n);
+  }
+  if (iterBuf) {
+    iterBuf.fill(0, 0, n);
   }
 }
 
@@ -171,12 +178,14 @@ export function renderPanoramaColumns({
   pixels,
   horizon,
   depth,
+  heightBuf,
+  iterBuf,
   tMax,
   tanMin,
   panoMips,
 }) {
   const localWidth = (endPx - startPx) | 0;
-  fillSkySlice(pixels, localWidth, height, skyColor);
+  fillSkySlice(pixels, localWidth, height, skyColor, heightBuf, iterBuf);
   if (depth) {
     depth.fill(0);
   }
@@ -252,8 +261,10 @@ export function renderPanoramaColumns({
     let mip = 0;
     let stepCap = stepCap0;
     let tStopCol = tStop;
+    let k = 0;
 
-    while (t < tStopCol) {
+    while ((t < tStopCol) & (k < 16384)) {
+      k = (k + 1) | 0;
       if (H === 0) {
         break;
       }
@@ -356,11 +367,18 @@ export function renderPanoramaColumns({
         if ((yHit < yBottom) | 0) {
           const color = mipColorMaps[mip][offset];
           const dist = Math.sqrt(t * t + dh * dh);
+          const hByte = mipHeightMaps[mip][offset];
           for (let y = yHit; (y < yBottom) | 0; y = (y + 1) | 0) {
             const pix = (y * localWidth + localX) | 0;
             pixels[pix] = color;
             if (depth) {
               depth[pix] = dist;
+            }
+            if (heightBuf) {
+              heightBuf[pix] = hByte;
+            }
+            if (iterBuf) {
+              iterBuf[pix] = k;
             }
           }
         }

@@ -70,6 +70,18 @@ class Input {
     return pressed;
   }
 
+  get consumeToggleDebugView() {
+    const pressed = this._toggleDebugView;
+    this._toggleDebugView = false;
+    return pressed;
+  }
+
+  get consumeToggleDebugOverlay() {
+    const pressed = this._toggleDebugOverlay;
+    this._toggleDebugOverlay = false;
+    return pressed;
+  }
+
   consumeLookDelta() {
     const x = this._lookX;
     const y = this._lookY;
@@ -97,6 +109,8 @@ class Input {
     this._mouseposition = null;
     this._toggleRenderAlgorithm = false;
     this._toggleRenderBackend = false;
+    this._toggleDebugView = false;
+    this._toggleDebugOverlay = false;
     this._flyLook = true;
     this._rollEnabled = false;
     this._canvas = config.canvas;

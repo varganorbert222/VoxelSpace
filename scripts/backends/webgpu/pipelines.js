@@ -26,6 +26,8 @@ export async function createPipelines(device, canvasFormat) {
   const cubeFillMod = await loadCompute(device, "cubeFill", "cubemapFill.wgsl");
   const cubeStitchMod = await loadCompute(device, "cubeStitch", "cubemapStitch.wgsl");
   const cubeViewMod = await loadCompute(device, "cubeView", "cubemapView.wgsl");
+  const overlayPanoMod = await loadCompute(device, "overlayPano", "debugOverlay.wgsl");
+  const overlayCubeMod = await loadCompute(device, "overlayCube", "debugOverlayCube.wgsl");
   const blitMod = await loadCompute(device, "blit", "blit.wgsl");
 
   const frameLayout = device.createBindGroupLayout({
@@ -103,6 +105,16 @@ export async function createPipelines(device, canvasFormat) {
         visibility: GPUShaderStage.COMPUTE,
         storageTexture: { access: "write-only", format: "r32float", viewDimension: "2d" },
       },
+      {
+        binding: 2,
+        visibility: GPUShaderStage.COMPUTE,
+        storageTexture: { access: "write-only", format: "r32uint", viewDimension: "2d" },
+      },
+      {
+        binding: 3,
+        visibility: GPUShaderStage.COMPUTE,
+        storageTexture: { access: "write-only", format: "r32uint", viewDimension: "2d" },
+      },
     ],
   });
 
@@ -120,6 +132,8 @@ export async function createPipelines(device, canvasFormat) {
     entries: [
       { binding: 0, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
       { binding: 1, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "unfilterable-float" } },
+      { binding: 2, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
+      { binding: 3, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
     ],
   });
 
@@ -153,6 +167,16 @@ export async function createPipelines(device, canvasFormat) {
         binding: 1,
         visibility: GPUShaderStage.COMPUTE,
         texture: { sampleType: "unfilterable-float", viewDimension: "2d-array" },
+      },
+      {
+        binding: 2,
+        visibility: GPUShaderStage.COMPUTE,
+        texture: { sampleType: "uint", viewDimension: "2d-array" },
+      },
+      {
+        binding: 3,
+        visibility: GPUShaderStage.COMPUTE,
+        texture: { sampleType: "uint", viewDimension: "2d-array" },
       },
     ],
   });
@@ -228,6 +252,22 @@ export async function createPipelines(device, canvasFormat) {
     compute: { module: cubeViewMod, entryPoint: "main" },
   });
 
+  const overlayPanoPipe = device.createComputePipeline({
+    label: "overlayPano",
+    layout: device.createPipelineLayout({
+      bindGroupLayouts: [frameLayout, panoSampleLayout, viewOutLayout],
+    }),
+    compute: { module: overlayPanoMod, entryPoint: "overlayPano" },
+  });
+
+  const overlayCubePipe = device.createComputePipeline({
+    label: "overlayCube",
+    layout: device.createPipelineLayout({
+      bindGroupLayouts: [frameLayout, cubeSampleLayout, viewOutLayout],
+    }),
+    compute: { module: overlayCubeMod, entryPoint: "overlayCube" },
+  });
+
   const blitPipe = device.createRenderPipeline({
     label: "blit",
     layout: device.createPipelineLayout({
@@ -251,6 +291,8 @@ export async function createPipelines(device, canvasFormat) {
     cubeFill: cubeFillPipe,
     cubeStitch: cubeStitchPipe,
     cubeView: cubeViewPipe,
+    overlayPano: overlayPanoPipe,
+    overlayCube: overlayCubePipe,
     blit: blitPipe,
     layouts: {
       frame: frameLayout,

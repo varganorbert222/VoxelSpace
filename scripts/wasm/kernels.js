@@ -55,6 +55,7 @@ import {
   GROUND_CLIP_OFFSET,
   GROUND_HEIGHT,
 } from "../constants/terrain.js";
+import { debugViewId } from "../constants/debugView.js";
 import {
   buildTanMinLut,
   getPanoYHitLut,
@@ -111,7 +112,7 @@ export function createWasmKernels(instance) {
   let panoKey = "";
   let atanPtr = 0;
   const lut = { tanPtr: 0, yPtr: 0, ysPtr: 0, skyPtr: 0 };
-  const panoSlot = { ptr: 0, depthPtr: 0, cap: 0, fresh: 0 };
+  const panoSlot = { ptr: 0, depthPtr: 0, heightPtr: 0, iterPtr: 0, cap: 0, fresh: 0 };
   const atanLut = buildAtanLut();
 
   function mustAlloc(bytes) {
@@ -133,6 +134,8 @@ export function createWasmKernels(instance) {
     lut.skyPtr = 0;
     panoSlot.ptr = 0;
     panoSlot.depthPtr = 0;
+    panoSlot.heightPtr = 0;
+    panoSlot.iterPtr = 0;
     panoSlot.cap = 0;
     panoSlot.fresh = 0;
   }
@@ -274,13 +277,15 @@ export function createWasmKernels(instance) {
     }
     panoSlot.ptr = mustAlloc(bytes);
     panoSlot.depthPtr = dbytes ? mustAlloc(dbytes) : 0;
+    panoSlot.heightPtr = mustAlloc(bytes);
+    panoSlot.iterPtr = mustAlloc(bytes);
     panoSlot.cap = bytes;
     panoSlot.fresh = 0;
     ex.commit_perm();
     panoKey = "";
   }
 
-  function ensurePanoBuffers(pano, depth, generation) {
+  function ensurePanoBuffers(pano, depth, heightBuf, iterBuf, generation) {
     const bytes = pano.byteLength;
     const dbytes = depth ? depth.byteLength : 0;
     const key =
@@ -297,6 +302,12 @@ export function createWasmKernels(instance) {
     copyBytes(memory, panoSlot.ptr, pano);
     if (dbytes) {
       copyBytes(memory, panoSlot.depthPtr, depth);
+    }
+    if (heightBuf) {
+      copyBytes(memory, panoSlot.heightPtr, heightBuf);
+    }
+    if (iterBuf) {
+      copyBytes(memory, panoSlot.iterPtr, iterBuf);
     }
     panoKey = key;
   }
@@ -355,7 +366,8 @@ export function createWasmKernels(instance) {
       pixelsPtr,
       params.pixelWidth | 0,
       hiddenPtr,
-      rowPtr
+      rowPtr,
+      debugViewId(params.debugView)
     );
     copyOutU32(pixelsPtr, params.pixels);
   }
@@ -411,14 +423,20 @@ export function createWasmKernels(instance) {
     ex.reset_scratch();
     let pixelsPtr;
     let depthPtr;
+    let heightPtr;
+    let iterPtr;
     if (full) {
       ensurePanoSlots(pixN * 4, pixN * 4);
       ex.reset_scratch();
       pixelsPtr = panoSlot.ptr;
       depthPtr = panoSlot.depthPtr;
+      heightPtr = panoSlot.heightPtr;
+      iterPtr = panoSlot.iterPtr;
     } else {
       pixelsPtr = mustAlloc(pixN * 4);
       depthPtr = params.depth ? mustAlloc(pixN * 4) : 0;
+      heightPtr = params.heightBuf ? mustAlloc(pixN * 4) : 0;
+      iterPtr = params.iterBuf ? mustAlloc(pixN * 4) : 0;
     }
     const horizonPtr = mustAlloc(localWidth * 4);
     ex.pano_columns(
@@ -450,12 +468,20 @@ export function createWasmKernels(instance) {
       stepCap2,
       PANO_MIP_INV_SCALE[0],
       PANO_MIP_INV_SCALE[1],
-      PANO_MIP_INV_SCALE[2]
+      PANO_MIP_INV_SCALE[2],
+      heightPtr,
+      iterPtr
     );
     copyOutU32(pixelsPtr, params.pixels);
     copyOutI32(horizonPtr, params.horizon);
     if (params.depth && depthPtr) {
       copyOutF32(depthPtr, params.depth);
+    }
+    if (params.heightBuf && heightPtr) {
+      copyOutU32(heightPtr, params.heightBuf);
+    }
+    if (params.iterBuf && iterPtr) {
+      copyOutU32(iterPtr, params.iterBuf);
     }
     if (full) {
       panoSlot.fresh = 1;
@@ -472,7 +498,13 @@ export function createWasmKernels(instance) {
     ensureTables();
     ex.reset_scratch();
     writeLuts(height, params.skyColor, params.horizonColor);
-    ensurePanoBuffers(pano, depth, params.panoGeneration);
+    ensurePanoBuffers(
+      pano,
+      depth,
+      params.heightBuf,
+      params.iterBuf,
+      params.panoGeneration
+    );
     ex.reset_scratch();
     const pixelsPtr = mustAlloc(n * 4);
     let tanHalfY = Math.tan(params.fovY * DEG_TO_RAD * HALF);
@@ -505,7 +537,10 @@ export function createWasmKernels(instance) {
       params.upZ,
       params.fwdX,
       params.fwdY,
-      params.fwdZ
+      params.fwdZ,
+      panoSlot.heightPtr,
+      panoSlot.iterPtr,
+      debugViewId(params.debugView)
     );
     copyOutU32(pixelsPtr, params.pixels);
   }
@@ -533,6 +568,9 @@ export function createWasmKernels(instance) {
       nearClip: params.nearClip,
       farClip: params.farClip,
       applyFog: params.applyFog,
+      debugView: params.debugView,
+      heightBuf: params.heightBuf,
+      iterBuf: params.iterBuf,
       rightX: params.rightX,
       rightY: params.rightY,
       rightZ: params.rightZ,

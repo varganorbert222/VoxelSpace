@@ -33,6 +33,9 @@
       "values": ["js", "wasm", "webgpu"],
       "default": "js"
     },
+    "debugViews": {
+      "values": ["color", "height", "depth", "iterations"]
+    },
     "multithread": {
       "default": false
     }

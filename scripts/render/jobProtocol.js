@@ -55,6 +55,7 @@ export function classicRenderPayload(jobId, range, params) {
     minDeltaZ: params.minDeltaZ,
     quality: params.quality,
     applyFog: params.applyFog,
+    debugView: params.debugView,
     repeat: params.repeat,
     rowColors: params.rowColors,
   };
@@ -75,6 +76,7 @@ export function panoramaViewPayload(jobId, range, params) {
     nearClip: params.nearClip,
     farClip: params.farClip,
     applyFog: params.applyFog,
+    debugView: params.debugView,
     rightX: params.rightX,
     rightY: params.rightY,
     rightZ: params.rightZ,
@@ -103,6 +105,7 @@ export function cubemapViewPayload(jobId, range, params) {
     nearClip: params.nearClip,
     farClip: params.farClip,
     applyFog: params.applyFog,
+    debugView: params.debugView,
     rightX: params.rightX,
     rightY: params.rightY,
     rightZ: params.rightZ,

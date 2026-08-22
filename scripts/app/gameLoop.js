@@ -3,6 +3,7 @@
 import time from "./time.js";
 import config from "../../data/config.json" with { type: "json" };
 import { cycleAvailableBackend } from "../backends/contract.js";
+import { envOverlayAllowed } from "../constants/debugView.js";
 
 function cycleValue(values, current) {
   if (!values || values.length === 0) {
@@ -15,6 +16,7 @@ function cycleValue(values, current) {
 
 export function startGameLoop(app) {
   const algorithms = config.settings.renderAlgorithms.values;
+  const debugViews = config.settings.debugViews.values;
   const run = () => {
     time.tick();
     const backendSwitch = app.input.consumeToggleRenderBackend
@@ -22,6 +24,20 @@ export function startGameLoop(app) {
       : null;
     if (app.input.consumeToggleRenderAlgorithm) {
       app.setRenderAlgorithm(cycleValue(algorithms, app.renderer.algorithm));
+    }
+    if (app.input.consumeToggleDebugView) {
+      app.renderer.setOptions({
+        debugView: cycleValue(debugViews, app.renderer.debugView),
+      });
+      app.persistAndSync();
+    }
+    if (app.input.consumeToggleDebugOverlay) {
+      if (envOverlayAllowed(app.renderer.algorithm)) {
+        app.renderer.setOptions({
+          debugOverlay: !app.renderer.debugOverlay,
+        });
+        app.persistAndSync();
+      }
     }
     const switchPromise =
       backendSwitch && backendSwitch !== app.renderer.backend

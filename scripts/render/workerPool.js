@@ -196,17 +196,27 @@ class WorkerPool {
       if (snapshot.depth) {
         depth.set(snapshot.depth);
       }
+      const heightBuf = new Uint32Array(n);
+      if (snapshot.heightBuf) {
+        heightBuf.set(snapshot.heightBuf);
+      }
+      const iter = new Uint32Array(n);
+      if (snapshot.iter) {
+        iter.set(snapshot.iter);
+      }
       this._slots[i].worker.postMessage(
         {
           type: MSG_INIT_PANO,
           pixels: pixels.buffer,
           horizon: horizon.buffer,
           depth: depth.buffer,
+          heightBuf: heightBuf.buffer,
+          iter: iter.buffer,
           width: snapshot.width,
           height: snapshot.height,
           generation: snapshot.generation,
         },
-        [pixels.buffer, horizon.buffer, depth.buffer]
+        [pixels.buffer, horizon.buffer, depth.buffer, heightBuf.buffer, iter.buffer]
       );
     }
   }
@@ -225,15 +235,25 @@ class WorkerPool {
       if (snapshot.depth) {
         depth.set(snapshot.depth);
       }
+      const heightBuf = new Uint32Array(n);
+      if (snapshot.heightBuf) {
+        heightBuf.set(snapshot.heightBuf);
+      }
+      const iter = new Uint32Array(n);
+      if (snapshot.iter) {
+        iter.set(snapshot.iter);
+      }
       this._slots[i].worker.postMessage(
         {
           type: MSG_INIT_CUBE,
           color: color.buffer,
           depth: depth.buffer,
+          heightBuf: heightBuf.buffer,
+          iter: iter.buffer,
           n: snapshot.n,
           generation: snapshot.generation,
         },
-        [color.buffer, depth.buffer]
+        [color.buffer, depth.buffer, heightBuf.buffer, iter.buffer]
       );
     }
   }
@@ -394,6 +414,8 @@ class WorkerPool {
         pixels: new Uint32Array(data.pixels),
         horizon: new Int32Array(data.horizon),
         depth: new Float32Array(data.depth),
+        heightBuf: data.heightBuf ? new Uint32Array(data.heightBuf) : null,
+        iter: data.iter ? new Uint32Array(data.iter) : null,
       });
     } else if (data.type === MSG_RESULT_PANO_VIEW) {
       active.onChunk(index, {

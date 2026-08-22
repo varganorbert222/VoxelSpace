@@ -11,6 +11,13 @@ import {
 import { HEIGHTMAP_MAX } from "../constants/terrain.js";
 import { UNFILLED_PIXEL } from "../constants/framebuffer.js";
 import {
+  DEBUG_VIEW_DEPTH,
+  DEBUG_VIEW_HEIGHT,
+  DEBUG_VIEW_ITERATIONS,
+  isDebugColor,
+} from "../constants/debugView.js";
+import { encodeHeight, encodeIter, encodeUnit } from "./debugEncode.js";
+import {
   LOD_BAND_COUNT,
   LOD_DISTANCE_FRACTIONS,
   LOD_FAR_DELTAS,
@@ -26,6 +33,7 @@ import {
 } from "../constants/quality.js";
 
 let hiddenYScratch = new Int32Array(1);
+let sampleNScratch = new Int32Array(1);
 const deltasScratch = new Float64Array(LOD_BAND_COUNT);
 const lodDistancesScratch = new Float64Array(LOD_BAND_COUNT + 1);
 let hiddenYCapacity = 1;
@@ -34,6 +42,7 @@ function hiddenYBuffer(width) {
   if ((width > hiddenYCapacity) | 0) {
     hiddenYCapacity = width;
     hiddenYScratch = new Int32Array(width);
+    sampleNScratch = new Int32Array(width);
   }
   return hiddenYScratch;
 }
@@ -85,6 +94,7 @@ export function renderClassicColumns({
   minDeltaZ,
   quality,
   applyFog,
+  debugView,
   repeat,
   pixels,
   pixelWidth,
@@ -93,9 +103,12 @@ export function renderClassicColumns({
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;
   const hiddenY = hiddenYBuffer(localWidth);
+  const sampleN = sampleNScratch;
+  sampleN.fill(0, 0, localWidth);
   const fogRange = farClip - nearClip;
   const invFogRange = fogRange === 0 ? 0 : 1 / fogRange;
   const useFog = applyFog | 0;
+  const debug = isDebugColor(debugView) ? 0 : 1;
   const altScale = altitude / HEIGHTMAP_MAX;
   const ceiling = maxHeight == null ? altitude : maxHeight;
   const ceilingSdf = camZ - ceiling;
@@ -207,7 +220,8 @@ export function renderClassicColumns({
 
           const offset =
             ((((ply | 0) & mapWMask) << mapShift) + ((plx | 0) & mapHMask)) | 0;
-          const terrainHeight = heightMap[offset] * altScale;
+          const hByte = heightMap[offset];
+          const terrainHeight = hByte * altScale;
           const terrainSDF = camZ - terrainHeight;
           const heightOnScreen = (terrainSDF * zScale + screenHorizon) | 0;
 
@@ -218,8 +232,17 @@ export function renderClassicColumns({
             }
           }
 
+          sampleN[localI] = (sampleN[localI] + 1) | 0;
           let plotColor = Color.WHITE;
-          if (!fogWhite) {
+          if (debug) {
+            if (debugView === DEBUG_VIEW_HEIGHT) {
+              plotColor = encodeHeight(hByte);
+            } else if (debugView === DEBUG_VIEW_DEPTH) {
+              plotColor = encodeUnit(farClip > 0 ? z / farClip : 0);
+            } else if (debugView === DEBUG_VIEW_ITERATIONS) {
+              plotColor = encodeIter(sampleN[localI]);
+            }
+          } else if (!fogWhite) {
             plotColor = colorMap[offset];
             if (applyFogT) {
               const a = (plotColor >>> SHIFT_ALPHA) & CHANNEL_MASK;

@@ -1,6 +1,8 @@
 "use strict";
 
 import { renderClassicColumns } from "./classicmarch.js";
+import { Color } from "../math/color.js";
+import { isDebugColor } from "../constants/debugView.js";
 
 function classicKernel(renderer) {
   return (
@@ -41,6 +43,7 @@ function classicParams(renderer, maps) {
     minDeltaZ: camera.minDeltaZ,
     quality: camera.quality,
     applyFog: renderer.applyFog,
+    debugView: renderer.debugView,
     repeat: renderer.repeat,
     panoMips: maps.panoMips,
     mapsGeneration: maps.generation,
@@ -57,6 +60,7 @@ function isClassicTokenStale(token, renderer) {
     camera.quality !== token.quality ||
     camera.farClip !== token.farClip ||
     renderer.applyFog !== token.applyFog ||
+    renderer.debugView !== token.debugView ||
     renderer.repeat !== token.repeat ||
     camera.minDeltaZ !== token.minDeltaZ ||
     camera.posX !== token.camX ||
@@ -69,6 +73,14 @@ class ClassicRenderer {
   constructor(renderer) {
     this._renderer = renderer;
     this._rowColors = new Uint32Array(1);
+  }
+
+  _fillBackground() {
+    const renderer = this._renderer;
+    renderer.drawBackground();
+    if (!isDebugColor(renderer.debugView)) {
+      renderer.frameBuffer.fill(Color.BLACK);
+    }
   }
 
   renderLocal(terrain) {
@@ -99,10 +111,14 @@ class ClassicRenderer {
     const maps = terrain.exportMaps();
     const pool = renderer.ensurePool();
     pool.initMaps(maps);
-    renderer.drawBackground();
+    this._fillBackground();
     const rowColors = renderer.frameBuffer.copySkyRowColors(
       new Uint32Array(renderer.frameBuffer.height)
     );
+    if (!isDebugColor(renderer.debugView)) {
+      renderer.frameBuffer.fill(Color.BLACK);
+      rowColors.fill(Color.BLACK);
+    }
     const params = classicParams(renderer, maps);
     params.rowColors = rowColors;
     const camera = renderer.camera;
@@ -113,7 +129,7 @@ class ClassicRenderer {
       quality: camera.quality,
       farClip: camera.farClip,
       applyFog: renderer.applyFog,
-      repeat: renderer.repeat,
+      debugView: renderer.debugView,
       minDeltaZ: camera.minDeltaZ,
       camX: camera.posX,
       camY: camera.posY,
@@ -149,7 +165,7 @@ class ClassicRenderer {
         return;
       }
     }
-    renderer.drawBackground();
+    this._fillBackground();
     this.renderLocal(terrain);
     renderer.writeToContext();
   }

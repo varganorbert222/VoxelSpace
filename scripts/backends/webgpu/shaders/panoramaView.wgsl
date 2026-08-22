@@ -4,6 +4,8 @@
 @group(1) @binding(2) var<storage, read> skyView: array<u32>;
 @group(2) @binding(0) var panoColor: texture_2d<u32>;
 @group(2) @binding(1) var panoDepth: texture_2d<f32>;
+@group(2) @binding(2) var panoHeight: texture_2d<u32>;
+@group(2) @binding(3) var panoIter: texture_2d<u32>;
 @group(3) @binding(0) var outTex: texture_storage_2d<r32uint, write>;
 
 const EPSILON: f32 = 1e-6;
@@ -110,8 +112,17 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   }
   let packed = textureLoad(panoColor, vec2<i32>(px, py), 0).r;
   let dist = textureLoad(panoDepth, vec2<i32>(px, py), 0).r;
+  let debugView = flagDebugView(frame.mapFlags.w);
   var outColor = packed;
-  if (dist > 0.0) {
+  if (debugView != DEBUG_COLOR) {
+    let hByte = textureLoad(panoHeight, vec2<i32>(px, py), 0).r;
+    let iter = textureLoad(panoIter, vec2<i32>(px, py), 0).r;
+    var viewZ = 0.0;
+    if (dist > 0.0) {
+      viewZ = dist * invViewLen;
+    }
+    outColor = encodeCamera(debugView, dist, hByte, iter, viewZ, farClip);
+  } else if (dist > 0.0) {
     let viewZ = dist * invViewLen;
     if (!useFog && ((viewZ >= farClip) || (viewZ < nearClip))) {
       outColor = skyView[min(u32(py), u32(arrayLength(&skyView) - 1u))];

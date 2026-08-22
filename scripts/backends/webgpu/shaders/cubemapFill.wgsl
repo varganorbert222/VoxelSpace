@@ -1,6 +1,8 @@
 @group(0) @binding(0) var<uniform> frame: Frame;
 @group(1) @binding(0) var faceColor: texture_storage_2d<r32uint, write>;
 @group(1) @binding(1) var faceDepth: texture_storage_2d<r32float, write>;
+@group(1) @binding(2) var faceHeight: texture_storage_2d<r32uint, write>;
+@group(1) @binding(3) var faceIter: texture_storage_2d<r32uint, write>;
 
 fn skyColorAt(y: i32, n: i32) -> vec4f {
   let tLin = f32(y) / max(f32(n) * 0.5, 1.0);
@@ -32,4 +34,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   }
   textureStore(faceColor, vec2<i32>(x, y), vec4<u32>(sky, 0u, 0u, 0u));
   textureStore(faceDepth, vec2<i32>(x, y), vec4<f32>(0.0, 0.0, 0.0, 0.0));
+  textureStore(faceHeight, vec2<i32>(x, y), vec4<u32>(0u, 0u, 0u, 0u));
+  textureStore(faceIter, vec2<i32>(x, y), vec4<u32>(0u, 0u, 0u, 0u));
 }

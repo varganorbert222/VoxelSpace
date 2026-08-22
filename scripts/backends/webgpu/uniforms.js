@@ -7,6 +7,9 @@ export const FRAME_BYTES = WEBGPU_FRAME_BYTES;
 
 const FLAG_FOG = 1;
 const FLAG_REPEAT = 2;
+const FLAG_DEBUG_SHIFT = 8;
+const FLAG_OVERLAY = 1 << 10;
+const FLAG_OVERLAY_CUBE = 1 << 11;
 
 export function createFramePacker() {
   const buffer = new ArrayBuffer(FRAME_BYTES);
@@ -57,6 +60,13 @@ export function packFrame(packer, p) {
   }
   if (p.repeat) {
     flags |= FLAG_REPEAT;
+  }
+  flags |= ((p.debugViewId | 0) & 3) << FLAG_DEBUG_SHIFT;
+  if (p.debugOverlay) {
+    flags |= FLAG_OVERLAY;
+  }
+  if (p.debugOverlayCube) {
+    flags |= FLAG_OVERLAY_CUBE;
   }
   u[31] = flags;
   const sky = unpackToVec4(p.skyColor);
@@ -109,4 +119,8 @@ export function packFrame(packer, p) {
   u[77] = p.maskH1 | 0;
   u[78] = p.maskW2 | 0;
   u[79] = p.maskH2 | 0;
+  u[80] = p.overlayX | 0;
+  u[81] = p.overlayY | 0;
+  u[82] = p.overlayW | 0;
+  u[83] = p.overlayH | 0;
 }

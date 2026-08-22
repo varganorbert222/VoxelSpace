@@ -3,6 +3,13 @@
 import { BACKEND_WEBGPU } from "../../constants/backend.js";
 import { ALGORITHM_CUBEMAP, ALGORITHM_PANORAMA } from "../../constants/algorithm.js";
 import {
+  CUBE_NET_CELL_H,
+  CUBE_NET_CELL_W,
+  debugViewId,
+  envOverlayAllowed,
+  overlayDestRect,
+} from "../../constants/debugView.js";
+import {
   LOD_BAND_COUNT,
   LOD_DISTANCE_FRACTIONS,
   LOD_FAR_DELTAS,
@@ -189,6 +196,10 @@ class WebGpuBackend {
     this._panoColorSample = null;
     this._panoDepth = null;
     this._panoDepthSample = null;
+    this._panoHeight = null;
+    this._panoHeightSample = null;
+    this._panoIter = null;
+    this._panoIterSample = null;
     this._panoW = 0;
     this._panoH = 0;
     this._tanBuf = null;
@@ -214,10 +225,22 @@ class WebGpuBackend {
     this._cubeN = 0;
     this._cubeScratchColor = null;
     this._cubeScratchDepth = null;
+    this._cubeScratchHeight = null;
+    this._cubeScratchIter = null;
     this._cubeColorArray = null;
     this._cubeDepthArray = null;
+    this._cubeHeightArray = null;
+    this._cubeIterArray = null;
     this._lost = false;
     this._disposing = false;
+  }
+
+  get debugView() {
+    return this._host.debugView;
+  }
+
+  get debugOverlay() {
+    return this._host.debugOverlay;
   }
 
   async init(ctx) {
@@ -324,6 +347,10 @@ class WebGpuBackend {
     destroyTex(this._panoColorSample);
     destroyTex(this._panoDepth);
     destroyTex(this._panoDepthSample);
+    destroyTex(this._panoHeight);
+    destroyTex(this._panoHeightSample);
+    destroyTex(this._panoIter);
+    destroyTex(this._panoIterSample);
     this._panoColor = createScreenTarget(this._device, width, height);
     this._panoColorSample = createSampleTarget(
       this._device,
@@ -337,6 +364,20 @@ class WebGpuBackend {
       width,
       height,
       "r32float"
+    );
+    this._panoHeight = createScreenTarget(this._device, width, height);
+    this._panoHeightSample = createSampleTarget(
+      this._device,
+      width,
+      height,
+      "r32uint"
+    );
+    this._panoIter = createScreenTarget(this._device, width, height);
+    this._panoIterSample = createSampleTarget(
+      this._device,
+      width,
+      height,
+      "r32uint"
     );
     this._panoW = width;
     this._panoH = height;
@@ -356,12 +397,20 @@ class WebGpuBackend {
     }
     destroyTex(this._cubeScratchColor);
     destroyTex(this._cubeScratchDepth);
+    destroyTex(this._cubeScratchHeight);
+    destroyTex(this._cubeScratchIter);
     destroyTex(this._cubeColorArray);
     destroyTex(this._cubeDepthArray);
+    destroyTex(this._cubeHeightArray);
+    destroyTex(this._cubeIterArray);
     this._cubeScratchColor = createScreenTarget(this._device, n, n);
     this._cubeScratchDepth = createPanoDepthTarget(this._device, n, n);
+    this._cubeScratchHeight = createScreenTarget(this._device, n, n);
+    this._cubeScratchIter = createScreenTarget(this._device, n, n);
     this._cubeColorArray = createCubeArray(this._device, n, "r32uint");
     this._cubeDepthArray = createCubeArray(this._device, n, "r32float");
+    this._cubeHeightArray = createCubeArray(this._device, n, "r32uint");
+    this._cubeIterArray = createCubeArray(this._device, n, "r32uint");
     this._cubeN = n;
     this.invalidatePanorama();
   }
@@ -592,8 +641,32 @@ class WebGpuBackend {
       maskH1: (h1 - 1) | 0,
       maskW2: (w2 - 1) | 0,
       maskH2: (h2 - 1) | 0,
+      ...this._debugPack(screenW, screenH),
     });
     writeBuffer(this._device, this._uniformBuf, this._framePacker.f32);
+  }
+
+  _debugPack(screenW, screenH) {
+    const host = this._host;
+    const overlay = !!host.debugOverlay && envOverlayAllowed(host.algorithm);
+    const cube = overlay && host.algorithm === ALGORITHM_CUBEMAP;
+    const rect = overlay
+      ? overlayDestRect(
+          screenW,
+          screenH,
+          cube ? CUBE_NET_CELL_W : 2,
+          cube ? CUBE_NET_CELL_H : 1
+        )
+      : { x: 0, y: 0, w: 0, h: 0 };
+    return {
+      debugViewId: debugViewId(host.debugView),
+      debugOverlay: overlay,
+      debugOverlayCube: cube,
+      overlayX: rect.x,
+      overlayY: rect.y,
+      overlayW: rect.w,
+      overlayH: rect.h,
+    };
   }
 
   _writeClassicTables(camera) {
@@ -663,7 +736,6 @@ class WebGpuBackend {
     pass.setBindGroup(3, out);
     pass.dispatchWorkgroups(Math.ceil(screenW / WEBGPU_WORKGROUP_1D));
     pass.end();
-    copyTarget(encoder, this._screenTex, this._screenSample, screenW, screenH);
   }
 
   _cubeMipsBind() {
@@ -686,7 +758,52 @@ class WebGpuBackend {
       entries: [
         { binding: 0, resource: this._cubeScratchColor.createView() },
         { binding: 1, resource: this._cubeScratchDepth.createView() },
+        { binding: 2, resource: this._cubeScratchHeight.createView() },
+        { binding: 3, resource: this._cubeScratchIter.createView() },
       ],
+    });
+  }
+
+  _cubeSampleBind() {
+    return this._device.createBindGroup({
+      layout: this._pipes.layouts.cubeSample,
+      entries: [
+        { binding: 0, resource: this._cubeColorArray.createView() },
+        { binding: 1, resource: this._cubeDepthArray.createView() },
+        { binding: 2, resource: this._cubeHeightArray.createView() },
+        { binding: 3, resource: this._cubeIterArray.createView() },
+      ],
+    });
+  }
+
+  _panoOutBind() {
+    return this._device.createBindGroup({
+      layout: this._pipes.layouts.panoOut,
+      entries: [
+        { binding: 0, resource: this._panoColor.createView() },
+        { binding: 1, resource: this._panoDepth.createView() },
+        { binding: 2, resource: this._panoHeight.createView() },
+        { binding: 3, resource: this._panoIter.createView() },
+      ],
+    });
+  }
+
+  _panoSampleBind() {
+    return this._device.createBindGroup({
+      layout: this._pipes.layouts.panoSample,
+      entries: [
+        { binding: 0, resource: this._panoColorSample.createView() },
+        { binding: 1, resource: this._panoDepthSample.createView() },
+        { binding: 2, resource: this._panoHeightSample.createView() },
+        { binding: 3, resource: this._panoIterSample.createView() },
+      ],
+    });
+  }
+
+  _viewOutBind() {
+    return this._device.createBindGroup({
+      layout: this._pipes.layouts.viewOut,
+      entries: [{ binding: 0, resource: this._screenTex.createView() }],
     });
   }
 
@@ -703,6 +820,22 @@ class WebGpuBackend {
       encoder,
       this._cubeScratchDepth,
       this._cubeDepthArray,
+      this._cubeN,
+      this._cubeN,
+      layer
+    );
+    copyTargetToLayer(
+      encoder,
+      this._cubeScratchHeight,
+      this._cubeHeightArray,
+      this._cubeN,
+      this._cubeN,
+      layer
+    );
+    copyTargetToLayer(
+      encoder,
+      this._cubeScratchIter,
+      this._cubeIterArray,
       this._cubeN,
       this._cubeN,
       layer
@@ -752,18 +885,11 @@ class WebGpuBackend {
   _dispatchCubeStitch() {
     const n = this._cubeN;
     const wg = Math.ceil(n / WEBGPU_WORKGROUP_2D);
-    const sample = this._device.createBindGroup({
-      layout: this._pipes.layouts.cubeSample,
-      entries: [
-        { binding: 0, resource: this._cubeColorArray.createView() },
-        { binding: 1, resource: this._cubeDepthArray.createView() },
-      ],
-    });
     const encoder = this._device.createCommandEncoder();
     const pass = encoder.beginComputePass();
     pass.setPipeline(this._pipes.cubeStitch);
     pass.setBindGroup(0, this._frameBind());
-    pass.setBindGroup(1, sample);
+    pass.setBindGroup(1, this._cubeSampleBind());
     pass.setBindGroup(2, this._cubeScratchOut());
     pass.dispatchWorkgroups(wg, wg);
     pass.end();
@@ -772,17 +898,6 @@ class WebGpuBackend {
   }
 
   _dispatchCubeView(encoder, screenW, screenH) {
-    const sample = this._device.createBindGroup({
-      layout: this._pipes.layouts.cubeSample,
-      entries: [
-        { binding: 0, resource: this._cubeColorArray.createView() },
-        { binding: 1, resource: this._cubeDepthArray.createView() },
-      ],
-    });
-    const out = this._device.createBindGroup({
-      layout: this._pipes.layouts.viewOut,
-      entries: [{ binding: 0, resource: this._screenTex.createView() }],
-    });
     const sky = this._device.createBindGroup({
       layout: this._pipes.layouts.cubeSky,
       entries: [{ binding: 0, resource: { buffer: this._skyRowBuf } }],
@@ -790,15 +905,14 @@ class WebGpuBackend {
     const pass = encoder.beginComputePass();
     pass.setPipeline(this._pipes.cubeView);
     pass.setBindGroup(0, this._frameBind());
-    pass.setBindGroup(1, sample);
-    pass.setBindGroup(2, out);
+    pass.setBindGroup(1, this._cubeSampleBind());
+    pass.setBindGroup(2, this._viewOutBind());
     pass.setBindGroup(3, sky);
     pass.dispatchWorkgroups(
       Math.ceil(screenW / WEBGPU_WORKGROUP_2D),
       Math.ceil(screenH / WEBGPU_WORKGROUP_2D)
     );
     pass.end();
-    copyTarget(encoder, this._screenTex, this._screenSample, screenW, screenH);
   }
 
   _dispatchGenerate(encoder, panoW) {
@@ -822,13 +936,7 @@ class WebGpuBackend {
         { binding: 5, resource: this._mipOrDummy("c", 2).createView() },
       ],
     });
-    const out = this._device.createBindGroup({
-      layout: this._pipes.layouts.panoOut,
-      entries: [
-        { binding: 0, resource: this._panoColor.createView() },
-        { binding: 1, resource: this._panoDepth.createView() },
-      ],
-    });
+    const out = this._panoOutBind();
     const pass = encoder.beginComputePass();
     pass.setPipeline(this._pipes.generate);
     pass.setBindGroup(0, this._frameBind());
@@ -839,6 +947,8 @@ class WebGpuBackend {
     pass.end();
     copyTarget(encoder, this._panoColor, this._panoColorSample, this._panoW, this._panoH);
     copyTarget(encoder, this._panoDepth, this._panoDepthSample, this._panoW, this._panoH);
+    copyTarget(encoder, this._panoHeight, this._panoHeightSample, this._panoW, this._panoH);
+    copyTarget(encoder, this._panoIter, this._panoIterSample, this._panoW, this._panoH);
   }
 
   _dispatchView(encoder, screenW, screenH) {
@@ -850,17 +960,8 @@ class WebGpuBackend {
         { binding: 2, resource: { buffer: this._viewSkyBuf } },
       ],
     });
-    const sample = this._device.createBindGroup({
-      layout: this._pipes.layouts.panoSample,
-      entries: [
-        { binding: 0, resource: this._panoColorSample.createView() },
-        { binding: 1, resource: this._panoDepthSample.createView() },
-      ],
-    });
-    const out = this._device.createBindGroup({
-      layout: this._pipes.layouts.viewOut,
-      entries: [{ binding: 0, resource: this._screenTex.createView() }],
-    });
+    const sample = this._panoSampleBind();
+    const out = this._viewOutBind();
     const pass = encoder.beginComputePass();
     pass.setPipeline(this._pipes.view);
     pass.setBindGroup(0, this._frameBind());
@@ -872,7 +973,34 @@ class WebGpuBackend {
       Math.ceil(screenH / WEBGPU_WORKGROUP_2D)
     );
     pass.end();
+  }
+
+  _dispatchOverlay(encoder, screenW, screenH, cube) {
+    const debug = this._debugPack(screenW, screenH);
+    if (!debug.debugOverlay || (debug.overlayW < 1) | (debug.overlayH < 1)) {
+      return;
+    }
+    const out = this._viewOutBind();
+    const pass = encoder.beginComputePass();
+    if (cube) {
+      pass.setPipeline(this._pipes.overlayCube);
+      pass.setBindGroup(1, this._cubeSampleBind());
+    } else {
+      pass.setPipeline(this._pipes.overlayPano);
+      pass.setBindGroup(1, this._panoSampleBind());
+    }
+    pass.setBindGroup(0, this._frameBind());
+    pass.setBindGroup(2, out);
+    pass.dispatchWorkgroups(
+      Math.ceil(debug.overlayW / WEBGPU_WORKGROUP_2D),
+      Math.ceil(debug.overlayH / WEBGPU_WORKGROUP_2D)
+    );
+    pass.end();
+  }
+
+  _present(encoder, screenW, screenH) {
     copyTarget(encoder, this._screenTex, this._screenSample, screenW, screenH);
+    this._blit(encoder);
   }
 
   _blit(encoder) {
@@ -929,7 +1057,8 @@ class WebGpuBackend {
       this._pack(camera, terrain, screenW, screenH, n, n);
       const encoder = this._device.createCommandEncoder();
       this._dispatchCubeView(encoder, screenW, screenH);
-      this._blit(encoder);
+      this._dispatchOverlay(encoder, screenW, screenH, true);
+      this._present(encoder, screenW, screenH);
       this._device.queue.submit([encoder.finish()]);
       return;
     }
@@ -951,11 +1080,12 @@ class WebGpuBackend {
         this._commitPano(terrain, camera, screenW, screenH);
       }
       this._dispatchView(encoder, screenW, screenH);
+      this._dispatchOverlay(encoder, screenW, screenH, false);
     } else {
       this._writeClassicTables(camera);
       this._dispatchClassic(encoder, screenW, screenH);
     }
-    this._blit(encoder);
+    this._present(encoder, screenW, screenH);
     this._device.queue.submit([encoder.finish()]);
   }
 
@@ -975,12 +1105,20 @@ class WebGpuBackend {
     destroyTex(this._panoColorSample);
     destroyTex(this._panoDepth);
     destroyTex(this._panoDepthSample);
+    destroyTex(this._panoHeight);
+    destroyTex(this._panoHeightSample);
+    destroyTex(this._panoIter);
+    destroyTex(this._panoIterSample);
     destroyTex(this._dummyH);
     destroyTex(this._dummyC);
     destroyTex(this._cubeScratchColor);
     destroyTex(this._cubeScratchDepth);
+    destroyTex(this._cubeScratchHeight);
+    destroyTex(this._cubeScratchIter);
     destroyTex(this._cubeColorArray);
     destroyTex(this._cubeDepthArray);
+    destroyTex(this._cubeHeightArray);
+    destroyTex(this._cubeIterArray);
     for (let i = 0; i < 3; i = (i + 1) | 0) {
       destroyTex(this._heightTex[i]);
       destroyTex(this._colorTex[i]);

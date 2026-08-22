@@ -82,5 +82,7 @@ export function sanitizeSettings(data, defaults, bounds) {
     map: pickAllowed(data.map, bounds.mapNames, defaults.map),
     algorithm: pickAllowed(data.algorithm, bounds.algorithms, defaults.algorithm),
     backend: pickAllowed(data.backend, bounds.backends, defaults.backend),
+    debugView: pickAllowed(data.debugView, bounds.debugViews, defaults.debugView),
+    debugOverlay: boolOr(data.debugOverlay, defaults.debugOverlay),
   };
 }

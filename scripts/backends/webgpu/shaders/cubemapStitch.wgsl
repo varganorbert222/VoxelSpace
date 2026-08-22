@@ -1,8 +1,12 @@
 @group(0) @binding(0) var<uniform> frame: Frame;
 @group(1) @binding(0) var cubeColor: texture_2d_array<u32>;
 @group(1) @binding(1) var cubeDepth: texture_2d_array<f32>;
+@group(1) @binding(2) var cubeHeight: texture_2d_array<u32>;
+@group(1) @binding(3) var cubeIter: texture_2d_array<u32>;
 @group(2) @binding(0) var faceColor: texture_storage_2d<r32uint, write>;
 @group(2) @binding(1) var faceDepth: texture_storage_2d<r32float, write>;
+@group(2) @binding(2) var faceHeight: texture_storage_2d<r32uint, write>;
+@group(2) @binding(3) var faceIter: texture_storage_2d<r32uint, write>;
 
 @compute @workgroup_size(16, 16)
 fn main(@builtin(global_invocation_id) gid: vec3u) {
@@ -35,6 +39,10 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   }
   let packed = textureLoad(cubeColor, vec2<i32>(si, sj), srcFace, 0).r;
   let dist = textureLoad(cubeDepth, vec2<i32>(si, sj), srcFace, 0).r;
+  let hByte = textureLoad(cubeHeight, vec2<i32>(si, sj), srcFace, 0).r;
+  let iter = textureLoad(cubeIter, vec2<i32>(si, sj), srcFace, 0).r;
   textureStore(faceColor, vec2<i32>(x, y), vec4<u32>(packed, 0u, 0u, 0u));
   textureStore(faceDepth, vec2<i32>(x, y), vec4<f32>(dist, 0.0, 0.0, 0.0));
+  textureStore(faceHeight, vec2<i32>(x, y), vec4<u32>(hByte, 0u, 0u, 0u));
+  textureStore(faceIter, vec2<i32>(x, y), vec4<u32>(iter, 0u, 0u, 0u));
 }

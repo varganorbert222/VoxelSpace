@@ -4,6 +4,7 @@ import { renderCubemapFaces } from "./cubemapmarch.js";
 import { renderCubemapView } from "./cubemapViewer.js";
 import { CUBE_FACE_COUNT, cubeSizeForQuality } from "../constants/cubemap.js";
 import { farPlaneRayTMax } from "../constants/panorama.js";
+import { blitRendererOverlay } from "./debugOverlay.js";
 
 function cubeGenerate(renderer) {
   return (
@@ -25,6 +26,8 @@ class CubemapRenderer {
     this._cubeN = 0;
     this._cubeColor = null;
     this._cubeDepth = null;
+    this._cubeHeight = null;
+    this._cubeIter = null;
     this._cubeValid = false;
     this._cubeDirty = true;
     this._camX = 0;
@@ -59,6 +62,8 @@ class CubemapRenderer {
       this._cubeN = n;
       this._cubeColor = null;
       this._cubeDepth = null;
+      this._cubeHeight = null;
+      this._cubeIter = null;
       this.invalidate();
     }
   }
@@ -68,7 +73,18 @@ class CubemapRenderer {
     if (!this._cubeColor || this._cubeColor.length !== count) {
       this._cubeColor = new Uint32Array(count);
       this._cubeDepth = new Float32Array(count);
+      this._cubeHeight = new Uint32Array(count);
+      this._cubeIter = new Uint32Array(count);
       this._cubeValid = false;
+    } else {
+      if (!this._cubeHeight || this._cubeHeight.length !== count) {
+        this._cubeHeight = new Uint32Array(count);
+        this._cubeValid = false;
+      }
+      if (!this._cubeIter || this._cubeIter.length !== count) {
+        this._cubeIter = new Uint32Array(count);
+        this._cubeValid = false;
+      }
     }
   }
 
@@ -141,6 +157,8 @@ class CubemapRenderer {
       quality: camera.quality,
       pixels: this._cubeColor,
       depth: this._cubeDepth,
+      heightBuf: this._cubeHeight,
+      iterBuf: this._cubeIter,
       panoMips: maps.panoMips,
       mapsGeneration: maps.generation,
     });
@@ -152,6 +170,8 @@ class CubemapRenderer {
     return {
       cubeColor: this._cubeColor,
       cubeDepth: this._cubeDepth,
+      cubeHeight: this._cubeHeight,
+      cubeIter: this._cubeIter,
       cubeN: this._cubeN,
       fovY: camera.fov,
       dstToProjPlane: camera.calculateProjPlane(),
@@ -162,6 +182,7 @@ class CubemapRenderer {
       nearClip: camera.nearClip,
       farClip: camera.farClip,
       applyFog: renderer.applyFog,
+      debugView: renderer.debugView,
       rightX: camera.rightX,
       rightY: camera.rightY,
       rightZ: camera.rightZ,
@@ -181,6 +202,8 @@ class CubemapRenderer {
     this._renderer.ensurePool().setCubemap({
       color: this._cubeColor,
       depth: this._cubeDepth,
+      heightBuf: this._cubeHeight,
+      iter: this._cubeIter,
       n: this._cubeN,
       generation: this._gen,
     });
@@ -206,6 +229,7 @@ class CubemapRenderer {
       nearClip: camera.nearClip,
       farClip: camera.farClip,
       applyFog: renderer.applyFog,
+      debugView: renderer.debugView,
       rightX: camera.rightX,
       rightY: camera.rightY,
       rightZ: camera.rightZ,
@@ -244,6 +268,16 @@ class CubemapRenderer {
     cubeView(this._renderer)(this._viewParams());
   }
 
+  _blitOverlay() {
+    blitRendererOverlay(this._renderer, {
+      cubeColor: this._cubeColor,
+      cubeDepth: this._cubeDepth,
+      cubeHeight: this._cubeHeight,
+      cubeIter: this._cubeIter,
+      cubeN: this._cubeN,
+    });
+  }
+
   async _present() {
     const renderer = this._renderer;
     if (renderer.useWorkers && renderer.useWorkers()) {
@@ -251,10 +285,12 @@ class CubemapRenderer {
       if (!ok) {
         this._viewLocal();
       }
+      this._blitOverlay();
       renderer.writeToContext();
       return;
     }
     this._viewLocal();
+    this._blitOverlay();
     renderer.writeToContext();
   }
 
@@ -266,6 +302,7 @@ class CubemapRenderer {
       this._generateLocal(terrain);
       this._commitCache(terrain);
       this._viewLocal();
+      this._blitOverlay();
       renderer.writeToContext();
       return;
     }

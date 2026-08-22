@@ -75,6 +75,12 @@ class FrameBuffer {
     }
   }
 
+  fill(color) {
+    if (this._buffer32bit) {
+      this._buffer32bit.fill(color | 0);
+    }
+  }
+
   blitTerrainColumns(src, startColumn, endColumn) {
     const dest = this._buffer32bit;
     const w = this._width;

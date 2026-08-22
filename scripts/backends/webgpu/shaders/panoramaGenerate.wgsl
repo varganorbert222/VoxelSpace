@@ -11,29 +11,34 @@
 @group(2) @binding(5) var color2: texture_2d<f32>;
 @group(3) @binding(0) var panoColor: texture_storage_2d<r32uint, write>;
 @group(3) @binding(1) var panoDepth: texture_storage_2d<r32float, write>;
+@group(3) @binding(2) var panoHeight: texture_storage_2d<r32uint, write>;
+@group(3) @binding(3) var panoIter: texture_storage_2d<r32uint, write>;
 
 const MAX_STEPS: u32 = 16384u;
 const EPSILON: f32 = 1e-6;
 
-fn sampleHeight(mip: i32, wx: f32, wy: f32) -> f32 {
+fn sampleHeightByte(mip: i32, wx: f32, wy: f32) -> u32 {
   let inv0 = frame.mipInvPixelCenter.x;
   let inv1 = frame.mipInvPixelCenter.y;
   let inv2 = frame.mipInvPixelCenter.z;
-  let altitude = frame.tMaxMinDzAltMaxH.z;
-  let altScale = altitude / 255.0;
   if (mip <= 0) {
     let ix = i32(wx * inv0) & i32(frame.mipSize1.w);
     let iy = i32(wy * inv0) & i32(frame.mipSize1.z);
-    return f32(textureLoad(height0, vec2<i32>(ix, iy), 0).r) * altScale;
+    return textureLoad(height0, vec2<i32>(ix, iy), 0).r;
   }
   if (mip == 1) {
     let ix = i32(wx * inv1) & i32(frame.mipMask1.y);
     let iy = i32(wy * inv1) & i32(frame.mipMask1.x);
-    return f32(textureLoad(height1, vec2<i32>(ix, iy), 0).r) * altScale;
+    return textureLoad(height1, vec2<i32>(ix, iy), 0).r;
   }
   let ix = i32(wx * inv2) & i32(frame.mipMask1.w);
   let iy = i32(wy * inv2) & i32(frame.mipMask1.z);
-  return f32(textureLoad(height2, vec2<i32>(ix, iy), 0).r) * altScale;
+  return textureLoad(height2, vec2<i32>(ix, iy), 0).r;
+}
+
+fn sampleHeight(mip: i32, wx: f32, wy: f32) -> f32 {
+  let altitude = frame.tMaxMinDzAltMaxH.z;
+  return f32(sampleHeightByte(mip, wx, wy)) * (altitude / 255.0);
 }
 
 fn sampleColor(mip: i32, wx: f32, wy: f32) -> vec4f {
@@ -85,6 +90,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let sky = skyPano[min(u32(y), u32(arrayLength(&skyPano) - 1u))];
     textureStore(panoColor, vec2<i32>(px, y), vec4<u32>(sky, 0u, 0u, 0u));
     textureStore(panoDepth, vec2<i32>(px, y), vec4<f32>(0.0, 0.0, 0.0, 0.0));
+    textureStore(panoHeight, vec2<i32>(px, y), vec4<u32>(0u, 0u, 0u, 0u));
+    textureStore(panoIter, vec2<i32>(px, y), vec4<u32>(0u, 0u, 0u, 0u));
     y = y + 1;
   }
 
@@ -247,6 +254,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       if (yHit < yBottom) {
         let color = sampleColor(mip, wx, wy);
         let dist = sqrt(t * t + dh * dh);
+        let hByte = sampleHeightByte(mip, wx, wy);
         var yy = yHit;
         loop {
           if (yy >= yBottom) {
@@ -254,6 +262,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
           }
           textureStore(panoColor, vec2<i32>(px, yy), vec4<u32>(packRgba(color), 0u, 0u, 0u));
           textureStore(panoDepth, vec2<i32>(px, yy), vec4<f32>(dist, 0.0, 0.0, 0.0));
+          textureStore(panoHeight, vec2<i32>(px, yy), vec4<u32>(hByte, 0u, 0u, 0u));
+          textureStore(panoIter, vec2<i32>(px, yy), vec4<u32>(n, 0u, 0u, 0u));
           yy = yy + 1;
         }
       }

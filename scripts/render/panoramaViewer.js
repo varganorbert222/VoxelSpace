@@ -28,6 +28,8 @@ import {
   HALF_PI,
   INV_TWO_PI,
 } from "../constants/vmath.js";
+import { isDebugColor } from "../constants/debugView.js";
+import { encodeCameraSample } from "./debugEncode.js";
 
 const atanLutLast = (PANO_VIEW_ATAN_LUT_SIZE - 1) | 0;
 const atanLut = new Float64Array(PANO_VIEW_ATAN_LUT_SIZE);
@@ -124,6 +126,9 @@ export function renderPanoramaViewColumns({
   nearClip,
   farClip,
   applyFog,
+  debugView,
+  heightBuf,
+  iterBuf,
   rightX,
   rightY,
   rightZ,
@@ -156,6 +161,7 @@ export function renderPanoramaViewColumns({
   const fogRange = farClip - nearClip;
   const invFogRange = fogRange === 0 ? 0 : 1 / fogRange;
   const useFog = applyFog | 0;
+  const debug = isDebugColor(debugView) ? 0 : 1;
   const dCamX = NDC_SCALE * tanHalfX * invW;
   const camX0 =
     ((startColumn + PIXEL_CENTER) * invW * NDC_SCALE - 1) * tanHalfX;
@@ -192,7 +198,16 @@ export function renderPanoramaViewColumns({
       const panoIdx = (py * panoW + px) | 0;
       const dist = depthBuf[panoIdx];
 
-      if ((dist <= 0) | 0) {
+      if (debug) {
+        pixels[dest] = encodeCameraSample(
+          debugView,
+          dist,
+          heightBuf ? heightBuf[panoIdx] : 0,
+          iterBuf ? iterBuf[panoIdx] : 0,
+          dist * invViewLen,
+          farClip
+        );
+      } else if ((dist <= 0) | 0) {
         pixels[dest] = panorama[panoIdx];
       } else {
         const viewZ = dist * invViewLen;
@@ -232,11 +247,14 @@ export function renderPanoramaView({
   frameBuffer,
   horizon,
   depth,
+  heightBuf,
+  iterBuf,
   skyColor,
   horizonColor,
   nearClip,
   farClip,
   applyFog,
+  debugView,
   rightX,
   rightY,
   rightZ,
@@ -262,11 +280,14 @@ export function renderPanoramaView({
     fillUnfilled: 0,
     horizon,
     depth,
+    heightBuf,
+    iterBuf,
     skyColor,
     horizonColor,
     nearClip,
     farClip,
     applyFog,
+    debugView,
     rightX,
     rightY,
     rightZ,

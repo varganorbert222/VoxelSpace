@@ -167,6 +167,10 @@ canvas {
   color: var(--hud-green);
 }
 
+.hud-chip--amber {
+  color: var(--hud-amber);
+}
+
 @media (max-width: 960px) {
   #id_hud_backend {
     display: none;
@@ -294,19 +298,22 @@ body.hud-closed .hud-backdrop {
 .hud-section {
   position: relative;
   z-index: 1;
-  margin-bottom: 14px;
-  padding-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
   border-bottom: 1px dashed var(--hud-border-lo);
 }
 
-.hud-section:last-child {
+.hud-section:last-of-type {
   margin-bottom: 0;
   padding-bottom: 0;
   border-bottom: 0;
 }
 
 .hud-section-title {
-  margin: 0 0 8px;
+  margin: 0;
   font-family: var(--hud-mono);
   font-size: 12px;
   font-weight: 400;
@@ -322,24 +329,21 @@ body.hud-closed .hud-backdrop {
 }
 
 .control {
-  margin-bottom: 10px;
-}
-
-.control:last-child {
-  margin-bottom: 0;
+  margin: 0;
 }
 
 .control-head {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .control-head label,
 .control label {
   font-family: var(--hud-mono);
   font-size: 12px;
+  line-height: 1.3;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--hud-muted);
@@ -460,7 +464,7 @@ body.hud-closed .hud-backdrop {
 .control-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
 }
 
 .control--span {
@@ -484,7 +488,7 @@ select {
   color: var(--hud-text);
   font-size: 20px;
   letter-spacing: 0.04em;
-  padding: 4px 28px 4px 8px;
+  padding: 6px 28px 6px 8px;
   border: 2px solid;
   border-color: var(--hud-border-lo) var(--hud-border-hi) var(--hud-border-hi) var(--hud-border-lo);
   outline: none;
@@ -538,7 +542,7 @@ input[type="range"]::-moz-range-thumb {
   pointer-events: none;
 }
 
-.check:has(#id_multithread:disabled) {
+.check:has(input:disabled) {
   opacity: 0.45;
   pointer-events: none;
 }
@@ -550,7 +554,7 @@ option:disabled {
 .flag-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px 10px;
+  gap: 12px 14px;
 }
 
 .check-wrap {
@@ -571,6 +575,7 @@ option:disabled {
   gap: 8px;
   font-family: var(--hud-mono);
   font-size: 12px;
+  line-height: 1.3;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--hud-text);
@@ -610,21 +615,21 @@ option:disabled {
 .key-legend {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px 10px;
+  gap: 12px 14px;
   margin: 0;
 }
 
 .key-legend > div {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 4px;
 }
 
 .key-legend dt {
   display: inline-block;
   width: fit-content;
   margin: 0;
-  padding: 1px 6px 0;
+  padding: 2px 6px 1px;
   font-size: 16px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -638,6 +643,7 @@ option:disabled {
   margin: 0;
   font-family: var(--hud-mono);
   font-size: 11px;
+  line-height: 1.35;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--hud-muted);

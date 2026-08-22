@@ -6,6 +6,12 @@ import { SPAWN_HEIGHT_OFFSET } from "../constants/main.js";
 import { HALF } from "../constants/vmath.js";
 import { BACKEND_CHIP, usesWorkers } from "../constants/backend.js";
 import {
+  DEBUG_VIEW_COLOR,
+  DEBUG_VIEW_LABEL,
+  envOverlayAllowed,
+  isDebugColor,
+} from "../constants/debugView.js";
+import {
   QUALITY_LABEL,
   QUALITY_ULTRA,
   QUALITY_VERY_HIGH,
@@ -97,14 +103,14 @@ function initQualityElement(id, values, value, onChange, getBackend) {
   return element;
 }
 
-function initOptionElement(id, optionConfig, value, onChange) {
+function initOptionElement(id, optionConfig, value, onChange, labels) {
   const element = prepareControl(document.getElementById(id));
   while (element.firstChild) {
     element.removeChild(element.firstChild);
   }
   optionConfig.values.forEach((v) => {
     const option = document.createElement("option");
-    option.text = v;
+    option.text = (labels && labels[v]) || v;
     option.value = v;
     element.append(option);
   });
@@ -265,6 +271,28 @@ class SettingsForm {
         },
         () => app.renderer.backend
       ),
+      debugView: initOptionElement(
+        "id_debugview",
+        config.settings.debugViews,
+        options.debugView || DEBUG_VIEW_COLOR,
+        (e) => {
+          app.renderer.setOptions({ debugView: e.target.value });
+          persist();
+        },
+        DEBUG_VIEW_LABEL
+      ),
+      debugOverlay: initCheckboxElement(
+        "id_debug_overlay",
+        options.debugOverlay,
+        (e) => {
+          if (!envOverlayAllowed(app.renderer.algorithm)) {
+            e.target.checked = false;
+            return;
+          }
+          app.renderer.setOptions({ debugOverlay: e.target.checked });
+          persist();
+        }
+      ),
     };
     this._elements.renderScale.disabled = true;
     this.sync();
@@ -289,6 +317,8 @@ class SettingsForm {
       cameraMode,
       algorithm,
       backend,
+      debugView,
+      debugOverlay,
     } = this._elements;
     renderDistance.value = camera.farClip;
     updateBoundValue("id_render_distance", camera.farClip);
@@ -313,10 +343,22 @@ class SettingsForm {
     cameraMode.value = camera.mode;
     algorithm.value = options.algorithm;
     backend.value = options.backend;
+    debugView.value = options.debugView || DEBUG_VIEW_COLOR;
+    const overlayOk = envOverlayAllowed(options.algorithm);
+    debugOverlay.disabled = !overlayOk;
+    debugOverlay.checked = overlayOk && !!options.debugOverlay;
     setChip("id_hud_map", this._app.currentMapName);
     setChip("id_hud_algorithm", options.algorithm);
     setChip("id_hud_backend", BACKEND_CHIP[options.backend] || options.backend);
     setChip("id_hud_camera", camera.mode);
+    const debugChip = document.getElementById("id_hud_debug");
+    if (debugChip) {
+      const showDebug = !isDebugColor(options.debugView);
+      debugChip.hidden = !showDebug;
+      debugChip.textContent = showDebug
+        ? DEBUG_VIEW_LABEL[options.debugView] || options.debugView
+        : "----";
+    }
   }
 
   syncRenderScale() {

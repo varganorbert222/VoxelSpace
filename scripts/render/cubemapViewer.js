@@ -20,6 +20,8 @@ import {
 import { FOG_SATURATED } from "../constants/quality.js";
 import { DEG_TO_RAD, HALF } from "../constants/vmath.js";
 import { cubeFaceOffset, cubeSelect, cubeUVToTexel } from "../constants/cubemap.js";
+import { isDebugColor } from "../constants/debugView.js";
+import { encodeCameraSample } from "./debugEncode.js";
 
 const skyLutCache = {
   skyColor: NaN,
@@ -85,6 +87,9 @@ export function renderCubemapViewColumns({
   nearClip,
   farClip,
   applyFog,
+  debugView,
+  cubeHeight,
+  cubeIter,
   rightX,
   rightY,
   rightZ,
@@ -113,6 +118,7 @@ export function renderCubemapViewColumns({
   const fogRange = farClip - nearClip;
   const invFogRange = fogRange === 0 ? 0 : 1 / fogRange;
   const useFog = applyFog | 0;
+  const debug = isDebugColor(debugView) ? 0 : 1;
   const dCamX = NDC_SCALE * tanHalfX * invW;
   const camX0 =
     ((startColumn + PIXEL_CENTER) * invW * NDC_SCALE - 1) * tanHalfX;
@@ -143,7 +149,16 @@ export function renderCubemapViewColumns({
       const dest = (row + localX) | 0;
       const dist = depthBuf[idx];
 
-      if ((dist <= 0) | 0) {
+      if (debug) {
+        pixels[dest] = encodeCameraSample(
+          debugView,
+          dist,
+          cubeHeight ? cubeHeight[idx] : 0,
+          cubeIter ? cubeIter[idx] : 0,
+          dist * invViewLen,
+          farClip
+        );
+      } else if ((dist <= 0) | 0) {
         pixels[dest] = cubeColor[idx];
       } else {
         const viewZ = dist * invViewLen;
@@ -194,6 +209,9 @@ export function renderCubemapView(params) {
     nearClip: params.nearClip,
     farClip: params.farClip,
     applyFog: params.applyFog,
+    debugView: params.debugView,
+    cubeHeight: params.cubeHeight,
+    cubeIter: params.cubeIter,
     rightX: params.rightX,
     rightY: params.rightY,
     rightZ: params.rightZ,

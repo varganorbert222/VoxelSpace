@@ -73,6 +73,14 @@ class WasmBackend {
     return this._host.repeat;
   }
 
+  get debugView() {
+    return this._host.debugView;
+  }
+
+  get debugOverlay() {
+    return this._host.debugOverlay;
+  }
+
   get algorithm() {
     return this._host.algorithm;
   }

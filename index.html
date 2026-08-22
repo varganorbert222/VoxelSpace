@@ -43,6 +43,7 @@
         <span class="hud-chip hud-chip--cyan" id="id_hud_algorithm">----</span>
         <span class="hud-chip" id="id_hud_backend">----</span>
         <span class="hud-chip hud-chip--green" id="id_hud_camera">----</span>
+        <span class="hud-chip hud-chip--amber" id="id_hud_debug" hidden>----</span>
       </div>
       <div class="hud-top-right">
         <div id="id_fps" class="hud-fps" aria-live="polite"></div>
@@ -156,7 +157,38 @@
       </section>
 
       <section class="hud-section">
-        <h2 class="hud-section-title"><span>04</span> Flags</h2>
+        <h2 class="hud-section-title"><span>04</span> Debug</h2>
+        <div
+          class="control"
+          data-tip="Color is the production picture. Height / Depth / Iterations recolor the camera view and the unwrapped env atlas together."
+        >
+          <div class="control-head">
+            <label for="id_debugview">Debug view</label>
+          </div>
+          <select id="id_debugview" name="DebugView" autocomplete="off">
+            <option value="">Please select debug view</option>
+          </select>
+        </div>
+        <div class="flag-grid">
+          <label
+            class="check"
+            for="id_debug_overlay"
+            data-tip="Unwrapped panorama or cubemap atlas. Uses the same debug view as the 3D picture. Hidden on classic."
+          >
+            <input
+              id="id_debug_overlay"
+              name="debugoverlay"
+              type="checkbox"
+              autocomplete="off"
+            />
+            <span class="check-box" aria-hidden="true"></span>
+            Env atlas
+          </label>
+        </div>
+      </section>
+
+      <section class="hud-section">
+        <h2 class="hud-section-title"><span>05</span> Flags</h2>
         <div class="flag-grid">
           <label class="check" for="id_apply_fog" data-tip="Fade distant terrain into the sky.">
             <input
@@ -191,7 +223,7 @@
       </section>
 
       <section class="hud-section hud-section--keys">
-        <h2 class="hud-section-title"><span>05</span> Input</h2>
+        <h2 class="hud-section-title"><span>06</span> Input</h2>
         <dl class="key-legend">
           <div><dt>WASD</dt><dd>Move / strafe</dd></div>
           <div><dt>Shift</dt><dd>Faster</dd></div>
@@ -202,13 +234,15 @@
           <div class="pano-only"><dt>Q E</dt><dd>Roll</dd></div>
           <div><dt>P</dt><dd>Cycle algorithm</dd></div>
           <div><dt>B</dt><dd>Cycle runtime</dd></div>
+          <div><dt>V</dt><dd>Cycle debug view</dd></div>
+          <div class="pano-only"><dt>O</dt><dd>Toggle env atlas</dd></div>
           <div><dt>H</dt><dd>Toggle HUD</dd></div>
           <div><dt>Esc</dt><dd>Close panel</dd></div>
         </dl>
       </section>
 
       <section class="hud-section hud-section--touch">
-        <h2 class="hud-section-title"><span>05</span> Touch</h2>
+        <h2 class="hud-section-title"><span>06</span> Touch</h2>
         <dl class="key-legend">
           <div><dt>L Stick</dt><dd>Move / strafe</dd></div>
           <div><dt>R Stick</dt><dd>Look</dd></div>
@@ -218,7 +252,7 @@
       </section>
 
       <section class="hud-section hud-section--link">
-        <h2 class="hud-section-title"><span>06</span> Link</h2>
+        <h2 class="hud-section-title"><span>07</span> Link</h2>
         <a class="hud-link" href="https://github.com/varganorbert222/VoxelSpace"
           >Github project</a
         >

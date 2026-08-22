@@ -19,6 +19,7 @@ struct Frame {
   mipSize0: vec4u,
   mipSize1: vec4u,
   mipMask1: vec4u,
+  debugRect: vec4u,
 };
 
 fn packRgba(c: vec4f) -> u32 {
@@ -48,4 +49,179 @@ fn flagFog(flags: u32) -> bool {
 
 fn flagRepeat(flags: u32) -> bool {
   return (flags & 2u) != 0u;
+}
+
+fn flagDebugView(flags: u32) -> u32 {
+  return (flags >> 8u) & 3u;
+}
+
+fn flagOverlay(flags: u32) -> bool {
+  return (flags & 1024u) != 0u;
+}
+
+fn flagOverlayCube(flags: u32) -> bool {
+  return (flags & 2048u) != 0u;
+}
+
+const DEBUG_COLOR: u32 = 0u;
+const DEBUG_HEIGHT: u32 = 1u;
+const DEBUG_DEPTH: u32 = 2u;
+const DEBUG_ITER: u32 = 3u;
+const ITER_VIS_MAX: f32 = 256.0;
+
+fn encodeUnit(t: f32) -> u32 {
+  if (!(t > 0.0)) {
+    return packRgba(vec4f(0.0, 0.0, 0.0, 1.0));
+  }
+  var u = t;
+  if (u >= 1.0) {
+    return packRgba(vec4f(1.0, 1.0, 1.0, 1.0));
+  }
+  return packRgba(vec4f(u, u, u, 1.0));
+}
+
+fn encodeHeight(byte: u32) -> u32 {
+  return encodeUnit(f32(byte & 255u) / 255.0);
+}
+
+fn encodeIter(iter: u32) -> u32 {
+  if (iter == 0u) {
+    return packRgba(vec4f(0.0, 0.0, 0.0, 1.0));
+  }
+  var t = f32(iter) / ITER_VIS_MAX;
+  if (t > 1.0) {
+    t = 1.0;
+  }
+  if (t <= 0.25) {
+    let f = t / 0.25;
+    return packRgba(mix(vec4f(1.0, 0.0, 0.0, 1.0), vec4f(1.0, 0.627, 0.0, 1.0), f));
+  }
+  if (t <= 0.5) {
+    let f = (t - 0.25) / 0.25;
+    return packRgba(mix(vec4f(1.0, 0.627, 0.0, 1.0), vec4f(1.0, 1.0, 0.0, 1.0), f));
+  }
+  if (t <= 0.75) {
+    let f = (t - 0.5) / 0.25;
+    return packRgba(mix(vec4f(1.0, 1.0, 0.0, 1.0), vec4f(0.565, 0.0, 1.0, 1.0), f));
+  }
+  let f = (t - 0.75) / 0.25;
+  return packRgba(mix(vec4f(0.565, 0.0, 1.0, 1.0), vec4f(1.0, 0.0, 1.0, 1.0), f));
+}
+
+fn encodeCamera(debugView: u32, dist: f32, heightByte: u32, iter: u32, viewZ: f32, farClip: f32) -> u32 {
+  if (debugView == DEBUG_HEIGHT) {
+    if (dist <= 0.0) {
+      return packRgba(vec4f(0.0, 0.0, 0.0, 1.0));
+    }
+    return encodeHeight(heightByte);
+  }
+  if (debugView == DEBUG_DEPTH) {
+    if (dist <= 0.0) {
+      return packRgba(vec4f(0.0, 0.0, 0.0, 1.0));
+    }
+    var t = 0.0;
+    if (farClip > 0.0) {
+      t = viewZ / farClip;
+    }
+    return encodeUnit(t);
+  }
+  return encodeIter(iter);
+}
+
+const OVERLAY_BORDER: i32 = 2;
+const OVERLAY_SHADOW: i32 = 4;
+const OVERLAY_PAD: i32 = 6;
+const CUBE_NET_GAP: i32 = 8;
+const OVERLAY_KIND_SKIP: u32 = 0u;
+const OVERLAY_KIND_SHADOW: u32 = 1u;
+const OVERLAY_KIND_FILL: u32 = 2u;
+const OVERLAY_KIND_HI: u32 = 3u;
+const OVERLAY_KIND_LO: u32 = 4u;
+const OVERLAY_KIND_CONTENT: u32 = 5u;
+
+fn overlayHudBg() -> u32 {
+  return packRgba(vec4f(18.0 / 255.0, 22.0 / 255.0, 12.0 / 255.0, 1.0));
+}
+
+fn overlayHudHi() -> u32 {
+  return packRgba(vec4f(212.0 / 255.0, 224.0 / 255.0, 106.0 / 255.0, 1.0));
+}
+
+fn overlayHudLo() -> u32 {
+  return packRgba(vec4f(58.0 / 255.0, 64.0 / 255.0, 32.0 / 255.0, 1.0));
+}
+
+fn overlayHudShadow() -> u32 {
+  return packRgba(vec4f(0.0, 0.0, 0.0, 1.0));
+}
+
+fn overlayKindColor(kind: u32) -> u32 {
+  if (kind == OVERLAY_KIND_SHADOW) {
+    return overlayHudShadow();
+  }
+  if (kind == OVERLAY_KIND_FILL) {
+    return overlayHudBg();
+  }
+  if (kind == OVERLAY_KIND_HI) {
+    return overlayHudHi();
+  }
+  if (kind == OVERLAY_KIND_LO) {
+    return overlayHudLo();
+  }
+  return overlayHudBg();
+}
+
+fn overlayPixelKind(dx: i32, dy: i32, fullW: i32, fullH: i32) -> u32 {
+  let panelW = fullW - OVERLAY_SHADOW;
+  let panelH = fullH - OVERLAY_SHADOW;
+  if ((dx >= 0) && (dx < panelW) && (dy >= 0) && (dy < panelH)) {
+    if ((dx >= panelW - OVERLAY_BORDER) || (dy >= panelH - OVERLAY_BORDER)) {
+      return OVERLAY_KIND_LO;
+    }
+    if ((dx < OVERLAY_BORDER) || (dy < OVERLAY_BORDER)) {
+      return OVERLAY_KIND_HI;
+    }
+    let inset = OVERLAY_BORDER + OVERLAY_PAD;
+    if ((dx >= inset) && (dy >= inset) && (dx < panelW - inset) && (dy < panelH - inset)) {
+      return OVERLAY_KIND_CONTENT;
+    }
+    return OVERLAY_KIND_FILL;
+  }
+  if ((dx >= OVERLAY_SHADOW) && (dx < fullW) && (dy >= OVERLAY_SHADOW) && (dy < fullH)) {
+    return OVERLAY_KIND_SHADOW;
+  }
+  return OVERLAY_KIND_SKIP;
+}
+
+fn overlaySunkenBevel(lx: i32, ly: i32, w: i32, h: i32) -> u32 {
+  if ((lx >= w - OVERLAY_BORDER) || (ly >= h - OVERLAY_BORDER)) {
+    return OVERLAY_KIND_HI;
+  }
+  if ((lx < OVERLAY_BORDER) || (ly < OVERLAY_BORDER)) {
+    return OVERLAY_KIND_LO;
+  }
+  return OVERLAY_KIND_SKIP;
+}
+
+fn encodeAtlas(debugView: u32, color: u32, dist: f32, heightByte: u32, iter: u32, farClip: f32) -> u32 {
+  if (debugView == DEBUG_COLOR) {
+    return color;
+  }
+  if (debugView == DEBUG_HEIGHT) {
+    if (dist <= 0.0) {
+      return packRgba(vec4f(0.0, 0.0, 0.0, 1.0));
+    }
+    return encodeHeight(heightByte);
+  }
+  if (debugView == DEBUG_DEPTH) {
+    if (dist <= 0.0) {
+      return packRgba(vec4f(0.0, 0.0, 0.0, 1.0));
+    }
+    var t = 0.0;
+    if (farClip > 0.0) {
+      t = dist / farClip;
+    }
+    return encodeUnit(t);
+  }
+  return encodeIter(iter);
 }

@@ -18,12 +18,16 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     return;
   }
 
+  let debugView = flagDebugView(frame.mapFlags.w);
   var y = 0;
   loop {
     if (y >= screenH) {
       break;
     }
-    let sky = skyRows[min(u32(y), u32(arrayLength(&skyRows) - 1u))];
+    var sky = 0u;
+    if (debugView == DEBUG_COLOR) {
+      sky = skyRows[min(u32(y), u32(arrayLength(&skyRows) - 1u))];
+    }
     textureStore(outTex, vec2<i32>(x, y), vec4<u32>(sky, 0u, 0u, 0u));
     y = y + 1;
   }
@@ -68,6 +72,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let kDx = (kRightX + kRightX) * screenWidthScaler;
   let kDy = (kRightY + kRightY) * screenWidthScaler;
 
+  var sampleN = 0u;
   var lod = lodCount;
   loop {
     if (lod <= 0) {
@@ -130,12 +135,27 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
           if (!repeat && (groundOnScreen < heightOnScreenBottom)) {
             heightOnScreenBottom = groundOnScreen;
           }
+          sampleN = sampleN + 1u;
           var plot = vec4f(1.0);
-          if (!fogWhite) {
+          var plotPacked = packRgba(plot);
+          if (debugView != DEBUG_COLOR) {
+            if (debugView == DEBUG_HEIGHT) {
+              plotPacked = encodeHeight(hByte);
+            } else if (debugView == DEBUG_DEPTH) {
+              var t = 0.0;
+              if (farClip > 0.0) {
+                t = z / farClip;
+              }
+              plotPacked = encodeUnit(t);
+            } else {
+              plotPacked = encodeIter(sampleN);
+            }
+          } else if (!fogWhite) {
             plot = textureLoad(colorTex, vec2<i32>(jx, ix), 0);
             if (applyFogT) {
               plot = fogRgb(plot, fogT);
             }
+            plotPacked = packRgba(plot);
           }
           if (heightOnScreen < colHidden) {
             var drawWidth = pxOffset;
@@ -160,7 +180,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
                   textureStore(
                     outTex,
                     vec2<i32>(x + j, yy),
-                    vec4<u32>(packRgba(plot), 0u, 0u, 0u)
+                    vec4<u32>(plotPacked, 0u, 0u, 0u)
                   );
                   yy = yy + 1;
                 }

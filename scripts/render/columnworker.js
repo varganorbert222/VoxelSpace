@@ -35,11 +35,15 @@ const workerState = {
   panoPixels: null,
   panoHorizon: null,
   panoDepth: null,
+  panoHeightBuf: null,
+  panoIter: null,
   panoWidth: 0,
   panoHeight: 0,
   panoGeneration: 0,
   cubeColor: null,
   cubeDepth: null,
+  cubeHeight: null,
+  cubeIter: null,
   cubeN: 0,
   cubeGeneration: 0,
 };
@@ -100,6 +104,8 @@ function initPano(msg) {
   workerState.panoPixels = new Uint32Array(msg.pixels);
   workerState.panoHorizon = new Int32Array(msg.horizon);
   workerState.panoDepth = msg.depth ? new Float32Array(msg.depth) : null;
+  workerState.panoHeightBuf = msg.heightBuf ? new Uint32Array(msg.heightBuf) : null;
+  workerState.panoIter = msg.iter ? new Uint32Array(msg.iter) : null;
   workerState.panoWidth = msg.width;
   workerState.panoHeight = msg.height;
   workerState.panoGeneration = msg.generation | 0;
@@ -108,6 +114,8 @@ function initPano(msg) {
 function initCube(msg) {
   workerState.cubeColor = new Uint32Array(msg.color);
   workerState.cubeDepth = msg.depth ? new Float32Array(msg.depth) : null;
+  workerState.cubeHeight = msg.heightBuf ? new Uint32Array(msg.heightBuf) : null;
+  workerState.cubeIter = msg.iter ? new Uint32Array(msg.iter) : null;
   workerState.cubeN = msg.n | 0;
   workerState.cubeGeneration = msg.generation | 0;
 }
@@ -149,6 +157,7 @@ function renderClassic(msg) {
     minDeltaZ: msg.minDeltaZ,
     quality: msg.quality,
     applyFog: msg.applyFog,
+    debugView: msg.debugView,
     repeat: msg.repeat,
     pixels,
     pixelWidth: localWidth,
@@ -172,6 +181,8 @@ function renderPanorama(msg) {
   const pixels = new Uint32Array((localWidth * msg.height) | 0);
   const horizon = new Int32Array(localWidth);
   const depth = new Float32Array((localWidth * msg.height) | 0);
+  const heightBuf = new Uint32Array((localWidth * msg.height) | 0);
+  const iterBuf = new Uint32Array((localWidth * msg.height) | 0);
   renderPanoramaColumns({
     heightMap: workerState.heightMap,
     colorMap: workerState.colorMap,
@@ -198,6 +209,8 @@ function renderPanorama(msg) {
     pixels,
     horizon,
     depth,
+    heightBuf,
+    iterBuf,
     panoMips: workerState.panoMips,
   });
   self.postMessage(
@@ -209,8 +222,10 @@ function renderPanorama(msg) {
       pixels: pixels.buffer,
       horizon: horizon.buffer,
       depth: depth.buffer,
+      heightBuf: heightBuf.buffer,
+      iter: iterBuf.buffer,
     },
-    [pixels.buffer, horizon.buffer, depth.buffer]
+    [pixels.buffer, horizon.buffer, depth.buffer, heightBuf.buffer, iterBuf.buffer]
   );
 }
 
@@ -232,12 +247,15 @@ function renderPanoView(msg) {
     fillUnfilled: 1,
     horizon: workerState.panoHorizon,
     depth: workerState.panoDepth,
+    heightBuf: workerState.panoHeightBuf,
+    iterBuf: workerState.panoIter,
     panoGeneration: workerState.panoGeneration,
     skyColor: msg.skyColor,
     horizonColor: msg.horizonColor,
     nearClip: msg.nearClip,
     farClip: msg.farClip,
     applyFog: msg.applyFog,
+    debugView: msg.debugView,
     rightX: msg.rightX,
     rightY: msg.rightY,
     rightZ: msg.rightZ,
@@ -266,6 +284,8 @@ function renderCubeView(msg) {
   renderCubemapViewColumnsJs({
     cubeColor: workerState.cubeColor,
     cubeDepth: workerState.cubeDepth,
+    cubeHeight: workerState.cubeHeight,
+    cubeIter: workerState.cubeIter,
     cubeN: workerState.cubeN,
     fovY: msg.fovY,
     dstToProjPlane: msg.dstToProjPlane,
@@ -281,6 +301,7 @@ function renderCubeView(msg) {
     nearClip: msg.nearClip,
     farClip: msg.farClip,
     applyFog: msg.applyFog,
+    debugView: msg.debugView,
     rightX: msg.rightX,
     rightY: msg.rightY,
     rightZ: msg.rightZ,
