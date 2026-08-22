@@ -174,7 +174,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let repeat = flagRepeat(frame.mapFlags.w);
   let mapW = f32(frame.mapFlags.x);
   let mapH = f32(frame.mapFlags.y);
-  let ceiling = frame.tMaxMinDzAltMaxH.w;
   let clipZ = frame.clipDhTanLastGrowth.x;
   let stepGrowth = frame.clipDhTanLastGrowth.w;
   let step0 = frame.stepScaleCaps.x;
@@ -205,12 +204,21 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   var t = t0;
   var step = step0;
   var wasInside = 0;
+  var leftMap = 0;
   var mip = 0;
   var stepCap = stepCap0;
   var tStopCol = tStop;
+  let tGroundRim = rMaxSpoke * (camZ - clipZ);
+  if (tGroundRim > tStopCol) {
+    tStopCol = tGroundRim;
+  }
   var k = 0u;
   var rOuterUp = 2.0;
-  var rInnerDown = 0.0;
+  var rInnerDown = -1.0;
+  let nadirInside = repeat || ((camX >= 0.0) && (camX < mapW) && (camY >= 0.0) && (camY < mapH));
+  if (nadirInside) {
+    rInnerDown = 0.0;
+  }
   var lastDownColor = vec4f(0.0);
   var lastDownDist = 0.0;
   var lastDownHeight = 0u;
@@ -248,6 +256,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       let inside = (wx >= 0.0) && (wx < mapW) && (wy >= 0.0) && (wy < mapH);
       if (!inside) {
         if (wasInside != 0) {
+          leftMap = 1;
           break;
         }
         t = t + step;
@@ -261,14 +270,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     }
 
     let h = sampleHeight(mip, wx, wy);
-    if (h > ceiling + EPSILON) {
-      t = t + step;
-      step = step + stepGrowth;
-      if (step > stepCap) {
-        step = stepCap;
-      }
-      continue;
-    }
 
     let dh = h - camZ;
     let slope = dh / t;
@@ -282,22 +283,35 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         rOuterUp = r;
       }
     } else if (face == 5 && slope < -EPSILON) {
-      let r = -1.0 / slope;
-      if (r > rInnerDown) {
-        if (rInnerDown < rMaxSpoke) {
-          if (r <= rMaxSpoke) {
-            fillSpoke(n, dirX, -dirY, rInnerDown, r, color, dist, hByte, k);
-          } else if (rInnerDown > 0.0) {
-            fillSpoke(n, dirX, -dirY, rInnerDown, rMaxSpoke, color, dist, hByte, k);
-          }
-        }
-        rInnerDown = r;
-        lastDownColor = color;
-        lastDownDist = dist;
-        lastDownHeight = hByte;
-        lastDownIter = k;
-        hadDown = 1;
+      let rTop = -1.0 / slope;
+      let groundDen = camZ - clipZ;
+      var rBase = rMaxSpoke;
+      if (groundDen > EPSILON) {
+        rBase = t / groundDen;
       }
+      var lo = rInnerDown;
+      if (lo < 0.0) {
+        lo = max(rBase, 0.0);
+      }
+      var hi = rTop;
+      if (hi > rMaxSpoke) {
+        hi = rMaxSpoke;
+      }
+      if (lo < rMaxSpoke && hi > lo) {
+        fillSpoke(n, dirX, -dirY, lo, hi, color, dist, hByte, k);
+      }
+      if (rTop <= rMaxSpoke) {
+        if (rTop > rInnerDown) {
+          rInnerDown = rTop;
+        }
+      } else if (hi >= rMaxSpoke && rInnerDown < rMaxSpoke) {
+        rInnerDown = rMaxSpoke;
+      }
+      lastDownColor = color;
+      lastDownDist = dist;
+      lastDownHeight = hByte;
+      lastDownIter = k;
+      hadDown = 1;
     }
     if (h <= clipZ + EPSILON && slope < 0.0) {
       break;
@@ -309,7 +323,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       step = stepCap;
     }
   }
-  if (face == 5 && hadDown != 0 && rInnerDown > 0.0 && rInnerDown < rMaxSpoke) {
+  if (face == 5 && leftMap == 0 && hadDown != 0 && rInnerDown > 0.0 && rInnerDown < rMaxSpoke) {
     fillSpoke(n, dirX, -dirY, rInnerDown, rMaxSpoke, lastDownColor, lastDownDist, lastDownHeight, lastDownIter);
   }
 }

@@ -113,7 +113,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let repeat = flagRepeat(frame.mapFlags.w);
   let mapW = f32(frame.mapFlags.x);
   let mapH = f32(frame.mapFlags.y);
-  let ceiling = frame.tMaxMinDzAltMaxH.w;
   let clipZ = frame.clipDhTanLastGrowth.x;
   let stepGrowth = frame.clipDhTanLastGrowth.w;
   let step0 = frame.stepScaleCaps.x;
@@ -203,14 +202,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     }
 
     let h = sampleHeight(mip, wx, wy);
-    if (h > ceiling + EPSILON) {
-      t = t + step;
-      step = step + stepGrowth;
-      if (step > stepCap) {
-        step = stepCap;
-      }
-      continue;
-    }
 
     let zScale = dst / t;
     var yHit = i32((camZ - h) * zScale + horizon);

@@ -288,7 +288,6 @@ export function renderCubemapHorizonColumns({
     tStop = farClip * FAR_PLANE_T_SCALE;
   }
   const altScale = altitude / HEIGHTMAP_MAX;
-  const ceiling = maxHeight == null ? altitude : maxHeight;
   const cx = CUBE_FACE_C[face][0];
   const cy = CUBE_FACE_C[face][1];
   const ux = CUBE_FACE_U[face][0];
@@ -354,12 +353,6 @@ export function renderCubemapHorizonColumns({
           (((wx * inv) | 0) & m.mipHMask[mip])) |
         0;
       const h = m.mipHeightMaps[mip][offset] * altScale;
-      if (h > ceiling + EPSILON) {
-        t += step;
-        step += m.stepGrowth;
-        if (step > stepCap) step = stepCap;
-        continue;
-      }
 
       const zScale = dst / t;
       let yHit = ((camZ - h) * zScale + horizon) | 0;
@@ -455,9 +448,14 @@ export function renderCubemapPolarAzimuths({
     tStop = farClip * FAR_PLANE_T_SCALE;
   }
   const altScale = altitude / HEIGHTMAP_MAX;
-  const ceiling = maxHeight == null ? altitude : maxHeight;
   const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
   const azN = azCount > 0 ? azCount : (n << 2);
+  const nadirInside =
+    (repeat | 0) |
+    (((camX >= 0) | 0) &
+      ((camX < mapW) | 0) &
+      ((camY >= 0) | 0) &
+      ((camY < mapH) | 0));
   for (let az = startAz; (az < endAz) | 0; az = (az + 1) | 0) {
     const theta = ((az + HALF) / azN) * TWO_PI;
     const dirX = -Math.sin(theta);
@@ -467,7 +465,7 @@ export function renderCubemapPolarAzimuths({
     const rMaxSpoke =
       1 / (absDX > absDY ? absDX : absDY > EPSILON ? absDY : EPSILON);
     let rOuterUp = 2;
-    let rInnerDown = 0;
+    let rInnerDown = nadirInside ? 0 : -1;
     let lastDownColor = 0;
     let lastDownDist = 0;
     let lastDownHeight = 0;
@@ -475,9 +473,12 @@ export function renderCubemapPolarAzimuths({
     let t = t0;
     let step = step0;
     let wasInside = 0;
+    let leftMap = 0;
     let mip = 0;
     let stepCap = stepCap0;
     let tStopCol = tStop;
+    const tGroundRim = rMaxSpoke * (camZ - clipZ);
+    if (tGroundRim > tStopCol) tStopCol = tGroundRim;
     let k = 0;
 
     while ((t < tStopCol) & (k < 16384)) {
@@ -499,6 +500,7 @@ export function renderCubemapPolarAzimuths({
           ((wy < mapH) | 0);
         if (!inside) {
           if (wasInside) {
+            leftMap = 1;
             break;
           }
           t += step;
@@ -515,12 +517,6 @@ export function renderCubemapPolarAzimuths({
           (((wx * inv) | 0) & m.mipHMask[mip])) |
         0;
       const h = m.mipHeightMaps[mip][offset] * altScale;
-      if (h > ceiling + EPSILON) {
-        t += step;
-        step += m.stepGrowth;
-        if (step > stepCap) step = stepCap;
-        continue;
-      }
 
       const dh = h - camZ;
       const slope = dh / t;
@@ -549,51 +545,42 @@ export function renderCubemapPolarAzimuths({
           rOuterUp = r;
         }
       } else if (slope < -EPSILON) {
-        const r = -1 / slope;
-        if (r > rInnerDown) {
-          if (rInnerDown < rMaxSpoke) {
-            if (r <= rMaxSpoke) {
-              fillPolarRadial(
-                pixels,
-                depth,
-                heightBuf,
-                iterBuf,
-                n,
-                CUBE_FACE_NZ,
-                dirX,
-                -dirY,
-                rInnerDown,
-                r,
-                color,
-                dist,
-                hByte,
-                k
-              );
-            } else if (rInnerDown > 0) {
-              fillPolarRadial(
-                pixels,
-                depth,
-                heightBuf,
-                iterBuf,
-                n,
-                CUBE_FACE_NZ,
-                dirX,
-                -dirY,
-                rInnerDown,
-                rMaxSpoke,
-                color,
-                dist,
-                hByte,
-                k
-              );
-            }
-          }
-          rInnerDown = r;
-          lastDownColor = color;
-          lastDownDist = dist;
-          lastDownHeight = hByte;
-          lastDownIter = k;
+        const rTop = -1 / slope;
+        const groundDen = camZ - clipZ;
+        const rBase = groundDen > EPSILON ? t / groundDen : rMaxSpoke;
+        let lo = rInnerDown;
+        if (lo < 0) {
+          lo = rBase > 0 ? rBase : 0;
         }
+        let hi = rTop;
+        if (hi > rMaxSpoke) hi = rMaxSpoke;
+        if (lo < rMaxSpoke && hi > lo) {
+          fillPolarRadial(
+            pixels,
+            depth,
+            heightBuf,
+            iterBuf,
+            n,
+            CUBE_FACE_NZ,
+            dirX,
+            -dirY,
+            lo,
+            hi,
+            color,
+            dist,
+            hByte,
+            k
+          );
+        }
+        if (rTop <= rMaxSpoke) {
+          if (rTop > rInnerDown) rInnerDown = rTop;
+        } else if (hi >= rMaxSpoke && rInnerDown < rMaxSpoke) {
+          rInnerDown = rMaxSpoke;
+        }
+        lastDownColor = color;
+        lastDownDist = dist;
+        lastDownHeight = hByte;
+        lastDownIter = k;
       }
 
       if (h <= clipZ + EPSILON && slope < 0) {
@@ -604,7 +591,11 @@ export function renderCubemapPolarAzimuths({
       step += m.stepGrowth;
       if (step > stepCap) step = stepCap;
     }
-    if (rInnerDown > 0 && rInnerDown < rMaxSpoke) {
+    if (
+      !leftMap &&
+      rInnerDown > 0 &&
+      rInnerDown < rMaxSpoke
+    ) {
       fillPolarRadial(
         pixels,
         depth,
