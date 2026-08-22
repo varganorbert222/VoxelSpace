@@ -25,7 +25,7 @@ import {
 } from "../constants/algorithm.js";
 import { BACKEND_JS } from "../constants/backend.js";
 import { detectBackends } from "../backends/contract.js";
-import { renderScaleForQuality } from "../constants/quality.js";
+import { renderScaleForQuality, clampQualityForContext } from "../constants/quality.js";
 import { DEFAULT_MULTITHREAD } from "../constants/threading.js";
 import { CANVAS_ID } from "../constants/main.js";
 
@@ -142,7 +142,9 @@ class App {
         await this.renderer.setMaps(snapshot);
       }
     }
-    if (ok) {
+    const prevQuality = this.camera.quality;
+    this._clampQualityToRuntime();
+    if (ok || prevQuality !== this.camera.quality) {
       this.resize();
     }
     this.persistAndSync();
@@ -204,7 +206,7 @@ class App {
       farClip: sanitized.farClip,
       minDeltaZ: sanitized.minDeltaZ,
       fov: sanitized.fov,
-      quality: sanitized.quality,
+      quality: clampQualityForContext(sanitized.quality, sanitized.backend),
       mode: sanitized.mode,
     });
     this.renderer.setOptions({
@@ -215,6 +217,13 @@ class App {
       backend: sanitized.backend,
     });
     this.currentMapName = sanitized.map;
+  }
+
+  _clampQualityToRuntime() {
+    const q = clampQualityForContext(this.camera.quality, this.renderer.backend);
+    if (q !== this.camera.quality) {
+      this.camera.set({ quality: q });
+    }
   }
 }
 

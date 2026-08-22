@@ -7,11 +7,14 @@ import {
   LOD_DISTANCE_FRACTIONS,
   LOD_FAR_DELTAS,
   PIXEL_OFFSETS,
+  ULTRA_LOD_FAR_DELTAS,
+  ULTRA_PIXEL_OFFSETS,
 } from "../../constants/classic.js";
 import {
   INITIAL_STEP_SCALE_BY_QUALITY,
   MIN_SAMPLE_DISTANCE,
   PANO_SIZE_BY_QUALITY,
+  QUALITY_ULTRA,
   STEP_GROWTH_BY_QUALITY,
   qualityIndex,
 } from "../../constants/quality.js";
@@ -571,10 +574,12 @@ class WebGpuBackend {
   _writeClassicTables(camera) {
     const q = qualityIndex(camera.quality);
     const stepScale = INITIAL_STEP_SCALE_BY_QUALITY[q];
+    const farDeltas = q === QUALITY_ULTRA ? ULTRA_LOD_FAR_DELTAS : LOD_FAR_DELTAS;
+    const pixelOffsets = q === QUALITY_ULTRA ? ULTRA_PIXEL_OFFSETS : PIXEL_OFFSETS;
     const deltas = new Float32Array(8);
     deltas[0] = camera.minDeltaZ * stepScale;
-    for (let i = 0; (i < LOD_FAR_DELTAS.length) | 0; i = (i + 1) | 0) {
-      deltas[i + 1] = LOD_FAR_DELTAS[i];
+    for (let i = 0; (i < farDeltas.length) | 0; i = (i + 1) | 0) {
+      deltas[i + 1] = farDeltas[i];
     }
     const zStart = Math.max(camera.nearClip, deltas[0], MIN_SAMPLE_DISTANCE);
     const lodDistances = new Float32Array(16);
@@ -588,6 +593,9 @@ class WebGpuBackend {
         lodDistances[i] = lodDistances[i - 1];
       }
     }
+    const offsets = new Uint32Array(8);
+    offsets.set(pixelOffsets);
+    writeBuffer(this._device, this._offsetBuf, offsets);
     writeBuffer(this._device, this._deltaBuf, deltas);
     writeBuffer(this._device, this._distBuf, lodDistances);
   }

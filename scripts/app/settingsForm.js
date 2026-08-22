@@ -5,6 +5,12 @@ import config from "../../data/config.json" with { type: "json" };
 import { SPAWN_HEIGHT_OFFSET } from "../constants/main.js";
 import { HALF } from "../constants/vmath.js";
 import { BACKEND_CHIP, usesWorkers } from "../constants/backend.js";
+import {
+  QUALITY_LABEL,
+  QUALITY_ULTRA,
+  QUALITY_VERY_HIGH,
+  isUltraQualityAllowed,
+} from "../constants/quality.js";
 import { listBackends } from "../backends/contract.js";
 
 function prepareControl(element) {
@@ -52,6 +58,42 @@ function initRangeElement(id, rangeConfig, value, onInput, onChange) {
   if (onChange) {
     element.addEventListener("change", onChange);
   }
+  return element;
+}
+
+function fillQualityOptions(element, values, backend) {
+  const current = element.value;
+  while (element.firstChild) {
+    element.removeChild(element.firstChild);
+  }
+  values.forEach((v) => {
+    const n = Number(v);
+    const option = document.createElement("option");
+    option.value = String(n);
+    option.text = QUALITY_LABEL[n] || String(n);
+    if (n === QUALITY_ULTRA && !isUltraQualityAllowed(backend)) {
+      option.disabled = true;
+      option.title = "Desktop WebGPU only";
+    }
+    element.append(option);
+  });
+  if (current) {
+    element.value = current;
+  }
+}
+
+function initQualityElement(id, values, value, onChange, getBackend) {
+  const element = prepareControl(document.getElementById(id));
+  fillQualityOptions(element, values, getBackend());
+  element.value = String(value);
+  element.addEventListener("change", (e) => {
+    const q = Number(e.target.value);
+    if (q === QUALITY_ULTRA && !isUltraQualityAllowed(getBackend())) {
+      e.target.value = String(QUALITY_VERY_HIGH);
+      return;
+    }
+    onChange(e);
+  });
   return element;
 }
 
@@ -157,15 +199,16 @@ class SettingsForm {
         },
         persist
       ),
-      quality: initOptionElement(
+      quality: initQualityElement(
         "id_quality",
-        config.settings.quality,
+        config.settings.quality.values,
         camera.quality,
         (e) => {
           camera.set({ quality: parseFloat(e.target.value) });
           app.resize();
           persist();
-        }
+        },
+        () => app.renderer.backend
       ),
       applyFog: initCheckboxElement("id_apply_fog", options.applyFog, (e) => {
         app.renderer.setOptions({ applyFog: e.target.checked });
@@ -256,6 +299,11 @@ class SettingsForm {
     updateBoundValue("id_fov", camera.fov);
     deltaZ.value = camera.minDeltaZ;
     updateBoundValue("id_delta_z", camera.minDeltaZ);
+    fillQualityOptions(
+      quality,
+      config.settings.quality.values,
+      options.backend
+    );
     quality.value = String(camera.quality);
     applyFog.checked = options.applyFog;
     repeat.checked = options.repeat;

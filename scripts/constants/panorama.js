@@ -10,6 +10,7 @@ export const PANO_MIP_T_FRACTIONS_BY_QUALITY = Object.freeze([
   Object.freeze([0.32, 0.58]),
   Object.freeze([0.38, 0.64]),
   Object.freeze([0.45, 0.72]),
+  Object.freeze([0.52, 0.78]),
 ]);
 export const PANO_MIP_STEP_SCALE = 2;
 export const PANO_MIP_STEP_MAX_BY_QUALITY = Object.freeze([
@@ -18,6 +19,7 @@ export const PANO_MIP_STEP_MAX_BY_QUALITY = Object.freeze([
   Object.freeze([3, 6, 10]),
   Object.freeze([2, 5, 8]),
   Object.freeze([1, 3, 6]),
+  Object.freeze([1, 2, 4]),
 ]);
 export const PANO_DIR_RESYNC = 32;
 export const PANO_YHIT_LUT_SIZE = 4096;
