@@ -131,6 +131,9 @@ class CubemapRenderer {
       this._repeat !== this._renderer.repeat ||
       this._interp !== this._renderer.interpolateHeight ||
       this._filter !== this._renderer.filterColor ||
+      this._filterDist !== this._renderer.filterDistance ||
+      this._fwdX !== camera.fwdX ||
+      this._fwdY !== camera.fwdY ||
       this._minDeltaZ !== camera.minDeltaZ ||
       this._skyColor !== terrain.skyColor ||
       this._horizonColor !== camera.bottomColor ||
@@ -158,6 +161,9 @@ class CubemapRenderer {
     this._repeat = this._renderer.repeat;
     this._interp = this._renderer.interpolateHeight;
     this._filter = this._renderer.filterColor;
+    this._filterDist = this._renderer.filterDistance;
+    this._fwdX = camera.fwdX;
+    this._fwdY = camera.fwdY;
     this._minDeltaZ = camera.minDeltaZ;
     this._skyColor = terrain.skyColor;
     this._horizonColor = camera.bottomColor;
@@ -193,6 +199,9 @@ class CubemapRenderer {
       quality: camera.quality,
       interpolateHeight: renderer.interpolateHeight ? 1 : 0,
       filterColor: renderer.filterColor ? 1 : 0,
+      filterDistance: renderer.filterDistance,
+      fwdX: camera.fwdX,
+      fwdY: camera.fwdY,
       pixels: this._cubeColor,
       depth: this._cubeDepth,
       heightBuf: this._cubeHeight,
@@ -308,6 +317,9 @@ class CubemapRenderer {
       quality: camera.quality,
       interpolateHeight: renderer.interpolateHeight ? 1 : 0,
       filterColor: renderer.filterColor ? 1 : 0,
+      filterDistance: renderer.filterDistance,
+      fwdX: camera.fwdX,
+      fwdY: camera.fwdY,
       wantHeight: needsHeightBuf(renderer.debugView),
       wantIter: needsIterBuf(renderer.debugView),
       shared: isShared(this._cubeColor) ? 1 : 0,

@@ -10,6 +10,7 @@ import {
   SHIFT_RED,
 } from "../constants/color.js";
 import { HEIGHTMAP_MAX } from "../constants/terrain.js";
+import { FILTER_DISTANCE_DEFAULT } from "../constants/sampling.js";
 import {
   SKY_PALETTE_STEPS,
   UNFILLED_PIXEL,
@@ -197,9 +198,15 @@ export function createWasmKernels(instance) {
   }
 
   function syncSampleFlags(params) {
+    const dist = Number(params.filterDistance);
+    const fwdX = Number(params.fwdX);
+    const fwdY = Number(params.fwdY);
     ex.set_sample_flags(
       params.interpolateHeight | 0,
-      params.filterColor | 0
+      params.filterColor | 0,
+      Number.isFinite(dist) ? dist : FILTER_DISTANCE_DEFAULT,
+      Number.isFinite(fwdX) ? fwdX : 0,
+      Number.isFinite(fwdY) ? fwdY : -1
     );
   }
 

@@ -157,6 +157,16 @@
           </div>
           <input id="id_render_distance" type="range" autocomplete="off" aria-keyshortcuts="I Shift+I" />
         </div>
+        <div
+          class="control"
+          data-tip="How far height interp and color filter apply, as clip-plane distance (same units as fog / Distance). Screen corners stay on that plane; bilinear is not computed past it."
+        >
+          <div class="control-head">
+            <label for="id_filter_distance">Filter range</label>
+            <span class="control-value" data-for="id_filter_distance"></span>
+          </div>
+          <input id="id_filter_distance" type="range" autocomplete="off" />
+        </div>
         <div class="control" data-tip="Ray step size. Lower is denser and slower.">
           <div class="control-head">
             <label for="id_delta_z">Delta Z</label>

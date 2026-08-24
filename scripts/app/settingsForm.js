@@ -26,6 +26,9 @@ function formatRangeValue(id, value) {
   if (id === "id_render_distance") {
     return String(Math.round(n));
   }
+  if (id === "id_filter_distance") {
+    return Math.round(n) + " m";
+  }
   if (id === "id_delta_z") {
     return n.toFixed(1);
   }
@@ -202,6 +205,15 @@ class SettingsForm {
         },
         persist
       ),
+      filterDistance: initRangeElement(
+        "id_filter_distance",
+        config.settings.filterDistance,
+        options.filterDistance,
+        (e) => {
+          app.renderer.setOptions({ filterDistance: parseFloat(e.target.value) });
+        },
+        persist
+      ),
       quality: initQualityElement(
         "id_quality",
         config.settings.quality.values,
@@ -314,6 +326,7 @@ class SettingsForm {
       renderScale,
       fov,
       deltaZ,
+      filterDistance,
       quality,
       applyFog,
       repeat,
@@ -336,6 +349,10 @@ class SettingsForm {
     updateBoundValue("id_fov", camera.fov);
     deltaZ.value = camera.minDeltaZ;
     updateBoundValue("id_delta_z", camera.minDeltaZ);
+    filterDistance.value = options.filterDistance;
+    updateBoundValue("id_filter_distance", options.filterDistance);
+    filterDistance.disabled =
+      !options.interpolateHeight && !options.filterColor;
     fillQualityOptions(
       quality,
       config.settings.quality.values,

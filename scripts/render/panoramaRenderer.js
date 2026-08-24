@@ -150,6 +150,9 @@ class PanoramaRenderer {
       this._panoRepeat !== this._renderer.repeat ||
       this._panoInterp !== this._renderer.interpolateHeight ||
       this._panoFilter !== this._renderer.filterColor ||
+      this._panoFilterDist !== this._renderer.filterDistance ||
+      this._panoFwdX !== camera.fwdX ||
+      this._panoFwdY !== camera.fwdY ||
       this._panoMinDeltaZ !== camera.minDeltaZ ||
       this._panoSkyColor !== terrain.skyColor ||
       this._panoHorizonColor !== camera.bottomColor ||
@@ -179,6 +182,9 @@ class PanoramaRenderer {
     this._panoRepeat = this._renderer.repeat;
     this._panoInterp = this._renderer.interpolateHeight;
     this._panoFilter = this._renderer.filterColor;
+    this._panoFilterDist = this._renderer.filterDistance;
+    this._panoFwdX = camera.fwdX;
+    this._panoFwdY = camera.fwdY;
     this._panoMinDeltaZ = camera.minDeltaZ;
     this._panoSkyColor = terrain.skyColor;
     this._panoHorizonColor = camera.bottomColor;
@@ -379,6 +385,9 @@ class PanoramaRenderer {
       quality: camera.quality,
       interpolateHeight: renderer.interpolateHeight ? 1 : 0,
       filterColor: renderer.filterColor ? 1 : 0,
+      filterDistance: renderer.filterDistance,
+      fwdX: camera.fwdX,
+      fwdY: camera.fwdY,
       pixels: this._panoramaPixels,
       horizon: this._panoramaHorizon,
       depth: this._panoramaDepth,
@@ -427,6 +436,9 @@ class PanoramaRenderer {
       quality: camera.quality,
       interpolateHeight: renderer.interpolateHeight ? 1 : 0,
       filterColor: renderer.filterColor ? 1 : 0,
+      filterDistance: renderer.filterDistance,
+      fwdX: camera.fwdX,
+      fwdY: camera.fwdY,
       wantHeight: needsHeightBuf(renderer.debugView),
       wantIter: needsIterBuf(renderer.debugView),
     });

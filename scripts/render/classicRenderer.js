@@ -48,6 +48,7 @@ function classicParams(renderer, maps) {
     repeat: renderer.repeat,
     interpolateHeight: renderer.interpolateHeight ? 1 : 0,
     filterColor: renderer.filterColor ? 1 : 0,
+    filterDistance: renderer.filterDistance,
     panoMips: maps.panoMips,
     mapsGeneration: maps.generation,
   };
@@ -67,6 +68,7 @@ function isClassicTokenStale(token, renderer) {
     renderer.repeat !== token.repeat ||
     renderer.interpolateHeight !== token.interpolateHeight ||
     renderer.filterColor !== token.filterColor ||
+    renderer.filterDistance !== token.filterDistance ||
     camera.minDeltaZ !== token.minDeltaZ ||
     camera.posX !== token.camX ||
     camera.posY !== token.camY ||
@@ -140,6 +142,7 @@ class ClassicRenderer {
       repeat: renderer.repeat,
       interpolateHeight: renderer.interpolateHeight,
       filterColor: renderer.filterColor,
+      filterDistance: renderer.filterDistance,
       minDeltaZ: camera.minDeltaZ,
       camX: camera.posX,
       camY: camera.posY,

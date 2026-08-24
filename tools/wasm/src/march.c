@@ -41,6 +41,9 @@ static i32 g_lod_delta_n;
 static i32 g_lod_frac_n;
 static i32 g_lerp_height;
 static i32 g_filter_color;
+static f64 g_filter_distance = 500.0;
+static f64 g_fwd_x = 0.0;
+static f64 g_fwd_y = -1.0;
 
 static f64 *g_tan_min;
 static i32 g_tan_len;
@@ -369,9 +372,23 @@ static __attribute__((always_inline)) u32 sample_sv_color(
       y - y0);
 }
 
-WASM_EXPORT void set_sample_flags(i32 height_lerp, i32 color_filter) {
+WASM_EXPORT void set_sample_flags(
+    i32 height_lerp,
+    i32 color_filter,
+    f64 filter_distance,
+    f64 fwd_x,
+    f64 fwd_y) {
   g_lerp_height = height_lerp ? 1 : 0;
   g_filter_color = color_filter ? 1 : 0;
+  if (filter_distance < 10.0) {
+    g_filter_distance = 10.0;
+  } else if (filter_distance > 1000.0) {
+    g_filter_distance = 1000.0;
+  } else {
+    g_filter_distance = filter_distance;
+  }
+  g_fwd_x = fwd_x;
+  g_fwd_y = fwd_y;
 }
 
 WASM_EXPORT void set_map_info(
@@ -693,6 +710,8 @@ WASM_EXPORT void classic_columns(
       f64 dy = k_dy * z;
       f64 plx = k_left_x * z + cam_x + dx * (f64)start_column;
       f64 ply = k_left_y * z + cam_y + dy * (f64)start_column;
+      i32 lerp_now = do_lerp && (z <= g_filter_distance);
+      i32 filter_now = do_filter && (z <= g_filter_distance);
       i32 col;
 
       for (col = start_column; col < end_column; col = (col + px_offset) | 0) {
@@ -723,7 +742,7 @@ WASM_EXPORT void classic_columns(
               0;
           u32 h_byte_sv;
           f64 h_fine;
-          if (do_lerp) {
+          if (lerp_now) {
             h_fine = sample_sv_height(
                 height_map,
                 plx,
@@ -762,7 +781,7 @@ WASM_EXPORT void classic_columns(
               plot_color = encode_iter(sample_ok ? g_sample_n[local_i] : 0);
             }
           } else if (!fog_white) {
-            plot_color = do_filter
+            plot_color = filter_now
                             ? sample_sv_color(
                                   color_map,
                                   plx,
@@ -988,7 +1007,8 @@ WASM_EXPORT void pano_columns(
             ((((i32)sy & wmask) << shift) + ((i32)sx & hmask)) | 0;
         u32 h_byte_sv;
         f64 h_fine;
-        i32 lerp = (mip == 0) && do_lerp;
+        i32 lerp = (mip == 0) && do_lerp &&
+                   (t * (dir_x * g_fwd_x + dir_y * g_fwd_y) <= g_filter_distance);
         if (lerp) {
           h_fine = sample_sv_height(
               g_mip_h[mip],
@@ -1059,7 +1079,8 @@ WASM_EXPORT void pano_columns(
           }
           if (y_hit < y_bottom) {
             u32 color =
-                ((mip == 0) && do_filter)
+                ((mip == 0) && do_filter &&
+                 (t * (dir_x * g_fwd_x + dir_y * g_fwd_y) <= g_filter_distance))
                     ? sample_sv_color(
                           g_mip_c[mip],
                           sx,

@@ -63,6 +63,9 @@ export function classicRenderPayload(jobId, range, params) {
     repeat: params.repeat,
     interpolateHeight: params.interpolateHeight,
     filterColor: params.filterColor,
+    filterDistance: params.filterDistance,
+    fwdX: params.fwdX,
+    fwdY: params.fwdY,
     rowColors: params.rowColors,
   };
 }
@@ -147,6 +150,9 @@ export function cubemapGeneratePayload(jobId, job, params) {
     quality: params.quality,
     interpolateHeight: params.interpolateHeight,
     filterColor: params.filterColor,
+    filterDistance: params.filterDistance,
+    fwdX: params.fwdX,
+    fwdY: params.fwdY,
     wantHeight: params.wantHeight | 0,
     wantIter: params.wantIter | 0,
     shared: params.shared | 0,
@@ -178,6 +184,9 @@ export function panoramaGeneratePayload(jobId, range, params) {
     quality: params.quality,
     interpolateHeight: params.interpolateHeight,
     filterColor: params.filterColor,
+    filterDistance: params.filterDistance,
+    fwdX: params.fwdX,
+    fwdY: params.fwdY,
     wantHeight: params.wantHeight | 0,
     wantIter: params.wantIter | 0,
   };

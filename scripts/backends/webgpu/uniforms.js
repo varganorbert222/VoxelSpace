@@ -1,6 +1,7 @@
 "use strict";
 
 import { WEBGPU_FRAME_BYTES } from "../../constants/webgpu.js";
+import { FILTER_DISTANCE_DEFAULT } from "../../constants/sampling.js";
 import { unpackToVec4 } from "./color.js";
 
 export const FRAME_BYTES = WEBGPU_FRAME_BYTES;
@@ -131,4 +132,10 @@ export function packFrame(packer, p) {
   u[81] = p.overlayY | 0;
   u[82] = p.overlayW | 0;
   u[83] = p.overlayH | 0;
+  f[84] = Number.isFinite(p.filterDistance)
+    ? p.filterDistance
+    : FILTER_DISTANCE_DEFAULT;
+  f[85] = 0;
+  f[86] = 0;
+  f[87] = 0;
 }

@@ -66,6 +66,7 @@ export function collectSettings(app) {
     repeat: options.repeat,
     interpolateHeight: options.interpolateHeight,
     filterColor: options.filterColor,
+    filterDistance: options.filterDistance,
     multithread: options.multithread,
     mode: app.camera.mode,
     algorithm: options.algorithm,
@@ -103,6 +104,11 @@ export function sanitizeSettings(data, defaults, bounds) {
     repeat: boolOr(data.repeat, defaults.repeat),
     interpolateHeight: boolOr(data.interpolateHeight, defaults.interpolateHeight),
     filterColor: boolOr(data.filterColor, defaults.filterColor),
+    filterDistance: VMath.clamp(
+      bounds.filterDistance.min,
+      bounds.filterDistance.max,
+      finiteOr(data.filterDistance, defaults.filterDistance)
+    ),
     multithread: boolOr(data.multithread, defaults.multithread),
     map: pickAllowed(data.map, bounds.mapNames, defaults.map),
     algorithm: pickAllowed(data.algorithm, bounds.algorithms, defaults.algorithm),

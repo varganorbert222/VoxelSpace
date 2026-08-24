@@ -9,6 +9,10 @@ import {
 } from "../constants/framebuffer.js";
 import { EPSILON, HALF, TWO_PI } from "../constants/vmath.js";
 import {
+  FILTER_DISTANCE_DEFAULT,
+  xyClipDistance,
+} from "../constants/sampling.js";
+import {
   GROUND_CLIP_OFFSET,
   GROUND_HEIGHT,
   HEIGHTMAP_MAX,
@@ -602,6 +606,9 @@ export function renderCubemapHorizonColumns({
   quality,
   interpolateHeight,
   filterColor,
+  filterDistance = FILTER_DISTANCE_DEFAULT,
+  fwdX = 0,
+  fwdY = -1,
   pixels,
   depth,
   heightBuf,
@@ -705,7 +712,9 @@ export function renderCubemapHorizonColumns({
         wasInside = 1;
       }
 
-      sampleCubeHeight(m, wx, wy, mip, wrap, lerpH);
+      const useFine =
+        (xyClipDistance(t, dirX, dirY, fwdX, fwdY) <= filterDistance) | 0;
+      sampleCubeHeight(m, wx, wy, mip, wrap, lerpH & useFine);
       const offset = svHit.offset;
       const h = svHit.hFine * altScale;
 
@@ -724,7 +733,7 @@ export function renderCubemapHorizonColumns({
         const yGround = ((camZ - clipZ) * zScale + horizon) | 0;
         if ((yGround < yBottom) | 0) yBottom = yGround < 0 ? 0 : yGround;
         if ((yHit < yBottom) | 0) {
-          const color = sampleCubeColor(m, mip, wrap, filterC);
+          const color = sampleCubeColor(m, mip, wrap, filterC & useFine);
           const dh = h - camZ;
           const dist = Math.sqrt(t * t + dh * dh);
           if (heightBuf || iterBuf) {
@@ -782,6 +791,9 @@ export function renderCubemapPolarAzimuths({
   quality,
   interpolateHeight,
   filterColor,
+  filterDistance = FILTER_DISTANCE_DEFAULT,
+  fwdX = 0,
+  fwdY = -1,
   pixels,
   depth,
   heightBuf,
@@ -912,13 +924,15 @@ export function renderCubemapPolarAzimuths({
         wasInside = 1;
       }
 
-      sampleCubeHeight(m, wx, wy, mip, wrap, lerpH);
+      const useFine =
+        (xyClipDistance(t, dirX, dirY, fwdX, fwdY) <= filterDistance) | 0;
+      sampleCubeHeight(m, wx, wy, mip, wrap, lerpH & useFine);
       const offset = svHit.offset;
       const h = svHit.hFine * altScale;
 
       const dh = h - camZ;
       const slope = dh / t;
-      const color = sampleCubeColor(m, mip, wrap, filterC);
+      const color = sampleCubeColor(m, mip, wrap, filterC & useFine);
       const dist = Math.sqrt(t * t + dh * dh);
       const hByte = heightBuf ? svHit.hByte : 0;
       if (slope > EPSILON) {

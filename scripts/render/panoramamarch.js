@@ -8,6 +8,10 @@ import {
 } from "../constants/framebuffer.js";
 import { EPSILON, HALF, TWO_PI } from "../constants/vmath.js";
 import {
+  FILTER_DISTANCE_DEFAULT,
+  xyClipDistance,
+} from "../constants/sampling.js";
+import {
   GROUND_CLIP_OFFSET,
   GROUND_HEIGHT,
   HEIGHTMAP_MAX,
@@ -318,6 +322,9 @@ export function renderPanoramaColumns({
   quality,
   interpolateHeight,
   filterColor,
+  filterDistance = FILTER_DISTANCE_DEFAULT,
+  fwdX = 0,
+  fwdY = -1,
   pixels,
   horizon,
   depth,
@@ -483,8 +490,11 @@ export function renderPanoramaColumns({
       const inv = mipInvScale[mip];
       const sx = wx * inv;
       const sy = wy * inv;
-      const doLerp = lerpH & ((mip | 0) === 0);
-      const doFilter = filterC & ((mip | 0) === 0);
+      const useFine = (xyClipDistance(t, dirX, dirY, fwdX, fwdY) <=
+        filterDistance) |
+        0;
+      const doLerp = lerpH & ((mip | 0) === 0) & useFine;
+      const doFilter = filterC & ((mip | 0) === 0) & useFine;
       const shift = mipShifts[mip];
       const wMask = mipWMask[mip];
       const hMask = mipHMask[mip];

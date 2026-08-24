@@ -9,6 +9,7 @@ import {
   SHIFT_RED,
 } from "../constants/color.js";
 import { HEIGHTMAP_MAX } from "../constants/terrain.js";
+import { FILTER_DISTANCE_DEFAULT } from "../constants/sampling.js";
 import { UNFILLED_PIXEL } from "../constants/framebuffer.js";
 import {
   DEBUG_VIEW_DEPTH,
@@ -222,6 +223,7 @@ function renderClassicColumnsSampled({
   repeat,
   interpolateHeight,
   filterColor,
+  filterDistance = FILTER_DISTANCE_DEFAULT,
   pixels,
   pixelWidth,
   fillUnfilled,
@@ -275,6 +277,7 @@ function renderClassicColumnsSampled({
   const mapHMask = (mapH - 1) | 0;
   const lerpH = interpolateHeight | 0;
   const filterC = filterColor | 0;
+  const filterDist = filterDistance;
   const kRightX = cosAngle * tanHalfFovX;
   const kRightY = -sinAngle * tanHalfFovX;
   const kLeftX = -sinAngle - kRightX;
@@ -350,8 +353,11 @@ function renderClassicColumnsSampled({
             ((((ply | 0) & mapWMask) << mapShift) +
               ((plx | 0) & mapHMask)) |
             0;
+          const useFine = (z <= filterDist) | 0;
+          const doLerp = lerpH & useFine;
+          const doFilter = filterC & useFine;
           const nearestH = heightMap[offset];
-          const hFine = lerpH
+          const hFine = doLerp
             ? sampleHeightBilinear(
                 heightMap,
                 plx,
@@ -362,7 +368,7 @@ function renderClassicColumnsSampled({
                 repeat | 0
               )
             : nearestH;
-          const hByte = lerpH ? heightByteFromFine(hFine) : nearestH;
+          const hByte = doLerp ? heightByteFromFine(hFine) : nearestH;
           const terrainHeight = hFine * altScale;
           const terrainSDF = camZ - terrainHeight;
           const heightOnScreen = (terrainSDF * zScale + screenHorizon) | 0;
@@ -387,7 +393,7 @@ function renderClassicColumnsSampled({
               plotColor = encodeIter(sampleN[localI]);
             }
           } else if (!fogWhite) {
-            plotColor = filterC
+            plotColor = doFilter
               ? sampleColorFiltered(
                   colorMap,
                   plx,

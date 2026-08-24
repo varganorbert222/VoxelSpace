@@ -81,6 +81,10 @@ class WasmBackend {
     return this._host.filterColor;
   }
 
+  get filterDistance() {
+    return this._host.filterDistance;
+  }
+
   get debugView() {
     return this._host.debugView;
   }

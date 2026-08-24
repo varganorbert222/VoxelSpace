@@ -8,6 +8,10 @@ import {
 } from "../constants/backend.js";
 import { ALGORITHM_CLASSIC } from "../constants/algorithm.js";
 import { DEBUG_VIEW_COLOR } from "../constants/debugView.js";
+import {
+  FILTER_DISTANCE_DEFAULT,
+  clampFilterDistance,
+} from "../constants/sampling.js";
 import { DEFAULT_MULTITHREAD } from "../constants/threading.js";
 import { createBackend, listBackends } from "../backends/contract.js";
 
@@ -20,6 +24,7 @@ class Renderer {
     this._repeat = true;
     this._interpolateHeight = true;
     this._filterColor = true;
+    this._filterDistance = FILTER_DISTANCE_DEFAULT;
     this._debugView = DEBUG_VIEW_COLOR;
     this._debugOverlay = false;
     this._algorithm = ALGORITHM_CLASSIC;
@@ -60,6 +65,10 @@ class Renderer {
 
   get filterColor() {
     return this._filterColor;
+  }
+
+  get filterDistance() {
+    return this._filterDistance;
   }
 
   get debugView() {
@@ -113,6 +122,7 @@ class Renderer {
       repeat: this._repeat,
       interpolateHeight: this._interpolateHeight,
       filterColor: this._filterColor,
+      filterDistance: this._filterDistance,
       algorithm: this._algorithm,
       multithread: this._multithreadWanted,
       backend: this._backendId,
@@ -139,6 +149,13 @@ class Renderer {
       const next = !!options.filterColor;
       if (next !== this._filterColor) {
         this._filterColor = next;
+        this.invalidatePanorama();
+      }
+    }
+    if (options.filterDistance !== undefined) {
+      const next = clampFilterDistance(options.filterDistance);
+      if (next !== this._filterDistance) {
+        this._filterDistance = next;
         this.invalidatePanorama();
       }
     }

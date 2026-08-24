@@ -530,6 +530,9 @@ class WebGpuBackend {
       this._panoRepeat !== this._host.repeat ||
       this._panoInterp !== this._host.interpolateHeight ||
       this._panoFilter !== this._host.filterColor ||
+      this._panoFilterDist !== this._host.filterDistance ||
+      this._panoFwdX !== camera.fwdX ||
+      this._panoFwdY !== camera.fwdY ||
       this._panoMinDeltaZ !== camera.minDeltaZ ||
       this._panoSkyColor !== terrain.skyColor ||
       this._panoHorizonColor !== camera.bottomColor ||
@@ -554,6 +557,9 @@ class WebGpuBackend {
     this._panoRepeat = this._host.repeat;
     this._panoInterp = this._host.interpolateHeight;
     this._panoFilter = this._host.filterColor;
+    this._panoFilterDist = this._host.filterDistance;
+    this._panoFwdX = camera.fwdX;
+    this._panoFwdY = camera.fwdY;
     this._panoMinDeltaZ = camera.minDeltaZ;
     this._panoSkyColor = terrain.skyColor;
     this._panoHorizonColor = camera.bottomColor;
@@ -645,6 +651,7 @@ class WebGpuBackend {
       repeat: this._host.repeat,
       interpolateHeight: this._host.interpolateHeight,
       filterColor: this._host.filterColor,
+      filterDistance: this._host.filterDistance,
       skyColor: terrain.skyColor,
       horizonColor: camera.bottomColor,
       clipZ: clipZ,

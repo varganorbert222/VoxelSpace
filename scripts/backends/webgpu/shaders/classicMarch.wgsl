@@ -178,7 +178,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         let inside = (plx >= 0.0) && (plx <= f32(mapW)) && (ply >= 0.0) && (ply <= f32(mapH));
         let isOk = inside || repeat;
         if (isOk && (ceilingOnScreen < colHidden)) {
-          let sampled = classicSampleHeight(plx, ply, flagHeightLerp(flags), repeat, mapHMask, mapWMask);
+          let useFine = z <= frame.sampleLimit.x;
+          let sampled = classicSampleHeight(plx, ply, flagHeightLerp(flags) && useFine, repeat, mapHMask, mapWMask);
           let hByte = u32(sampled.y);
           let terrainHeight = sampled.x * altScale;
           let terrainSdf = camZ - terrainHeight;
@@ -203,7 +204,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
               plotPacked = encodeIter(sampleN);
             }
           } else if (!fogWhite) {
-            plot = classicSampleColor(plx, ply, flagColorFilter(flags), repeat, mapHMask, mapWMask);
+            plot = classicSampleColor(plx, ply, flagColorFilter(flags) && useFine, repeat, mapHMask, mapWMask);
             if (applyFogT) {
               plot = fogRgb(plot, fogT);
             }

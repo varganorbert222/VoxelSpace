@@ -78,6 +78,7 @@ class App {
       debugOverlay: !!config.settings.debugOverlay.default,
       interpolateHeight: config.settings.interpolateHeight.default !== false,
       filterColor: config.settings.filterColor.default !== false,
+      filterDistance: config.settings.filterDistance.default,
     });
     if (config.settings.cameraModes.default) {
       this.camera.set({ mode: config.settings.cameraModes.default });
@@ -238,6 +239,7 @@ class App {
         repeat: options.repeat,
         interpolateHeight: options.interpolateHeight,
         filterColor: options.filterColor,
+        filterDistance: options.filterDistance,
         multithread: options.multithread,
         map: this.currentMapName,
         algorithm: options.algorithm,
@@ -249,6 +251,7 @@ class App {
       },
       {
         renderDistance: config.settings.renderDistance,
+        filterDistance: config.settings.filterDistance,
         deltaZ: config.settings.deltaZ,
         fov: config.settings.fov,
         qualities: config.settings.quality.values.map(Number),
@@ -274,6 +277,7 @@ class App {
       repeat: sanitized.repeat,
       interpolateHeight: sanitized.interpolateHeight,
       filterColor: sanitized.filterColor,
+      filterDistance: sanitized.filterDistance,
       multithread: sanitized.multithread,
       algorithm: sanitized.algorithm,
       backend: sanitized.backend,

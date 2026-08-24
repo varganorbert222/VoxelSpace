@@ -42,10 +42,10 @@ fn heightByteAt0(ix: i32, iy: i32, wrap: bool) -> u32 {
   return textureLoad(height0, vec2<i32>(x, y), 0).r;
 }
 
-fn sampleHeightPair(mip: i32, wx: f32, wy: f32) -> vec2f {
+fn sampleHeightPair(mip: i32, wx: f32, wy: f32, dist: f32) -> vec2f {
   let altitude = frame.tMaxMinDzAltMaxH.z;
   let nn = f32(sampleHeightByteNN(mip, wx, wy));
-  if ((mip > 0) || !flagHeightLerp(frame.mapFlags.w)) {
+  if ((mip > 0) || (dist > frame.sampleLimit.x) || !flagHeightLerp(frame.mapFlags.w)) {
     return vec2f(nn * (altitude / 255.0), nn);
   }
   let wrap = flagRepeat(frame.mapFlags.w);
@@ -63,12 +63,12 @@ fn sampleHeightPair(mip: i32, wx: f32, wy: f32) -> vec2f {
   return vec2f(h * (altitude / 255.0), clamp(h + 0.5, 0.0, 255.0));
 }
 
-fn sampleHeightByte(mip: i32, wx: f32, wy: f32) -> u32 {
-  return u32(sampleHeightPair(mip, wx, wy).y);
+fn sampleHeightByte(mip: i32, wx: f32, wy: f32, dist: f32) -> u32 {
+  return u32(sampleHeightPair(mip, wx, wy, dist).y);
 }
 
-fn sampleHeight(mip: i32, wx: f32, wy: f32) -> f32 {
-  return sampleHeightPair(mip, wx, wy).x;
+fn sampleHeight(mip: i32, wx: f32, wy: f32, dist: f32) -> f32 {
+  return sampleHeightPair(mip, wx, wy, dist).x;
 }
 
 fn colorAt0(ix: i32, iy: i32, wrap: bool) -> vec4f {
@@ -77,11 +77,11 @@ fn colorAt0(ix: i32, iy: i32, wrap: bool) -> vec4f {
   return textureLoad(color0, vec2<i32>(x, y), 0);
 }
 
-fn sampleColor(mip: i32, wx: f32, wy: f32) -> vec4f {
+fn sampleColor(mip: i32, wx: f32, wy: f32, dist: f32) -> vec4f {
   let inv0 = frame.mipInvPixelCenter.x;
   let inv1 = frame.mipInvPixelCenter.y;
   let inv2 = frame.mipInvPixelCenter.z;
-  if ((mip <= 0) && flagColorFilter(frame.mapFlags.w)) {
+  if ((mip <= 0) && (dist <= frame.sampleLimit.x) && flagColorFilter(frame.mapFlags.w)) {
     let wrap = flagRepeat(frame.mapFlags.w);
     let x0 = floor(wx * inv0);
     let y0 = floor(wy * inv0);
@@ -257,6 +257,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
 
     let wx = camX + dirX * t;
     let wy = camY + dirY * t;
+    let filterClip = t * (dirX * frame.camFwdPad.x + dirY * frame.camFwdPad.y);
     if (!repeat) {
       let inside = (wx >= 0.0) && (wx < mapW) && (wy >= 0.0) && (wy < mapH);
       if (!inside) {
@@ -273,7 +274,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       wasInside = 1;
     }
 
-    let hs = sampleHeightPair(mip, wx, wy);
+    let hs = sampleHeightPair(mip, wx, wy, filterClip);
     let h = hs.x;
     if (sealed && (h < camZ + t * tanH - EPSILON)) {
       t = t + step;
@@ -306,7 +307,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         yBottom = yGround;
       }
       if (yHit < yBottom) {
-        let color = sampleColor(mip, wx, wy);
+        let color = sampleColor(mip, wx, wy, filterClip);
         let dist = sqrt(t * t + dh * dh);
         let hByte = u32(hs.y);
         var yy = yHit;

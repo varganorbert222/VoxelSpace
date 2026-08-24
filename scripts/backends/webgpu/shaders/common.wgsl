@@ -20,6 +20,7 @@ struct Frame {
   mipSize1: vec4u,
   mipMask1: vec4u,
   debugRect: vec4u,
+  sampleLimit: vec4f,
 };
 
 fn packRgba(c: vec4f) -> u32 {
