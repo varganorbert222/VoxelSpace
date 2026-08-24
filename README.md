@@ -90,7 +90,10 @@ Unavailable backends are disabled in the menu. Cycle with `B` among whatever the
 This is a static ES-module app. Serve the repo root over HTTP (file:// cannot import JSON modules).
 
 ```bash
-# Python
+# COOP/COEP (needed for SharedArrayBuffer / fast worker sharing)
+python tools/serve.py 8080
+
+# Python without isolation headers (Threads still work, workers copy maps)
 python -m http.server 8080
 
 # Node

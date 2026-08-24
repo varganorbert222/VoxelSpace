@@ -11,6 +11,7 @@ import {
 import { farPlaneRayTMax } from "../constants/panorama.js";
 import { blitRendererOverlay } from "./debugOverlay.js";
 import { needsHeightBuf, needsIterBuf } from "../constants/debugView.js";
+import { canShareBuffers, allocU32, allocI32, allocF32, isShared } from "./sharedBuffers.js";
 
 function panoGenerate(renderer) {
   return (
@@ -94,26 +95,39 @@ class PanoramaRenderer {
     const debugView = this._renderer.debugView;
     const needH = needsHeightBuf(debugView);
     const needI = needsIterBuf(debugView);
-    if (!this._panoramaPixels || this._panoramaPixels.length !== n) {
-      this._panoramaPixels = new Uint32Array(n);
-      this._panoramaHorizon = new Int32Array(this._panoWidth);
-      this._panoramaDepth = new Float32Array(n);
+    const share = canShareBuffers();
+    if (
+      !this._panoramaPixels ||
+      this._panoramaPixels.length !== n ||
+      isShared(this._panoramaPixels) !== share
+    ) {
+      this._panoramaPixels = allocU32(n, share);
+      this._panoramaHorizon = allocI32(this._panoWidth, share);
+      this._panoramaDepth = allocF32(n, share);
       this._panoramaValid = false;
     } else if (!this._panoramaDepth || this._panoramaDepth.length !== n) {
-      this._panoramaDepth = new Float32Array(n);
+      this._panoramaDepth = allocF32(n, share);
       this._panoramaValid = false;
     }
     if (needH) {
-      if (!this._panoramaHeight || this._panoramaHeight.length !== n) {
-        this._panoramaHeight = new Uint32Array(n);
+      if (
+        !this._panoramaHeight ||
+        this._panoramaHeight.length !== n ||
+        isShared(this._panoramaHeight) !== share
+      ) {
+        this._panoramaHeight = allocU32(n, share);
         this._panoramaValid = false;
       }
     } else {
       this._panoramaHeight = null;
     }
     if (needI) {
-      if (!this._panoramaIter || this._panoramaIter.length !== n) {
-        this._panoramaIter = new Uint32Array(n);
+      if (
+        !this._panoramaIter ||
+        this._panoramaIter.length !== n ||
+        isShared(this._panoramaIter) !== share
+      ) {
+        this._panoramaIter = allocU32(n, share);
         this._panoramaValid = false;
       }
     } else {
@@ -456,9 +470,16 @@ class PanoramaRenderer {
         this._generatePanoramaLocal(terrain);
       }
       this._commitPanoramaCache(terrain);
-      this._viewPanoramaLocal();
-      this._blitOverlay();
-      renderer.writeToContext();
+      if (renderer.useWorkers() && isShared(this._panoramaPixels)) {
+        this._uploadPanoramaToWorkers();
+      }
+      if (renderer.useWorkers() && renderer.pool && renderer.pool.panoShared) {
+        await this._presentPanorama();
+      } else {
+        this._viewPanoramaLocal();
+        this._blitOverlay();
+        renderer.writeToContext();
+      }
       return;
     }
 

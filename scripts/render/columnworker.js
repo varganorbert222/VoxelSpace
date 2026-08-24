@@ -27,6 +27,7 @@ import {
   MSG_WORKER_ERROR,
 } from "./jobProtocol.js";
 import { BACKEND_WASM } from "../constants/backend.js";
+import { cubeFaceOffset } from "../constants/cubemap.js";
 
 const workerState = {
   heightMap: null,
@@ -75,8 +76,14 @@ async function setKernelBackend(backend) {
 }
 
 function initMaps(msg) {
-  workerState.heightMap = new Uint8Array(msg.heightMap);
-  workerState.colorMap = new Uint32Array(msg.colorMap);
+  const shared = msg.shared | 0;
+  if (shared) {
+    workerState.heightMap = msg.heightMap;
+    workerState.colorMap = msg.colorMap;
+  } else {
+    workerState.heightMap = new Uint8Array(msg.heightMap);
+    workerState.colorMap = new Uint32Array(msg.colorMap);
+  }
   workerState.mapW = msg.width;
   workerState.mapH = msg.height;
   workerState.mapShift = msg.mapShift;
@@ -92,8 +99,13 @@ function initMaps(msg) {
   if (extraHeights && extraColors) {
     const extraN = extraHeights.length;
     for (let m = 0; (m < extraN) | 0; m = (m + 1) | 0) {
-      heightMaps.push(new Uint8Array(extraHeights[m]));
-      colorMaps.push(new Uint32Array(extraColors[m]));
+      if (shared) {
+        heightMaps.push(extraHeights[m]);
+        colorMaps.push(extraColors[m]);
+      } else {
+        heightMaps.push(new Uint8Array(extraHeights[m]));
+        colorMaps.push(new Uint32Array(extraColors[m]));
+      }
     }
   }
   workerState.panoMips = {
@@ -107,21 +119,36 @@ function initMaps(msg) {
 }
 
 function initPano(msg) {
-  workerState.panoPixels = new Uint32Array(msg.pixels);
-  workerState.panoHorizon = new Int32Array(msg.horizon);
-  workerState.panoDepth = msg.depth ? new Float32Array(msg.depth) : null;
-  workerState.panoHeightBuf = msg.heightBuf ? new Uint32Array(msg.heightBuf) : null;
-  workerState.panoIter = msg.iter ? new Uint32Array(msg.iter) : null;
+  if (msg.shared) {
+    workerState.panoPixels = msg.pixels;
+    workerState.panoHorizon = msg.horizon;
+    workerState.panoDepth = msg.depth || null;
+    workerState.panoHeightBuf = msg.heightBuf || null;
+    workerState.panoIter = msg.iter || null;
+  } else {
+    workerState.panoPixels = new Uint32Array(msg.pixels);
+    workerState.panoHorizon = new Int32Array(msg.horizon);
+    workerState.panoDepth = msg.depth ? new Float32Array(msg.depth) : null;
+    workerState.panoHeightBuf = msg.heightBuf ? new Uint32Array(msg.heightBuf) : null;
+    workerState.panoIter = msg.iter ? new Uint32Array(msg.iter) : null;
+  }
   workerState.panoWidth = msg.width;
   workerState.panoHeight = msg.height;
   workerState.panoGeneration = msg.generation | 0;
 }
 
 function initCube(msg) {
-  workerState.cubeColor = new Uint32Array(msg.color);
-  workerState.cubeDepth = msg.depth ? new Float32Array(msg.depth) : null;
-  workerState.cubeHeight = msg.heightBuf ? new Uint32Array(msg.heightBuf) : null;
-  workerState.cubeIter = msg.iter ? new Uint32Array(msg.iter) : null;
+  if (msg.shared) {
+    workerState.cubeColor = msg.color;
+    workerState.cubeDepth = msg.depth || null;
+    workerState.cubeHeight = msg.heightBuf || null;
+    workerState.cubeIter = msg.iter || null;
+  } else {
+    workerState.cubeColor = new Uint32Array(msg.color);
+    workerState.cubeDepth = msg.depth ? new Float32Array(msg.depth) : null;
+    workerState.cubeHeight = msg.heightBuf ? new Uint32Array(msg.heightBuf) : null;
+    workerState.cubeIter = msg.iter ? new Uint32Array(msg.iter) : null;
+  }
   workerState.cubeN = msg.n | 0;
   workerState.cubeGeneration = msg.generation | 0;
 }
@@ -346,12 +373,28 @@ function renderCubeView(msg) {
 function renderCubeGenerate(msg) {
   const n = msg.n | 0;
   const polar = msg.kind === "polar";
+  const inPlace = (msg.shared | 0) && !polar && msg.color && msg.depth;
+  if (inPlace) {
+    workerState.cubeColor = msg.color;
+    workerState.cubeDepth = msg.depth;
+    workerState.cubeHeight = msg.heightBuf || null;
+    workerState.cubeIter = msg.iterBuf || null;
+    workerState.cubeN = n;
+  }
   const faceCount = polar ? 2 : 1;
   const count = (faceCount * n * n) | 0;
-  const pixels = new Uint32Array(count);
-  const depth = new Float32Array(count);
-  const heightBuf = msg.wantHeight ? new Uint32Array(count) : null;
-  const iterBuf = msg.wantIter ? new Uint32Array(count) : null;
+  const pixels = inPlace ? msg.color : new Uint32Array(count);
+  const depth = inPlace ? msg.depth : new Float32Array(count);
+  const heightBuf = inPlace
+    ? msg.heightBuf || null
+    : msg.wantHeight
+      ? new Uint32Array(count)
+      : null;
+  const iterBuf = inPlace
+    ? msg.iterBuf || null
+    : msg.wantIter
+      ? new Uint32Array(count)
+      : null;
   const shared = {
     heightMap: workerState.heightMap,
     colorMap: workerState.colorMap,
@@ -398,8 +441,19 @@ function renderCubeGenerate(msg) {
       face: msg.face,
       startCol: 0,
       endCol: n,
-      faceOff: 0,
+      faceOff: inPlace ? cubeFaceOffset(msg.face, n) : 0,
     });
+  }
+  if (inPlace) {
+    self.postMessage({
+      type: MSG_RESULT_CUBE_GENERATE,
+      jobId: msg.jobId,
+      kind: msg.kind,
+      face: msg.face,
+      n: n,
+      shared: 1,
+    });
+    return;
   }
   const transfer = [pixels.buffer, depth.buffer];
   if (heightBuf) {

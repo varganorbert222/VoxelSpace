@@ -149,6 +149,11 @@ export function cubemapGeneratePayload(jobId, job, params) {
     filterColor: params.filterColor,
     wantHeight: params.wantHeight | 0,
     wantIter: params.wantIter | 0,
+    shared: params.shared | 0,
+    color: params.color || null,
+    depth: params.depth || null,
+    heightBuf: params.heightBuf || null,
+    iterBuf: params.iterBuf || null,
   };
 }
 

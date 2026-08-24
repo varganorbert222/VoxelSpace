@@ -11,6 +11,7 @@ import {
 import { farPlaneRayTMax } from "../constants/panorama.js";
 import { blitRendererOverlay } from "./debugOverlay.js";
 import { needsHeightBuf, needsIterBuf } from "../constants/debugView.js";
+import { canShareBuffers, allocU32, allocF32, isShared } from "./sharedBuffers.js";
 
 function cubeGenerate(renderer) {
   return (
@@ -80,22 +81,35 @@ class CubemapRenderer {
     const debugView = this._renderer.debugView;
     const needH = needsHeightBuf(debugView);
     const needI = needsIterBuf(debugView);
-    if (!this._cubeColor || this._cubeColor.length !== count) {
-      this._cubeColor = new Uint32Array(count);
-      this._cubeDepth = new Float32Array(count);
+    const share = canShareBuffers();
+    if (
+      !this._cubeColor ||
+      this._cubeColor.length !== count ||
+      isShared(this._cubeColor) !== share
+    ) {
+      this._cubeColor = allocU32(count, share);
+      this._cubeDepth = allocF32(count, share);
       this._cubeValid = false;
     }
     if (needH) {
-      if (!this._cubeHeight || this._cubeHeight.length !== count) {
-        this._cubeHeight = new Uint32Array(count);
+      if (
+        !this._cubeHeight ||
+        this._cubeHeight.length !== count ||
+        isShared(this._cubeHeight) !== share
+      ) {
+        this._cubeHeight = allocU32(count, share);
         this._cubeValid = false;
       }
     } else {
       this._cubeHeight = null;
     }
     if (needI) {
-      if (!this._cubeIter || this._cubeIter.length !== count) {
-        this._cubeIter = new Uint32Array(count);
+      if (
+        !this._cubeIter ||
+        this._cubeIter.length !== count ||
+        isShared(this._cubeIter) !== share
+      ) {
+        this._cubeIter = allocU32(count, share);
         this._cubeValid = false;
       }
     } else {
@@ -199,7 +213,13 @@ class CubemapRenderer {
     const polarSlices = [];
     for (let i = 0; (i < slices.length) | 0; i = (i + 1) | 0) {
       const slice = slices[i];
-      if (!slice || !slice.pixels || !slice.depth) {
+      if (!slice) {
+        return false;
+      }
+      if (slice.shared) {
+        continue;
+      }
+      if (!slice.pixels || !slice.depth) {
         return false;
       }
       if (slice.kind === "polar") {
@@ -290,6 +310,11 @@ class CubemapRenderer {
       filterColor: renderer.filterColor ? 1 : 0,
       wantHeight: needsHeightBuf(renderer.debugView),
       wantIter: needsIterBuf(renderer.debugView),
+      shared: isShared(this._cubeColor) ? 1 : 0,
+      color: isShared(this._cubeColor) ? this._cubeColor : null,
+      depth: isShared(this._cubeDepth) ? this._cubeDepth : null,
+      heightBuf: isShared(this._cubeHeight) ? this._cubeHeight : null,
+      iterBuf: isShared(this._cubeIter) ? this._cubeIter : null,
     });
     if (!slices) {
       return false;
@@ -453,7 +478,17 @@ class CubemapRenderer {
         this._generateLocal(terrain);
       }
       this._commitCache(terrain);
-      this._viewLocal();
+      if (renderer.useWorkers() && isShared(this._cubeColor)) {
+        this._uploadToWorkers();
+      }
+      if (renderer.useWorkers() && renderer.pool && renderer.pool.cubeShared) {
+        const ok = await this._viewMulti();
+        if (!ok) {
+          this._viewLocal();
+        }
+      } else {
+        this._viewLocal();
+      }
       this._blitOverlay();
       renderer.writeToContext();
       return;

@@ -3,6 +3,7 @@
 import { renderClassicColumns } from "./classicmarch.js";
 import { Color } from "../math/color.js";
 import { isDebugColor } from "../constants/debugView.js";
+import { canShareBuffers, ensureU32 } from "./sharedBuffers.js";
 
 function classicKernel(renderer) {
   return (
@@ -99,7 +100,7 @@ class ClassicRenderer {
     if (this._renderer.kernels) {
       const height = frameBuffer.height | 0;
       if ((this._rowColors.length < height) | 0) {
-        this._rowColors = new Uint32Array(height);
+        this._rowColors = ensureU32(this._rowColors, height, canShareBuffers());
       }
       frameBuffer.copySkyRowColors(this._rowColors);
       extras.rowColors = this._rowColors;
@@ -118,7 +119,7 @@ class ClassicRenderer {
     this._fillBackground();
     const height = renderer.frameBuffer.height | 0;
     if ((this._rowColors.length < height) | 0) {
-      this._rowColors = new Uint32Array(height);
+      this._rowColors = ensureU32(this._rowColors, height, canShareBuffers());
     }
     const rowColors = renderer.frameBuffer.copySkyRowColors(this._rowColors);
     if (!isDebugColor(renderer.debugView)) {

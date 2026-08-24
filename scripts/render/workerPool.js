@@ -24,8 +24,8 @@ import {
   cubemapViewPayload,
   cubemapGeneratePayload,
 } from "./jobProtocol.js";
-import { PIXEL_OFFSET_ALIGN } from "../constants/classic.js";
 import { BACKEND_JS } from "../constants/backend.js";
+import { canShareBuffers, allocU8, allocU32, isShared } from "./sharedBuffers.js";
 
 function chunkSizeFor(columnCount, workerCount, align) {
   let size = Math.ceil(columnCount / workerCount);
@@ -57,6 +57,11 @@ class WorkerPool {
     this._mapsGeneration = null;
     this._panoGeneration = null;
     this._cubeGeneration = null;
+    this._mapsShared = false;
+    this._panoShared = false;
+    this._cubeShared = false;
+    this._panoSharedBuf = null;
+    this._cubeSharedBuf = null;
     this._active = null;
     this._kernelBackend =
       options && options.kernelBackend ? options.kernelBackend : BACKEND_JS;
@@ -71,6 +76,18 @@ class WorkerPool {
   get workerCount() {
     this.ensureWorkers();
     return this._slots.length;
+  }
+
+  get atlasShared() {
+    return this._panoShared || this._cubeShared;
+  }
+
+  get panoShared() {
+    return this._panoShared;
+  }
+
+  get cubeShared() {
+    return this._cubeShared;
   }
 
   ensureWorkers() {
@@ -132,6 +149,11 @@ class WorkerPool {
     this._mapsGeneration = null;
     this._panoGeneration = null;
     this._cubeGeneration = null;
+    this._mapsShared = false;
+    this._panoShared = false;
+    this._cubeShared = false;
+    this._panoSharedBuf = null;
+    this._cubeSharedBuf = null;
   }
 
   initMaps(snapshot) {
@@ -143,7 +165,49 @@ class WorkerPool {
     const n = snapshot.heightMap.length;
     const mips = snapshot.panoMips;
     const extraCount = mips && mips.count > 1 ? (mips.count - 1) | 0 : 0;
+    const share = canShareBuffers();
+    this._mapsShared = share;
+    let sharedHeights = null;
+    let sharedColors = null;
+    let sharedMipH = null;
+    let sharedMipC = null;
+    if (share) {
+      sharedHeights = allocU8(n, true);
+      sharedHeights.set(snapshot.heightMap);
+      sharedColors = allocU32(n, true);
+      sharedColors.set(snapshot.colorMap);
+      sharedMipH = [];
+      sharedMipC = [];
+      for (let m = 1; (m <= extraCount) | 0; m = (m + 1) | 0) {
+        const hm = allocU8(mips.heightMaps[m].length, true);
+        hm.set(mips.heightMaps[m]);
+        const cm = allocU32(mips.colorMaps[m].length, true);
+        cm.set(mips.colorMaps[m]);
+        sharedMipH.push(hm);
+        sharedMipC.push(cm);
+      }
+    }
     for (let i = 0; (i < this._slots.length) | 0; i = (i + 1) | 0) {
+      if (share) {
+        this._slots[i].worker.postMessage({
+          type: MSG_INIT_MAPS,
+          shared: 1,
+          heightMap: sharedHeights,
+          colorMap: sharedColors,
+          width: snapshot.width,
+          height: snapshot.height,
+          mapShift: snapshot.mapShift,
+          altitude: snapshot.altitude,
+          maxHeight: snapshot.maxHeight,
+          mipCount: mips ? mips.count : 1,
+          mipWidths: mips ? mips.widths : [snapshot.width],
+          mipHeights: mips ? mips.heights : [snapshot.height],
+          mipShifts: mips ? mips.shifts : [snapshot.mapShift],
+          mipHeightMaps: sharedMipH,
+          mipColorMaps: sharedMipC,
+        });
+        continue;
+      }
       const heights = new Uint8Array(n);
       heights.set(snapshot.heightMap);
       const colors = new Uint32Array(n);
@@ -184,13 +248,35 @@ class WorkerPool {
 
   setPanorama(snapshot) {
     this.ensureWorkers();
-    if (this._panoGeneration === snapshot.generation) {
+    const share = canShareBuffers() && isShared(snapshot.pixels);
+    if (
+      this._panoGeneration === snapshot.generation &&
+      this._panoShared === share &&
+      (!share || this._panoSharedBuf === snapshot.pixels.buffer)
+    ) {
       return;
     }
     this._panoGeneration = snapshot.generation;
+    this._panoShared = share;
+    this._panoSharedBuf = share ? snapshot.pixels.buffer : null;
     const n = snapshot.pixels.length;
     const hn = snapshot.horizon.length;
     for (let i = 0; (i < this._slots.length) | 0; i = (i + 1) | 0) {
+      if (share) {
+        this._slots[i].worker.postMessage({
+          type: MSG_INIT_PANO,
+          shared: 1,
+          pixels: snapshot.pixels,
+          horizon: snapshot.horizon,
+          depth: snapshot.depth,
+          heightBuf: snapshot.heightBuf || null,
+          iter: snapshot.iter || null,
+          width: snapshot.width,
+          height: snapshot.height,
+          generation: snapshot.generation,
+        });
+        continue;
+      }
       const pixels = new Uint32Array(n);
       pixels.set(snapshot.pixels);
       const horizon = new Int32Array(hn);
@@ -231,12 +317,32 @@ class WorkerPool {
 
   setCubemap(snapshot) {
     this.ensureWorkers();
-    if (this._cubeGeneration === snapshot.generation) {
+    const share = canShareBuffers() && isShared(snapshot.color);
+    if (
+      this._cubeGeneration === snapshot.generation &&
+      this._cubeShared === share &&
+      (!share || this._cubeSharedBuf === snapshot.color.buffer)
+    ) {
       return;
     }
     this._cubeGeneration = snapshot.generation;
+    this._cubeShared = share;
+    this._cubeSharedBuf = share ? snapshot.color.buffer : null;
     const n = snapshot.color.length;
     for (let i = 0; (i < this._slots.length) | 0; i = (i + 1) | 0) {
+      if (share) {
+        this._slots[i].worker.postMessage({
+          type: MSG_INIT_CUBE,
+          shared: 1,
+          color: snapshot.color,
+          depth: snapshot.depth,
+          heightBuf: snapshot.heightBuf || null,
+          iter: snapshot.iter || null,
+          n: snapshot.n,
+          generation: snapshot.generation,
+        });
+        continue;
+      }
       const color = new Uint32Array(n);
       color.set(snapshot.color);
       const depth = new Float32Array(n);
@@ -277,7 +383,7 @@ class WorkerPool {
         MSG_RENDER_CLASSIC,
         params,
         params.screenWidth,
-        PIXEL_OFFSET_ALIGN
+        1
       )
     );
   }
@@ -308,7 +414,17 @@ class WorkerPool {
       jobs.push({ kind: "horizon", face: face });
     }
     const azCount = n << 2;
-    const polarJobs = Math.max(1, Math.min(this._slots.length, 4));
+    const share = canShareBuffers();
+    const maxPolar = share ? 8 : 4;
+    const polarJobs = Math.max(
+      1,
+      Math.min(
+        maxPolar,
+        this._slots.length <= 4
+          ? this._slots.length
+          : this._slots.length - 4
+      )
+    );
     const azChunk = Math.ceil(azCount / polarJobs) | 0;
     for (let i = 0; (i < polarJobs) | 0; i = (i + 1) | 0) {
       const startAz = (i * azChunk) | 0;
@@ -541,15 +657,24 @@ class WorkerPool {
         pixels: new Uint32Array(data.pixels),
       });
     } else if (data.type === MSG_RESULT_CUBE_GENERATE) {
-      active.onChunk(index, {
-        kind: data.kind,
-        face: data.face,
-        n: data.n,
-        pixels: new Uint32Array(data.pixels),
-        depth: new Float32Array(data.depth),
-        heightBuf: data.heightBuf ? new Uint32Array(data.heightBuf) : null,
-        iter: data.iter ? new Uint32Array(data.iter) : null,
-      });
+      if (data.shared) {
+        active.onChunk(index, {
+          kind: data.kind,
+          face: data.face,
+          n: data.n,
+          shared: 1,
+        });
+      } else {
+        active.onChunk(index, {
+          kind: data.kind,
+          face: data.face,
+          n: data.n,
+          pixels: new Uint32Array(data.pixels),
+          depth: new Float32Array(data.depth),
+          heightBuf: data.heightBuf ? new Uint32Array(data.heightBuf) : null,
+          iter: data.iter ? new Uint32Array(data.iter) : null,
+        });
+      }
     } else if (data.type === MSG_WORKER_ERROR) {
       console.error(
         "column worker message",
