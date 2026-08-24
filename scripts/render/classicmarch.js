@@ -72,19 +72,24 @@ function colorAt(colorMap, ix, iy, mapShift, wMask, hMask, wrap) {
   return colorMap[((iy << mapShift) + ix) | 0];
 }
 
-function boxPacked4(c00, c10, c01, c11) {
+function lerpPacked(c0, c1, t256) {
   const mask = 0x00ff00ff;
-  const rb =
-    (((c00 & mask) + (c10 & mask) + (c01 & mask) + (c11 & mask)) >>> 2) &
-    mask;
+  const u = t256 | 0;
+  const v = (256 - u) | 0;
+  const rb = (((c0 & mask) * v + (c1 & mask) * u) >>> 8) & mask;
   const ag =
-    ((((c00 >>> 8) & mask) +
-      ((c10 >>> 8) & mask) +
-      ((c01 >>> 8) & mask) +
-      ((c11 >>> 8) & mask)) >>>
-      2) &
-    mask;
+    ((((c0 >>> 8) & mask) * v + ((c1 >>> 8) & mask) * u) >>> 8) & mask;
   return ((ag << 8) | rb) >>> 0;
+}
+
+function bilinearPacked4(c00, c10, c01, c11, fx, fy) {
+  let tx = (fx * 256) | 0;
+  let ty = (fy * 256) | 0;
+  if ((tx < 0) | 0) tx = 0;
+  else if ((tx > 256) | 0) tx = 256;
+  if ((ty < 0) | 0) ty = 0;
+  else if ((ty > 256) | 0) ty = 256;
+  return lerpPacked(lerpPacked(c00, c10, tx), lerpPacked(c01, c11, tx), ty);
 }
 
 function sampleHeightBilinear(heightMap, x, y, mapShift, wMask, hMask, wrap) {
@@ -128,9 +133,11 @@ function sampleHeightBilinear(heightMap, x, y, mapShift, wMask, hMask, wrap) {
 }
 
 function sampleColorFiltered(colorMap, x, y, mapShift, wMask, hMask, wrap) {
-  const ix = Math.floor(x) | 0;
-  const iy = Math.floor(y) | 0;
-  return boxPacked4(
+  const x0 = Math.floor(x);
+  const y0 = Math.floor(y);
+  const ix = x0 | 0;
+  const iy = y0 | 0;
+  return bilinearPacked4(
     colorAt(colorMap, ix, iy, mapShift, wMask, hMask, wrap),
     colorAt(colorMap, (ix + 1) | 0, iy, mapShift, wMask, hMask, wrap),
     colorAt(colorMap, ix, (iy + 1) | 0, mapShift, wMask, hMask, wrap),
@@ -142,7 +149,9 @@ function sampleColorFiltered(colorMap, x, y, mapShift, wMask, hMask, wrap) {
       wMask,
       hMask,
       wrap
-    )
+    ),
+    x - x0,
+    y - y0
   );
 }
 

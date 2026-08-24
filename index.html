@@ -248,7 +248,7 @@
           <label
             class="check"
             for="id_filter_color"
-            data-tip="Filter the color map so it is less pixelated. CPU uses a 2×2 box filter, GPU uses bilinear."
+            data-tip="World-space bilinear blend on the color map. Same 4 samples as the old box filter, but interpolates by position so texel edges fade instead of jumping."
           >
             <input id="id_filter_color" name="filtercolor" type="checkbox" autocomplete="off" />
             <span class="check-box" aria-hidden="true"></span>

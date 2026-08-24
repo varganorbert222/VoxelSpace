@@ -243,15 +243,30 @@ static inline u8 height_at_sv(u8 *map, i32 x, i32 y, i32 wmask, i32 hmask, i32 s
 
 static inline u32 lerp_named(u32 c0, u32 c1, f64 t);
 
-static inline u32 box_packed4(u32 c00, u32 c10, u32 c01, u32 c11) {
+static inline u32 lerp_packed(u32 c0, u32 c1, i32 t) {
   u32 mask = 0x00ff00ffu;
-  u32 rb =
-      (((c00 & mask) + (c10 & mask) + (c01 & mask) + (c11 & mask)) >> 2) & mask;
-  u32 ag = ((((c00 >> 8) & mask) + ((c10 >> 8) & mask) + ((c01 >> 8) & mask) +
-             ((c11 >> 8) & mask)) >>
-            2) &
-           mask;
+  u32 u = (u32)t;
+  u32 v = 256u - u;
+  u32 rb = (((c0 & mask) * v + (c1 & mask) * u) >> 8) & mask;
+  u32 ag = ((((c0 >> 8) & mask) * v + ((c1 >> 8) & mask) * u) >> 8) & mask;
   return (ag << 8) | rb;
+}
+
+static inline u32 bilinear_packed4(
+    u32 c00, u32 c10, u32 c01, u32 c11, f64 fx, f64 fy) {
+  i32 tx = (i32)(fx * 256.0);
+  i32 ty = (i32)(fy * 256.0);
+  if (tx < 0) {
+    tx = 0;
+  } else if (tx > 256) {
+    tx = 256;
+  }
+  if (ty < 0) {
+    ty = 0;
+  } else if (ty > 256) {
+    ty = 256;
+  }
+  return lerp_packed(lerp_packed(c00, c10, tx), lerp_packed(c01, c11, tx), ty);
 }
 
 static __attribute__((noinline)) f64 sample_sv_height(
@@ -336,16 +351,22 @@ static __attribute__((noinline)) u32 sample_sv_color(
     i32 nn_off) {
   i32 ix;
   i32 iy;
+  f64 x0;
+  f64 y0;
   if (!filter) {
     return map[nn_off];
   }
-  ix = (i32)wasm_floor(x);
-  iy = (i32)wasm_floor(y);
-  return box_packed4(
+  x0 = wasm_floor(x);
+  y0 = wasm_floor(y);
+  ix = (i32)x0;
+  iy = (i32)y0;
+  return bilinear_packed4(
       color_at_sv(map, ix, iy, wmask, hmask, shift, wrap),
       color_at_sv(map, ix + 1, iy, wmask, hmask, shift, wrap),
       color_at_sv(map, ix, iy + 1, wmask, hmask, shift, wrap),
-      color_at_sv(map, ix + 1, iy + 1, wmask, hmask, shift, wrap));
+      color_at_sv(map, ix + 1, iy + 1, wmask, hmask, shift, wrap),
+      x - x0,
+      y - y0);
 }
 
 WASM_EXPORT void set_sample_flags(i32 height_lerp, i32 color_filter) {
