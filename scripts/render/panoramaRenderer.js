@@ -134,6 +134,8 @@ class PanoramaRenderer {
       this._panoFov !== camera.fov ||
       this._panoAspect !== aspect ||
       this._panoRepeat !== this._renderer.repeat ||
+      this._panoInterp !== this._renderer.interpolateHeight ||
+      this._panoFilter !== this._renderer.filterColor ||
       this._panoMinDeltaZ !== camera.minDeltaZ ||
       this._panoSkyColor !== terrain.skyColor ||
       this._panoHorizonColor !== camera.bottomColor ||
@@ -161,6 +163,8 @@ class PanoramaRenderer {
       ? this._renderer.frameBuffer.width / this._renderer.frameBuffer.height
       : 0;
     this._panoRepeat = this._renderer.repeat;
+    this._panoInterp = this._renderer.interpolateHeight;
+    this._panoFilter = this._renderer.filterColor;
     this._panoMinDeltaZ = camera.minDeltaZ;
     this._panoSkyColor = terrain.skyColor;
     this._panoHorizonColor = camera.bottomColor;
@@ -359,6 +363,8 @@ class PanoramaRenderer {
       horizonColor: camera.bottomColor,
       initialStep: camera.minDeltaZ,
       quality: camera.quality,
+      interpolateHeight: renderer.interpolateHeight ? 1 : 0,
+      filterColor: renderer.filterColor ? 1 : 0,
       pixels: this._panoramaPixels,
       horizon: this._panoramaHorizon,
       depth: this._panoramaDepth,
@@ -405,6 +411,8 @@ class PanoramaRenderer {
       horizonColor: camera.bottomColor,
       initialStep: camera.minDeltaZ,
       quality: camera.quality,
+      interpolateHeight: renderer.interpolateHeight ? 1 : 0,
+      filterColor: renderer.filterColor ? 1 : 0,
       wantHeight: needsHeightBuf(renderer.debugView),
       wantIter: needsIterBuf(renderer.debugView),
     });

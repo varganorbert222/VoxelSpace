@@ -219,6 +219,22 @@ class SettingsForm {
         app.renderer.setOptions({ repeat: e.target.checked });
         persist();
       }),
+      interpolateHeight: initCheckboxElement(
+        "id_interpolate_height",
+        options.interpolateHeight,
+        (e) => {
+          app.renderer.setOptions({ interpolateHeight: e.target.checked });
+          persist();
+        }
+      ),
+      filterColor: initCheckboxElement(
+        "id_filter_color",
+        options.filterColor,
+        (e) => {
+          app.renderer.setOptions({ filterColor: e.target.checked });
+          persist();
+        }
+      ),
       multithread: initCheckboxElement(
         "id_multithread",
         options.multithread,
@@ -301,6 +317,8 @@ class SettingsForm {
       quality,
       applyFog,
       repeat,
+      interpolateHeight,
+      filterColor,
       multithread,
       map,
       cameraMode,
@@ -326,6 +344,8 @@ class SettingsForm {
     quality.value = String(camera.quality);
     applyFog.checked = options.applyFog;
     repeat.checked = options.repeat;
+    interpolateHeight.checked = !!options.interpolateHeight;
+    filterColor.checked = !!options.filterColor;
     multithread.checked = options.multithread;
     multithread.disabled = !usesWorkers(options.backend);
     map.value = this._app.currentMapName;

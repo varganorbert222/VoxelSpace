@@ -14,7 +14,7 @@ const MAX_STEPS: u32 = 16384u;
 const EPSILON: f32 = 1e-6;
 const TWO_PI: f32 = 6.283185307179586;
 
-fn sampleHeightByte(mip: i32, wx: f32, wy: f32) -> u32 {
+fn sampleHeightByteNN(mip: i32, wx: f32, wy: f32) -> u32 {
   let inv0 = frame.mipInvPixelCenter.x;
   let inv1 = frame.mipInvPixelCenter.y;
   let inv2 = frame.mipInvPixelCenter.z;
@@ -33,15 +33,68 @@ fn sampleHeightByte(mip: i32, wx: f32, wy: f32) -> u32 {
   return textureLoad(height2, vec2<i32>(ix, iy), 0).r;
 }
 
-fn sampleHeight(mip: i32, wx: f32, wy: f32) -> f32 {
+fn heightByteAt0(ix: i32, iy: i32, wrap: bool) -> u32 {
+  let x = wrapOrClamp(ix, i32(frame.mipSize1.w), wrap);
+  let y = wrapOrClamp(iy, i32(frame.mipSize1.z), wrap);
+  return textureLoad(height0, vec2<i32>(x, y), 0).r;
+}
+
+fn sampleHeightPair(mip: i32, wx: f32, wy: f32) -> vec2f {
   let altitude = frame.tMaxMinDzAltMaxH.z;
-  return f32(sampleHeightByte(mip, wx, wy)) * (altitude / 255.0);
+  let nn = f32(sampleHeightByteNN(mip, wx, wy));
+  if ((mip > 0) || !flagHeightLerp(frame.mapFlags.w)) {
+    return vec2f(nn * (altitude / 255.0), nn);
+  }
+  let wrap = flagRepeat(frame.mapFlags.w);
+  let x0 = floor(wx);
+  let y0 = floor(wy);
+  let fx = wx - x0;
+  let fy = wy - y0;
+  let tx = i32(x0);
+  let ty = i32(y0);
+  let h00 = f32(heightByteAt0(tx, ty, wrap));
+  let h10 = f32(heightByteAt0(tx + 1, ty, wrap));
+  let h01 = f32(heightByteAt0(tx, ty + 1, wrap));
+  let h11 = f32(heightByteAt0(tx + 1, ty + 1, wrap));
+  let h = bilinearHeight(h00, h10, h01, h11, fx, fy);
+  return vec2f(h * (altitude / 255.0), clamp(h + 0.5, 0.0, 255.0));
+}
+
+fn sampleHeightByte(mip: i32, wx: f32, wy: f32) -> u32 {
+  return u32(sampleHeightPair(mip, wx, wy).y);
+}
+
+fn sampleHeight(mip: i32, wx: f32, wy: f32) -> f32 {
+  return sampleHeightPair(mip, wx, wy).x;
+}
+
+fn colorAt0(ix: i32, iy: i32, wrap: bool) -> vec4f {
+  let x = wrapOrClamp(ix, i32(frame.mipSize1.w), wrap);
+  let y = wrapOrClamp(iy, i32(frame.mipSize1.z), wrap);
+  return textureLoad(color0, vec2<i32>(x, y), 0);
 }
 
 fn sampleColor(mip: i32, wx: f32, wy: f32) -> vec4f {
   let inv0 = frame.mipInvPixelCenter.x;
   let inv1 = frame.mipInvPixelCenter.y;
   let inv2 = frame.mipInvPixelCenter.z;
+  if ((mip <= 0) && flagColorFilter(frame.mapFlags.w)) {
+    let wrap = flagRepeat(frame.mapFlags.w);
+    let x0 = floor(wx * inv0);
+    let y0 = floor(wy * inv0);
+    let fx = wx * inv0 - x0;
+    let fy = wy * inv0 - y0;
+    let tx = i32(x0);
+    let ty = i32(y0);
+    return bilinearColor(
+      colorAt0(tx, ty, wrap),
+      colorAt0(tx + 1, ty, wrap),
+      colorAt0(tx, ty + 1, wrap),
+      colorAt0(tx + 1, ty + 1, wrap),
+      fx,
+      fy
+    );
+  }
   if (mip <= 0) {
     let ix = i32(wx * inv0) & i32(frame.mipSize1.w);
     let iy = i32(wy * inv0) & i32(frame.mipSize1.z);

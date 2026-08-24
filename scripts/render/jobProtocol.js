@@ -57,6 +57,8 @@ export function classicRenderPayload(jobId, range, params) {
     applyFog: params.applyFog,
     debugView: params.debugView,
     repeat: params.repeat,
+    interpolateHeight: params.interpolateHeight,
+    filterColor: params.filterColor,
     rowColors: params.rowColors,
   };
 }
@@ -137,6 +139,8 @@ export function panoramaGeneratePayload(jobId, range, params) {
     horizonColor: params.horizonColor,
     initialStep: params.initialStep,
     quality: params.quality,
+    interpolateHeight: params.interpolateHeight,
+    filterColor: params.filterColor,
     wantHeight: params.wantHeight | 0,
     wantIter: params.wantIter | 0,
   };

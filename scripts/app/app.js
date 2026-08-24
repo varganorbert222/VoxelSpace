@@ -76,6 +76,8 @@ class App {
       algorithm: config.settings.renderAlgorithms.default || ALGORITHM_CLASSIC,
       debugView: config.settings.debugViews.default || DEBUG_VIEW_COLOR,
       debugOverlay: !!config.settings.debugOverlay.default,
+      interpolateHeight: config.settings.interpolateHeight.default !== false,
+      filterColor: config.settings.filterColor.default !== false,
     });
     if (config.settings.cameraModes.default) {
       this.camera.set({ mode: config.settings.cameraModes.default });
@@ -93,9 +95,9 @@ class App {
     this.settingsForm.init();
     this.radar.init();
     initHud(this);
-    this._bindViewportResize();
     await this.setRenderBackend(this.renderer.backend);
     this.setRenderAlgorithm(this.renderer.algorithm);
+    this._bindViewportResize();
 
     this.input.bindTouchControls({
       moveStick: document.getElementById("id_stick_move"),
@@ -234,6 +236,8 @@ class App {
         mode: this.camera.mode,
         applyFog: options.applyFog,
         repeat: options.repeat,
+        interpolateHeight: options.interpolateHeight,
+        filterColor: options.filterColor,
         multithread: options.multithread,
         map: this.currentMapName,
         algorithm: options.algorithm,
@@ -268,6 +272,8 @@ class App {
     this.renderer.setOptions({
       applyFog: sanitized.applyFog,
       repeat: sanitized.repeat,
+      interpolateHeight: sanitized.interpolateHeight,
+      filterColor: sanitized.filterColor,
       multithread: sanitized.multithread,
       algorithm: sanitized.algorithm,
       backend: sanitized.backend,

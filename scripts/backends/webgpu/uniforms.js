@@ -10,6 +10,8 @@ const FLAG_REPEAT = 2;
 const FLAG_DEBUG_SHIFT = 8;
 const FLAG_OVERLAY = 1 << 10;
 const FLAG_OVERLAY_CUBE = 1 << 11;
+const FLAG_HEIGHT_LERP = 1 << 12;
+const FLAG_COLOR_FILTER = 1 << 13;
 
 export function createFramePacker() {
   const buffer = new ArrayBuffer(FRAME_BYTES);
@@ -60,6 +62,12 @@ export function packFrame(packer, p) {
   }
   if (p.repeat) {
     flags |= FLAG_REPEAT;
+  }
+  if (p.interpolateHeight) {
+    flags |= FLAG_HEIGHT_LERP;
+  }
+  if (p.filterColor) {
+    flags |= FLAG_COLOR_FILTER;
   }
   flags |= ((p.debugViewId | 0) & 3) << FLAG_DEBUG_SHIFT;
   if (p.debugOverlay) {

@@ -44,6 +44,112 @@ const mipInvScale = new Float64Array(PANO_MIP_COUNT);
 const mipWMaskScratch = new Int32Array(PANO_MIP_COUNT);
 const mipHMaskScratch = new Int32Array(PANO_MIP_COUNT);
 
+function wrapSampleCoord(v, mask, wrap) {
+  if (wrap) {
+    return v & mask;
+  }
+  if ((v < 0) | 0) {
+    return 0;
+  }
+  if ((v > mask) | 0) {
+    return mask;
+  }
+  return v;
+}
+
+function heightAt(heightMap, ix, iy, mapShift, wMask, hMask, wrap) {
+  iy = wrapSampleCoord(iy, wMask, wrap);
+  ix = wrapSampleCoord(ix, hMask, wrap);
+  return heightMap[((iy << mapShift) + ix) | 0];
+}
+
+function colorAt(colorMap, ix, iy, mapShift, wMask, hMask, wrap) {
+  iy = wrapSampleCoord(iy, wMask, wrap);
+  ix = wrapSampleCoord(ix, hMask, wrap);
+  return colorMap[((iy << mapShift) + ix) | 0];
+}
+
+function boxPacked4(c00, c10, c01, c11) {
+  const mask = 0x00ff00ff;
+  const rb =
+    (((c00 & mask) + (c10 & mask) + (c01 & mask) + (c11 & mask)) >>> 2) &
+    mask;
+  const ag =
+    ((((c00 >>> 8) & mask) +
+      ((c10 >>> 8) & mask) +
+      ((c01 >>> 8) & mask) +
+      ((c11 >>> 8) & mask)) >>>
+      2) &
+    mask;
+  return ((ag << 8) | rb) >>> 0;
+}
+
+function sampleHeightBilinear(heightMap, x, y, mapShift, wMask, hMask, wrap) {
+  const x0 = Math.floor(x);
+  const y0 = Math.floor(y);
+  const fx = x - x0;
+  const fy = y - y0;
+  const ix = x0 | 0;
+  const iy = y0 | 0;
+  const h00 = heightAt(heightMap, ix, iy, mapShift, wMask, hMask, wrap);
+  const h10 = heightAt(
+    heightMap,
+    (ix + 1) | 0,
+    iy,
+    mapShift,
+    wMask,
+    hMask,
+    wrap
+  );
+  const h01 = heightAt(
+    heightMap,
+    ix,
+    (iy + 1) | 0,
+    mapShift,
+    wMask,
+    hMask,
+    wrap
+  );
+  const h11 = heightAt(
+    heightMap,
+    (ix + 1) | 0,
+    (iy + 1) | 0,
+    mapShift,
+    wMask,
+    hMask,
+    wrap
+  );
+  const hx0 = h00 + (h10 - h00) * fx;
+  const hx1 = h01 + (h11 - h01) * fx;
+  return hx0 + (hx1 - hx0) * fy;
+}
+
+function sampleColorFiltered(colorMap, x, y, mapShift, wMask, hMask, wrap) {
+  const ix = Math.floor(x) | 0;
+  const iy = Math.floor(y) | 0;
+  return boxPacked4(
+    colorAt(colorMap, ix, iy, mapShift, wMask, hMask, wrap),
+    colorAt(colorMap, (ix + 1) | 0, iy, mapShift, wMask, hMask, wrap),
+    colorAt(colorMap, ix, (iy + 1) | 0, mapShift, wMask, hMask, wrap),
+    colorAt(
+      colorMap,
+      (ix + 1) | 0,
+      (iy + 1) | 0,
+      mapShift,
+      wMask,
+      hMask,
+      wrap
+    )
+  );
+}
+
+function heightByteFromFine(hFine) {
+  let b = (hFine + 0.5) | 0;
+  if ((b < 0) | 0) b = 0;
+  if ((b > 255) | 0) b = 255;
+  return b;
+}
+
 function skyPalette(skyColor, horizonColor) {
   return new ColorPalette(
     skyColor ?? Color.WHITE,
@@ -117,6 +223,47 @@ function setupMips(quality, farClip, panoMips, heightMap, colorMap, mapW, mapH, 
     mipHMask,
     mipShifts,
   };
+}
+
+const svHit = { offset: 0, hFine: 0, hByte: 0, sx: 0, sy: 0 };
+
+function sampleCubeHeight(m, wx, wy, mip, wrap, lerp) {
+  const inv = mipInvScale[mip];
+  const sx = wx * inv;
+  const sy = wy * inv;
+  const doLerp = lerp & ((mip | 0) === 0);
+  const shift = m.mipShifts[mip];
+  const wMask = m.mipWMask[mip];
+  const hMask = m.mipHMask[mip];
+  const hm = m.mipHeightMaps[mip];
+  const offset = ((((sy | 0) & wMask) << shift) + ((sx | 0) & hMask)) | 0;
+  const nearestH = hm[offset];
+  svHit.sx = sx;
+  svHit.sy = sy;
+  svHit.offset = offset;
+  if (doLerp) {
+    svHit.hFine = sampleHeightBilinear(hm, sx, sy, shift, wMask, hMask, wrap);
+    svHit.hByte = heightByteFromFine(svHit.hFine);
+  } else {
+    svHit.hFine = nearestH;
+    svHit.hByte = nearestH;
+  }
+}
+
+function sampleCubeColor(m, mip, wrap, filter) {
+  const doFilter = filter & ((mip | 0) === 0);
+  if (!doFilter) {
+    return m.mipColorMaps[mip][svHit.offset];
+  }
+  return sampleColorFiltered(
+    m.mipColorMaps[mip],
+    svHit.sx,
+    svHit.sy,
+    m.mipShifts[mip],
+    m.mipWMask[mip],
+    m.mipHMask[mip],
+    wrap
+  );
 }
 
 function plotPolarTexel(pixels, depth, n, faceOff, i, j, color, dist) {
@@ -291,6 +438,8 @@ export function renderCubemapHorizonColumns({
   horizonColor,
   initialStep,
   quality,
+  interpolateHeight,
+  filterColor,
   pixels,
   depth,
   heightBuf,
@@ -321,6 +470,9 @@ export function renderCubemapHorizonColumns({
     tStop = farClip * FAR_PLANE_T_SCALE;
   }
   const altScale = altitude / HEIGHTMAP_MAX;
+  const lerpH = interpolateHeight | 0;
+  const filterC = filterColor | 0;
+  const wrap = repeat | 0;
   const cx = CUBE_FACE_C[face][0];
   const cy = CUBE_FACE_C[face][1];
   const ux = CUBE_FACE_U[face][0];
@@ -388,12 +540,9 @@ export function renderCubemapHorizonColumns({
         wasInside = 1;
       }
 
-      const inv = mipInvScale[mip];
-      const offset =
-        (((((wy * inv) | 0) & m.mipWMask[mip]) << m.mipShifts[mip]) +
-          (((wx * inv) | 0) & m.mipHMask[mip])) |
-        0;
-      const h = m.mipHeightMaps[mip][offset] * altScale;
+      sampleCubeHeight(m, wx, wy, mip, wrap, lerpH);
+      const offset = svHit.offset;
+      const h = svHit.hFine * altScale;
 
       const zScale = dst / t;
       let yHit = ((camZ - h) * zScale + horizon) | 0;
@@ -410,11 +559,11 @@ export function renderCubemapHorizonColumns({
         const yGround = ((camZ - clipZ) * zScale + horizon) | 0;
         if ((yGround < yBottom) | 0) yBottom = yGround < 0 ? 0 : yGround;
         if ((yHit < yBottom) | 0) {
-          const color = m.mipColorMaps[mip][offset];
+          const color = sampleCubeColor(m, mip, wrap, filterC);
           const dh = h - camZ;
           const dist = Math.sqrt(t * t + dh * dh);
           if (heightBuf || iterBuf) {
-            const hByte = heightBuf ? m.mipHeightMaps[mip][offset] : 0;
+            const hByte = heightBuf ? svHit.hByte : 0;
             for (let y = yHit; (y < yBottom) | 0; y = (y + 1) | 0) {
               const pix = (faceOff + y * n + col) | 0;
               pixels[pix] = color;
@@ -466,6 +615,8 @@ export function renderCubemapPolarAzimuths({
   horizonColor,
   initialStep,
   quality,
+  interpolateHeight,
+  filterColor,
   pixels,
   depth,
   heightBuf,
@@ -500,6 +651,9 @@ export function renderCubemapPolarAzimuths({
     tStop = farClip * FAR_PLANE_T_SCALE;
   }
   const altScale = altitude / HEIGHTMAP_MAX;
+  const lerpH = interpolateHeight | 0;
+  const filterC = filterColor | 0;
+  const wrap = repeat | 0;
   const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
   const azN = azCount > 0 ? azCount : (n << 2);
   const nadirInside =
@@ -563,18 +717,15 @@ export function renderCubemapPolarAzimuths({
         wasInside = 1;
       }
 
-      const inv = mipInvScale[mip];
-      const offset =
-        (((((wy * inv) | 0) & m.mipWMask[mip]) << m.mipShifts[mip]) +
-          (((wx * inv) | 0) & m.mipHMask[mip])) |
-        0;
-      const h = m.mipHeightMaps[mip][offset] * altScale;
+      sampleCubeHeight(m, wx, wy, mip, wrap, lerpH);
+      const offset = svHit.offset;
+      const h = svHit.hFine * altScale;
 
       const dh = h - camZ;
       const slope = dh / t;
-      const color = m.mipColorMaps[mip][offset];
+      const color = sampleCubeColor(m, mip, wrap, filterC);
       const dist = Math.sqrt(t * t + dh * dh);
-      const hByte = heightBuf ? m.mipHeightMaps[mip][offset] : 0;
+      const hByte = heightBuf ? svHit.hByte : 0;
       if (slope > EPSILON) {
         const r = 1 / slope;
         if (r < rOuterUp) {

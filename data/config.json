@@ -50,6 +50,12 @@
     },
     "multithread": {
       "default": false
+    },
+    "interpolateHeight": {
+      "default": true
+    },
+    "filterColor": {
+      "default": true
     }
   },
   "camera": {

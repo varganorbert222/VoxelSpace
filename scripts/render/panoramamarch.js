@@ -39,6 +39,112 @@ const mipHMaskScratch = new Int32Array(PANO_MIP_COUNT);
 const yHitLutLast = (PANO_YHIT_LUT_SIZE - 1) | 0;
 const yHitLutScale = PANO_YHIT_LUT_SIZE * HALF;
 
+function wrapSampleCoord(v, mask, wrap) {
+  if (wrap) {
+    return v & mask;
+  }
+  if ((v < 0) | 0) {
+    return 0;
+  }
+  if ((v > mask) | 0) {
+    return mask;
+  }
+  return v;
+}
+
+function heightAt(heightMap, ix, iy, mapShift, wMask, hMask, wrap) {
+  iy = wrapSampleCoord(iy, wMask, wrap);
+  ix = wrapSampleCoord(ix, hMask, wrap);
+  return heightMap[((iy << mapShift) + ix) | 0];
+}
+
+function colorAt(colorMap, ix, iy, mapShift, wMask, hMask, wrap) {
+  iy = wrapSampleCoord(iy, wMask, wrap);
+  ix = wrapSampleCoord(ix, hMask, wrap);
+  return colorMap[((iy << mapShift) + ix) | 0];
+}
+
+function boxPacked4(c00, c10, c01, c11) {
+  const mask = 0x00ff00ff;
+  const rb =
+    (((c00 & mask) + (c10 & mask) + (c01 & mask) + (c11 & mask)) >>> 2) &
+    mask;
+  const ag =
+    ((((c00 >>> 8) & mask) +
+      ((c10 >>> 8) & mask) +
+      ((c01 >>> 8) & mask) +
+      ((c11 >>> 8) & mask)) >>>
+      2) &
+    mask;
+  return ((ag << 8) | rb) >>> 0;
+}
+
+function sampleHeightBilinear(heightMap, x, y, mapShift, wMask, hMask, wrap) {
+  const x0 = Math.floor(x);
+  const y0 = Math.floor(y);
+  const fx = x - x0;
+  const fy = y - y0;
+  const ix = x0 | 0;
+  const iy = y0 | 0;
+  const h00 = heightAt(heightMap, ix, iy, mapShift, wMask, hMask, wrap);
+  const h10 = heightAt(
+    heightMap,
+    (ix + 1) | 0,
+    iy,
+    mapShift,
+    wMask,
+    hMask,
+    wrap
+  );
+  const h01 = heightAt(
+    heightMap,
+    ix,
+    (iy + 1) | 0,
+    mapShift,
+    wMask,
+    hMask,
+    wrap
+  );
+  const h11 = heightAt(
+    heightMap,
+    (ix + 1) | 0,
+    (iy + 1) | 0,
+    mapShift,
+    wMask,
+    hMask,
+    wrap
+  );
+  const hx0 = h00 + (h10 - h00) * fx;
+  const hx1 = h01 + (h11 - h01) * fx;
+  return hx0 + (hx1 - hx0) * fy;
+}
+
+function sampleColorFiltered(colorMap, x, y, mapShift, wMask, hMask, wrap) {
+  const ix = Math.floor(x) | 0;
+  const iy = Math.floor(y) | 0;
+  return boxPacked4(
+    colorAt(colorMap, ix, iy, mapShift, wMask, hMask, wrap),
+    colorAt(colorMap, (ix + 1) | 0, iy, mapShift, wMask, hMask, wrap),
+    colorAt(colorMap, ix, (iy + 1) | 0, mapShift, wMask, hMask, wrap),
+    colorAt(
+      colorMap,
+      (ix + 1) | 0,
+      (iy + 1) | 0,
+      mapShift,
+      wMask,
+      hMask,
+      wrap
+    )
+  );
+}
+
+function heightByteFromFine(hFine) {
+  let b = (hFine + 0.5) | 0;
+  if ((b < 0) | 0) b = 0;
+  if ((b > 255) | 0) b = 255;
+  return b;
+}
+
 export function buildTanMinLut(height) {
   let lut = tanMinCache.get(height);
   if (lut) {
@@ -188,6 +294,8 @@ export function renderPanoramaColumns({
   horizonColor,
   initialStep,
   quality,
+  interpolateHeight,
+  filterColor,
   pixels,
   horizon,
   depth,
@@ -258,6 +366,9 @@ export function renderPanoramaColumns({
   const rotC = Math.cos(dTheta);
   const rotS = Math.sin(dTheta);
   const altScale = altitude / HEIGHTMAP_MAX;
+  const lerpH = interpolateHeight | 0;
+  const filterC = filterColor | 0;
+  const wrap = repeat | 0;
   const ceiling = maxHeight == null ? altitude : maxHeight;
   const dhGround = clipZ - camZ;
   const absGround = dhGround < 0 ? -dhGround : dhGround;
@@ -348,11 +459,21 @@ export function renderPanoramaColumns({
       }
 
       const inv = mipInvScale[mip];
+      const sx = wx * inv;
+      const sy = wy * inv;
+      const doLerp = lerpH & ((mip | 0) === 0);
+      const doFilter = filterC & ((mip | 0) === 0);
+      const shift = mipShifts[mip];
+      const wMask = mipWMask[mip];
+      const hMask = mipHMask[mip];
+      const hm = mipHeightMaps[mip];
       const offset =
-        (((((wy * inv) | 0) & mipWMask[mip]) << mipShifts[mip]) +
-          (((wx * inv) | 0) & mipHMask[mip])) |
-        0;
-      const h = mipHeightMaps[mip][offset] * altScale;
+        ((((sy | 0) & wMask) << shift) + ((sx | 0) & hMask)) | 0;
+      const nearestH = hm[offset];
+      const hFine = doLerp
+        ? sampleHeightBilinear(hm, sx, sy, shift, wMask, hMask, wrap)
+        : nearestH;
+      const h = hFine * altScale;
 
       if (sealed && h < camZ + t * tanH - EPSILON) {
         t += step;
@@ -386,10 +507,24 @@ export function renderPanoramaColumns({
         }
         if ((yGround < yBottom) | 0) yBottom = yGround;
         if ((yHit < yBottom) | 0) {
-          const color = mipColorMaps[mip][offset];
+          const color = doFilter
+            ? sampleColorFiltered(
+                mipColorMaps[mip],
+                sx,
+                sy,
+                shift,
+                wMask,
+                hMask,
+                wrap
+              )
+            : mipColorMaps[mip][offset];
           const dist = Math.sqrt(t * t + dh * dh);
           if (heightBuf || iterBuf) {
-            const hByte = heightBuf ? mipHeightMaps[mip][offset] : 0;
+            const hByte = heightBuf
+              ? doLerp
+                ? heightByteFromFine(hFine)
+                : nearestH
+              : 0;
             for (let y = yHit; (y < yBottom) | 0; y = (y + 1) | 0) {
               const pix = (y * localWidth + localX) | 0;
               pixels[pix] = color;

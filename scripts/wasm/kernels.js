@@ -196,6 +196,13 @@ export function createWasmKernels(instance) {
     tablesReady = 1;
   }
 
+  function syncSampleFlags(params) {
+    ex.set_sample_flags(
+      params.interpolateHeight | 0,
+      params.filterColor | 0
+    );
+  }
+
   function ensureMaps(params) {
     ensureTables();
     const heightMap = params.heightMap;
@@ -347,6 +354,7 @@ export function createWasmKernels(instance) {
 
   function renderClassicColumns(params) {
     ensureMaps(params);
+    syncSampleFlags(params);
     const localWidth = (params.endColumn - params.startColumn) | 0;
     const n = (localWidth * params.screenHeight) | 0;
     const q = qualityIndex(params.quality);
@@ -388,13 +396,16 @@ export function createWasmKernels(instance) {
       params.pixelWidth | 0,
       hiddenPtr,
       rowPtr,
-      debugViewId(params.debugView)
+      debugViewId(params.debugView),
+      params.interpolateHeight | 0,
+      params.filterColor | 0
     );
     copyOutU32(pixelsPtr, params.pixels);
   }
 
   function renderPanoramaColumns(params) {
     ensureMaps(params);
+    syncSampleFlags(params);
     const height = params.height | 0;
     const width = params.width | 0;
     const localWidth = (params.endPx - params.startPx) | 0;
@@ -491,7 +502,9 @@ export function createWasmKernels(instance) {
       PANO_MIP_INV_SCALE[1],
       PANO_MIP_INV_SCALE[2],
       heightPtr,
-      iterPtr
+      iterPtr,
+      params.interpolateHeight | 0,
+      params.filterColor | 0
     );
     copyOutU32(pixelsPtr, params.pixels);
     copyOutI32(horizonPtr, params.horizon);

@@ -247,6 +247,11 @@ class WebGpuBackend {
   async init(ctx) {
     this._host = ctx.renderer;
     this._surface = ctx.surface;
+    const canvas = this._surface.replaceForWebgpu();
+    this._context = canvas.getContext("webgpu");
+    if (!this._context) {
+      throw new Error("getContext('webgpu') failed");
+    }
     const gpu = await createGpuDevice();
     this._device = gpu.device;
     this._format = gpu.format;
@@ -260,11 +265,6 @@ class WebGpuBackend {
         ctx.onDeviceLost();
       }
     });
-    const canvas = this._surface.getCanvas();
-    this._context = canvas.getContext("webgpu");
-    if (!this._context) {
-      throw new Error("getContext('webgpu') failed");
-    }
     this._configureCanvas(canvas);
     this._pipes = await createPipelines(this._device, this._format);
     this._uniformBuf = createUniformBuffer(this._device, this._framePacker.buffer.byteLength);
@@ -490,6 +490,8 @@ class WebGpuBackend {
       this._panoFov !== camera.fov ||
       this._panoAspect !== aspect ||
       this._panoRepeat !== this._host.repeat ||
+      this._panoInterp !== this._host.interpolateHeight ||
+      this._panoFilter !== this._host.filterColor ||
       this._panoMinDeltaZ !== camera.minDeltaZ ||
       this._panoSkyColor !== terrain.skyColor ||
       this._panoHorizonColor !== camera.bottomColor ||
@@ -512,6 +514,8 @@ class WebGpuBackend {
     this._panoFov = camera.fov;
     this._panoAspect = screenH ? screenW / screenH : 0;
     this._panoRepeat = this._host.repeat;
+    this._panoInterp = this._host.interpolateHeight;
+    this._panoFilter = this._host.filterColor;
     this._panoMinDeltaZ = camera.minDeltaZ;
     this._panoSkyColor = terrain.skyColor;
     this._panoHorizonColor = camera.bottomColor;
@@ -601,6 +605,8 @@ class WebGpuBackend {
       mapShift: maps.mapShift,
       applyFog: this._host.applyFog,
       repeat: this._host.repeat,
+      interpolateHeight: this._host.interpolateHeight,
+      filterColor: this._host.filterColor,
       skyColor: terrain.skyColor,
       horizonColor: camera.bottomColor,
       clipZ: clipZ,

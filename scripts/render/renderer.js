@@ -18,6 +18,8 @@ class Renderer {
     this._camera = null;
     this._applyFog = true;
     this._repeat = true;
+    this._interpolateHeight = true;
+    this._filterColor = true;
     this._debugView = DEBUG_VIEW_COLOR;
     this._debugOverlay = false;
     this._algorithm = ALGORITHM_CLASSIC;
@@ -50,6 +52,14 @@ class Renderer {
 
   get repeat() {
     return this._repeat;
+  }
+
+  get interpolateHeight() {
+    return this._interpolateHeight;
+  }
+
+  get filterColor() {
+    return this._filterColor;
   }
 
   get debugView() {
@@ -101,6 +111,8 @@ class Renderer {
     return {
       applyFog: this._applyFog,
       repeat: this._repeat,
+      interpolateHeight: this._interpolateHeight,
+      filterColor: this._filterColor,
       algorithm: this._algorithm,
       multithread: this._multithreadWanted,
       backend: this._backendId,
@@ -115,6 +127,20 @@ class Renderer {
     }
     if (options.repeat !== undefined) {
       this._repeat = options.repeat;
+    }
+    if (options.interpolateHeight !== undefined) {
+      const next = !!options.interpolateHeight;
+      if (next !== this._interpolateHeight) {
+        this._interpolateHeight = next;
+        this.invalidatePanorama();
+      }
+    }
+    if (options.filterColor !== undefined) {
+      const next = !!options.filterColor;
+      if (next !== this._filterColor) {
+        this._filterColor = next;
+        this.invalidatePanorama();
+      }
     }
     if (options.debugView !== undefined) {
       this._debugView = options.debugView;
@@ -208,19 +234,15 @@ class Renderer {
     }
 
     const nextPresent = usesCanvas2d(id) ? "2d" : "webgpu";
-    const prevPresent = this._backend
-      ? usesCanvas2d(this._backendId)
-        ? "2d"
-        : "webgpu"
-      : "2d";
-
-    if (this._backend && nextPresent !== prevPresent) {
-      try {
-        this._backend.dispose();
-      } catch (err) {
-        console.warn("Render runtime dispose failed:", err);
+    if (nextPresent !== this._surface.present) {
+      if (this._backend) {
+        try {
+          this._backend.dispose();
+        } catch (err) {
+          console.warn("Render runtime dispose failed:", err);
+        }
+        this._backend = null;
       }
-      this._backend = null;
       if (nextPresent === "webgpu") {
         this._surface.replaceForWebgpu();
       } else {

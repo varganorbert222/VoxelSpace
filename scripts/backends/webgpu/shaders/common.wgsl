@@ -147,6 +147,36 @@ fn flagOverlayCube(flags: u32) -> bool {
   return (flags & 2048u) != 0u;
 }
 
+fn flagHeightLerp(flags: u32) -> bool {
+  return (flags & 4096u) != 0u;
+}
+
+fn flagColorFilter(flags: u32) -> bool {
+  return (flags & 8192u) != 0u;
+}
+
+fn wrapOrClamp(v: i32, mask: i32, wrap: bool) -> i32 {
+  if (wrap) {
+    return v & mask;
+  }
+  var x = v;
+  if (x < 0) {
+    x = 0;
+  }
+  if (x > mask) {
+    x = mask;
+  }
+  return x;
+}
+
+fn bilinearHeight(h00: f32, h10: f32, h01: f32, h11: f32, fx: f32, fy: f32) -> f32 {
+  return mix(mix(h00, h10, fx), mix(h01, h11, fx), fy);
+}
+
+fn bilinearColor(c00: vec4f, c10: vec4f, c01: vec4f, c11: vec4f, fx: f32, fy: f32) -> vec4f {
+  return mix(mix(c00, c10, fx), mix(c01, c11, fx), fy);
+}
+
 const DEBUG_COLOR: u32 = 0u;
 const DEBUG_HEIGHT: u32 = 1u;
 const DEBUG_DEPTH: u32 = 2u;

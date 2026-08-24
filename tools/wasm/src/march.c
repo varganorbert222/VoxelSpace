@@ -39,6 +39,8 @@ static f64 g_lod_fracs[8];
 static i32 g_lod_n;
 static i32 g_lod_delta_n;
 static i32 g_lod_frac_n;
+static i32 g_lerp_height;
+static i32 g_filter_color;
 
 static f64 *g_tan_min;
 static i32 g_tan_len;
@@ -207,6 +209,148 @@ WASM_EXPORT void set_classic_tables(
   for (i = 0; i < g_lod_frac_n; i++) {
     g_lod_fracs[i] = frac[i];
   }
+}
+
+static inline f64 wasm_floor(f64 x) {
+  i32 i = (i32)x;
+  f64 t = (f64)i;
+  if (x >= 0.0 || t == x) {
+    return t;
+  }
+  return t - 1.0;
+}
+
+static inline u8 height_at_sv(u8 *map, i32 x, i32 y, i32 wmask, i32 hmask, i32 shift, i32 wrap) {
+  if (wrap) {
+    y &= wmask;
+    x &= hmask;
+  } else {
+    if (x < 0) {
+      x = 0;
+    }
+    if (y < 0) {
+      y = 0;
+    }
+    if (x > hmask) {
+      x = hmask;
+    }
+    if (y > wmask) {
+      y = wmask;
+    }
+  }
+  return map[((y << shift) + x) | 0];
+}
+
+static inline u32 lerp_named(u32 c0, u32 c1, f64 t);
+
+static inline u32 box_packed4(u32 c00, u32 c10, u32 c01, u32 c11) {
+  u32 mask = 0x00ff00ffu;
+  u32 rb =
+      (((c00 & mask) + (c10 & mask) + (c01 & mask) + (c11 & mask)) >> 2) & mask;
+  u32 ag = ((((c00 >> 8) & mask) + ((c10 >> 8) & mask) + ((c01 >> 8) & mask) +
+             ((c11 >> 8) & mask)) >>
+            2) &
+           mask;
+  return (ag << 8) | rb;
+}
+
+static __attribute__((noinline)) f64 sample_sv_height(
+    u8 *map,
+    f64 x,
+    f64 y,
+    i32 wmask,
+    i32 hmask,
+    i32 shift,
+    i32 wrap,
+    i32 lerp,
+    u32 *h_byte,
+    i32 *nn_off) {
+  i32 ix = (i32)x;
+  i32 iy = (i32)y;
+  i32 off = (((iy & wmask) << shift) + (ix & hmask)) | 0;
+  u8 base = map[off];
+  f64 h00;
+  f64 h10;
+  f64 h01;
+  f64 h11;
+  f64 fx;
+  f64 fy;
+  f64 h;
+  i32 b;
+  *nn_off = off;
+  if (!lerp) {
+    *h_byte = (u32)base;
+    return (f64)base;
+  }
+  fx = x - wasm_floor(x);
+  fy = y - wasm_floor(y);
+  ix = (i32)wasm_floor(x);
+  iy = (i32)wasm_floor(y);
+  h00 = (f64)height_at_sv(map, ix, iy, wmask, hmask, shift, wrap);
+  h10 = (f64)height_at_sv(map, ix + 1, iy, wmask, hmask, shift, wrap);
+  h01 = (f64)height_at_sv(map, ix, iy + 1, wmask, hmask, shift, wrap);
+  h11 = (f64)height_at_sv(map, ix + 1, iy + 1, wmask, hmask, shift, wrap);
+  h = h00 + (h10 - h00) * fx;
+  h = h + ((h01 + (h11 - h01) * fx) - h) * fy;
+  b = (i32)(h + 0.5);
+  if (b < 0) {
+    b = 0;
+  }
+  if (b > 255) {
+    b = 255;
+  }
+  *h_byte = (u32)b;
+  return h;
+}
+
+static inline u32 color_at_sv(u32 *map, i32 x, i32 y, i32 wmask, i32 hmask, i32 shift, i32 wrap) {
+  if (wrap) {
+    y &= wmask;
+    x &= hmask;
+  } else {
+    if (x < 0) {
+      x = 0;
+    }
+    if (y < 0) {
+      y = 0;
+    }
+    if (x > hmask) {
+      x = hmask;
+    }
+    if (y > wmask) {
+      y = wmask;
+    }
+  }
+  return map[((y << shift) + x) | 0];
+}
+
+static __attribute__((noinline)) u32 sample_sv_color(
+    u32 *map,
+    f64 x,
+    f64 y,
+    i32 wmask,
+    i32 hmask,
+    i32 shift,
+    i32 wrap,
+    i32 filter,
+    i32 nn_off) {
+  i32 ix;
+  i32 iy;
+  if (!filter) {
+    return map[nn_off];
+  }
+  ix = (i32)wasm_floor(x);
+  iy = (i32)wasm_floor(y);
+  return box_packed4(
+      color_at_sv(map, ix, iy, wmask, hmask, shift, wrap),
+      color_at_sv(map, ix + 1, iy, wmask, hmask, shift, wrap),
+      color_at_sv(map, ix, iy + 1, wmask, hmask, shift, wrap),
+      color_at_sv(map, ix + 1, iy + 1, wmask, hmask, shift, wrap));
+}
+
+WASM_EXPORT void set_sample_flags(i32 height_lerp, i32 color_filter) {
+  g_lerp_height = height_lerp ? 1 : 0;
+  g_filter_color = color_filter ? 1 : 0;
 }
 
 WASM_EXPORT void set_map_info(
@@ -408,7 +552,13 @@ WASM_EXPORT void classic_columns(
     i32 pixel_width,
     i32 hidden_ptr,
     i32 row_colors_ptr,
-    i32 debug_view) {
+    i32 debug_view,
+    i32 lerp_height,
+    i32 filter_color) {
+  g_lerp_height = lerp_height ? 1 : 0;
+  g_filter_color = filter_color ? 1 : 0;
+  i32 do_lerp = g_lerp_height;
+  i32 do_filter = g_filter_color;
   u32 *pixels = (u32 *)pixels_ptr;
   i32 *hidden_y = (i32 *)hidden_ptr;
   u8 *height_map = g_mip_h[0];
@@ -546,10 +696,29 @@ WASM_EXPORT void classic_columns(
             continue;
           }
 
-          i32 offset =
-              ((((i32)ply & map_w_mask) << g_map_shift) + ((i32)plx & map_h_mask)) |
+          i32 nn_off =
+              ((((i32)ply & map_w_mask) << g_map_shift) +
+               ((i32)plx & map_h_mask)) |
               0;
-          f64 terrain_height = (f64)height_map[offset] * g_alt_scale;
+          u32 h_byte_sv;
+          f64 h_fine;
+          if (do_lerp) {
+            h_fine = sample_sv_height(
+                height_map,
+                plx,
+                ply,
+                map_w_mask,
+                map_h_mask,
+                g_map_shift,
+                repeat,
+                1,
+                &h_byte_sv,
+                &nn_off);
+          } else {
+            h_byte_sv = height_map[nn_off];
+            h_fine = (f64)h_byte_sv;
+          }
+          f64 terrain_height = h_fine * g_alt_scale;
           f64 terrain_sdf = cam_z - terrain_height;
           i32 height_on_screen = (i32)(terrain_sdf * z_scale + screen_horizon);
           i32 height_on_screen_bottom = col_hidden;
@@ -563,7 +732,7 @@ WASM_EXPORT void classic_columns(
             g_sample_n[local_i] = (g_sample_n[local_i] + 1) | 0;
           }
           if (debug) {
-            u32 h_byte = (u32)height_map[offset];
+            u32 h_byte = h_byte_sv;
             if (debug == DEBUG_HEIGHT) {
               plot_color = encode_height(h_byte);
             } else if (debug == DEBUG_DEPTH) {
@@ -572,7 +741,18 @@ WASM_EXPORT void classic_columns(
               plot_color = encode_iter(sample_ok ? g_sample_n[local_i] : 0);
             }
           } else if (!fog_white) {
-            plot_color = color_map[offset];
+            plot_color = do_filter
+                            ? sample_sv_color(
+                                  color_map,
+                                  plx,
+                                  ply,
+                                  map_w_mask,
+                                  map_h_mask,
+                                  g_map_shift,
+                                  repeat,
+                                  1,
+                                  nn_off)
+                            : color_map[nn_off];
             if (apply_fog_t) {
               plot_color = fog_pack(plot_color, fog_t);
             }
@@ -651,7 +831,13 @@ WASM_EXPORT void pano_columns(
     f64 inv1,
     f64 inv2,
     i32 height_ptr,
-    i32 iter_ptr) {
+    i32 iter_ptr,
+    i32 lerp_height,
+    i32 filter_color) {
+  g_lerp_height = lerp_height ? 1 : 0;
+  g_filter_color = filter_color ? 1 : 0;
+  i32 do_lerp = g_lerp_height;
+  i32 do_filter = g_filter_color;
   u32 *pixels = (u32 *)pixels_ptr;
   i32 *horizon = (i32 *)horizon_ptr;
   float *depth = depth_ptr ? (float *)depth_ptr : 0;
@@ -772,11 +958,34 @@ WASM_EXPORT void pano_columns(
 
       {
         f64 inv = mip_inv[mip];
-        i32 offset =
-            (((((i32)(wy * inv)) & g_mip_wmask[mip]) << g_mip_sh[mip]) +
-             (((i32)(wx * inv)) & g_mip_hmask[mip])) |
-            0;
-        f64 h = (f64)g_mip_h[mip][offset] * g_alt_scale;
+        f64 sx = wx * inv;
+        f64 sy = wy * inv;
+        i32 shift = g_mip_sh[mip];
+        i32 wmask = g_mip_wmask[mip];
+        i32 hmask = g_mip_hmask[mip];
+        i32 nn_off =
+            ((((i32)sy & wmask) << shift) + ((i32)sx & hmask)) | 0;
+        u32 h_byte_sv;
+        f64 h_fine;
+        i32 lerp = (mip == 0) && do_lerp;
+        if (lerp) {
+          h_fine = sample_sv_height(
+              g_mip_h[mip],
+              sx,
+              sy,
+              wmask,
+              hmask,
+              shift,
+              repeat,
+              1,
+              &h_byte_sv,
+              &nn_off);
+        } else {
+          h_byte_sv = g_mip_h[mip][nn_off];
+          h_fine = (f64)h_byte_sv;
+        }
+        f64 h = h_fine * g_alt_scale;
+        i32 offset = nn_off;
         f64 dh;
         f64 abs_s;
         f64 s_hat;
@@ -828,11 +1037,23 @@ WASM_EXPORT void pano_columns(
             y_bottom = y_ground;
           }
           if (y_hit < y_bottom) {
-            u32 color = g_mip_c[mip][offset];
+            u32 color =
+                ((mip == 0) && do_filter)
+                    ? sample_sv_color(
+                          g_mip_c[mip],
+                          sx,
+                          sy,
+                          wmask,
+                          hmask,
+                          shift,
+                          repeat,
+                          1,
+                          offset)
+                    : g_mip_c[mip][offset];
             f64 dist = wasm_sqrt(t * t + dh * dh);
             i32 y;
             if (height_buf || iter_buf) {
-              u32 h_byte = height_buf ? (u32)g_mip_h[mip][offset] : 0;
+              u32 h_byte = height_buf ? h_byte_sv : 0;
               for (y = y_hit; y < y_bottom; y = (y + 1) | 0) {
                 i32 pix = (y * local_width + local_x) | 0;
                 pixels[pix] = color;

@@ -233,6 +233,29 @@
           </label>
           <label
             class="check"
+            for="id_interpolate_height"
+            data-tip="Bilinear height sampling. Off uses nearest texels."
+          >
+            <input
+              id="id_interpolate_height"
+              name="interpolateheight"
+              type="checkbox"
+              autocomplete="off"
+            />
+            <span class="check-box" aria-hidden="true"></span>
+            Height interp
+          </label>
+          <label
+            class="check"
+            for="id_filter_color"
+            data-tip="Filter the color map so it is less pixelated. CPU uses a 2×2 box filter, GPU uses bilinear."
+          >
+            <input id="id_filter_color" name="filtercolor" type="checkbox" autocomplete="off" />
+            <span class="check-box" aria-hidden="true"></span>
+            Color filter
+          </label>
+          <label
+            class="check"
             for="id_multithread"
             data-tip="Split rendering across worker threads."
           >

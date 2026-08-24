@@ -52,6 +52,14 @@ class JsBackend {
     return this._host.repeat;
   }
 
+  get interpolateHeight() {
+    return this._host.interpolateHeight;
+  }
+
+  get filterColor() {
+    return this._host.filterColor;
+  }
+
   get debugView() {
     return this._host.debugView;
   }

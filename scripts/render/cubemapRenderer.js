@@ -110,6 +110,8 @@ class CubemapRenderer {
       this._fov !== camera.fov ||
       this._aspect !== aspect ||
       this._repeat !== this._renderer.repeat ||
+      this._interp !== this._renderer.interpolateHeight ||
+      this._filter !== this._renderer.filterColor ||
       this._minDeltaZ !== camera.minDeltaZ ||
       this._skyColor !== terrain.skyColor ||
       this._horizonColor !== camera.bottomColor ||
@@ -135,6 +137,8 @@ class CubemapRenderer {
       ? this._renderer.frameBuffer.width / this._renderer.frameBuffer.height
       : 0;
     this._repeat = this._renderer.repeat;
+    this._interp = this._renderer.interpolateHeight;
+    this._filter = this._renderer.filterColor;
     this._minDeltaZ = camera.minDeltaZ;
     this._skyColor = terrain.skyColor;
     this._horizonColor = camera.bottomColor;
@@ -168,6 +172,8 @@ class CubemapRenderer {
       horizonColor: camera.bottomColor,
       initialStep: camera.minDeltaZ,
       quality: camera.quality,
+      interpolateHeight: renderer.interpolateHeight ? 1 : 0,
+      filterColor: renderer.filterColor ? 1 : 0,
       pixels: this._cubeColor,
       depth: this._cubeDepth,
       heightBuf: this._cubeHeight,
