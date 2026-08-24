@@ -53,7 +53,7 @@ export function cubePixelUV(i, n) {
   return (2 * (i + 0.5)) / n - 1;
 }
 
-export function cubeSelect(dx, dy, dz) {
+export function cubeSelectInto(dx, dy, dz, out) {
   const ax = dx < 0 ? -dx : dx;
   const ay = dy < 0 ? -dy : dy;
   const az = dz < 0 ? -dz : dz;
@@ -94,10 +94,17 @@ export function cubeSelect(dx, dy, dz) {
       v = -dy * inv;
     }
   }
-  return { face: face, u: u, v: v };
+  out.face = face;
+  out.u = u;
+  out.v = v;
+  return out;
 }
 
-export function cubeUVToTexel(u, v, n) {
+export function cubeSelect(dx, dy, dz) {
+  return cubeSelectInto(dx, dy, dz, { face: 0, u: 0, v: 0 });
+}
+
+export function cubeUVToTexelInto(u, v, n, out) {
   let i = ((u * 0.5 + 0.5) * n) | 0;
   let j = ((0.5 - v * 0.5) * n) | 0;
   const last = (n - 1) | 0;
@@ -105,22 +112,31 @@ export function cubeUVToTexel(u, v, n) {
   if ((i > last) | 0) i = last;
   if ((j < 0) | 0) j = 0;
   if ((j > last) | 0) j = last;
-  return { i: i, j: j };
+  out.i = i;
+  out.j = j;
+  return out;
+}
+
+export function cubeUVToTexel(u, v, n) {
+  return cubeUVToTexelInto(u, v, n, { i: 0, j: 0 });
 }
 
 export function cubeFaceOffset(face, n) {
   return (face * n * n) | 0;
 }
 
-export function cubeDirFromTexel(face, i, j, n) {
+export function cubeDirFromTexelInto(face, i, j, n, out) {
   const u = cubePixelUV(i, n);
   const v = -cubePixelUV(j, n);
   const c = CUBE_FACE_C[face];
   const fu = CUBE_FACE_U[face];
   const fv = CUBE_FACE_V[face];
-  return {
-    x: c[0] + fu[0] * u + fv[0] * v,
-    y: c[1] + fu[1] * u + fv[1] * v,
-    z: c[2] + fu[2] * u + fv[2] * v,
-  };
+  out.x = c[0] + fu[0] * u + fv[0] * v;
+  out.y = c[1] + fu[1] * u + fv[1] * v;
+  out.z = c[2] + fu[2] * u + fv[2] * v;
+  return out;
+}
+
+export function cubeDirFromTexel(face, i, j, n) {
+  return cubeDirFromTexelInto(face, i, j, n, { x: 0, y: 0, z: 0 });
 }

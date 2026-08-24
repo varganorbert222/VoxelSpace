@@ -70,7 +70,9 @@ export function createStorageTarget(device, width, height, format) {
     width,
     height,
     format,
-    GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC
+    GPUTextureUsage.STORAGE_BINDING |
+      GPUTextureUsage.TEXTURE_BINDING |
+      GPUTextureUsage.COPY_SRC
   );
 }
 
@@ -136,12 +138,12 @@ export function uploadColor(device, texture, colorMap, width, height) {
   );
 }
 
-export function writeBuffer(device, gpuBuf, data) {
+export function writeBuffer(device, gpuBuf, data, destOffset) {
   const raw =
     data.buffer && data.byteLength != null
       ? new Uint8Array(data.buffer, data.byteOffset | 0, data.byteLength)
       : new Uint8Array(data);
-  device.queue.writeBuffer(gpuBuf, 0, raw);
+  device.queue.writeBuffer(gpuBuf, destOffset | 0, raw);
 }
 
 export function createStorageBuffer(device, bytes, extraUsage) {

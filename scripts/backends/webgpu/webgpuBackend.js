@@ -64,8 +64,6 @@ import {
   createColorTexture,
   createScreenTarget,
   createPanoDepthTarget,
-  createSampleTarget,
-  copyTarget,
   copyTargetToLayer,
   createCubeArray,
   uploadHeight,
@@ -76,7 +74,7 @@ import {
   destroyTex,
   destroyBuf,
 } from "./resources.js";
-import { createFramePacker, packFrame } from "./uniforms.js";
+import { createFramePacker, packFrame, FRAME_BYTES } from "./uniforms.js";
 import { cpuU32ToPackedRgba } from "./color.js";
 import { WEBGPU_WORKGROUP_1D, WEBGPU_WORKGROUP_2D } from "../../constants/webgpu.js";
 
@@ -234,6 +232,10 @@ class WebGpuBackend {
     this._cubeIterArray = null;
     this._lost = false;
     this._disposing = false;
+    this._bindCache = Object.create(null);
+    this._cubeFaceStride = 0;
+    this._cubeFaceUniform = null;
+    this._cubeFaceBinds = null;
   }
 
   get debugView() {
@@ -268,6 +270,7 @@ class WebGpuBackend {
     this._configureCanvas(canvas);
     this._pipes = await createPipelines(this._device, this._format);
     this._uniformBuf = createUniformBuffer(this._device, this._framePacker.buffer.byteLength);
+    this._initCubeFaceUniforms();
     this._offsetBuf = createStorageBuffer(this._device, 8 * 4);
     this._deltaBuf = createStorageBuffer(this._device, 8 * 4);
     this._distBuf = createStorageBuffer(this._device, 16 * 4);
@@ -320,6 +323,7 @@ class WebGpuBackend {
         uploadColor(this._device, this._colorTex[m], colorMaps[m], w, h);
       }
     }
+    this._dropBinds(["maps", "cubeMips", "classicMaps"]);
   }
 
   _ensureScreen(width, height) {
@@ -332,8 +336,9 @@ class WebGpuBackend {
     }
     destroyTex(this._screenTex);
     destroyTex(this._screenSample);
+    this._screenSample = null;
     this._screenTex = createScreenTarget(this._device, width, height);
-    this._screenSample = createSampleTarget(this._device, width, height, "r32uint");
+    this._dropBinds(["viewOut", "classicOut", "blit"]);
   }
 
   _ensurePano(width, height) {
@@ -352,36 +357,17 @@ class WebGpuBackend {
     destroyTex(this._panoHeightSample);
     destroyTex(this._panoIter);
     destroyTex(this._panoIterSample);
+    this._panoColorSample = null;
+    this._panoDepthSample = null;
+    this._panoHeightSample = null;
+    this._panoIterSample = null;
     this._panoColor = createScreenTarget(this._device, width, height);
-    this._panoColorSample = createSampleTarget(
-      this._device,
-      width,
-      height,
-      "r32uint"
-    );
     this._panoDepth = createPanoDepthTarget(this._device, width, height);
-    this._panoDepthSample = createSampleTarget(
-      this._device,
-      width,
-      height,
-      "r32float"
-    );
     this._panoHeight = createScreenTarget(this._device, width, height);
-    this._panoHeightSample = createSampleTarget(
-      this._device,
-      width,
-      height,
-      "r32uint"
-    );
     this._panoIter = createScreenTarget(this._device, width, height);
-    this._panoIterSample = createSampleTarget(
-      this._device,
-      width,
-      height,
-      "r32uint"
-    );
     this._panoW = width;
     this._panoH = height;
+    this._dropBinds(["panoOut", "panoSample"]);
     this._uploadPanoLuts(
       width,
       height,
@@ -413,6 +399,7 @@ class WebGpuBackend {
     this._cubeHeightArray = createCubeArray(this._device, n, "r32uint");
     this._cubeIterArray = createCubeArray(this._device, n, "r32uint");
     this._cubeN = n;
+    this._dropBinds(["cubeScratch", "cubeSample"]);
     this.invalidatePanorama();
   }
 
@@ -455,6 +442,7 @@ class WebGpuBackend {
     writeBuffer(this._device, this._yHitSinBuf, yHitSin);
     writeBuffer(this._device, this._viewSkyBuf, viewSky);
     this._panoLutKey = key;
+    this._dropBinds(["panoLut", "viewLut"]);
   }
 
   _writeSkyRows(packed) {
@@ -462,8 +450,58 @@ class WebGpuBackend {
       destroyBuf(this._skyRowBuf);
       this._skyRowBuf = createStorageBuffer(this._device, packed.byteLength);
       this._skyRowCap = packed.byteLength;
+      this._dropBinds(["classicOut", "cubeSky"]);
     }
     writeBuffer(this._device, this._skyRowBuf, packed);
+  }
+
+  _dropBinds(keys) {
+    if (!keys || !keys.length) {
+      this._bindCache = Object.create(null);
+      return;
+    }
+    for (let i = 0; (i < keys.length) | 0; i = (i + 1) | 0) {
+      this._bindCache[keys[i]] = null;
+    }
+  }
+
+  _cachedBind(key, factory) {
+    const cached = this._bindCache[key];
+    if (cached) {
+      return cached;
+    }
+    const bg = factory();
+    this._bindCache[key] = bg;
+    return bg;
+  }
+
+  _initCubeFaceUniforms() {
+    const align = Math.max(
+      this._device.limits.minUniformBufferOffsetAlignment | 0,
+      256
+    );
+    this._cubeFaceStride = (((FRAME_BYTES + align - 1) / align) | 0) * align;
+    destroyBuf(this._cubeFaceUniform);
+    this._cubeFaceUniform = createUniformBuffer(
+      this._device,
+      this._cubeFaceStride * 6
+    );
+    this._cubeFaceBinds = [];
+    for (let i = 0; i < 6; i = (i + 1) | 0) {
+      this._cubeFaceBinds[i] = this._device.createBindGroup({
+        layout: this._pipes.layouts.frame,
+        entries: [
+          {
+            binding: 0,
+            resource: {
+              buffer: this._cubeFaceUniform,
+              offset: i * this._cubeFaceStride,
+              size: FRAME_BYTES,
+            },
+          },
+        ],
+      });
+    }
   }
 
   async resize(surface) {
@@ -533,7 +571,7 @@ class WebGpuBackend {
     return kind === "h" ? this._dummyH : this._dummyC;
   }
 
-  _pack(camera, terrain, screenW, screenH, panoW, panoH, cubeFace) {
+  _pack(camera, terrain, screenW, screenH, panoW, panoH, cubeFace, destBuf, destOffset) {
     const maps = this._maps;
     const q = qualityIndex(camera.quality);
     const fov = camera.calculateFov();
@@ -652,7 +690,12 @@ class WebGpuBackend {
       maskH2: (h2 - 1) | 0,
       ...this._debugPack(screenW, screenH),
     });
-    writeBuffer(this._device, this._uniformBuf, this._framePacker.f32);
+    writeBuffer(
+      this._device,
+      destBuf || this._uniformBuf,
+      this._framePacker.f32,
+      destOffset | 0
+    );
   }
 
   _debugPack(screenW, screenH) {
@@ -708,35 +751,43 @@ class WebGpuBackend {
   }
 
   _frameBind() {
-    return this._device.createBindGroup({
-      layout: this._pipes.layouts.frame,
-      entries: [{ binding: 0, resource: { buffer: this._uniformBuf } }],
-    });
+    return this._cachedBind("frame", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.frame,
+        entries: [{ binding: 0, resource: { buffer: this._uniformBuf } }],
+      })
+    );
   }
 
   _dispatchClassic(encoder, screenW, screenH) {
-    const tables = this._device.createBindGroup({
-      layout: this._pipes.layouts.classicTables,
-      entries: [
-        { binding: 0, resource: { buffer: this._offsetBuf } },
-        { binding: 1, resource: { buffer: this._deltaBuf } },
-        { binding: 2, resource: { buffer: this._distBuf } },
-      ],
-    });
-    const maps = this._device.createBindGroup({
-      layout: this._pipes.layouts.maps,
-      entries: [
-        { binding: 0, resource: this._mipOrDummy("h", 0).createView() },
-        { binding: 1, resource: this._mipOrDummy("c", 0).createView() },
-      ],
-    });
-    const out = this._device.createBindGroup({
-      layout: this._pipes.layouts.classicOut,
-      entries: [
-        { binding: 0, resource: this._screenTex.createView() },
-        { binding: 1, resource: { buffer: this._skyRowBuf } },
-      ],
-    });
+    const tables = this._cachedBind("classicTables", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.classicTables,
+        entries: [
+          { binding: 0, resource: { buffer: this._offsetBuf } },
+          { binding: 1, resource: { buffer: this._deltaBuf } },
+          { binding: 2, resource: { buffer: this._distBuf } },
+        ],
+      })
+    );
+    const maps = this._cachedBind("classicMaps", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.maps,
+        entries: [
+          { binding: 0, resource: this._mipOrDummy("h", 0).createView() },
+          { binding: 1, resource: this._mipOrDummy("c", 0).createView() },
+        ],
+      })
+    );
+    const out = this._cachedBind("classicOut", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.classicOut,
+        entries: [
+          { binding: 0, resource: this._screenTex.createView() },
+          { binding: 1, resource: { buffer: this._skyRowBuf } },
+        ],
+      })
+    );
     const pass = encoder.beginComputePass();
     pass.setPipeline(this._pipes.classic);
     pass.setBindGroup(0, this._frameBind());
@@ -748,72 +799,84 @@ class WebGpuBackend {
   }
 
   _cubeMipsBind() {
-    return this._device.createBindGroup({
-      layout: this._pipes.layouts.mips,
-      entries: [
-        { binding: 0, resource: this._mipOrDummy("h", 0).createView() },
-        { binding: 1, resource: this._mipOrDummy("c", 0).createView() },
-        { binding: 2, resource: this._mipOrDummy("h", 1).createView() },
-        { binding: 3, resource: this._mipOrDummy("c", 1).createView() },
-        { binding: 4, resource: this._mipOrDummy("h", 2).createView() },
-        { binding: 5, resource: this._mipOrDummy("c", 2).createView() },
-      ],
-    });
+    return this._cachedBind("cubeMips", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.mips,
+        entries: [
+          { binding: 0, resource: this._mipOrDummy("h", 0).createView() },
+          { binding: 1, resource: this._mipOrDummy("c", 0).createView() },
+          { binding: 2, resource: this._mipOrDummy("h", 1).createView() },
+          { binding: 3, resource: this._mipOrDummy("c", 1).createView() },
+          { binding: 4, resource: this._mipOrDummy("h", 2).createView() },
+          { binding: 5, resource: this._mipOrDummy("c", 2).createView() },
+        ],
+      })
+    );
   }
 
   _cubeScratchOut() {
-    return this._device.createBindGroup({
-      layout: this._pipes.layouts.panoOut,
-      entries: [
-        { binding: 0, resource: this._cubeScratchColor.createView() },
-        { binding: 1, resource: this._cubeScratchDepth.createView() },
-        { binding: 2, resource: this._cubeScratchHeight.createView() },
-        { binding: 3, resource: this._cubeScratchIter.createView() },
-      ],
-    });
+    return this._cachedBind("cubeScratch", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.panoOut,
+        entries: [
+          { binding: 0, resource: this._cubeScratchColor.createView() },
+          { binding: 1, resource: this._cubeScratchDepth.createView() },
+          { binding: 2, resource: this._cubeScratchHeight.createView() },
+          { binding: 3, resource: this._cubeScratchIter.createView() },
+        ],
+      })
+    );
   }
 
   _cubeSampleBind() {
-    return this._device.createBindGroup({
-      layout: this._pipes.layouts.cubeSample,
-      entries: [
-        { binding: 0, resource: this._cubeColorArray.createView() },
-        { binding: 1, resource: this._cubeDepthArray.createView() },
-        { binding: 2, resource: this._cubeHeightArray.createView() },
-        { binding: 3, resource: this._cubeIterArray.createView() },
-      ],
-    });
+    return this._cachedBind("cubeSample", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.cubeSample,
+        entries: [
+          { binding: 0, resource: this._cubeColorArray.createView() },
+          { binding: 1, resource: this._cubeDepthArray.createView() },
+          { binding: 2, resource: this._cubeHeightArray.createView() },
+          { binding: 3, resource: this._cubeIterArray.createView() },
+        ],
+      })
+    );
   }
 
   _panoOutBind() {
-    return this._device.createBindGroup({
-      layout: this._pipes.layouts.panoOut,
-      entries: [
-        { binding: 0, resource: this._panoColor.createView() },
-        { binding: 1, resource: this._panoDepth.createView() },
-        { binding: 2, resource: this._panoHeight.createView() },
-        { binding: 3, resource: this._panoIter.createView() },
-      ],
-    });
+    return this._cachedBind("panoOut", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.panoOut,
+        entries: [
+          { binding: 0, resource: this._panoColor.createView() },
+          { binding: 1, resource: this._panoDepth.createView() },
+          { binding: 2, resource: this._panoHeight.createView() },
+          { binding: 3, resource: this._panoIter.createView() },
+        ],
+      })
+    );
   }
 
   _panoSampleBind() {
-    return this._device.createBindGroup({
-      layout: this._pipes.layouts.panoSample,
-      entries: [
-        { binding: 0, resource: this._panoColorSample.createView() },
-        { binding: 1, resource: this._panoDepthSample.createView() },
-        { binding: 2, resource: this._panoHeightSample.createView() },
-        { binding: 3, resource: this._panoIterSample.createView() },
-      ],
-    });
+    return this._cachedBind("panoSample", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.panoSample,
+        entries: [
+          { binding: 0, resource: this._panoColor.createView() },
+          { binding: 1, resource: this._panoDepth.createView() },
+          { binding: 2, resource: this._panoHeight.createView() },
+          { binding: 3, resource: this._panoIter.createView() },
+        ],
+      })
+    );
   }
 
   _viewOutBind() {
-    return this._device.createBindGroup({
-      layout: this._pipes.layouts.viewOut,
-      entries: [{ binding: 0, resource: this._screenTex.createView() }],
-    });
+    return this._cachedBind("viewOut", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.viewOut,
+        entries: [{ binding: 0, resource: this._screenTex.createView() }],
+      })
+    );
   }
 
   _copyCubeFace(encoder, layer) {
@@ -851,66 +914,74 @@ class WebGpuBackend {
     );
   }
 
-  _dispatchCubeGenerate(camera, terrain, screenW, screenH) {
+  _dispatchCubeGenerate(encoder, camera, terrain, screenW, screenH) {
     const n = this._cubeN;
     const mips = this._cubeMipsBind();
     const out = this._cubeScratchOut();
     const wg = Math.ceil(n / WEBGPU_WORKGROUP_2D);
+    const stride = this._cubeFaceStride;
+    for (let face = 0; face < 6; face = (face + 1) | 0) {
+      this._pack(
+        camera,
+        terrain,
+        screenW,
+        screenH,
+        n,
+        n,
+        face,
+        this._cubeFaceUniform,
+        face * stride
+      );
+    }
     for (let face = 0; face < 4; face = (face + 1) | 0) {
-      this._pack(camera, terrain, screenW, screenH, n, n, face);
-      const encoder = this._device.createCommandEncoder();
       const pass = encoder.beginComputePass();
       pass.setPipeline(this._pipes.cubeGenerate);
-      pass.setBindGroup(0, this._frameBind());
+      pass.setBindGroup(0, this._cubeFaceBinds[face]);
       pass.setBindGroup(1, mips);
       pass.setBindGroup(2, out);
       pass.dispatchWorkgroups(Math.ceil(n / WEBGPU_WORKGROUP_1D));
       pass.end();
       this._copyCubeFace(encoder, face);
-      this._device.queue.submit([encoder.finish()]);
     }
     for (let face = 4; face < 6; face = (face + 1) | 0) {
-      this._pack(camera, terrain, screenW, screenH, n, n, face);
-      const encoder = this._device.createCommandEncoder();
       const fill = encoder.beginComputePass();
       fill.setPipeline(this._pipes.cubeFill);
-      fill.setBindGroup(0, this._frameBind());
+      fill.setBindGroup(0, this._cubeFaceBinds[face]);
       fill.setBindGroup(1, out);
       fill.dispatchWorkgroups(wg, wg);
       fill.end();
       const polar = encoder.beginComputePass();
       polar.setPipeline(this._pipes.cubePolar);
-      polar.setBindGroup(0, this._frameBind());
+      polar.setBindGroup(0, this._cubeFaceBinds[face]);
       polar.setBindGroup(1, mips);
       polar.setBindGroup(2, out);
       polar.dispatchWorkgroups(Math.ceil((n * 4) / WEBGPU_WORKGROUP_1D));
       polar.end();
       this._copyCubeFace(encoder, face);
-      this._device.queue.submit([encoder.finish()]);
     }
-    this._dispatchCubeStitch();
+    this._dispatchCubeStitch(encoder);
   }
 
-  _dispatchCubeStitch() {
+  _dispatchCubeStitch(encoder) {
     const n = this._cubeN;
     const wg = Math.ceil(n / WEBGPU_WORKGROUP_2D);
-    const encoder = this._device.createCommandEncoder();
     const pass = encoder.beginComputePass();
     pass.setPipeline(this._pipes.cubeStitch);
-    pass.setBindGroup(0, this._frameBind());
+    pass.setBindGroup(0, this._cubeFaceBinds[0]);
     pass.setBindGroup(1, this._cubeSampleBind());
     pass.setBindGroup(2, this._cubeScratchOut());
     pass.dispatchWorkgroups(wg, wg);
     pass.end();
     this._copyCubeFace(encoder, 5);
-    this._device.queue.submit([encoder.finish()]);
   }
 
   _dispatchCubeView(encoder, screenW, screenH) {
-    const sky = this._device.createBindGroup({
-      layout: this._pipes.layouts.cubeSky,
-      entries: [{ binding: 0, resource: { buffer: this._skyRowBuf } }],
-    });
+    const sky = this._cachedBind("cubeSky", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.cubeSky,
+        entries: [{ binding: 0, resource: { buffer: this._skyRowBuf } }],
+      })
+    );
     const pass = encoder.beginComputePass();
     pass.setPipeline(this._pipes.cubeView);
     pass.setBindGroup(0, this._frameBind());
@@ -925,26 +996,18 @@ class WebGpuBackend {
   }
 
   _dispatchGenerate(encoder, panoW) {
-    const luts = this._device.createBindGroup({
-      layout: this._pipes.layouts.panoLut,
-      entries: [
-        { binding: 0, resource: { buffer: this._tanBuf } },
-        { binding: 1, resource: { buffer: this._yHitBuf } },
-        { binding: 2, resource: { buffer: this._dirBuf } },
-        { binding: 3, resource: { buffer: this._panoSkyBuf } },
-      ],
-    });
-    const mips = this._device.createBindGroup({
-      layout: this._pipes.layouts.mips,
-      entries: [
-        { binding: 0, resource: this._mipOrDummy("h", 0).createView() },
-        { binding: 1, resource: this._mipOrDummy("c", 0).createView() },
-        { binding: 2, resource: this._mipOrDummy("h", 1).createView() },
-        { binding: 3, resource: this._mipOrDummy("c", 1).createView() },
-        { binding: 4, resource: this._mipOrDummy("h", 2).createView() },
-        { binding: 5, resource: this._mipOrDummy("c", 2).createView() },
-      ],
-    });
+    const luts = this._cachedBind("panoLut", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.panoLut,
+        entries: [
+          { binding: 0, resource: { buffer: this._tanBuf } },
+          { binding: 1, resource: { buffer: this._yHitBuf } },
+          { binding: 2, resource: { buffer: this._dirBuf } },
+          { binding: 3, resource: { buffer: this._panoSkyBuf } },
+        ],
+      })
+    );
+    const mips = this._cubeMipsBind();
     const out = this._panoOutBind();
     const pass = encoder.beginComputePass();
     pass.setPipeline(this._pipes.generate);
@@ -954,21 +1017,19 @@ class WebGpuBackend {
     pass.setBindGroup(3, out);
     pass.dispatchWorkgroups(Math.ceil(panoW / WEBGPU_WORKGROUP_1D));
     pass.end();
-    copyTarget(encoder, this._panoColor, this._panoColorSample, this._panoW, this._panoH);
-    copyTarget(encoder, this._panoDepth, this._panoDepthSample, this._panoW, this._panoH);
-    copyTarget(encoder, this._panoHeight, this._panoHeightSample, this._panoW, this._panoH);
-    copyTarget(encoder, this._panoIter, this._panoIterSample, this._panoW, this._panoH);
   }
 
   _dispatchView(encoder, screenW, screenH) {
-    const luts = this._device.createBindGroup({
-      layout: this._pipes.layouts.viewLut,
-      entries: [
-        { binding: 0, resource: { buffer: this._atanBuf } },
-        { binding: 1, resource: { buffer: this._yHitSinBuf } },
-        { binding: 2, resource: { buffer: this._viewSkyBuf } },
-      ],
-    });
+    const luts = this._cachedBind("viewLut", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.viewLut,
+        entries: [
+          { binding: 0, resource: { buffer: this._atanBuf } },
+          { binding: 1, resource: { buffer: this._yHitSinBuf } },
+          { binding: 2, resource: { buffer: this._viewSkyBuf } },
+        ],
+      })
+    );
     const sample = this._panoSampleBind();
     const out = this._viewOutBind();
     const pass = encoder.beginComputePass();
@@ -1007,17 +1068,18 @@ class WebGpuBackend {
     pass.end();
   }
 
-  _present(encoder, screenW, screenH) {
-    copyTarget(encoder, this._screenTex, this._screenSample, screenW, screenH);
+  _present(encoder) {
     this._blit(encoder);
   }
 
   _blit(encoder) {
     const view = this._context.getCurrentTexture().createView();
-    const bg = this._device.createBindGroup({
-      layout: this._pipes.layouts.blit,
-      entries: [{ binding: 0, resource: this._screenSample.createView() }],
-    });
+    const bg = this._cachedBind("blit", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.blit,
+        entries: [{ binding: 0, resource: this._screenTex.createView() }],
+      })
+    );
     const pass = encoder.beginRenderPass({
       colorAttachments: [
         {
@@ -1047,11 +1109,6 @@ class WebGpuBackend {
       return;
     }
     this._ensureScreen(screenW, screenH);
-    const dst = camera.calculateProjPlane();
-    const horizon = camera.calculateHorizon(dst);
-    this._writeSkyRows(
-      classicSkyRows(screenH, horizon, camera.topColor, camera.bottomColor)
-    );
 
     if (frame.algorithm === ALGORITHM_CUBEMAP) {
       const n = cubeSizeForQuality(camera.quality);
@@ -1059,15 +1116,15 @@ class WebGpuBackend {
       this._writeSkyRows(
         viewSkyRows(screenH, camera.topColor, camera.bottomColor)
       );
+      const encoder = this._device.createCommandEncoder();
       if (this._shouldRegen(terrain, camera, screenW, screenH)) {
-        this._dispatchCubeGenerate(camera, terrain, screenW, screenH);
+        this._dispatchCubeGenerate(encoder, camera, terrain, screenW, screenH);
         this._commitPano(terrain, camera, screenW, screenH);
       }
       this._pack(camera, terrain, screenW, screenH, n, n);
-      const encoder = this._device.createCommandEncoder();
       this._dispatchCubeView(encoder, screenW, screenH);
       this._dispatchOverlay(encoder, screenW, screenH, true);
-      this._present(encoder, screenW, screenH);
+      this._present(encoder);
       this._device.queue.submit([encoder.finish()]);
       return;
     }
@@ -1091,10 +1148,15 @@ class WebGpuBackend {
       this._dispatchView(encoder, screenW, screenH);
       this._dispatchOverlay(encoder, screenW, screenH, false);
     } else {
+      const dst = camera.calculateProjPlane();
+      const horizon = camera.calculateHorizon(dst);
+      this._writeSkyRows(
+        classicSkyRows(screenH, horizon, camera.topColor, camera.bottomColor)
+      );
       this._writeClassicTables(camera);
       this._dispatchClassic(encoder, screenW, screenH);
     }
-    this._present(encoder, screenW, screenH);
+    this._present(encoder);
     this._device.queue.submit([encoder.finish()]);
   }
 
@@ -1133,6 +1195,7 @@ class WebGpuBackend {
       destroyTex(this._colorTex[i]);
     }
     destroyBuf(this._uniformBuf);
+    destroyBuf(this._cubeFaceUniform);
     destroyBuf(this._offsetBuf);
     destroyBuf(this._deltaBuf);
     destroyBuf(this._distBuf);

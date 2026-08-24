@@ -1,8 +1,13 @@
 "use strict";
 
-import { renderCubemapFaces } from "./cubemapmarch.js";
+import { renderCubemapFaces, stitchCubePolarSeams, fillCubePolarSky, mergeCubePolarSlice } from "./cubemapmarch.js";
 import { renderCubemapView } from "./cubemapViewer.js";
-import { CUBE_FACE_COUNT, cubeSizeForQuality } from "../constants/cubemap.js";
+import {
+  CUBE_FACE_COUNT,
+  CUBE_FACE_PZ,
+  cubeFaceOffset,
+  cubeSizeForQuality,
+} from "../constants/cubemap.js";
 import { farPlaneRayTMax } from "../constants/panorama.js";
 import { blitRendererOverlay } from "./debugOverlay.js";
 import { needsHeightBuf, needsIterBuf } from "../constants/debugView.js";
@@ -183,6 +188,128 @@ class CubemapRenderer {
     });
   }
 
+  _copyGenerateSlices(slices, terrain) {
+    const n = this._cubeN | 0;
+    const faceN = (n * n) | 0;
+    const polarN = (faceN << 1) | 0;
+    const color = this._cubeColor;
+    const depth = this._cubeDepth;
+    const heightBuf = this._cubeHeight;
+    const iterBuf = this._cubeIter;
+    const polarSlices = [];
+    for (let i = 0; (i < slices.length) | 0; i = (i + 1) | 0) {
+      const slice = slices[i];
+      if (!slice || !slice.pixels || !slice.depth) {
+        return false;
+      }
+      if (slice.kind === "polar") {
+        if (slice.pixels.length !== polarN || slice.depth.length !== polarN) {
+          return false;
+        }
+        polarSlices.push(slice);
+        continue;
+      }
+      const off = cubeFaceOffset(slice.face | 0, n);
+      if (slice.pixels.length !== faceN) {
+        return false;
+      }
+      color.set(slice.pixels, off);
+      depth.set(slice.depth, off);
+      if (heightBuf && slice.heightBuf) {
+        heightBuf.set(slice.heightBuf, off);
+      }
+      if (iterBuf && slice.iter) {
+        iterBuf.set(slice.iter, off);
+      }
+    }
+    if (!polarSlices.length) {
+      return false;
+    }
+    const camera = this._renderer.camera;
+    fillCubePolarSky(
+      color,
+      depth,
+      heightBuf,
+      iterBuf,
+      n,
+      terrain.skyColor,
+      camera.bottomColor
+    );
+    const polarOff = cubeFaceOffset(CUBE_FACE_PZ, n);
+    for (let i = 0; (i < polarSlices.length) | 0; i = (i + 1) | 0) {
+      const slice = polarSlices[i];
+      mergeCubePolarSlice(
+        color,
+        depth,
+        heightBuf,
+        iterBuf,
+        slice.pixels,
+        slice.depth,
+        slice.heightBuf,
+        slice.iter,
+        polarOff,
+        polarN
+      );
+    }
+    stitchCubePolarSeams(color, depth, heightBuf, iterBuf, n);
+    return true;
+  }
+
+  async _generateMulti(terrain) {
+    const renderer = this._renderer;
+    const maps = terrain.exportMaps();
+    const pool = renderer.ensurePool();
+    pool.initMaps(maps);
+    const camera = renderer.camera;
+    const tMax = this._tMax();
+    const token = {
+      n: this._cubeN,
+      quality: camera.quality,
+      farClip: camera.farClip,
+      tMax: tMax,
+      repeat: renderer.repeat,
+      minDeltaZ: camera.minDeltaZ,
+      camX: camera.posX,
+      camY: camera.posY,
+      camZ: camera.posZ,
+    };
+    const slices = await pool.renderCubemapGenerate({
+      n: this._cubeN,
+      camX: camera.posX,
+      camY: camera.posY,
+      camZ: camera.posZ,
+      farClip: camera.farClip,
+      nearClip: camera.nearClip,
+      tMax: tMax,
+      repeat: renderer.repeat,
+      skyColor: terrain.skyColor,
+      horizonColor: camera.bottomColor,
+      initialStep: camera.minDeltaZ,
+      quality: camera.quality,
+      interpolateHeight: renderer.interpolateHeight ? 1 : 0,
+      filterColor: renderer.filterColor ? 1 : 0,
+      wantHeight: needsHeightBuf(renderer.debugView),
+      wantIter: needsIterBuf(renderer.debugView),
+    });
+    if (!slices) {
+      return false;
+    }
+    if (
+      this._cubeN !== token.n ||
+      camera.quality !== token.quality ||
+      camera.farClip !== token.farClip ||
+      this._tMax() !== token.tMax ||
+      renderer.repeat !== token.repeat ||
+      camera.minDeltaZ !== token.minDeltaZ ||
+      camera.posX !== token.camX ||
+      camera.posY !== token.camY ||
+      camera.posZ !== token.camZ
+    ) {
+      return false;
+    }
+    return this._copyGenerateSlices(slices, terrain);
+  }
+
   _viewParams() {
     const renderer = this._renderer;
     const camera = renderer.camera;
@@ -318,7 +445,13 @@ class CubemapRenderer {
     this._syncSize();
     this._ensureBuffers();
     if (this._shouldRegenerate(terrain)) {
-      this._generateLocal(terrain);
+      let generated = false;
+      if (renderer.useWorkers()) {
+        generated = await this._generateMulti(terrain);
+      }
+      if (!generated) {
+        this._generateLocal(terrain);
+      }
       this._commitCache(terrain);
       this._viewLocal();
       this._blitOverlay();

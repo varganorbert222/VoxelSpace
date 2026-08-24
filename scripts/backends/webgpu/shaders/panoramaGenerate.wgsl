@@ -273,7 +273,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       wasInside = 1;
     }
 
-    let h = sampleHeight(mip, wx, wy);
+    let hs = sampleHeightPair(mip, wx, wy);
+    let h = hs.x;
     if (sealed && (h < camZ + t * tanH - EPSILON)) {
       t = t + step;
       step = step + stepGrowth;
@@ -307,7 +308,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       if (yHit < yBottom) {
         let color = sampleColor(mip, wx, wy);
         let dist = sqrt(t * t + dh * dh);
-        let hByte = sampleHeightByte(mip, wx, wy);
+        let hByte = u32(hs.y);
         var yy = yHit;
         loop {
           if (yy >= yBottom) {

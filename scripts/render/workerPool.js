@@ -11,15 +11,18 @@ import {
   MSG_RENDER_PANORAMA,
   MSG_RENDER_PANO_VIEW,
   MSG_RENDER_CUBE_VIEW,
+  MSG_RENDER_CUBE_GENERATE,
   MSG_RESULT_CLASSIC,
   MSG_RESULT_PANORAMA,
   MSG_RESULT_PANO_VIEW,
   MSG_RESULT_CUBE_VIEW,
+  MSG_RESULT_CUBE_GENERATE,
   MSG_WORKER_ERROR,
   classicRenderPayload,
   panoramaViewPayload,
   panoramaGeneratePayload,
   cubemapViewPayload,
+  cubemapGeneratePayload,
 } from "./jobProtocol.js";
 import { PIXEL_OFFSET_ALIGN } from "../constants/classic.js";
 import { BACKEND_JS } from "../constants/backend.js";
@@ -297,9 +300,107 @@ class WorkerPool {
     );
   }
 
+  renderCubemapGenerate(params) {
+    this.ensureWorkers();
+    const n = params.n | 0;
+    const jobs = [];
+    for (let face = 0; face < 4; face = (face + 1) | 0) {
+      jobs.push({ kind: "horizon", face: face });
+    }
+    const azCount = n << 2;
+    const polarJobs = Math.max(1, Math.min(this._slots.length, 4));
+    const azChunk = Math.ceil(azCount / polarJobs) | 0;
+    for (let i = 0; (i < polarJobs) | 0; i = (i + 1) | 0) {
+      const startAz = (i * azChunk) | 0;
+      if ((startAz >= azCount) | 0) {
+        break;
+      }
+      let endAz = (startAz + azChunk) | 0;
+      if ((endAz > azCount) | 0) {
+        endAz = azCount;
+      }
+      jobs.push({
+        kind: "polar",
+        startAz: startAz,
+        endAz: endAz,
+        fillSky: 0,
+      });
+    }
+    return this._whenReady().then(() =>
+      this._runJobList(jobs, (worker, jobId, job) => {
+        worker.postMessage(cubemapGeneratePayload(jobId, job, params));
+      })
+    );
+  }
+
   _whenReady() {
     this.ensureWorkers();
     return this._ready || Promise.resolve();
+  }
+
+  _runJobList(jobs, postFn) {
+    this.ensureWorkers();
+    if (this._active) {
+      this.cancel();
+    }
+    this._jobId = (this._jobId + 1) | 0;
+    const jobId = this._jobId;
+    return new Promise((resolve) => {
+      if (!jobs.length) {
+        resolve([]);
+        return;
+      }
+      const results = new Array(jobs.length);
+      let remaining = jobs.length;
+      let next = 0;
+      let settled = 0;
+      const finish = (value) => {
+        if (settled) {
+          return;
+        }
+        settled = 1;
+        if (this._active && this._active.jobId === jobId) {
+          this._active = null;
+        }
+        resolve(value);
+      };
+      const postNext = (slot) => {
+        if (jobId !== this._jobId) {
+          return;
+        }
+        if ((next >= jobs.length) | 0) {
+          return;
+        }
+        const index = next;
+        next = (next + 1) | 0;
+        slot.busy = 1;
+        slot.chunkIndex = index;
+        postFn(slot.worker, jobId, jobs[index], index);
+      };
+      this._active = {
+        jobId: jobId,
+        finish: finish,
+        postNext: postNext,
+        results: results,
+        remaining: remaining,
+        onChunk: (index, data) => {
+          if (jobId !== this._jobId) {
+            return;
+          }
+          results[index] = data;
+          remaining = (remaining - 1) | 0;
+          if (this._active) {
+            this._active.remaining = remaining;
+          }
+          if (remaining === 0) {
+            finish(results);
+          }
+        },
+      };
+      for (let i = 0; (i < this._slots.length) | 0; i = (i + 1) | 0) {
+        postNext(this._slots[i]);
+      }
+    });
   }
 
   _runJob(msgType, params, columnCount, align) {
@@ -438,6 +539,16 @@ class WorkerPool {
         startColumn: data.startColumn,
         endColumn: data.endColumn,
         pixels: new Uint32Array(data.pixels),
+      });
+    } else if (data.type === MSG_RESULT_CUBE_GENERATE) {
+      active.onChunk(index, {
+        kind: data.kind,
+        face: data.face,
+        n: data.n,
+        pixels: new Uint32Array(data.pixels),
+        depth: new Float32Array(data.depth),
+        heightBuf: data.heightBuf ? new Uint32Array(data.heightBuf) : null,
+        iter: data.iter ? new Uint32Array(data.iter) : null,
       });
     } else if (data.type === MSG_WORKER_ERROR) {
       console.error(

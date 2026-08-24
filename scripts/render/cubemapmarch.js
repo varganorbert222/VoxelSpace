@@ -33,16 +33,25 @@ import {
   CUBE_FACE_PZ,
   CUBE_FACE_U,
   CUBE_HORIZON_FACES,
-  cubeDirFromTexel,
+  cubeDirFromTexelInto,
   cubeFaceOffset,
   cubePixelUV,
-  cubeUVToTexel,
+  cubeUVToTexelInto,
 } from "../constants/cubemap.js";
 
 const mipSwitchT = new Float64Array(PANO_MIP_COUNT);
 const mipInvScale = new Float64Array(PANO_MIP_COUNT);
 const mipWMaskScratch = new Int32Array(PANO_MIP_COUNT);
 const mipHMaskScratch = new Int32Array(PANO_MIP_COUNT);
+const skyDirScratch = { x: 0, y: 0, z: 0 };
+const polarTexel0 = { i: 0, j: 0 };
+const polarTexel1 = { i: 0, j: 0 };
+const HAT_LUT_LAST = 256;
+let skyLutCache = null;
+let skyLutSky = 0;
+let skyLutHorizon = 0;
+let hatIndexCacheN = 0;
+let hatIndexCache = null;
 
 function wrapSampleCoord(v, mask, wrap) {
   if (wrap) {
@@ -167,25 +176,170 @@ function skyPalette(skyColor, horizonColor) {
   );
 }
 
-function fillCubeFaceSky(pixels, depth, heightBuf, iterBuf, face, n, palette) {
-  const faceOff = cubeFaceOffset(face, n);
-  const count = (n * n) | 0;
+function skyHatLut(skyColor, horizonColor) {
+  const sky = skyColor ?? Color.WHITE;
+  const horizon = horizonColor ?? Color.WHITE;
+  if (skyLutCache && skyLutSky === sky && skyLutHorizon === horizon) {
+    return skyLutCache;
+  }
+  const palette = skyPalette(sky, horizon);
+  const lut = new Uint32Array(HAT_LUT_LAST + 1);
+  for (let i = 0; (i <= HAT_LUT_LAST) | 0; i = (i + 1) | 0) {
+    const hat = i / (HAT_LUT_LAST * HALF) - 1;
+    lut[i] = palette.getColor(skyPaletteT(skyLinearFromHat(hat)));
+  }
+  skyLutSky = sky;
+  skyLutHorizon = horizon;
+  skyLutCache = lut;
+  return lut;
+}
+
+function hatIndicesForSize(n) {
+  if (hatIndexCache && hatIndexCacheN === n) {
+    return hatIndexCache;
+  }
+  const count = (6 * n * n) | 0;
+  const table = new Uint16Array(count);
+  const dir = skyDirScratch;
+  const scale = HAT_LUT_LAST * HALF;
+  for (let face = 0; (face < 6) | 0; face = (face + 1) | 0) {
+    const faceOff = cubeFaceOffset(face, n);
+    for (let j = 0; (j < n) | 0; j = (j + 1) | 0) {
+      const row = (faceOff + j * n) | 0;
+      for (let i = 0; (i < n) | 0; i = (i + 1) | 0) {
+        cubeDirFromTexelInto(face, i, j, n, dir);
+        const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
+        const hat = len > EPSILON ? dir.z / len : 0;
+        let idx = ((hat + 1) * scale) | 0;
+        if ((idx < 0) | 0) idx = 0;
+        if ((idx > HAT_LUT_LAST) | 0) idx = HAT_LUT_LAST;
+        table[row + i] = idx;
+      }
+    }
+  }
+  hatIndexCacheN = n;
+  hatIndexCache = table;
+  return table;
+}
+
+function fillCubeFaceSky(
+  pixels,
+  depth,
+  heightBuf,
+  iterBuf,
+  face,
+  n,
+  skyColor,
+  horizonColor,
+  startCol,
+  endCol,
+  faceOff
+) {
+  const off = faceOff == null ? cubeFaceOffset(face, n) : faceOff;
+  const hatOff = cubeFaceOffset(face, n);
+  const x0 = startCol | 0;
+  const x1 = endCol == null ? n : endCol | 0;
+  const lut = skyHatLut(skyColor, horizonColor);
+  const hats = hatIndicesForSize(n);
   if (depth) {
-    depth.fill(0, faceOff, faceOff + count);
+    if ((x0 === 0) & (x1 === n)) {
+      depth.fill(0, off, off + n * n);
+    } else {
+      for (let j = 0; (j < n) | 0; j = (j + 1) | 0) {
+        depth.fill(0, off + j * n + x0, off + j * n + x1);
+      }
+    }
   }
   if (heightBuf) {
-    heightBuf.fill(0, faceOff, faceOff + count);
+    if ((x0 === 0) & (x1 === n)) {
+      heightBuf.fill(0, off, off + n * n);
+    } else {
+      for (let j = 0; (j < n) | 0; j = (j + 1) | 0) {
+        heightBuf.fill(0, off + j * n + x0, off + j * n + x1);
+      }
+    }
   }
   if (iterBuf) {
-    iterBuf.fill(0, faceOff, faceOff + count);
+    if ((x0 === 0) & (x1 === n)) {
+      iterBuf.fill(0, off, off + n * n);
+    } else {
+      for (let j = 0; (j < n) | 0; j = (j + 1) | 0) {
+        iterBuf.fill(0, off + j * n + x0, off + j * n + x1);
+      }
+    }
   }
   for (let j = 0; (j < n) | 0; j = (j + 1) | 0) {
-    const row = (faceOff + j * n) | 0;
-    for (let i = 0; (i < n) | 0; i = (i + 1) | 0) {
-      const dir = cubeDirFromTexel(face, i, j, n);
-      const len = Math.hypot(dir.x, dir.y, dir.z);
-      const hat = len > EPSILON ? dir.z / len : 0;
-      pixels[row + i] = palette.getColor(skyPaletteT(skyLinearFromHat(hat)));
+    const row = (off + j * n) | 0;
+    const hatRow = (hatOff + j * n) | 0;
+    for (let i = x0; (i < x1) | 0; i = (i + 1) | 0) {
+      pixels[row + i] = lut[hats[hatRow + i]];
+    }
+  }
+}
+
+export function fillCubePolarSky(
+  pixels,
+  depth,
+  heightBuf,
+  iterBuf,
+  n,
+  skyColor,
+  horizonColor
+) {
+  fillCubeFaceSky(
+    pixels,
+    depth,
+    heightBuf,
+    iterBuf,
+    CUBE_FACE_PZ,
+    n,
+    skyColor,
+    horizonColor,
+    0,
+    n
+  );
+  fillCubeFaceSky(
+    pixels,
+    depth,
+    heightBuf,
+    iterBuf,
+    CUBE_FACE_NZ,
+    n,
+    skyColor,
+    horizonColor,
+    0,
+    n
+  );
+}
+
+export function mergeCubePolarSlice(
+  pixels,
+  depth,
+  heightBuf,
+  iterBuf,
+  slicePixels,
+  sliceDepth,
+  sliceHeight,
+  sliceIter,
+  off,
+  count
+) {
+  for (let i = 0; (i < count) | 0; i = (i + 1) | 0) {
+    const d = sliceDepth[i];
+    if (!(d > 0)) {
+      continue;
+    }
+    const dst = (off + i) | 0;
+    const prev = depth[dst];
+    if ((prev <= 0) | (d < prev)) {
+      pixels[dst] = slicePixels[i];
+      depth[dst] = d;
+      if (heightBuf && sliceHeight) {
+        heightBuf[dst] = sliceHeight[i];
+      }
+      if (iterBuf && sliceIter) {
+        iterBuf[dst] = sliceIter[i];
+      }
     }
   }
 }
@@ -346,7 +500,7 @@ function fillPolarRadial(
   heightBuf,
   iterBuf,
   n,
-  face,
+  faceOff,
   su,
   sv,
   r0,
@@ -365,18 +519,17 @@ function fillPolarRadial(
   if (!(b > a)) {
     return;
   }
-  const p0 = cubeUVToTexel(su * a, sv * a, n);
-  const p1 = cubeUVToTexel(su * b, sv * b, n);
-  let x0 = p0.i | 0;
-  let y0 = p0.j | 0;
-  const x1 = p1.i | 0;
-  const y1 = p1.j | 0;
+  cubeUVToTexelInto(su * a, sv * a, n, polarTexel0);
+  cubeUVToTexelInto(su * b, sv * b, n, polarTexel1);
+  let x0 = polarTexel0.i | 0;
+  let y0 = polarTexel0.j | 0;
+  const x1 = polarTexel1.i | 0;
+  const y1 = polarTexel1.j | 0;
   const dx = x1 > x0 ? (x1 - x0) | 0 : (x0 - x1) | 0;
   const dy = y1 > y0 ? (y1 - y0) | 0 : (y0 - y1) | 0;
   const sx = x0 < x1 ? 1 : -1;
   const sy = y0 < y1 ? 1 : -1;
   let err = (dx - dy) | 0;
-  const faceOff = cubeFaceOffset(face, n);
   if (heightBuf || iterBuf) {
     for (let guard = 0; (guard < 2048) | 0; guard = (guard + 1) | 0) {
       plotPolarTexelDebug(
@@ -455,6 +608,7 @@ export function renderCubemapHorizonColumns({
   iterBuf,
   tMax,
   panoMips,
+  faceOff: faceOffArg,
 }) {
   const m = setupMips(
     quality,
@@ -486,20 +640,22 @@ export function renderCubemapHorizonColumns({
   const cy = CUBE_FACE_C[face][1];
   const ux = CUBE_FACE_U[face][0];
   const uy = CUBE_FACE_U[face][1];
-  const faceOff = cubeFaceOffset(face, n);
+  const faceOff = faceOffArg == null ? cubeFaceOffset(face, n) : faceOffArg | 0;
   const halfN = n * HALF;
 
-  if ((startCol | 0) === 0) {
-    fillCubeFaceSky(
-      pixels,
-      depth,
-      heightBuf,
-      iterBuf,
-      face,
-      n,
-      skyPalette(skyColor, horizonColor)
-    );
-  }
+  fillCubeFaceSky(
+    pixels,
+    depth,
+    heightBuf,
+    iterBuf,
+    face,
+    n,
+    skyColor,
+    horizonColor,
+    startCol,
+    endCol,
+    faceOff
+  );
 
   for (let col = startCol; (col < endCol) | 0; col = (col + 1) | 0) {
     const u = cubePixelUV(col, n);
@@ -633,11 +789,38 @@ export function renderCubemapPolarAzimuths({
   tMax,
   panoMips,
   fillSky,
+  pzOff: pzOffArg,
+  nzOff: nzOffArg,
 }) {
+  const pzOff = pzOffArg == null ? cubeFaceOffset(CUBE_FACE_PZ, n) : pzOffArg | 0;
+  const nzOff = nzOffArg == null ? cubeFaceOffset(CUBE_FACE_NZ, n) : nzOffArg | 0;
   if (fillSky) {
-    const palette = skyPalette(skyColor, horizonColor);
-    fillCubeFaceSky(pixels, depth, heightBuf, iterBuf, CUBE_FACE_PZ, n, palette);
-    fillCubeFaceSky(pixels, depth, heightBuf, iterBuf, CUBE_FACE_NZ, n, palette);
+    fillCubeFaceSky(
+      pixels,
+      depth,
+      heightBuf,
+      iterBuf,
+      CUBE_FACE_PZ,
+      n,
+      skyColor,
+      horizonColor,
+      0,
+      n,
+      pzOff
+    );
+    fillCubeFaceSky(
+      pixels,
+      depth,
+      heightBuf,
+      iterBuf,
+      CUBE_FACE_NZ,
+      n,
+      skyColor,
+      horizonColor,
+      0,
+      n,
+      nzOff
+    );
   }
   const m = setupMips(
     quality,
@@ -671,10 +854,13 @@ export function renderCubemapPolarAzimuths({
       ((camX < mapW) | 0) &
       ((camY >= 0) | 0) &
       ((camY < mapH) | 0));
+  const dTheta = TWO_PI / azN;
+  const rotC = Math.cos(dTheta);
+  const rotS = Math.sin(dTheta);
+  const theta0 = ((startAz + HALF) / azN) * TWO_PI;
+  let dirX = -Math.sin(theta0);
+  let dirY = -Math.cos(theta0);
   for (let az = startAz; (az < endAz) | 0; az = (az + 1) | 0) {
-    const theta = ((az + HALF) / azN) * TWO_PI;
-    const dirX = -Math.sin(theta);
-    const dirY = -Math.cos(theta);
     const absDX = dirX < 0 ? -dirX : dirX;
     const absDY = dirY < 0 ? -dirY : dirY;
     const rMaxSpoke =
@@ -744,7 +930,7 @@ export function renderCubemapPolarAzimuths({
             heightBuf,
             iterBuf,
             n,
-            CUBE_FACE_PZ,
+            pzOff,
             dirX,
             dirY,
             r,
@@ -773,7 +959,7 @@ export function renderCubemapPolarAzimuths({
             heightBuf,
             iterBuf,
             n,
-            CUBE_FACE_NZ,
+            nzOff,
             dirX,
             -dirY,
             lo,
@@ -814,7 +1000,7 @@ export function renderCubemapPolarAzimuths({
         heightBuf,
         iterBuf,
         n,
-        CUBE_FACE_NZ,
+        nzOff,
         dirX,
         -dirY,
         rInnerDown,
@@ -825,6 +1011,10 @@ export function renderCubemapPolarAzimuths({
         lastDownIter
       );
     }
+    const nextX = dirX * rotC + dirY * rotS;
+    const nextY = dirY * rotC - dirX * rotS;
+    dirX = nextX;
+    dirY = nextY;
   }
 }
 
@@ -843,7 +1033,7 @@ function copyCubeTexel(pixels, depth, heightBuf, iterBuf, n, srcFace, si, sj, ds
   }
 }
 
-function stitchCubePolarSeams(pixels, depth, heightBuf, iterBuf, n) {
+export function stitchCubePolarSeams(pixels, depth, heightBuf, iterBuf, n) {
   const last = (n - 1) | 0;
   for (let i = 0; (i < n) | 0; i = (i + 1) | 0) {
     copyCubeTexel(pixels, depth, heightBuf, iterBuf, n, 2, i, last, CUBE_FACE_NZ, i, last);

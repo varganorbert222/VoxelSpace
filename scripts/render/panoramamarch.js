@@ -32,6 +32,9 @@ import {
 const tanMinCache = new Map();
 const yHitLutCache = new Map();
 const yHitLutSinCache = new Map();
+let skyPaletteCache = null;
+let skyPaletteSky = 0;
+let skyPaletteHorizon = 0;
 const mipSwitchT = new Float64Array(PANO_MIP_COUNT);
 const mipInvScale = new Float64Array(PANO_MIP_COUNT);
 const mipWMaskScratch = new Int32Array(PANO_MIP_COUNT);
@@ -250,6 +253,22 @@ export function panoYHitFromHat(sHat, table) {
   return table[idx];
 }
 
+function skyPalette(skyColor, horizonColor) {
+  const sky = skyColor ?? Color.WHITE;
+  const horizon = horizonColor ?? Color.WHITE;
+  if (
+    skyPaletteCache &&
+    skyPaletteSky === sky &&
+    skyPaletteHorizon === horizon
+  ) {
+    return skyPaletteCache;
+  }
+  skyPaletteSky = sky;
+  skyPaletteHorizon = horizon;
+  skyPaletteCache = new ColorPalette(sky, horizon, SKY_PALETTE_STEPS);
+  return skyPaletteCache;
+}
+
 function fillSkySlice(
   pixels,
   localWidth,
@@ -259,19 +278,13 @@ function fillSkySlice(
   heightBuf,
   iterBuf
 ) {
-  const palette = new ColorPalette(
-    skyColor ?? Color.WHITE,
-    horizonColor ?? Color.WHITE,
-    SKY_PALETTE_STEPS
-  );
+  const palette = skyPalette(skyColor, horizonColor);
   const h2 = height * HALF;
   const n = (localWidth * height) | 0;
   for (let y = 0; (y < height) | 0; y = (y + 1) | 0) {
     const color = palette.getColor(skyPaletteT(y / h2));
     const row = (y * localWidth) | 0;
-    for (let x = 0; (x < localWidth) | 0; x = (x + 1) | 0) {
-      pixels[row + x] = color;
-    }
+    pixels.fill(color, row, row + localWidth);
   }
   if (heightBuf) {
     heightBuf.fill(0, 0, n);

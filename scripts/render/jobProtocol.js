@@ -9,10 +9,12 @@ import {
   MSG_RENDER_PANORAMA,
   MSG_RENDER_PANO_VIEW,
   MSG_RENDER_CUBE_VIEW,
+  MSG_RENDER_CUBE_GENERATE,
   MSG_RESULT_CLASSIC,
   MSG_RESULT_PANORAMA,
   MSG_RESULT_PANO_VIEW,
   MSG_RESULT_CUBE_VIEW,
+  MSG_RESULT_CUBE_GENERATE,
   MSG_WORKER_ERROR,
   MSG_INIT_CUBE,
 } from "../constants/threading.js";
@@ -26,10 +28,12 @@ export {
   MSG_RENDER_PANORAMA,
   MSG_RENDER_PANO_VIEW,
   MSG_RENDER_CUBE_VIEW,
+  MSG_RENDER_CUBE_GENERATE,
   MSG_RESULT_CLASSIC,
   MSG_RESULT_PANORAMA,
   MSG_RESULT_PANO_VIEW,
   MSG_RESULT_CUBE_VIEW,
+  MSG_RESULT_CUBE_GENERATE,
   MSG_WORKER_ERROR,
   MSG_INIT_CUBE,
 };
@@ -117,6 +121,34 @@ export function cubemapViewPayload(jobId, range, params) {
     fwdX: params.fwdX,
     fwdY: params.fwdY,
     fwdZ: params.fwdZ,
+  };
+}
+
+export function cubemapGeneratePayload(jobId, job, params) {
+  return {
+    type: MSG_RENDER_CUBE_GENERATE,
+    jobId: jobId,
+    kind: job.kind,
+    face: job.face,
+    startAz: job.startAz | 0,
+    endAz: job.endAz | 0,
+    fillSky: job.fillSky | 0,
+    n: params.n,
+    camX: params.camX,
+    camY: params.camY,
+    camZ: params.camZ,
+    farClip: params.farClip,
+    nearClip: params.nearClip,
+    tMax: params.tMax,
+    repeat: params.repeat,
+    skyColor: params.skyColor,
+    horizonColor: params.horizonColor,
+    initialStep: params.initialStep,
+    quality: params.quality,
+    interpolateHeight: params.interpolateHeight,
+    filterColor: params.filterColor,
+    wantHeight: params.wantHeight | 0,
+    wantIter: params.wantIter | 0,
   };
 }
 

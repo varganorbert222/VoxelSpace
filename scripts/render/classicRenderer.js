@@ -116,9 +116,11 @@ class ClassicRenderer {
     const pool = renderer.ensurePool();
     pool.initMaps(maps);
     this._fillBackground();
-    const rowColors = renderer.frameBuffer.copySkyRowColors(
-      new Uint32Array(renderer.frameBuffer.height)
-    );
+    const height = renderer.frameBuffer.height | 0;
+    if ((this._rowColors.length < height) | 0) {
+      this._rowColors = new Uint32Array(height);
+    }
+    const rowColors = renderer.frameBuffer.copySkyRowColors(this._rowColors);
     if (!isDebugColor(renderer.debugView)) {
       renderer.frameBuffer.fill(Color.BLACK);
       rowColors.fill(Color.BLACK);

@@ -5,6 +5,10 @@ import { renderPanoramaColumns as renderPanoramaColumnsJs } from "./panoramamarc
 import { renderPanoramaViewColumns as renderPanoramaViewColumnsJs } from "./panoramaViewer.js";
 import { renderCubemapViewColumns as renderCubemapViewColumnsJs } from "./cubemapViewer.js";
 import {
+  renderCubemapHorizonColumns,
+  renderCubemapPolarAzimuths,
+} from "./cubemapmarch.js";
+import {
   MSG_INIT_MAPS,
   MSG_INIT_PANO,
   MSG_INIT_CUBE,
@@ -14,10 +18,12 @@ import {
   MSG_RENDER_PANORAMA,
   MSG_RENDER_PANO_VIEW,
   MSG_RENDER_CUBE_VIEW,
+  MSG_RENDER_CUBE_GENERATE,
   MSG_RESULT_CLASSIC,
   MSG_RESULT_PANORAMA,
   MSG_RESULT_PANO_VIEW,
   MSG_RESULT_CUBE_VIEW,
+  MSG_RESULT_CUBE_GENERATE,
   MSG_WORKER_ERROR,
 } from "./jobProtocol.js";
 import { BACKEND_WASM } from "../constants/backend.js";
@@ -337,6 +343,87 @@ function renderCubeView(msg) {
   );
 }
 
+function renderCubeGenerate(msg) {
+  const n = msg.n | 0;
+  const polar = msg.kind === "polar";
+  const faceCount = polar ? 2 : 1;
+  const count = (faceCount * n * n) | 0;
+  const pixels = new Uint32Array(count);
+  const depth = new Float32Array(count);
+  const heightBuf = msg.wantHeight ? new Uint32Array(count) : null;
+  const iterBuf = msg.wantIter ? new Uint32Array(count) : null;
+  const shared = {
+    heightMap: workerState.heightMap,
+    colorMap: workerState.colorMap,
+    mapW: workerState.mapW,
+    mapH: workerState.mapH,
+    mapShift: workerState.mapShift,
+    altitude: workerState.altitude,
+    maxHeight: workerState.maxHeight,
+    mapsGeneration: workerState.mapsGeneration,
+    camX: msg.camX,
+    camY: msg.camY,
+    camZ: msg.camZ,
+    n: n,
+    farClip: msg.farClip,
+    nearClip: msg.nearClip,
+    tMax: msg.tMax,
+    repeat: msg.repeat,
+    skyColor: msg.skyColor,
+    horizonColor: msg.horizonColor,
+    initialStep: msg.initialStep,
+    quality: msg.quality,
+    interpolateHeight: msg.interpolateHeight,
+    filterColor: msg.filterColor,
+    pixels: pixels,
+    depth: depth,
+    heightBuf: heightBuf,
+    iterBuf: iterBuf,
+    panoMips: workerState.panoMips,
+  };
+  if (polar) {
+    const azCount = n << 2;
+    renderCubemapPolarAzimuths({
+      ...shared,
+      startAz: msg.startAz | 0,
+      endAz: msg.endAz > 0 ? msg.endAz | 0 : azCount,
+      azCount: azCount,
+      fillSky: msg.fillSky | 0,
+      pzOff: 0,
+      nzOff: n * n,
+    });
+  } else {
+    renderCubemapHorizonColumns({
+      ...shared,
+      face: msg.face,
+      startCol: 0,
+      endCol: n,
+      faceOff: 0,
+    });
+  }
+  const transfer = [pixels.buffer, depth.buffer];
+  if (heightBuf) {
+    transfer.push(heightBuf.buffer);
+  }
+  if (iterBuf) {
+    transfer.push(iterBuf.buffer);
+  }
+  self.postMessage(
+    {
+      type: MSG_RESULT_CUBE_GENERATE,
+      jobId: msg.jobId,
+      kind: msg.kind,
+      face: msg.face,
+      n: n,
+      pixels: pixels.buffer,
+      depth: depth.buffer,
+      heightBuf: heightBuf ? heightBuf.buffer : null,
+      iter: iterBuf ? iterBuf.buffer : null,
+    },
+    transfer
+  );
+}
+
 async function handleMessage(msg) {
   if (msg.type === MSG_INIT_KERNEL) {
     await setKernelBackend(msg.backend);
@@ -369,6 +456,10 @@ async function handleMessage(msg) {
   }
   if (msg.type === MSG_RENDER_CUBE_VIEW) {
     renderCubeView(msg);
+    return;
+  }
+  if (msg.type === MSG_RENDER_CUBE_GENERATE) {
+    renderCubeGenerate(msg);
   }
 }
 

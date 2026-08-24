@@ -1,7 +1,6 @@
 "use strict";
 
 import ColorPalette from "../math/colorPalette.js";
-import { Color } from "../math/color.js";
 import {
   SKY_PALETTE_STEPS,
   skyPaletteT,
@@ -59,19 +58,17 @@ class FrameBuffer {
     this._mustBeRecalcBuffer32bit = false;
     this._cachedHorizon = horizonKey;
 
-    let t = 0;
-    let color = Color.BLACK;
-    for (let i = 0; (i < this._height) | 0; i = (i + 1) | 0) {
-      t = skyPaletteT((i - horizon) / h2 + 1);
-      color = this._colorPalette.getColor(t);
-      this._buffer32bit[i * this._width] = color;
-      this._cachedBuffer32bit[i * this._width] = color;
-    }
-    for (let i = 0; (i < this._height) | 0; i = (i + 1) | 0) {
-      for (let j = 1; (j < this._width) | 0; j = (j + 1) | 0) {
-        this._buffer32bit[i * this._width + j] = this._buffer32bit[i * this._width];
-        this._cachedBuffer32bit[i * this._width + j] = this._buffer32bit[i * this._width];
-      }
+    const dest = this._buffer32bit;
+    const cached = this._cachedBuffer32bit;
+    const width = this._width;
+    const height = this._height;
+    for (let i = 0; (i < height) | 0; i = (i + 1) | 0) {
+      const color = this._colorPalette.getColor(
+        skyPaletteT((i - horizon) / h2 + 1)
+      );
+      const row = (i * width) | 0;
+      dest.fill(color, row, row + width);
+      cached.fill(color, row, row + width);
     }
   }
 
@@ -107,7 +104,6 @@ class FrameBuffer {
   }
 
   writeToContext() {
-    this._imageDataForContext.data.set(this._buffer8bit);
     this._contextForCanvas.putImageData(this._imageDataForContext, 0, 0);
   }
 
@@ -142,18 +138,18 @@ class FrameBuffer {
       if (!this._contextForCanvas) {
         return;
       }
-      this._imageDataForContext = this._contextForCanvas.createImageData(
-        this._width,
-        this._height
-      );
     }
 
-    const pixelCount =
-      this._imageDataForContext.width * this._imageDataForContext.height;
+    const pixelCount = (this._width * this._height) | 0;
     this._colorBuffer = new ArrayBuffer(pixelCount * BYTES_PER_PIXEL);
-    this._buffer8bit = new Uint8Array(this._colorBuffer);
+    this._buffer8bit = new Uint8ClampedArray(this._colorBuffer);
     this._buffer32bit = new Uint32Array(this._colorBuffer);
     this._cachedBuffer32bit = new Uint32Array(pixelCount);
+    this._imageDataForContext = new ImageData(
+      this._buffer8bit,
+      this._width,
+      this._height
+    );
 
     this._mustBeRecalcBuffer32bit = true;
     this._cachedHorizon = NaN;

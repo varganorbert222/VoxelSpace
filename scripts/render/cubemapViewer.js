@@ -20,7 +20,7 @@ import {
 } from "../constants/color.js";
 import { FOG_SATURATED } from "../constants/quality.js";
 import { DEG_TO_RAD, HALF } from "../constants/vmath.js";
-import { cubeFaceOffset, cubeSelect, cubeUVToTexel } from "../constants/cubemap.js";
+import { cubeFaceOffset, cubeSelectInto, cubeUVToTexelInto } from "../constants/cubemap.js";
 import { isDebugColor } from "../constants/debugView.js";
 import { encodeCameraSample } from "./debugEncode.js";
 
@@ -108,6 +108,8 @@ export function renderCubemapViewColumns({
   const n = cubeN | 0;
   const skyLut = getSkyLut(skyColor, horizonColor, screenHeight);
   const depthBuf = cubeDepth;
+  const sel = { face: 0, u: 0, v: 0 };
+  const tex = { i: 0, j: 0 };
   const aspect = screenWidth / screenHeight;
   let tanHalfY = Math.tan(fovY * DEG_TO_RAD * HALF);
   if (!(tanHalfY > 0) && dstToProjPlane > 0) {
@@ -142,8 +144,8 @@ export function renderCubemapViewColumns({
       sx = (sx + 1) | 0, localX = (localX + 1) | 0
     ) {
       const invViewLen = 1 / Math.sqrt(camX * camX + viewLen2Base);
-      const sel = cubeSelect(dx, dy, dz);
-      const tex = cubeUVToTexel(sel.u, sel.v, n);
+      cubeSelectInto(dx, dy, dz, sel);
+      cubeUVToTexelInto(sel.u, sel.v, n, tex);
       const idx = (cubeFaceOffset(sel.face, n) + tex.j * n + tex.i) | 0;
       const dest = (row + localX) | 0;
       const dist = depthBuf[idx];

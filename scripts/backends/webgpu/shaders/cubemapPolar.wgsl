@@ -322,12 +322,13 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       wasInside = 1;
     }
 
-    let h = sampleHeight(mip, wx, wy);
+    let hs = sampleHeightPair(mip, wx, wy);
+    let h = hs.x;
 
     let dh = h - camZ;
     let slope = dh / t;
     let color = sampleColor(mip, wx, wy);
-    let hByte = sampleHeightByte(mip, wx, wy);
+    let hByte = u32(hs.y);
     let dist = sqrt(t * t + dh * dh);
     if (face == 4 && slope > EPSILON) {
       let r = 1.0 / slope;

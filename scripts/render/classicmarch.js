@@ -170,6 +170,15 @@ function drawVerticalLine(pixels, stride, x, ytop, ybottom, col, width, xEnd) {
   if ((ytop < 0) | 0) ytop = 0;
   if ((ytop > ybottom) | 0) return;
 
+  if (((width === 1) | 0) & ((x < xEnd) | 0)) {
+    let offset = (ytop * stride + x) | 0;
+    for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
+      pixels[offset] = col;
+      offset = (offset + stride) | 0;
+    }
+    return;
+  }
+
   let offset = 0;
   for (
     let j = 0;
@@ -235,10 +244,7 @@ function renderClassicColumnsSampled({
   const yGround = camZ + NON_REPEAT_GROUND_OFFSET;
 
   if (fillUnfilled) {
-    const n = (localWidth * screenHeight) | 0;
-    for (let i = 0; (i < n) | 0; i = (i + 1) | 0) {
-      pixels[i] = UNFILLED_PIXEL;
-    }
+    pixels.fill(UNFILLED_PIXEL, 0, (localWidth * screenHeight) | 0);
   }
 
   const q = qualityIndex(quality);
@@ -489,10 +495,7 @@ function renderClassicColumnsNearest({
   const yGround = camZ + NON_REPEAT_GROUND_OFFSET;
 
   if (fillUnfilled) {
-    const n = (localWidth * screenHeight) | 0;
-    for (let i = 0; (i < n) | 0; i = (i + 1) | 0) {
-      pixels[i] = UNFILLED_PIXEL;
-    }
+    pixels.fill(UNFILLED_PIXEL, 0, (localWidth * screenHeight) | 0);
   }
 
   const q = qualityIndex(quality);

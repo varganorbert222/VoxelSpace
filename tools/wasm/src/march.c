@@ -269,7 +269,7 @@ static inline u32 bilinear_packed4(
   return lerp_packed(lerp_packed(c00, c10, tx), lerp_packed(c01, c11, tx), ty);
 }
 
-static __attribute__((noinline)) f64 sample_sv_height(
+static __attribute__((always_inline)) f64 sample_sv_height(
     u8 *map,
     f64 x,
     f64 y,
@@ -339,7 +339,7 @@ static inline u32 color_at_sv(u32 *map, i32 x, i32 y, i32 wmask, i32 hmask, i32 
   return map[((y << shift) + x) | 0];
 }
 
-static __attribute__((noinline)) u32 sample_sv_color(
+static __attribute__((always_inline)) u32 sample_sv_color(
     u32 *map,
     f64 x,
     f64 y,
