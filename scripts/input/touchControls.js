@@ -30,6 +30,16 @@ export function bindTouchControls(input, elements) {
       input._stickLookY = 0;
     }
   );
+  bindStick(
+    elements.zoomStick,
+    (_dx, dy) => {
+      input._stickZoom = dy;
+    },
+    () => {
+      input._stickZoom = 0;
+    },
+    { axis: "y" }
+  );
   bindHoldButton(elements.btnUp, (down) => {
     if (down) input._updown = TOUCH_UPDOWN_SPEED;
     else if (input._updown > 0) input._updown = 0;
@@ -48,29 +58,48 @@ export function bindTouchControls(input, elements) {
   });
 }
 
-function bindStick(el, onMove, onEnd) {
+function resetKnob(knob) {
+  if (knob) {
+    knob.style.transform = "translate(-50%, -50%)";
+  }
+}
+
+function bindStick(el, onMove, onEnd, options) {
   if (!el) return;
+  const axis = options && options.axis;
   const knob = el.querySelector(".stick-knob");
   let activeId = null;
+  resetKnob(knob);
 
   const read = (e) => {
     const rect = el.getBoundingClientRect();
     const cx = rect.left + rect.width * HALF;
     const cy = rect.top + rect.height * HALF;
-    let dx = (e.clientX - cx) / (rect.width * HALF);
-    let dy = (e.clientY - cy) / (rect.height * HALF);
+    let dx = (e.clientX - cx) / (rect.width * HALF || 1);
+    let dy = (e.clientY - cy) / (rect.height * HALF || 1);
+    if (axis === "y") {
+      dx = 0;
+    } else if (axis === "x") {
+      dy = 0;
+    }
     const len = Math.hypot(dx, dy);
     if (len > 1) {
       dx /= len;
       dy /= len;
     }
     if (knob) {
+      const travelX = Math.max(
+        0,
+        rect.width * HALF - knob.offsetWidth * HALF
+      );
+      const travelY = Math.max(
+        0,
+        rect.height * HALF - knob.offsetHeight * HALF
+      );
+      const tx = dx * (travelX || STICK_KNOB_TRAVEL_PX);
+      const ty = dy * (travelY || STICK_KNOB_TRAVEL_PX);
       knob.style.transform =
-        "translate(" +
-        dx * STICK_KNOB_TRAVEL_PX +
-        "px," +
-        dy * STICK_KNOB_TRAVEL_PX +
-        "px)";
+        "translate(-50%, -50%) translate(" + tx + "px," + ty + "px)";
     }
     onMove(dx, dy);
   };
@@ -78,7 +107,7 @@ function bindStick(el, onMove, onEnd) {
   const up = (e) => {
     if (e.pointerId !== activeId) return;
     activeId = null;
-    if (knob) knob.style.transform = "translate(0,0)";
+    resetKnob(knob);
     onEnd();
   };
 

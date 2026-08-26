@@ -17,7 +17,7 @@
   --hud-track: #2a3218;
   --hud-shadow: 4px 4px 0 #000;
   --hud-top-h: 52px;
-  --hud-handle-w: 24px;
+  --hud-handle-w: 28px;
   --hud-safe-top: env(safe-area-inset-top, 0px);
   --hud-safe-right: env(safe-area-inset-right, 0px);
   --hud-safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -87,7 +87,7 @@ canvas {
 .hud-menu-handle,
 .tip-mark,
 .hud-tip,
-#id_touch_buttons button {
+.touch-btns button {
   font-family: var(--hud-font);
   -webkit-font-smoothing: none;
   -webkit-user-select: none;
@@ -239,8 +239,10 @@ select,
 }
 
 .hud-sheet-handle,
+.hud-panel-footer,
 .hud-done,
-.hud-section--touch {
+.hud-section--touch,
+.orbit-only {
   display: none;
 }
 
@@ -260,7 +262,10 @@ select,
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  max-width: calc(100% - 20px);
+  min-width: 0;
+  max-width: calc(
+    100% - 12px - var(--hud-safe-left) - var(--hud-safe-right)
+  );
   pointer-events: none;
   transition: transform 180ms steps(5, end);
 }
@@ -276,7 +281,7 @@ body.menu-closed .hud-menu-dock {
   align-self: center;
   min-height: 88px;
   margin: 0;
-  padding: 0;
+  padding: 10px 6px;
   cursor: pointer;
   background: var(--hud-bg);
   border: 2px solid;
@@ -284,6 +289,7 @@ body.menu-closed .hud-menu-dock {
     var(--hud-border-hi);
   border-right-width: 0;
   box-shadow: var(--hud-shadow);
+  overflow: visible;
 }
 
 body.menu-closed .hud-menu-handle {
@@ -292,9 +298,10 @@ body.menu-closed .hud-menu-handle {
 
 .hud-menu-handle-grip {
   display: block;
-  width: 8px;
+  width: 10px;
   height: 40px;
   margin: 0 auto;
+  box-sizing: border-box;
   background: repeating-linear-gradient(
     to bottom,
     var(--hud-amber) 0 3px,
@@ -313,11 +320,20 @@ body.menu-closed .hud-menu-handle {
   right: auto;
   bottom: auto;
   z-index: 140;
-  width: min(360px, calc(100vw - 48px));
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: min(
+    360px,
+    calc(
+      100vw - 24px - var(--hud-handle-w) - var(--hud-safe-left) -
+        var(--hud-safe-right)
+    )
+  );
   height: 100%;
-  overflow: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
-  padding: 10px 12px 16px;
+  padding: 0;
   background: var(--hud-bg);
   border: 2px solid;
   border-color: var(--hud-border-hi) var(--hud-border-lo) var(--hud-border-lo) var(--hud-border-hi);
@@ -326,6 +342,25 @@ body.menu-closed .hud-menu-handle {
   font-size: 20px;
   transform: none;
   opacity: 1;
+}
+
+.hud-panel-scroll {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 10px 12px 16px;
+}
+
+.hud-panel-footer {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  padding: 10px 12px 12px;
+  background: var(--hud-bg);
+  border-top: 2px solid var(--hud-border);
 }
 
 .hud-panel::after {
@@ -347,15 +382,15 @@ body.menu-closed .hud-backdrop {
   display: none;
 }
 
-.hud-panel::-webkit-scrollbar {
+.hud-panel-scroll::-webkit-scrollbar {
   width: 10px;
 }
 
-.hud-panel::-webkit-scrollbar-track {
+.hud-panel-scroll::-webkit-scrollbar-track {
   background: var(--hud-inset);
 }
 
-.hud-panel::-webkit-scrollbar-thumb {
+.hud-panel-scroll::-webkit-scrollbar-thumb {
   background: var(--hud-amber);
   border: 2px solid #000;
 }
@@ -632,7 +667,7 @@ body.chrome-off .hud-backdrop {
 }
 
 select,
-#id_touch_buttons button {
+.touch-btns button {
   font-family: var(--hud-font);
 }
 
@@ -847,66 +882,158 @@ option:disabled {
   pointer-events: none;
 }
 
+body.cam-orbital .fly-only {
+  display: none;
+}
+
+body.cam-orbital .orbit-only {
+  display: flex;
+}
+
+body.cam-orbital .stick.orbit-only {
+  display: block;
+}
+
+.touch-cluster {
+  pointer-events: none;
+  position: fixed;
+  z-index: 120;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.touch-cluster--left {
+  left: calc(16px + var(--hud-safe-left));
+  bottom: calc(16px + var(--hud-safe-bottom));
+}
+
+.touch-cluster--right {
+  right: calc(16px + var(--hud-safe-right));
+  bottom: calc(16px + var(--hud-safe-bottom));
+}
+
 .stick {
   pointer-events: auto;
-  position: fixed;
-  bottom: calc(28px + var(--hud-safe-bottom));
-  width: 120px;
-  height: 120px;
+  position: relative;
+  flex: 0 0 auto;
+  width: 112px;
+  height: 112px;
   border-radius: 0;
   background: rgba(10, 14, 6, 0.55);
   border: 2px solid var(--hud-amber);
   box-shadow: var(--hud-shadow), inset 0 0 0 2px #000;
   touch-action: none;
-  z-index: 120;
 }
 
-#id_stick_move {
-  left: calc(24px + var(--hud-safe-left));
-}
-
-#id_stick_look {
-  right: calc(24px + var(--hud-safe-right));
+.stick--zoom {
+  width: 52px;
+  height: 112px;
 }
 
 .stick-knob {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 52px;
-  height: 52px;
-  margin: -26px 0 0 -26px;
+  width: 42%;
+  height: 42%;
+  margin: 0;
+  box-sizing: border-box;
   border-radius: 0;
   background: var(--hud-amber);
   border: 2px solid #000;
   opacity: 0.85;
   pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 
-#id_touch_buttons {
+.stick--zoom .stick-knob {
+  width: 68%;
+  height: 28%;
+}
+
+.touch-btns {
   pointer-events: auto;
-  position: fixed;
-  right: calc(160px + var(--hud-safe-right));
-  bottom: calc(28px + var(--hud-safe-bottom));
   display: flex;
   flex-direction: column;
   gap: 8px;
-  z-index: 120;
 }
 
-#id_touch_buttons button {
-  min-width: 72px;
-  min-height: 40px;
+.touch-btns button {
+  min-width: 56px;
+  min-height: 44px;
   border: 2px solid;
   border-color: var(--hud-border-hi) var(--hud-border-lo) var(--hud-border-lo) var(--hud-border-hi);
   border-radius: 0;
   background: rgba(10, 14, 6, 0.75);
   color: var(--hud-amber);
-  font-size: 18px;
+  font-size: 16px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   box-shadow: var(--hud-shadow);
   touch-action: none;
+}
+
+.offline-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #0a0e06;
+  color: var(--hud-text);
+  font-family: var(--hud-mono);
+}
+
+.offline-screen[hidden] {
+  display: none !important;
+}
+
+.offline-card {
+  width: min(420px, 100%);
+  padding: 20px 22px 22px;
+  background: var(--hud-bg);
+  border: 2px solid;
+  border-color: var(--hud-border-hi) var(--hud-border-lo) var(--hud-border-lo)
+    var(--hud-border-hi);
+  box-shadow: var(--hud-shadow);
+}
+
+.offline-kicker {
+  margin: 0 0 8px;
+  font-family: var(--hud-mono);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--hud-amber);
+}
+
+.offline-title {
+  margin: 0 0 10px;
+  font-family: var(--hud-font);
+  font-size: 32px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hud-amber);
+}
+
+.offline-copy,
+.offline-pulse {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  letter-spacing: 0.04em;
+  color: var(--hud-text);
+}
+
+.offline-pulse {
+  margin-top: 16px;
+  color: var(--hud-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
 }
 
 body.classic .pano-only {
@@ -914,6 +1041,11 @@ body.classic .pano-only {
 }
 
 @media (pointer: coarse), (hover: none) {
+  :root {
+    --hud-top-h: 40px;
+    --hud-handle-w: 32px;
+  }
+
   #id_touch_controls {
     display: block;
   }
@@ -931,36 +1063,29 @@ body.classic .pano-only {
     display: block;
   }
 
-  .hud-sheet-handle {
-    display: block;
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    height: 18px;
-    margin: -4px -12px 8px;
-    background: var(--hud-bg);
+  .hud-panel {
+    font-size: 16px;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .hud-sheet-handle::after {
-    content: "";
+  .hud-panel-scroll {
+    padding: 8px 10px 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .hud-panel-footer {
     display: block;
-    width: 48px;
-    height: 4px;
-    margin: 8px auto 0;
-    background: var(--hud-amber);
-    box-shadow: 2px 2px 0 #000;
+    padding: 8px 10px calc(10px + var(--hud-safe-bottom));
   }
 
   .hud-done {
     display: block;
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
+    position: static;
     width: 100%;
-    min-height: 48px;
-    margin-top: 8px;
+    min-height: 40px;
+    margin: 0;
     font-family: var(--hud-font);
-    font-size: 22px;
+    font-size: 18px;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: #140f00;
@@ -969,70 +1094,92 @@ body.classic .pano-only {
     border-color: var(--hud-border-hi) var(--hud-border-lo) var(--hud-border-lo)
       var(--hud-border-hi);
     box-shadow: var(--hud-shadow);
-    padding-bottom: var(--hud-safe-bottom);
   }
 
   .hud-btn {
-    min-height: 44px;
-    min-width: 76px;
-    font-size: 18px;
-    padding: 6px 14px 4px;
+    min-height: 34px;
+    min-width: 64px;
+    font-size: 15px;
+    padding: 4px 10px 2px;
   }
 
   .hud-menu-handle {
-    min-height: 88px;
+    min-height: 72px;
+    padding: 8px 7px;
+  }
+
+  .hud-menu-handle-grip {
+    width: 10px;
+    height: 32px;
+  }
+
+  .hud-section {
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+  }
+
+  .hud-section-title {
+    font-size: 11px;
+  }
+
+  .control-value {
+    font-size: 16px;
   }
 
   select {
-    min-height: 44px;
-    font-size: 18px;
-    padding: 8px 32px 8px 10px;
+    min-height: 34px;
+    font-size: 16px;
+    padding: 4px 28px 4px 8px;
   }
 
   input[type="range"] {
-    height: 18px;
+    height: 14px;
   }
 
   input[type="range"]::-webkit-slider-thumb {
-    width: 28px;
-    height: 28px;
+    width: 18px;
+    height: 22px;
   }
 
   input[type="range"]::-moz-range-thumb {
-    width: 28px;
-    height: 28px;
+    width: 18px;
+    height: 22px;
   }
 
   .check,
   .check-wrap {
-    min-height: 44px;
+    min-height: 32px;
   }
 
   .tip-mark {
-    width: 44px;
-    height: 44px;
-    font-size: 22px;
+    width: 22px;
+    height: 22px;
+    font-size: 14px;
   }
 
   .check-box {
-    width: 22px;
-    height: 22px;
-    flex-basis: 22px;
+    width: 16px;
+    height: 16px;
+    flex-basis: 16px;
   }
 
   .control-head label,
   .control label,
   .check {
-    font-size: 13px;
-  }
-
-  .hud-panel {
-    padding-bottom: calc(12px + var(--hud-safe-bottom));
-    -webkit-overflow-scrolling: touch;
+    font-size: 11px;
   }
 
   .hud-radar-tab {
-    min-height: 44px;
+    min-height: 34px;
+    font-size: 14px;
+    padding: 2px 8px 0;
+  }
+
+  .touch-btns button {
+    min-width: 48px;
+    min-height: 36px;
+    font-size: 14px;
   }
 }
 
@@ -1041,9 +1188,9 @@ body.classic .pano-only {
     grid-template-columns: minmax(0, 1fr) auto;
     height: auto;
     min-height: var(--hud-top-h);
-    gap: 8px;
-    padding: var(--hud-safe-top) calc(10px + var(--hud-safe-right)) 6px
-      calc(10px + var(--hud-safe-left));
+    gap: 6px;
+    padding: var(--hud-safe-top) calc(8px + var(--hud-safe-right)) 4px
+      calc(8px + var(--hud-safe-left));
   }
 
   .hud-status {
@@ -1051,133 +1198,152 @@ body.classic .pano-only {
   }
 
   .hud-brand-name {
-    font-size: 18px;
-    letter-spacing: 0.1em;
+    font-size: 16px;
+    letter-spacing: 0.08em;
+  }
+
+  .hud-brand-mark {
+    width: 10px;
+    height: 10px;
   }
 
   .hud-fps {
-    min-width: 64px;
-    font-size: 16px;
+    min-width: 56px;
+    font-size: 14px;
   }
 
   .hud-top-right {
     justify-self: end;
+    gap: 6px;
   }
 
   .hud-radar {
-    width: 132px;
+    width: 112px;
   }
 
   .hud-panel {
-    width: min(320px, calc(100vw - 48px));
+    width: min(
+      300px,
+      calc(
+        100vw - 16px - var(--hud-handle-w) - var(--hud-safe-left) -
+          var(--hud-safe-right)
+      )
+    );
   }
 
   .control-grid,
   .flag-grid,
   .key-legend {
     grid-template-columns: 1fr 1fr;
+    gap: 8px 10px;
   }
 }
 
 @media (max-width: 720px) and (pointer: coarse),
   (max-width: 720px) and (hover: none) {
-  .stick {
-    width: 96px;
-    height: 96px;
-    bottom: calc(12px + var(--hud-safe-bottom));
-  }
-
-  .stick-knob {
-    width: 40px;
-    height: 40px;
-    margin: -20px 0 0 -20px;
-  }
-
-  #id_stick_move {
-    left: calc(12px + var(--hud-safe-left));
-  }
-
-  #id_stick_look {
-    right: calc(12px + var(--hud-safe-right));
-  }
-
-  #id_touch_buttons {
-    left: 50%;
-    right: auto;
-    bottom: calc(112px + var(--hud-safe-bottom));
-    transform: translateX(-50%);
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    max-width: 140px;
+  .touch-cluster--left {
+    left: calc(10px + var(--hud-safe-left));
+    bottom: calc(10px + var(--hud-safe-bottom));
     gap: 6px;
   }
 
-  #id_touch_buttons button {
-    min-width: 56px;
-    min-height: 44px;
-    font-size: 16px;
+  .touch-cluster--right {
+    right: calc(10px + var(--hud-safe-right));
+    bottom: calc(10px + var(--hud-safe-bottom));
+    gap: 6px;
+  }
+
+  .stick {
+    width: 88px;
+    height: 88px;
+  }
+
+  .stick--zoom {
+    width: 44px;
+    height: 88px;
+  }
+
+  .touch-btns button {
+    min-width: 44px;
+    min-height: 36px;
+    font-size: 13px;
   }
 }
 
 @media (max-width: 380px) {
   .hud-brand-name {
-    font-size: 16px;
+    font-size: 14px;
     letter-spacing: 0.06em;
-  }
-
-  .stick {
-    width: 84px;
-    height: 84px;
-  }
-
-  #id_touch_buttons {
-    bottom: calc(100px + var(--hud-safe-bottom));
-    max-width: 128px;
-  }
-}
-
-@media (orientation: landscape) and (max-height: 500px) {
-  .hud-top {
-    min-height: 40px;
-    gap: 8px;
-  }
-
-  .hud-brand-name {
-    font-size: 16px;
-    letter-spacing: 0.08em;
-  }
-
-  .hud-fps {
-    font-size: 16px;
-  }
-
-  .hud-panel {
-    width: min(300px, 52vw);
-  }
-
-  .hud-radar {
-    width: 110px;
   }
 
   .stick {
     width: 76px;
     height: 76px;
-    bottom: calc(8px + var(--hud-safe-bottom));
   }
 
-  #id_touch_buttons {
-    left: auto;
-    right: calc(116px + var(--hud-safe-right));
-    bottom: calc(8px + var(--hud-safe-bottom));
-    transform: none;
-    flex-direction: column;
-    max-width: none;
+  .stick--zoom {
+    width: 40px;
+    height: 76px;
   }
+}
 
-  #id_touch_buttons button {
-    min-width: 48px;
+@media (orientation: landscape) and (max-height: 500px) {
+  .hud-top {
     min-height: 36px;
+    gap: 6px;
+  }
+
+  .hud-brand-name {
     font-size: 14px;
+    letter-spacing: 0.06em;
+  }
+
+  .hud-fps {
+    font-size: 14px;
+  }
+
+  .hud-btn {
+    min-height: 32px;
+    min-width: 56px;
+    font-size: 13px;
+    padding: 2px 8px 0;
+  }
+
+  .hud-panel {
+    width: min(280px, 48vw);
+  }
+
+  .hud-radar {
+    width: 96px;
+  }
+
+  .touch-cluster--left {
+    left: calc(8px + var(--hud-safe-left));
+    bottom: calc(8px + var(--hud-safe-bottom));
+  }
+
+  .touch-cluster--right {
+    right: calc(8px + var(--hud-safe-right));
+    bottom: calc(8px + var(--hud-safe-bottom));
+  }
+
+  .stick {
+    width: 72px;
+    height: 72px;
+  }
+
+  .stick--zoom {
+    width: 36px;
+    height: 72px;
+  }
+
+  .touch-btns {
+    gap: 6px;
+  }
+
+  .touch-btns button {
+    min-width: 40px;
+    min-height: 32px;
+    font-size: 12px;
   }
 }

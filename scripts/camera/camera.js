@@ -293,7 +293,7 @@ class Camera {
     if (this._mode === MODE_FLY) {
       applyFly(dt, input, this);
     } else if (this._mode === MODE_ORBITAL) {
-      applyOrbit(input, this, terrain);
+      applyOrbit(dt, input, this, terrain);
       finishOrbitLook(this, terrain);
     }
 

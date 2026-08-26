@@ -217,8 +217,9 @@ export function initTooltips(root = document) {
 
   window.addEventListener("resize", hide);
   const panel = document.getElementById("id_info");
-  if (panel) {
-    panel.addEventListener("scroll", hide, { passive: true });
+  const panelScroll = panel && panel.querySelector(".hud-panel-scroll");
+  if (panelScroll) {
+    panelScroll.addEventListener("scroll", hide, { passive: true });
   }
 
   window.addEventListener("keydown", (e) => {

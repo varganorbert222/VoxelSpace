@@ -9,13 +9,24 @@ import {
   ORBIT_THETA_MIN_CLASSIC,
   ORBIT_THETA_MIN_PANORAMA,
   ORBIT_PITCH_SCALE,
+  MOVE_DT_SCALE,
+  STICK_LOOK_SENSITIVITY,
 } from "../constants/camera.js";
+import { ZOOM_STICK_RATE } from "../constants/input.js";
 
-export function applyOrbit(input, camera, terrain) {
+export function applyOrbit(dt, input, camera, terrain) {
+  if (input.stickZoom) {
+    input.nudgeZoom(input.stickZoom * ZOOM_STICK_RATE * dt);
+  }
   const panorama = camera.panoramaLook;
   const radius = VMath.lerp(ORBIT_RADIUS_MIN, ORBIT_RADIUS_MAX, input.zoom);
-  const deltaPhi = input.dragX;
-  const deltaTheta = input.dragY;
+  const scaledDt = dt * MOVE_DT_SCALE;
+  const stickPhi =
+    input.stickLookX * STICK_LOOK_SENSITIVITY * scaledDt * VMath.DEG_TO_RAD;
+  const stickTheta =
+    input.stickLookY * STICK_LOOK_SENSITIVITY * scaledDt * VMath.DEG_TO_RAD;
+  const deltaPhi = input.dragX + stickPhi;
+  const deltaTheta = input.dragY + stickTheta;
   const offsetX = terrain.width * HALF;
   const offsetY = terrain.height * HALF;
 

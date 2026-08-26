@@ -16,6 +16,7 @@ export const KEY_UPDOWN_SPEED = KEY_MOVE_SPEED;
 export const TOUCH_UPDOWN_SPEED = KEY_MOVE_SPEED;
 export const STICK_FORWARD_SCALE = KEY_MOVE_SPEED;
 export const STICK_KNOB_TRAVEL_PX = 28;
+export const ZOOM_STICK_RATE = 40;
 export const SPRINT_MULTIPLIER = 3;
 
 export const FORM_TAGS = new Set(["INPUT", "SELECT", "BUTTON", "TEXTAREA"]);

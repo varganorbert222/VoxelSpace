@@ -3,6 +3,7 @@
 import maps from "../../data/maps.json" with { type: "json" };
 import config from "../../data/config.json" with { type: "json" };
 import { BACKEND_CHIP, usesWorkers } from "../constants/backend.js";
+import { MODE_ORBITAL } from "../constants/camera.js";
 import {
   DEBUG_VIEW_COLOR,
   DEBUG_VIEW_LABEL,
@@ -367,6 +368,8 @@ class SettingsForm {
     multithread.disabled = !usesWorkers(options.backend);
     map.value = this._app.currentMapName;
     cameraMode.value = camera.mode;
+    document.body.classList.toggle("cam-orbital", camera.mode === MODE_ORBITAL);
+    document.body.classList.toggle("cam-fly", camera.mode !== MODE_ORBITAL);
     algorithm.value = options.algorithm;
     backend.value = options.backend;
     debugView.value = options.debugView || DEBUG_VIEW_COLOR;

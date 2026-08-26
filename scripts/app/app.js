@@ -103,6 +103,7 @@ class App {
     this.input.bindTouchControls({
       moveStick: document.getElementById("id_stick_move"),
       lookStick: document.getElementById("id_stick_look"),
+      zoomStick: document.getElementById("id_stick_zoom"),
       btnUp: document.getElementById("id_btn_up"),
       btnDown: document.getElementById("id_btn_down"),
       btnRollLeft: document.getElementById("id_btn_roll_left"),

@@ -26,9 +26,26 @@
     <script type="module" src="scripts/main.js" defer></script>
     <title>Voxel Space</title>
     <link rel="icon" type="image/x-icon" href="favicon.png" />
+    <style>
+      .offline-screen[hidden] {
+        display: none !important;
+      }
+      .offline-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #0a0e06;
+        color: #e8ecc8;
+        font-family: "Share Tech Mono", "Lucida Console", monospace;
+      }
+    </style>
   </head>
 
-  <body class="chrome-on menu-closed radar-open">
+  <body class="chrome-on menu-closed radar-open cam-fly">
     <header class="hud-top" aria-label="Status">
       <div class="hud-brand">
         <span class="hud-brand-mark" aria-hidden="true"></span>
@@ -77,7 +94,7 @@
         <span class="hud-menu-handle-grip" aria-hidden="true"></span>
       </button>
     <aside id="id_info" class="hud-panel" aria-label="Command panel">
-      <div class="hud-sheet-handle" aria-hidden="true"></div>
+      <div class="hud-panel-scroll">
       <section class="hud-section">
         <h2 class="hud-section-title"><span>01</span> Mission</h2>
         <div class="control" data-tip="Height and color maps from Comanche missions.">
@@ -314,10 +331,12 @@
       <section class="hud-section hud-section--touch">
         <h2 class="hud-section-title"><span>06</span> Touch</h2>
         <dl class="key-legend">
-          <div><dt>L Stick</dt><dd>Move / strafe</dd></div>
-          <div><dt>R Stick</dt><dd>Look</dd></div>
-          <div><dt>Up Down</dt><dd>Altitude</dd></div>
-          <div class="pano-only"><dt>Roll</dt><dd>Bank left / right</dd></div>
+          <div class="fly-only"><dt>L Stick</dt><dd>Move / strafe</dd></div>
+          <div class="orbit-only"><dt>L Stick</dt><dd>Zoom</dd></div>
+          <div class="fly-only"><dt>R Stick</dt><dd>Look</dd></div>
+          <div class="orbit-only"><dt>R Stick</dt><dd>Orbit</dd></div>
+          <div class="fly-only"><dt>Up Down</dt><dd>Altitude</dd></div>
+          <div class="pano-only fly-only"><dt>Roll</dt><dd>Bank left / right</dd></div>
           <div><dt>Radar</dt><dd>Tap map to hide</dd></div>
           <div><dt>Handle</dt><dd>Open / close menu</dd></div>
         </dl>
@@ -329,26 +348,98 @@
           >Github project</a
         >
       </section>
-      <button type="button" class="hud-done" id="id_hud_done">Done</button>
+      </div>
+      <div class="hud-panel-footer">
+        <button type="button" class="hud-done" id="id_hud_done">Done</button>
+      </div>
     </aside>
     </div>
 
     <p class="hud-hint" id="id_hud_hint">H · Toggle HUD</p>
 
     <div id="id_touch_controls">
-      <div id="id_stick_move" class="stick" aria-label="Move">
-        <div class="stick-knob"></div>
+      <div class="touch-cluster touch-cluster--left">
+        <div id="id_stick_move" class="stick fly-only" aria-label="Move">
+          <div class="stick-knob"></div>
+        </div>
+        <div id="id_stick_zoom" class="stick stick--zoom orbit-only" aria-label="Zoom">
+          <div class="stick-knob"></div>
+        </div>
+        <div id="id_touch_alt" class="touch-btns fly-only">
+          <button type="button" id="id_btn_up">Up</button>
+          <button type="button" id="id_btn_down">Down</button>
+        </div>
       </div>
-      <div id="id_stick_look" class="stick" aria-label="Look">
-        <div class="stick-knob"></div>
-      </div>
-      <div id="id_touch_buttons">
-        <button type="button" id="id_btn_up">Up</button>
-        <button type="button" id="id_btn_down">Down</button>
-        <button type="button" id="id_btn_roll_left" class="pano-only">L</button>
-        <button type="button" id="id_btn_roll_right" class="pano-only">R</button>
+      <div class="touch-cluster touch-cluster--right">
+        <div id="id_touch_roll" class="touch-btns pano-only fly-only">
+          <button type="button" id="id_btn_roll_left">L</button>
+          <button type="button" id="id_btn_roll_right">R</button>
+        </div>
+        <div id="id_stick_look" class="stick" aria-label="Look">
+          <div class="stick-knob"></div>
+        </div>
       </div>
     </div>
     </div>
+    <div id="id_offline" class="offline-screen" hidden>
+      <div class="offline-card">
+        <p class="offline-kicker">00 Status</p>
+        <h1 class="offline-title">No connection</h1>
+        <p class="offline-copy">
+          Waiting for the network. This page will reload when you are back
+          online.
+        </p>
+        <p class="offline-pulse" id="id_offline_status">Reconnecting…</p>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var overlay = document.getElementById("id_offline");
+        var status = document.getElementById("id_offline_status");
+        var timer = 0;
+        var probing = false;
+        var down = false;
+        var POLL_MS = 2000;
+
+        function show() {
+          down = true;
+          overlay.hidden = false;
+          document.documentElement.classList.add("is-offline");
+          if (!timer) {
+            timer = window.setInterval(probe, POLL_MS);
+          }
+          probe();
+        }
+
+        function probe() {
+          if (probing) {
+            return;
+          }
+          probing = true;
+          if (status) {
+            status.textContent = "Reconnecting…";
+          }
+          fetch("data/config.json?n=" + Date.now(), { cache: "no-store" })
+            .then(function (res) {
+              probing = false;
+              if (down && navigator.onLine && res && res.ok) {
+                window.location.reload();
+              }
+            })
+            .catch(function () {
+              probing = false;
+              if (!down) {
+                show();
+              }
+            });
+        }
+
+        window.addEventListener("offline", show);
+        window.addEventListener("online", probe);
+        if (!navigator.onLine) {
+          show();
+        }
+      })();
+    </script>
   </body>
 </html>

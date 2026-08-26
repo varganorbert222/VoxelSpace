@@ -3,7 +3,14 @@
 import { bindKeyboard } from "./keyboard.js";
 import { bindPointer, tryPointerLock } from "./pointer.js";
 import { bindTouchControls } from "./touchControls.js";
-import { ZOOM_DEFAULT, ZOOM_RANGE, SPRINT_MULTIPLIER, Key } from "../constants/input.js";
+import {
+  ZOOM_DEFAULT,
+  ZOOM_MIN,
+  ZOOM_MAX,
+  ZOOM_RANGE,
+  SPRINT_MULTIPLIER,
+  Key,
+} from "../constants/input.js";
 
 class Input {
   get forward() {
@@ -36,6 +43,10 @@ class Input {
 
   get stickLookY() {
     return this._stickLookY;
+  }
+
+  get stickZoom() {
+    return this._stickZoom;
   }
 
   get speedScale() {
@@ -157,6 +168,7 @@ class Input {
     this._lookY = 0;
     this._stickLookX = 0;
     this._stickLookY = 0;
+    this._stickZoom = 0;
     this._dragX = 0;
     this._dragY = 0;
     this._zoom = ZOOM_DEFAULT;
@@ -185,9 +197,18 @@ class Input {
 
   setFlyLook(enabled) {
     this._flyLook = !!enabled;
+    if (this._flyLook) {
+      this._stickZoom = 0;
+      this._dragX = 0;
+      this._dragY = 0;
+    }
     if (!this._flyLook && this.pointerLocked) {
       document.exitPointerLock();
     }
+  }
+
+  nudgeZoom(delta) {
+    this._zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, this._zoom + delta));
   }
 
   setRollEnabled(enabled) {
