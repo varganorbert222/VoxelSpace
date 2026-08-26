@@ -729,6 +729,65 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
 }
 
+.range-dual {
+  position: relative;
+  width: 100%;
+  height: 20px;
+  touch-action: none;
+}
+
+.range-dual-rail,
+.range-dual-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 10px;
+  margin-top: -5px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.range-dual-rail {
+  background: var(--hud-track);
+  border: 2px solid;
+  border-color: var(--hud-border-lo) var(--hud-border-hi) var(--hud-border-hi)
+    var(--hud-border-lo);
+}
+
+.range-dual-fill {
+  right: auto;
+  background: var(--hud-amber-dim);
+  border: 2px solid transparent;
+}
+
+.range-dual-thumb {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 20px;
+  margin: -10px 0 0 -7px;
+  padding: 0;
+  background: var(--hud-amber);
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0 #000;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.range-dual-thumb[data-thumb="end"] {
+  z-index: 2;
+}
+
+.range-dual-thumb:focus {
+  outline: none;
+  box-shadow: 2px 2px 0 #000, 0 0 0 1px var(--hud-amber);
+}
+
+.range-dual-thumb:active {
+  box-shadow: 1px 1px 0 #000;
+}
+
 .control:has(#id_render_scale:disabled) {
   opacity: 0.45;
 }
@@ -1145,6 +1204,22 @@ body.classic .pano-only {
   input[type="range"]::-moz-range-thumb {
     width: 18px;
     height: 22px;
+  }
+
+  .range-dual {
+    height: 22px;
+  }
+
+  .range-dual-rail,
+  .range-dual-fill {
+    height: 14px;
+    margin-top: -7px;
+  }
+
+  .range-dual-thumb {
+    width: 18px;
+    height: 22px;
+    margin: -11px 0 0 -9px;
   }
 
   .check,

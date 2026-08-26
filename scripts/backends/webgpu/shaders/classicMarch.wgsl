@@ -92,7 +92,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let screenHorizon = frame.camUpHorizon.w;
   let sinA = frame.sinCosNearFar.x;
   let cosA = frame.sinCosNearFar.y;
-  let nearClip = frame.sinCosNearFar.z;
   let farClip = frame.sinCosNearFar.w;
   let minDeltaZ = frame.tMaxMinDzAltMaxH.y;
   let altitude = frame.tMaxMinDzAltMaxH.z;
@@ -112,11 +111,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let mapHMask = mapH - 1;
   let ceilingSdf = camZ - maxHeight;
   let yGround = camZ + 20.0;
-  let fogRange = farClip - nearClip;
-  var invFog = 0.0;
-  if (fogRange != 0.0) {
-    invFog = 1.0 / fogRange;
-  }
+  let fogStart = frame.sampleLimit.y;
+  let fogEnd = frame.sampleLimit.z;
   let screenWidthScaler = 1.0 / f32(screenW);
   let kRightX = cosA * tanHalfX;
   let kRightY = -sinA * tanHalfX;
@@ -154,19 +150,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       let zScale = dst / z;
       let ceilingOnScreen = i32(ceilingSdf * zScale + screenHorizon);
       let groundOnScreen = i32(yGround * zScale + screenHorizon);
-      var fogTRaw = fogRange * 0.0;
-      if (fogRange == 0.0) {
-        fogTRaw = 1.0;
-      } else {
-        fogTRaw = (z - nearClip) * invFog;
-      }
-      var fogT = fogTRaw;
-      if (fogT < 0.0) {
-        fogT = 0.0;
-      }
-      if (fogT > 1.0) {
-        fogT = 1.0;
-      }
+      let fogT = fogAmount(z, fogStart, fogEnd);
       let fogWhite = useFog && (fogT >= 1.0);
       let applyFogT = useFog && (fogT > 0.0) && !fogWhite;
       let dx = kDx * z;

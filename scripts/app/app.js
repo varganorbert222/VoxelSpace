@@ -237,6 +237,8 @@ class App {
         quality: this.camera.quality,
         mode: this.camera.mode,
         applyFog: options.applyFog,
+        fogStart: options.fogStart,
+        fogEnd: options.fogEnd,
         repeat: options.repeat,
         interpolateHeight: options.interpolateHeight,
         filterColor: options.filterColor,
@@ -252,6 +254,7 @@ class App {
       },
       {
         renderDistance: config.settings.renderDistance,
+        fogRange: config.settings.fogRange,
         filterDistance: config.settings.filterDistance,
         deltaZ: config.settings.deltaZ,
         fov: config.settings.fov,
@@ -275,6 +278,8 @@ class App {
     });
     this.renderer.setOptions({
       applyFog: sanitized.applyFog,
+      fogStart: sanitized.fogStart,
+      fogEnd: sanitized.fogEnd,
       repeat: sanitized.repeat,
       interpolateHeight: sanitized.interpolateHeight,
       filterColor: sanitized.filterColor,

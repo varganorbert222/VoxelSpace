@@ -176,6 +176,38 @@
         </div>
         <div
           class="control"
+          data-tip="Where fog starts and where it saturates. The right end of the track is the current Distance. If the upper thumb is below Distance, terrain is only marched to that upper bound; Distance itself stays put."
+        >
+          <div class="control-head">
+            <label id="id_fog_range_label">Fog range</label>
+            <span class="control-value" data-for="id_fog_range"></span>
+          </div>
+          <div
+            class="range-dual"
+            id="id_fog_range"
+            role="group"
+            aria-labelledby="id_fog_range_label"
+          >
+            <div class="range-dual-rail" aria-hidden="true"></div>
+            <div class="range-dual-fill" aria-hidden="true"></div>
+            <button
+              type="button"
+              class="range-dual-thumb"
+              data-thumb="start"
+              id="id_fog_start"
+              aria-label="Fog start"
+            ></button>
+            <button
+              type="button"
+              class="range-dual-thumb"
+              data-thumb="end"
+              id="id_fog_end"
+              aria-label="Fog end"
+            ></button>
+          </div>
+        </div>
+        <div
+          class="control"
           data-tip="How far height interp and color filter apply, as clip-plane distance (same units as fog / Distance). Screen corners stay on that plane; bilinear is not computed past it."
         >
           <div class="control-head">
@@ -242,7 +274,7 @@
       <section class="hud-section">
         <h2 class="hud-section-title"><span>05</span> Flags</h2>
         <div class="flag-grid">
-          <label class="check" for="id_apply_fog" data-tip="Fade distant terrain into the sky.">
+          <label class="check" for="id_apply_fog" data-tip="Fade distant terrain into the sky. Start and end distances come from Fog range.">
             <input
               id="id_apply_fog"
               name="applyfog"

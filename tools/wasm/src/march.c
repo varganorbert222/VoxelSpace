@@ -62,6 +62,7 @@ static f64 T_HALF;
 static f64 T_INV_TWO_PI;
 static f64 T_MIN_SAMPLE;
 static f64 T_FOG_SAT;
+static f64 T_FOG_START;
 static f64 T_NON_REPEAT_GROUND;
 static f64 T_MIP_STEP_SCALE;
 static f64 T_YHIT_SCALE;
@@ -391,6 +392,10 @@ WASM_EXPORT void set_sample_flags(
   g_fwd_y = fwd_y;
 }
 
+WASM_EXPORT void set_fog_range(f64 fog_start) {
+  T_FOG_START = fog_start;
+}
+
 WASM_EXPORT void set_map_info(
     i32 map_w,
     i32 map_h,
@@ -603,7 +608,7 @@ WASM_EXPORT void classic_columns(
   u32 *color_map = g_mip_c[0];
   i32 local_width = (end_column - start_column) | 0;
   i32 stride = pixel_width;
-  f64 fog_range = far_clip - near_clip;
+  f64 fog_range = far_clip - T_FOG_START;
   f64 inv_fog = fog_range == 0.0 ? 0.0 : 1.0 / fog_range;
   i32 use_fog = apply_fog | 0;
   f64 ceiling = g_max_height;
@@ -702,7 +707,7 @@ WASM_EXPORT void classic_columns(
       f64 z_scale = dst_to_proj / z;
       i32 ceiling_on_screen = (i32)(ceiling_sdf * z_scale + screen_horizon);
       i32 ground_on_screen = (i32)(y_ground * z_scale + screen_horizon);
-      f64 fog_t_raw = fog_range == 0.0 ? T_FOG_SAT : (z - near_clip) * inv_fog;
+      f64 fog_t_raw = fog_range == 0.0 ? T_FOG_SAT : (z - T_FOG_START) * inv_fog;
       f64 fog_t = fog_t_raw < 0.0 ? 0.0 : fog_t_raw > T_FOG_SAT ? T_FOG_SAT : fog_t_raw;
       i32 fog_white = use_fog & (fog_t >= T_FOG_SAT);
       i32 apply_fog_t = use_fog & (fog_t > 0.0) & (fog_white ^ 1);
@@ -1256,7 +1261,7 @@ WASM_EXPORT void pano_view_columns(
   tan_half_x = tan_half_y * aspect;
   inv_w = 1.0 / (f64)screen_width;
   inv_h = 1.0 / (f64)screen_height;
-  fog_range = far_clip - near_clip;
+  fog_range = far_clip - T_FOG_START;
   inv_fog = fog_range == 0.0 ? 0.0 : 1.0 / fog_range;
   use_fog = apply_fog | 0;
   d_cam_x = T_NDC_SCALE * tan_half_x * inv_w;
@@ -1324,7 +1329,7 @@ WASM_EXPORT void pano_view_columns(
           pixels[dest] = (py < g_sky_len) ? g_sky[py] : T_WHITE;
         } else if (use_fog) {
           f64 fog_t =
-              fog_range == 0.0 ? T_FOG_SAT : (view_z - near_clip) * inv_fog;
+              fog_range == 0.0 ? T_FOG_SAT : (view_z - T_FOG_START) * inv_fog;
           if (fog_t >= T_FOG_SAT) {
             pixels[dest] = T_WHITE;
           } else if (fog_t > 0.0) {

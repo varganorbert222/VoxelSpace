@@ -40,10 +40,11 @@ function classicParams(renderer, maps) {
     dstToProjPlane: dstToProjPlane,
     screenHorizon: screenHorizon,
     nearClip: camera.nearClip,
-    farClip: camera.farClip,
+    farClip: renderer.effectiveFarClip,
     minDeltaZ: camera.minDeltaZ,
     quality: camera.quality,
     applyFog: renderer.applyFog,
+    fogStart: renderer.fogStart,
     debugView: renderer.debugView,
     repeat: renderer.repeat,
     interpolateHeight: renderer.interpolateHeight ? 1 : 0,
@@ -62,8 +63,10 @@ function isClassicTokenStale(token, renderer) {
     frameBuffer.width !== token.width ||
     frameBuffer.height !== token.height ||
     camera.quality !== token.quality ||
-    camera.farClip !== token.farClip ||
+    camera.farClip !== token.camFarClip ||
+    renderer.effectiveFarClip !== token.farClip ||
     renderer.applyFog !== token.applyFog ||
+    renderer.fogStart !== token.fogStart ||
     renderer.debugView !== token.debugView ||
     renderer.repeat !== token.repeat ||
     renderer.interpolateHeight !== token.interpolateHeight ||
@@ -136,8 +139,10 @@ class ClassicRenderer {
       width: renderer.frameBuffer.width,
       height: renderer.frameBuffer.height,
       quality: camera.quality,
-      farClip: camera.farClip,
+      camFarClip: camera.farClip,
+      farClip: renderer.effectiveFarClip,
       applyFog: renderer.applyFog,
+      fogStart: renderer.fogStart,
       debugView: renderer.debugView,
       repeat: renderer.repeat,
       interpolateHeight: renderer.interpolateHeight,

@@ -132,8 +132,6 @@ class CubemapRenderer {
       this._interp !== this._renderer.interpolateHeight ||
       this._filter !== this._renderer.filterColor ||
       this._filterDist !== this._renderer.filterDistance ||
-      this._fwdX !== camera.fwdX ||
-      this._fwdY !== camera.fwdY ||
       this._minDeltaZ !== camera.minDeltaZ ||
       this._skyColor !== terrain.skyColor ||
       this._horizonColor !== camera.bottomColor ||
@@ -365,6 +363,8 @@ class CubemapRenderer {
       nearClip: camera.nearClip,
       farClip: camera.farClip,
       applyFog: renderer.applyFog,
+      fogStart: renderer.fogStart,
+      fogEnd: renderer.fogEnd,
       debugView: renderer.debugView,
       rightX: camera.rightX,
       rightY: camera.rightY,
@@ -412,6 +412,8 @@ class CubemapRenderer {
       nearClip: camera.nearClip,
       farClip: camera.farClip,
       applyFog: renderer.applyFog,
+      fogStart: renderer.fogStart,
+      fogEnd: renderer.fogEnd,
       debugView: renderer.debugView,
       rightX: camera.rightX,
       rightY: camera.rightY,

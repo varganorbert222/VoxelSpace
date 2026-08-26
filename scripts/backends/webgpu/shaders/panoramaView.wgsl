@@ -74,11 +74,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let nearClip = frame.sinCosNearFar.z;
   let farClip = frame.sinCosNearFar.w;
   let useFog = flagFog(frame.mapFlags.w);
-  let fogRange = farClip - nearClip;
-  var invFog = 0.0;
-  if (fogRange != 0.0) {
-    invFog = 1.0 / fogRange;
-  }
+  let fogStart = frame.sampleLimit.y;
+  let fogEnd = frame.sampleLimit.z;
   let tanHalfY = frame.extra.y;
   let tanHalfX = tanHalfY * (f32(screenW) / f32(screenH));
   let pixelCenter = frame.mipInvPixelCenter.w;
@@ -126,10 +123,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     if (!useFog && ((viewZ >= farClip) || (viewZ < nearClip))) {
       outColor = skyView[min(u32(py), u32(arrayLength(&skyView) - 1u))];
     } else if (useFog) {
-      var fogT = 1.0;
-      if (fogRange != 0.0) {
-        fogT = (viewZ - nearClip) * invFog;
-      }
+      let fogT = fogAmount(viewZ, fogStart, fogEnd);
       if (fogT >= 1.0) {
         outColor = packRgba(vec4f(1.0));
       } else if (fogT > 0.0) {

@@ -12,4 +12,4 @@ export const FPS_PALETTE_STEPS = 24;
 export const FPS_GLOW_ALPHA = 0.4;
 export const SPAWN_HEIGHT_OFFSET = 50;
 export const SETTINGS_STORAGE_KEY = "voxelspace.settings";
-export const SETTINGS_STORAGE_VERSION = 2;
+export const SETTINGS_STORAGE_VERSION = 3;

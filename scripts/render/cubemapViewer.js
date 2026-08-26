@@ -86,9 +86,11 @@ export function renderCubemapViewColumns({
   skyColor,
   horizonColor,
   nearClip,
-  farClip,
-  applyFog,
-  debugView,
+    farClip,
+    applyFog,
+    fogStart = 0,
+    fogEnd,
+    debugView,
   cubeHeight,
   cubeIter,
   rightX,
@@ -118,7 +120,8 @@ export function renderCubemapViewColumns({
   const tanHalfX = tanHalfY * aspect;
   const invW = 1 / screenWidth;
   const invH = 1 / screenHeight;
-  const fogRange = farClip - nearClip;
+  const fogStop = Number.isFinite(fogEnd) ? fogEnd : farClip;
+  const fogRange = fogStop - fogStart;
   const invFogRange = fogRange === 0 ? 0 : 1 / fogRange;
   const useFog = applyFog | 0;
   const debug = isDebugColor(debugView) ? 0 : 1;
@@ -170,7 +173,7 @@ export function renderCubemapViewColumns({
           pixels[dest] = skyLut[skyLutIndexFromHat(dz * invViewLen, screenHeight)];
         } else if (useFog) {
           const fogT =
-            fogRange === 0 ? FOG_SATURATED : (viewZ - nearClip) * invFogRange;
+            fogRange === 0 ? FOG_SATURATED : (viewZ - fogStart) * invFogRange;
           if (fogT >= FOG_SATURATED) {
             pixels[dest] = Color.WHITE;
           } else if (fogT > 0) {
@@ -210,6 +213,8 @@ export function renderCubemapView(params) {
     nearClip: params.nearClip,
     farClip: params.farClip,
     applyFog: params.applyFog,
+    fogStart: params.fogStart,
+    fogEnd: params.fogEnd,
     debugView: params.debugView,
     cubeHeight: params.cubeHeight,
     cubeIter: params.cubeIter,

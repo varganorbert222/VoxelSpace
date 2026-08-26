@@ -197,6 +197,11 @@ export function createWasmKernels(instance) {
     tablesReady = 1;
   }
 
+  function syncFogRange(params) {
+    const start = Number(params.fogStart);
+    ex.set_fog_range(Number.isFinite(start) ? start : 0);
+  }
+
   function syncSampleFlags(params) {
     const dist = Number(params.filterDistance);
     const fwdX = Number(params.fwdX);
@@ -362,6 +367,7 @@ export function createWasmKernels(instance) {
   function renderClassicColumns(params) {
     ensureMaps(params);
     syncSampleFlags(params);
+    syncFogRange(params);
     const localWidth = (params.endColumn - params.startColumn) | 0;
     const n = (localWidth * params.screenHeight) | 0;
     const q = qualityIndex(params.quality);
@@ -539,6 +545,7 @@ export function createWasmKernels(instance) {
     ensureTables();
     ex.reset_scratch();
     writeLuts(height, params.skyColor, params.horizonColor);
+    syncFogRange(params);
     ensurePanoBuffers(
       pano,
       depth,
@@ -552,6 +559,8 @@ export function createWasmKernels(instance) {
     if (!(tanHalfY > 0) && params.dstToProjPlane > 0) {
       tanHalfY = (params.screenHeight * HALF) / params.dstToProjPlane;
     }
+    const fogStop = Number.isFinite(params.fogEnd) ? params.fogEnd : params.farClip;
+    const fogFar = params.applyFog ? fogStop : params.farClip;
     ex.pano_view_columns(
       params.startColumn | 0,
       params.endColumn | 0,
@@ -563,7 +572,7 @@ export function createWasmKernels(instance) {
       params.dstToProjPlane,
       tanHalfY,
       params.nearClip,
-      params.farClip,
+      fogFar,
       params.applyFog | 0,
       params.fillUnfilled | 0,
       pixelsPtr,
@@ -609,6 +618,8 @@ export function createWasmKernels(instance) {
       nearClip: params.nearClip,
       farClip: params.farClip,
       applyFog: params.applyFog,
+      fogStart: params.fogStart,
+      fogEnd: params.fogEnd,
       debugView: params.debugView,
       heightBuf: params.heightBuf,
       iterBuf: params.iterBuf,

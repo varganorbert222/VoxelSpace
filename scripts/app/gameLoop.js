@@ -81,13 +81,14 @@ function applySettingsHotkeys(app) {
   }
   const nudgeDistance = app.input.consumeNudgeDistance;
   if (nudgeDistance) {
-    app.camera.set({
-      farClip: nudgeRange(
-        app.camera.farClip,
-        nudgeDistance,
-        config.settings.renderDistance
-      ),
-    });
+    const prevFar = app.camera.farClip;
+    const nextFar = nudgeRange(
+      prevFar,
+      nudgeDistance,
+      config.settings.renderDistance
+    );
+    app.camera.set({ farClip: nextFar });
+    app.renderer.syncFogToFarClip(prevFar, nextFar);
     app.persistAndSync();
   }
   const nudgeDeltaZ = app.input.consumeNudgeDeltaZ;

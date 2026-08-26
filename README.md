@@ -184,7 +184,7 @@ The top bar is always-on chrome: map, algorithm, runtime, camera, quality, debug
 | --- | --- |
 | **01 Mission** | Pick one of 86 Comanche maps (color + height + sky + altitude). |
 | **02 Engine** | Algorithm, runtime, quality, camera mode. |
-| **03 View** | Distance, delta Z, FOV. Scale is derived from quality. |
+| **03 View** | Distance, fog range, delta Z, FOV. Scale is derived from quality. |
 | **04 Debug** | Recolor the picture; optional unwrapped env atlas. |
 | **05 Flags** | Fog, world wrap, worker threads. |
 | **06 Input / Touch** | Built-in legend for the current device. |
@@ -233,7 +233,8 @@ Internal resolution and march density follow quality. Scale is automatic.
 
 | Control | Range | Role |
 | --- | --- | --- |
-| **Distance** | 100 – 8000 | Far clip |
+| **Distance** | 100 – 8000 | Far clip (HUD value; march may stop sooner if Fog is on and Fog range end is lower) |
+| **Fog range** | 0 – Distance | Dual thumbs: fog starts at the lower bound and saturates at the upper. The track max follows Distance. |
 | **Delta Z** | 0.1 – 2.0 | Ray step. Lower is denser and slower. |
 | **FOV** | 10° – 90° | Horizontal field of view |
 | **Scale** | auto | Internal resolution from quality × viewport |
@@ -253,7 +254,7 @@ Internal resolution and march density follow quality. Scale is automatic.
 
 | Flag | Default | Notes |
 | --- | --- | --- |
-| **Fog** | On | Fade distant terrain into the sky |
+| **Fog** | On | Fade distant terrain into the sky. Distances come from **Fog range**. |
 | **Repeat** | On | Tile the map so the world wraps |
 | **Threads** | Off | Split columns across workers (JS / WASM). Forced off on WebGPU. |
 

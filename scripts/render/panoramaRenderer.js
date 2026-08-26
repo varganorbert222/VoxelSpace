@@ -151,8 +151,6 @@ class PanoramaRenderer {
       this._panoInterp !== this._renderer.interpolateHeight ||
       this._panoFilter !== this._renderer.filterColor ||
       this._panoFilterDist !== this._renderer.filterDistance ||
-      this._panoFwdX !== camera.fwdX ||
-      this._panoFwdY !== camera.fwdY ||
       this._panoMinDeltaZ !== camera.minDeltaZ ||
       this._panoSkyColor !== terrain.skyColor ||
       this._panoHorizonColor !== camera.bottomColor ||
@@ -214,6 +212,8 @@ class PanoramaRenderer {
       nearClip: camera.nearClip,
       farClip: camera.farClip,
       applyFog: renderer.applyFog,
+      fogStart: renderer.fogStart,
+      fogEnd: renderer.fogEnd,
       debugView: renderer.debugView,
       rightX: camera.rightX,
       rightY: camera.rightY,
@@ -262,6 +262,8 @@ class PanoramaRenderer {
       nearClip: camera.nearClip,
       farClip: camera.farClip,
       applyFog: renderer.applyFog,
+      fogStart: renderer.fogStart,
+      fogEnd: renderer.fogEnd,
       debugView: renderer.debugView,
       rightX: camera.rightX,
       rightY: camera.rightY,

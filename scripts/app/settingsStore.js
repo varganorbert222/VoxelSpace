@@ -5,6 +5,7 @@ import {
   SETTINGS_STORAGE_VERSION,
 } from "../constants/main.js";
 import { BACKEND_JS } from "../constants/backend.js";
+import { clampFogRange } from "../constants/fog.js";
 import VMath from "../math/vmath.js";
 
 function finiteOr(value, fallback) {
@@ -25,7 +26,10 @@ function migratePersisted(data) {
     return null;
   }
   if (data.version === 1) {
-    return { ...data, version: SETTINGS_STORAGE_VERSION, backend: BACKEND_JS };
+    data = { ...data, version: 2, backend: BACKEND_JS };
+  }
+  if (data.version === 2) {
+    return { ...data, version: SETTINGS_STORAGE_VERSION };
   }
   return data;
 }
@@ -63,6 +67,8 @@ export function collectSettings(app) {
     fov: app.camera.fov,
     quality: app.camera.quality,
     applyFog: options.applyFog,
+    fogStart: options.fogStart,
+    fogEnd: options.fogEnd,
     repeat: options.repeat,
     interpolateHeight: options.interpolateHeight,
     filterColor: options.filterColor,
@@ -82,12 +88,19 @@ export function sanitizeSettings(data, defaults, bounds) {
   if (!data) {
     return null;
   }
+  const farClip = VMath.clamp(
+    bounds.renderDistance.min,
+    bounds.renderDistance.max,
+    finiteOr(data.farClip, defaults.farClip)
+  );
+  const fog = clampFogRange(
+    finiteOr(data.fogStart, defaults.fogStart),
+    finiteOr(data.fogEnd, farClip),
+    farClip,
+    bounds.fogRange
+  );
   return {
-    farClip: VMath.clamp(
-      bounds.renderDistance.min,
-      bounds.renderDistance.max,
-      finiteOr(data.farClip, defaults.farClip)
-    ),
+    farClip,
     minDeltaZ: VMath.clamp(
       bounds.deltaZ.min,
       bounds.deltaZ.max,
@@ -101,6 +114,8 @@ export function sanitizeSettings(data, defaults, bounds) {
     quality: pickAllowed(Number(data.quality), bounds.qualities, defaults.quality),
     mode: pickAllowed(data.mode, bounds.modes, defaults.mode),
     applyFog: boolOr(data.applyFog, defaults.applyFog),
+    fogStart: fog.fogStart,
+    fogEnd: fog.fogEnd,
     repeat: boolOr(data.repeat, defaults.repeat),
     interpolateHeight: boolOr(data.interpolateHeight, defaults.interpolateHeight),
     filterColor: boolOr(data.filterColor, defaults.filterColor),

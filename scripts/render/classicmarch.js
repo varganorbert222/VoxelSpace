@@ -219,6 +219,7 @@ function renderClassicColumnsSampled({
   minDeltaZ,
   quality,
   applyFog,
+  fogStart = 0,
   debugView,
   repeat,
   interpolateHeight,
@@ -231,7 +232,7 @@ function renderClassicColumnsSampled({
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;
   const hiddenY = hiddenYBuffer(localWidth);
-  const fogRange = farClip - nearClip;
+  const fogRange = farClip - fogStart;
   const invFogRange = fogRange === 0 ? 0 : 1 / fogRange;
   const useFog = applyFog | 0;
   const debug = isDebugColor(debugView) ? 0 : 1;
@@ -308,7 +309,7 @@ function renderClassicColumnsSampled({
       const ceilingOnScreen = (ceilingSdf * zScale + screenHorizon) | 0;
       const groundOnScreen = (yGround * zScale + screenHorizon) | 0;
       const fogTRaw =
-        fogRange === 0 ? FOG_SATURATED : (z - nearClip) * invFogRange;
+        fogRange === 0 ? FOG_SATURATED : (z - fogStart) * invFogRange;
       const fogT =
         fogTRaw < 0
           ? 0
@@ -477,6 +478,7 @@ function renderClassicColumnsNearest({
   minDeltaZ,
   quality,
   applyFog,
+  fogStart = 0,
   debugView,
   repeat,
   pixels,
@@ -486,7 +488,7 @@ function renderClassicColumnsNearest({
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;
   const hiddenY = hiddenYBuffer(localWidth);
-  const fogRange = farClip - nearClip;
+  const fogRange = farClip - fogStart;
   const invFogRange = fogRange === 0 ? 0 : 1 / fogRange;
   const useFog = applyFog | 0;
   const debug = isDebugColor(debugView) ? 0 : 1;
@@ -560,7 +562,7 @@ function renderClassicColumnsNearest({
       const ceilingOnScreen = (ceilingSdf * zScale + screenHorizon) | 0;
       const groundOnScreen = (yGround * zScale + screenHorizon) | 0;
       const fogTRaw =
-        fogRange === 0 ? FOG_SATURATED : (z - nearClip) * invFogRange;
+        fogRange === 0 ? FOG_SATURATED : (z - fogStart) * invFogRange;
       const fogT =
         fogTRaw < 0
           ? 0

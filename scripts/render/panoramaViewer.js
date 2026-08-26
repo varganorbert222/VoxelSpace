@@ -126,6 +126,8 @@ export function renderPanoramaViewColumns({
   nearClip,
   farClip,
   applyFog,
+  fogStart = 0,
+  fogEnd,
   debugView,
   heightBuf,
   iterBuf,
@@ -158,7 +160,8 @@ export function renderPanoramaViewColumns({
   const tanHalfX = tanHalfY * aspect;
   const invW = 1 / screenWidth;
   const invH = 1 / screenHeight;
-  const fogRange = farClip - nearClip;
+  const fogStop = Number.isFinite(fogEnd) ? fogEnd : farClip;
+  const fogRange = fogStop - fogStart;
   const invFogRange = fogRange === 0 ? 0 : 1 / fogRange;
   const useFog = applyFog | 0;
   const debug = isDebugColor(debugView) ? 0 : 1;
@@ -218,7 +221,7 @@ export function renderPanoramaViewColumns({
           pixels[dest] = skyLut[py];
         } else if (useFog) {
           const fogT =
-            fogRange === 0 ? FOG_SATURATED : (viewZ - nearClip) * invFogRange;
+            fogRange === 0 ? FOG_SATURATED : (viewZ - fogStart) * invFogRange;
           if (fogT >= FOG_SATURATED) {
             pixels[dest] = Color.WHITE;
           } else if (fogT > 0) {
@@ -254,6 +257,8 @@ export function renderPanoramaView({
   nearClip,
   farClip,
   applyFog,
+  fogStart = 0,
+  fogEnd,
   debugView,
   rightX,
   rightY,
@@ -287,6 +292,8 @@ export function renderPanoramaView({
     nearClip,
     farClip,
     applyFog,
+    fogStart,
+    fogEnd,
     debugView,
     rightX,
     rightY,

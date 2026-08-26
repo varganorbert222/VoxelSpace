@@ -13,7 +13,21 @@ import {
   clampFilterDistance,
 } from "../constants/sampling.js";
 import { DEFAULT_MULTITHREAD } from "../constants/threading.js";
+import { DEFAULT_FAR_CLIP } from "../constants/camera.js";
+import {
+  FOG_RANGE_DEFAULT_START,
+  FOG_RANGE_MIN,
+  FOG_RANGE_STEP,
+  clampFogRange,
+  effectiveFarClip,
+  syncFogEndToFarClip,
+} from "../constants/fog.js";
 import { createBackend, listBackends } from "../backends/contract.js";
+
+const FOG_BOUNDS = {
+  min: FOG_RANGE_MIN,
+  step: FOG_RANGE_STEP,
+};
 
 class Renderer {
   constructor(frameBuffer, surface) {
@@ -21,6 +35,8 @@ class Renderer {
     this._surface = surface;
     this._camera = null;
     this._applyFog = true;
+    this._fogStart = FOG_RANGE_DEFAULT_START;
+    this._fogEnd = DEFAULT_FAR_CLIP;
     this._repeat = true;
     this._interpolateHeight = true;
     this._filterColor = true;
@@ -37,6 +53,16 @@ class Renderer {
 
   setCamera(camera) {
     this._camera = camera;
+    if (camera) {
+      const next = clampFogRange(
+        this._fogStart,
+        this._fogEnd,
+        camera.farClip,
+        FOG_BOUNDS
+      );
+      this._fogStart = next.fogStart;
+      this._fogEnd = next.fogEnd;
+    }
   }
 
   get camera() {
@@ -53,6 +79,19 @@ class Renderer {
 
   get applyFog() {
     return this._applyFog;
+  }
+
+  get fogStart() {
+    return this._fogStart;
+  }
+
+  get fogEnd() {
+    return this._fogEnd;
+  }
+
+  get effectiveFarClip() {
+    const far = this._camera ? this._camera.farClip : this._fogEnd;
+    return effectiveFarClip(far, this._applyFog, this._fogEnd);
   }
 
   get repeat() {
@@ -119,6 +158,8 @@ class Renderer {
   getOptions() {
     return {
       applyFog: this._applyFog,
+      fogStart: this._fogStart,
+      fogEnd: this._fogEnd,
       repeat: this._repeat,
       interpolateHeight: this._interpolateHeight,
       filterColor: this._filterColor,
@@ -132,8 +173,19 @@ class Renderer {
   }
 
   setOptions(options) {
+    const far = this._camera ? this._camera.farClip : this._fogEnd;
     if (options.applyFog !== undefined) {
       this._applyFog = options.applyFog;
+    }
+    if (options.fogStart !== undefined || options.fogEnd !== undefined) {
+      const next = clampFogRange(
+        options.fogStart !== undefined ? options.fogStart : this._fogStart,
+        options.fogEnd !== undefined ? options.fogEnd : this._fogEnd,
+        far,
+        FOG_BOUNDS
+      );
+      this._fogStart = next.fogStart;
+      this._fogEnd = next.fogEnd;
     }
     if (options.repeat !== undefined) {
       this._repeat = options.repeat;
@@ -174,6 +226,18 @@ class Renderer {
     if (options.backend !== undefined && !this._backend) {
       this._backendId = options.backend;
     }
+  }
+
+  syncFogToFarClip(prevFar, nextFar) {
+    const next = syncFogEndToFarClip(
+      this._fogStart,
+      this._fogEnd,
+      prevFar,
+      nextFar,
+      FOG_BOUNDS
+    );
+    this._fogStart = next.fogStart;
+    this._fogEnd = next.fogEnd;
   }
 
   cancelJobs() {
@@ -323,6 +387,8 @@ class Renderer {
       camera: this._camera,
       terrain,
       applyFog: this._applyFog,
+      fogStart: this._fogStart,
+      fogEnd: this._fogEnd,
       repeat: this._repeat,
       screenWidth: this._frameBuffer.width,
       screenHeight: this._frameBuffer.height,

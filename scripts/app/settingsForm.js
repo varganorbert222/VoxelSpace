@@ -16,6 +16,8 @@ import {
   isUltraQualityAllowed,
 } from "../constants/quality.js";
 import { listBackends } from "../backends/contract.js";
+import { FOG_RANGE_MIN, FOG_RANGE_STEP } from "../constants/fog.js";
+import { initDualRangeElement } from "./rangeSlider.js";
 
 function prepareControl(element) {
   element.setAttribute("autocomplete", "off");
@@ -24,7 +26,7 @@ function prepareControl(element) {
 
 function formatRangeValue(id, value) {
   const n = Number(value);
-  if (id === "id_render_distance") {
+  if (id === "id_render_distance" || id === "id_fog_range") {
     return String(Math.round(n));
   }
   if (id === "id_filter_distance") {
@@ -40,6 +42,14 @@ function formatRangeValue(id, value) {
     return n.toFixed(1);
   }
   return String(value);
+}
+
+function updateFogRangeValue(start, end) {
+  const label = document.querySelector('[data-for="id_fog_range"]');
+  if (label) {
+    label.textContent =
+      Math.round(Number(start)) + " – " + Math.round(Number(end));
+  }
 }
 
 function updateBoundValue(id, value) {
@@ -177,7 +187,36 @@ class SettingsForm {
         config.settings.renderDistance,
         camera.farClip,
         (e) => {
-          camera.set({ farClip: parseFloat(e.target.value) });
+          const prev = camera.farClip;
+          const next = parseFloat(e.target.value);
+          camera.set({ farClip: next });
+          app.renderer.syncFogToFarClip(prev, next);
+          const fog = this._elements.fogRange;
+          fog.setMax(next);
+          fog.setValues(app.renderer.fogStart, app.renderer.fogEnd);
+          updateFogRangeValue(app.renderer.fogStart, app.renderer.fogEnd);
+        },
+        persist
+      ),
+      fogRange: initDualRangeElement(
+        "id_fog_range",
+        {
+          min:
+            (config.settings.fogRange && config.settings.fogRange.min) ??
+            FOG_RANGE_MIN,
+          max: camera.farClip,
+          step:
+            (config.settings.fogRange && config.settings.fogRange.step) ??
+            FOG_RANGE_STEP,
+        },
+        Number.isFinite(options.fogStart) ? options.fogStart : 0,
+        Number.isFinite(options.fogEnd) ? options.fogEnd : camera.farClip,
+        (range) => {
+          app.renderer.setOptions({
+            fogStart: range.start,
+            fogEnd: range.end,
+          });
+          updateFogRangeValue(range.start, range.end);
         },
         persist
       ),
@@ -324,6 +363,7 @@ class SettingsForm {
     const options = this._app.renderer.getOptions();
     const {
       renderDistance,
+      fogRange,
       renderScale,
       fov,
       deltaZ,
@@ -343,6 +383,15 @@ class SettingsForm {
     } = this._elements;
     renderDistance.value = camera.farClip;
     updateBoundValue("id_render_distance", camera.farClip);
+    fogRange.setMax(camera.farClip);
+    fogRange.setValues(
+      Number.isFinite(options.fogStart) ? options.fogStart : 0,
+      Number.isFinite(options.fogEnd) ? options.fogEnd : camera.farClip
+    );
+    updateFogRangeValue(
+      Number.isFinite(options.fogStart) ? options.fogStart : 0,
+      Number.isFinite(options.fogEnd) ? options.fogEnd : camera.farClip
+    );
     renderScale.disabled = true;
     renderScale.value = camera.renderScale;
     updateBoundValue("id_render_scale", camera.renderScale);

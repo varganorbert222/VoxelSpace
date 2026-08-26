@@ -531,8 +531,6 @@ class WebGpuBackend {
       this._panoInterp !== this._host.interpolateHeight ||
       this._panoFilter !== this._host.filterColor ||
       this._panoFilterDist !== this._host.filterDistance ||
-      this._panoFwdX !== camera.fwdX ||
-      this._panoFwdY !== camera.fwdY ||
       this._panoMinDeltaZ !== camera.minDeltaZ ||
       this._panoSkyColor !== terrain.skyColor ||
       this._panoHorizonColor !== camera.bottomColor ||
@@ -605,9 +603,14 @@ class WebGpuBackend {
       }
     }
     const aspect = screenH ? screenW / screenH : 0;
-    let tMax = farPlaneRayTMax(camera.farClip, camera.fov, aspect);
+    const envFar = camera.farClip;
+    const isEnv =
+      this._host.algorithm === ALGORITHM_PANORAMA ||
+      this._host.algorithm === ALGORITHM_CUBEMAP;
+    const packFar = isEnv ? envFar : this._host.effectiveFarClip;
+    let tMax = farPlaneRayTMax(envFar, camera.fov, aspect);
     if (!(tMax > 0)) {
-      tMax = camera.farClip * FAR_PLANE_T_SCALE;
+      tMax = envFar * FAR_PLANE_T_SCALE;
     }
     const w0 = widths[0] | 0;
     const h0 = heights[0] | 0;
@@ -635,7 +638,7 @@ class WebGpuBackend {
       sinAngle: Math.sin(camera.angle),
       cosAngle: Math.cos(camera.angle),
       nearClip: camera.nearClip,
-      farClip: camera.farClip,
+      farClip: packFar,
       tMax: tMax,
       minDeltaZ: camera.minDeltaZ,
       altitude: maps.altitude,
@@ -652,6 +655,8 @@ class WebGpuBackend {
       interpolateHeight: this._host.interpolateHeight,
       filterColor: this._host.filterColor,
       filterDistance: this._host.filterDistance,
+      fogStart: this._host.fogStart,
+      fogEnd: this._host.fogEnd,
       skyColor: terrain.skyColor,
       horizonColor: camera.bottomColor,
       clipZ: clipZ,
@@ -662,8 +667,8 @@ class WebGpuBackend {
       stepCap0: mipStepMax[0],
       stepCap1: mipStepMax[1],
       stepCap2: mipStepMax[2],
-      switchT0: camera.farClip * mipT[0],
-      switchT1: camera.farClip * mipT[1],
+      switchT0: envFar * mipT[0],
+      switchT1: envFar * mipT[1],
       mipStepScale: PANO_MIP_STEP_SCALE,
       yHitScale: PANO_YHIT_LUT_SIZE * HALF,
       inv0: PANO_MIP_INV_SCALE[0],
@@ -739,12 +744,13 @@ class WebGpuBackend {
       deltas[i + 1] = farDeltas[i];
     }
     const zStart = Math.max(camera.nearClip, deltas[0], MIN_SAMPLE_DISTANCE);
+    const far = this._host.effectiveFarClip;
     const lodDistances = new Float32Array(16);
     lodDistances[0] = zStart;
     for (let i = 0; (i < LOD_DISTANCE_FRACTIONS.length) | 0; i = (i + 1) | 0) {
-      lodDistances[i + 1] = LOD_DISTANCE_FRACTIONS[i] * camera.farClip;
+      lodDistances[i + 1] = LOD_DISTANCE_FRACTIONS[i] * far;
     }
-    lodDistances[LOD_BAND_COUNT] = camera.farClip;
+    lodDistances[LOD_BAND_COUNT] = far;
     for (let i = 1; (i < LOD_BAND_COUNT) | 0; i = (i + 1) | 0) {
       if (lodDistances[i] < lodDistances[i - 1]) {
         lodDistances[i] = lodDistances[i - 1];

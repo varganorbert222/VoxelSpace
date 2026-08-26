@@ -135,7 +135,7 @@ export function packFrame(packer, p) {
   f[84] = Number.isFinite(p.filterDistance)
     ? p.filterDistance
     : FILTER_DISTANCE_DEFAULT;
-  f[85] = 0;
-  f[86] = 0;
+  f[85] = Number.isFinite(p.fogStart) ? p.fogStart : 0;
+  f[86] = Number.isFinite(p.fogEnd) ? p.fogEnd : 0;
   f[87] = 0;
 }
