@@ -2,7 +2,7 @@
 
 **Fly the classic Comanche voxel landscape — in the browser, on CPU or GPU.**
 
-A modern, HUD-driven voxel-space renderer: three algorithms, three runtimes, eighty-six Comanche missions, and a cockpit you can actually fly.
+A modern, HUD-driven voxel-space renderer: four algorithms, three runtimes, eighty-six Comanche missions, and a cockpit you can actually fly.
 
 [**Launch the demo**](https://varganorbert222.github.io/VoxelSpace/index.html) · [YouTube (Unity series)](https://www.youtube.com/channel/UCEOzw2b5SALP72s9TMlW3ug) · [License: MIT](LICENSE)
 
@@ -25,6 +25,7 @@ Voxel space is the technique behind *Comanche*: a height map plus a color map, m
 | You get | What it means |
 | --- | --- |
 | **Classic columns** | The original voxel-space picture, every frame |
+| **Frustum-space** | View-Z slices with real pitch, live every frame |
 | **360° panorama** | Equirectangular environment, cached, then sampled as you look |
 | **Cubemap** | Six-face skybox, cached like panorama, sampled as you look |
 | **CPU · JS** | Readable kernels on a Canvas 2D swap |
@@ -46,7 +47,7 @@ Works in a current desktop or mobile browser. WebGPU is optional (Chrome / Edge 
 
 ## How it works
 
-Height and color maps are 1024×1024 raster pairs. Each camera ray steps across the height field, samples color, and writes a column (or an environment texel). Distant samples use mipmaps and growing step size so the far clip stays cheap.
+Height and color maps are 1024×1024 raster pairs. Classic marches world-vertical columns. Frustum-space samples the same height field along camera rays at discrete view-Z planes so pitch is real, not a horizon shift. Panorama and cubemap cache an environment atlas, then sample it as you look. Distant samples use mipmaps and growing step size so the far clip stays cheap.
 
 ```
   maps/color + maps/height
@@ -56,10 +57,10 @@ Height and color maps are 1024×1024 raster pairs. Each camera ray steps across 
             │
             ▼
         Renderer
-     ┌──────┼──────┐
-  Classic  Panorama  Cubemap
-     │         │         │
-     └──── backends ─────┘
+     ┌──────┼──────┬──────┐
+  Classic  Frustum  Pano   Cube
+     │         │      │      │
+     └────── backends ───────┘
         JS · WASM · WebGPU
             │
             ▼
@@ -205,6 +206,7 @@ A 256×256 top-down of the current map, with heading, FOV wedge, and craft mark.
 | Algorithm | Picture | Look | Cache |
 | --- | --- | --- | --- |
 | **classic** | Column voxel space | Yaw + limited pitch | None — every frame |
+| **frustum-space** | View-Z slices, per-pixel first hit | Yaw + real pitch (±80°), no roll | None — every frame |
 | **panorama** | 360° equirect | Full Euler + roll | Rebuild on move / march change |
 | **cubemap** | 6-face environment | Full Euler + roll | Same as panorama |
 
@@ -248,7 +250,7 @@ Internal resolution and march density follow quality. Scale is automatic.
 | **Depth** | Distance along the ray |
 | **Iterations** | How hard the march worked |
 
-**Env atlas** (`N`) overlays the unwrapped panorama strip or cubemap net. Hidden on classic. The overlay uses the same debug view as the 3D picture.
+**Env atlas** (`N`) overlays the unwrapped panorama strip or cubemap net. Hidden on classic and frustum-space. The overlay uses the same debug view as the 3D picture.
 
 ### Flags
 
@@ -277,7 +279,7 @@ The extractor lineage is the C program from [sioux](https://github.com/hanatos/s
 | `index.html` | HUD shell, command panel, canvas, radar, touch pad |
 | `styles/` | Cockpit chrome |
 | `scripts/app/` | Boot, game loop, HUD, settings, radar, map load |
-| `scripts/render/` | Classic / panorama / cubemap, workers, overlay |
+| `scripts/render/` | Classic / frustum-space / panorama / cubemap, workers, overlay |
 | `scripts/backends/` | JS, WASM, WebGPU (+ WGSL) |
 | `scripts/camera/` | Fly, orbit, projection, collision |
 | `scripts/terrain/` | Height/color, mips, wrap |

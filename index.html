@@ -124,7 +124,7 @@
       <section class="hud-section">
         <h2 class="hud-section-title"><span>02</span> Engine</h2>
         <div class="control-grid">
-          <div class="control" data-tip="Classic: column voxel space. Panorama: 360° equirect. Cubemap: 6-face environment, cached like panorama.">
+          <div class="control" data-tip="Classic: column voxel space. Frustum-space: view-Z slices with real pitch. Panorama: 360° equirect. Cubemap: 6-face environment, cached like panorama.">
             <div class="control-head">
               <label for="id_algorithmselector">Algorithm</label>
             </div>
@@ -270,7 +270,7 @@
           <label
             class="check"
             for="id_debug_overlay"
-            data-tip="Unwrapped panorama or cubemap atlas. Uses the same debug view as the 3D picture. Hidden on classic."
+            data-tip="Unwrapped panorama or cubemap atlas. Uses the same debug view as the 3D picture. Hidden on classic and frustum-space."
           >
             <input
               id="id_debug_overlay"

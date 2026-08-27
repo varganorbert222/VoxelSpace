@@ -15,4 +15,4 @@ powershell -File tools/wasm/build.ps1
 
 The committed runtime artifact is `scripts/wasm/march.bytes.js`. A clone does **not** need clang to play the demo.
 
-Do not `fetch("*.wasm")`. Do not enable WASM SIMD as the product module.
+The product kernels are `classic_columns`, `frustum_space_columns`, `pano_columns`, and `pano_view_columns`. Do not `fetch("*.wasm")`. Do not enable WASM SIMD as the product module.

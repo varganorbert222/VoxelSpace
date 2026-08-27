@@ -1,10 +1,15 @@
 "use strict";
 
 import ClassicRenderer from "../../render/classicRenderer.js";
+import FrustumSpaceRenderer from "../../render/frustumSpaceRenderer.js";
 import PanoramaRenderer from "../../render/panoramaRenderer.js";
 import CubemapRenderer from "../../render/cubemapRenderer.js";
 import WorkerPool from "../../render/workerPool.js";
-import { ALGORITHM_CUBEMAP, ALGORITHM_PANORAMA } from "../../constants/algorithm.js";
+import {
+  ALGORITHM_CUBEMAP,
+  ALGORITHM_FRUSTUM_SPACE,
+  ALGORITHM_PANORAMA,
+} from "../../constants/algorithm.js";
 import { BACKEND_JS } from "../../constants/backend.js";
 
 class JsBackend {
@@ -19,6 +24,7 @@ class JsBackend {
   constructor() {
     this._host = null;
     this._classic = null;
+    this._frustumSpace = null;
     this._panorama = null;
     this._cubemap = null;
     this._pool = null;
@@ -28,6 +34,7 @@ class JsBackend {
   async init(ctx) {
     this._host = ctx.renderer;
     this._classic = new ClassicRenderer(this);
+    this._frustumSpace = new FrustumSpaceRenderer(this);
     this._panorama = new PanoramaRenderer(this);
     this._cubemap = new CubemapRenderer(this);
   }
@@ -149,6 +156,10 @@ class JsBackend {
       await this._cubemap.render(frame.terrain);
       return;
     }
+    if (frame.algorithm === ALGORITHM_FRUSTUM_SPACE) {
+      await this._frustumSpace.render(frame.terrain);
+      return;
+    }
     await this._classic.render(frame.terrain);
   }
 
@@ -159,6 +170,7 @@ class JsBackend {
       this._pool = null;
     }
     this._classic = null;
+    this._frustumSpace = null;
     this._panorama = null;
     this._cubemap = null;
     this._host = null;

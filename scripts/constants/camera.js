@@ -21,10 +21,13 @@ export const KEY_LOOK_SENSITIVITY = 2;
 
 export const CLASSIC_PITCH_MIN = -30;
 export const CLASSIC_PITCH_MAX = 30;
+export const FRUSTUM_SPACE_PITCH_MIN = -80;
+export const FRUSTUM_SPACE_PITCH_MAX = 80;
 
 export const ORBIT_RADIUS_MIN = 500;
 export const ORBIT_RADIUS_MAX = 2000;
 export const ORBIT_THETA_MIN_CLASSIC = 0.5;
+export const ORBIT_THETA_MIN_FRUSTUM_SPACE = 0.15;
 export const ORBIT_THETA_MIN_PANORAMA = 0.05;
 export const ORBIT_PITCH_SCALE = 60;
 

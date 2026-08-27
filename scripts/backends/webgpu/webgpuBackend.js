@@ -1,7 +1,11 @@
 "use strict";
 
 import { BACKEND_WEBGPU } from "../../constants/backend.js";
-import { ALGORITHM_CUBEMAP, ALGORITHM_PANORAMA } from "../../constants/algorithm.js";
+import {
+  ALGORITHM_CUBEMAP,
+  ALGORITHM_FRUSTUM_SPACE,
+  ALGORITHM_PANORAMA,
+} from "../../constants/algorithm.js";
 import {
   CUBE_NET_CELL_H,
   CUBE_NET_CELL_W,
@@ -811,6 +815,45 @@ class WebGpuBackend {
     pass.end();
   }
 
+  _dispatchFrustumSpace(encoder, screenW, screenH) {
+    const tables = this._cachedBind("classicTables", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.classicTables,
+        entries: [
+          { binding: 0, resource: { buffer: this._offsetBuf } },
+          { binding: 1, resource: { buffer: this._deltaBuf } },
+          { binding: 2, resource: { buffer: this._distBuf } },
+        ],
+      })
+    );
+    const maps = this._cachedBind("classicMaps", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.maps,
+        entries: [
+          { binding: 0, resource: this._mipOrDummy("h", 0).createView() },
+          { binding: 1, resource: this._mipOrDummy("c", 0).createView() },
+        ],
+      })
+    );
+    const out = this._cachedBind("classicOut", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.classicOut,
+        entries: [
+          { binding: 0, resource: this._screenTex.createView() },
+          { binding: 1, resource: { buffer: this._skyRowBuf } },
+        ],
+      })
+    );
+    const pass = encoder.beginComputePass();
+    pass.setPipeline(this._pipes.frustumSpace);
+    pass.setBindGroup(0, this._frameBind());
+    pass.setBindGroup(1, tables);
+    pass.setBindGroup(2, maps);
+    pass.setBindGroup(3, out);
+    pass.dispatchWorkgroups(Math.ceil(screenW / WEBGPU_WORKGROUP_1D));
+    pass.end();
+  }
+
   _cubeMipsBind() {
     return this._cachedBind("cubeMips", () =>
       this._device.createBindGroup({
@@ -1160,6 +1203,14 @@ class WebGpuBackend {
       }
       this._dispatchView(encoder, screenW, screenH);
       this._dispatchOverlay(encoder, screenW, screenH, false);
+    } else if (frame.algorithm === ALGORITHM_FRUSTUM_SPACE) {
+      const dst = camera.calculateProjPlane();
+      const horizon = camera.calculateHorizon(dst);
+      this._writeSkyRows(
+        classicSkyRows(screenH, horizon, camera.topColor, camera.bottomColor)
+      );
+      this._writeClassicTables(camera);
+      this._dispatchFrustumSpace(encoder, screenW, screenH);
     } else {
       const dst = camera.calculateProjPlane();
       const horizon = camera.calculateHorizon(dst);

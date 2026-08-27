@@ -28,7 +28,7 @@
       "default": "fly"
     },
     "renderAlgorithms": {
-      "values": ["classic", "panorama", "cubemap"],
+      "values": ["classic", "frustum-space", "panorama", "cubemap"],
       "default": "classic"
     },
     "renderBackends": {

@@ -1221,7 +1221,8 @@ body.cam-orbital .stick.orbit-only {
   letter-spacing: 0.14em;
 }
 
-body.classic .pano-only {
+body.classic .pano-only,
+body.frustum-space .pano-only {
   display: none;
 }
 

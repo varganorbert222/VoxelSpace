@@ -1,4 +1,4 @@
-/* VoxelSpace march kernels — wasm32, no libc. Values for quality / LOD / fog
+﻿/* VoxelSpace march kernels -- wasm32, no libc. Values for quality / LOD / fog
  * tables are supplied by JS (scripts/constants). Do not grow a second set. */
 
 typedef unsigned char u8;
@@ -1345,6 +1345,346 @@ WASM_EXPORT void pano_view_columns(
       dx += rdx;
       dy += rdy;
       dz += rdz;
+    }
+  }
+}
+
+#define FS_SLICE_SAMPLES 64
+#define FS_MAX_COLS 4096
+static i32 fs_free_n[FS_MAX_COLS];
+
+static u32 fs_terrain_color(
+    u32 *color_map,
+    f64 plx,
+    f64 ply,
+    i32 offset,
+    i32 use_fine,
+    i32 do_filter,
+    i32 wrap,
+    i32 wmask,
+    i32 hmask,
+    i32 shift,
+    f64 z,
+    f64 far_clip,
+    f64 fog_t,
+    i32 fog_white,
+    i32 apply_fog_t,
+    i32 debug,
+    u32 h_byte,
+    i32 iter) {
+  u32 plot;
+  if (debug) {
+    if (debug == DEBUG_HEIGHT) {
+      return encode_height(h_byte);
+    }
+    if (debug == DEBUG_DEPTH) {
+      return encode_unit(far_clip > 0.0 ? z / far_clip : 0.0);
+    }
+    if (debug == DEBUG_ITER) {
+      return encode_iter(iter);
+    }
+    return T_WHITE;
+  }
+  if (fog_white) {
+    return T_WHITE;
+  }
+  plot = (do_filter & use_fine)
+             ? sample_sv_color(
+                   color_map, plx, ply, wmask, hmask, shift, wrap, 1, offset)
+             : color_map[offset];
+  if (apply_fog_t) {
+    plot = fog_pack(plot, fog_t);
+  }
+  return plot;
+}
+
+WASM_EXPORT void frustum_space_columns(
+    i32 start_column,
+    i32 end_column,
+    i32 screen_width,
+    i32 screen_height,
+    f64 cam_x,
+    f64 cam_y,
+    f64 cam_z,
+    f64 right_x,
+    f64 right_y,
+    f64 right_z,
+    f64 up_x,
+    f64 up_y,
+    f64 up_z,
+    f64 fwd_x,
+    f64 fwd_y,
+    f64 fwd_z,
+    f64 tan_half_fov_x,
+    f64 dst_to_proj,
+    f64 near_clip,
+    f64 far_clip,
+    f64 min_delta_z,
+    f64 step_growth,
+    f64 step_scale,
+    i32 apply_fog,
+    i32 repeat,
+    i32 fill_unfilled,
+    i32 pixels_ptr,
+    i32 pixel_width,
+    i32 hidden_ptr,
+    i32 cover_ptr,
+    i32 row_colors_ptr,
+    i32 debug_view,
+    i32 lerp_height,
+    i32 filter_color) {
+  u32 *pixels = (u32 *)pixels_ptr;
+  i32 *hidden_y = (i32 *)hidden_ptr;
+  u8 *cover = cover_ptr ? (u8 *)cover_ptr : 0;
+  u8 *height_map = g_mip_h[0];
+  u32 *color_map = g_mip_c[0];
+  i32 local_width = (end_column - start_column) | 0;
+  i32 stride = pixel_width;
+  f64 fog_range = far_clip - T_FOG_START;
+  f64 inv_fog = fog_range == 0.0 ? 0.0 : 1.0 / fog_range;
+  i32 use_fog = apply_fog | 0;
+  f64 ceiling = g_max_height;
+  f64 clip_z = -T_NON_REPEAT_GROUND;
+  f64 screen_horizon = (f64)screen_height * T_HALF;
+  i32 map_w_mask = (g_map_w - 1) | 0;
+  i32 map_h_mask = (g_map_h - 1) | 0;
+  i32 wrap = repeat | 0;
+  i32 do_lerp = lerp_height ? 1 : 0;
+  i32 do_filter = filter_color ? 1 : 0;
+  i32 debug = debug_view | 0;
+  i32 count_iter = debug == DEBUG_ITER;
+  i32 sample_ok = count_iter && (local_width <= SAMPLE_N_MAX);
+  i32 lod;
+  i32 i;
+  i32 n;
+  f64 deltas[8];
+  f64 lod_distances[9];
+  f64 z_start;
+  f64 screen_width_scaler;
+  f64 inv_h2;
+  i32 y;
+  i32 x;
+  i32 live_cols;
+  i32 *free_n = 0;
+
+  (void)hidden_y;
+  g_lerp_height = do_lerp;
+  g_filter_color = do_filter;
+
+  if (sample_ok) {
+    for (i = 0; i < local_width; i = (i + 1) | 0) {
+      g_sample_n[i] = 0;
+    }
+  }
+
+  if (row_colors_ptr) {
+    u32 *rows = (u32 *)row_colors_ptr;
+    for (y = 0; y < screen_height; y = (y + 1) | 0) {
+      u32 col = rows[y];
+      i32 row = (y * stride) | 0;
+      for (x = 0; x < local_width; x = (x + 1) | 0) {
+        pixels[row + x] = col;
+      }
+    }
+  } else if (fill_unfilled) {
+    n = (local_width * screen_height) | 0;
+    for (i = 0; i < n; i = (i + 1) | 0) {
+      pixels[i] = T_UNFILLED;
+    }
+  }
+
+  deltas[0] = min_delta_z * step_scale;
+  for (i = 0; i < g_lod_delta_n; i = (i + 1) | 0) {
+    deltas[i + 1] = g_lod_deltas[i];
+  }
+  z_start = near_clip;
+  if (deltas[0] > z_start) {
+    z_start = deltas[0];
+  }
+  if (T_MIN_SAMPLE > z_start) {
+    z_start = T_MIN_SAMPLE;
+  }
+  lod_distances[0] = z_start;
+  for (i = 0; i < g_lod_frac_n; i = (i + 1) | 0) {
+    lod_distances[i + 1] = g_lod_fracs[i] * far_clip;
+  }
+  lod_distances[g_lod_n] = far_clip;
+  for (i = 1; i < g_lod_n; i = (i + 1) | 0) {
+    if (lod_distances[i] < lod_distances[i - 1]) {
+      lod_distances[i] = lod_distances[i - 1];
+    }
+  }
+  screen_width_scaler = 1.0 / (f64)screen_width;
+  inv_h2 = dst_to_proj == 0.0 ? 0.0 : 1.0 / dst_to_proj;
+
+  live_cols = local_width;
+  if (cover) {
+    __builtin_memset(cover, 0, (unsigned)(local_width * screen_height));
+  }
+  if ((local_width <= FS_MAX_COLS) | 0) {
+    free_n = fs_free_n;
+    for (i = 0; i < local_width; i = (i + 1) | 0) {
+      free_n[i] = screen_height;
+    }
+  }
+
+  /* Front-to-back view-Z: first occupied hit keeps the pixel (coverage). */
+  for (lod = 1; lod <= g_lod_n; lod = (lod + 1) | 0) {
+    f64 start_index;
+    f64 end_index;
+    f64 step;
+    f64 z;
+    if (live_cols <= 0) {
+      break;
+    }
+    start_index = lod_distances[lod - 1];
+    end_index = lod_distances[lod];
+    if (start_index >= far_clip) {
+      continue;
+    }
+    step = deltas[lod - 1];
+    z = start_index;
+    while ((z < end_index) & (z < far_clip) & (live_cols > 0)) {
+      f64 fog_t_raw =
+          fog_range == 0.0 ? T_FOG_SAT : (z - T_FOG_START) * inv_fog;
+      f64 fog_t = fog_t_raw;
+      i32 fog_white;
+      i32 apply_fog_t;
+      i32 use_fine;
+      f64 x_scale;
+      i32 col;
+      if (fog_t < 0.0) {
+        fog_t = 0.0;
+      }
+      if (fog_t > T_FOG_SAT) {
+        fog_t = T_FOG_SAT;
+      }
+      fog_white = use_fog & (fog_t >= T_FOG_SAT);
+      apply_fog_t = use_fog & (fog_t > 0.0) & (fog_white ^ 1);
+      use_fine = (z <= g_filter_distance) ? 1 : 0;
+      x_scale = z * tan_half_fov_x * 2.0 * screen_width_scaler;
+      for (col = start_column; col < end_column; col = (col + 1) | 0) {
+        i32 local_i = (col - start_column) | 0;
+        i32 nn_off = 0;
+        u32 h_byte = 0;
+        f64 y_view;
+        f64 wx;
+        f64 wy;
+        f64 wz;
+        f64 h_fine;
+        i32 inside;
+        i32 occ;
+        f64 x_view;
+        f64 y_top;
+        f64 y_bot;
+        f64 slack_col;
+        f64 slack;
+        f64 slack_coarse;
+        f64 slack_row;
+        f64 t0;
+        f64 t1;
+        f64 t_s;
+        f64 inv_h;
+        i32 si;
+        i32 rr;
+        i32 y0;
+        i32 y1;
+        if (free_n && (free_n[local_i] <= 0)) {
+          continue;
+        }
+        x_view = ((f64)col + 0.5) * x_scale - z * tan_half_fov_x;
+        y_top = (screen_horizon - 0.5) * z * inv_h2;
+        y_bot = (screen_horizon - ((f64)screen_height - 0.5)) * z * inv_h2;
+        slack_col = (y_bot - y_top) * up_z;
+        if (slack_col < 0.0) {
+          slack_col = -slack_col;
+        }
+        slack_coarse = slack_col / (f64)FS_SLICE_SAMPLES;
+        slack_row = screen_height == 0 ? 0.0 : slack_col / (f64)screen_height;
+        inv_h = screen_height == 0 ? 0.0 : 1.0 / (f64)screen_height;
+#define FS_EVAL_T(tt, occ_out)                                                 \
+  do {                                                                         \
+    y_view = y_top + (tt) * (y_bot - y_top);                                   \
+    wx = cam_x + x_view * right_x + y_view * up_x + z * fwd_x;                  \
+    wy = cam_y + x_view * right_y + y_view * up_y + z * fwd_y;                  \
+    wz = cam_z + x_view * right_z + y_view * up_z + z * fwd_z;                  \
+    inside = (wx >= 0.0) & (wx <= (f64)g_map_w) & (wy >= 0.0) &                \
+             (wy <= (f64)g_map_h);                                             \
+    occ_out = 0;                                                               \
+    if (inside | wrap) {                                                       \
+      if (!(wz > ceiling + slack) && !(wz < clip_z)) {                         \
+        h_fine = sample_sv_height(                                             \
+            height_map, wx, wy, map_w_mask, map_h_mask, g_map_shift, wrap,     \
+            do_lerp & use_fine, &h_byte, &nn_off);                             \
+        occ_out = wz <= h_fine * g_alt_scale + slack ? 1 : 0;                  \
+      }                                                                        \
+    }                                                                          \
+  } while (0)
+        slack = slack_coarse;
+        for (si = 0; si < FS_SLICE_SAMPLES; si = (si + 1) | 0) {
+          t0 = (f64)si / (f64)FS_SLICE_SAMPLES;
+          t1 = (f64)(si + 1) / (f64)FS_SLICE_SAMPLES;
+          t_s = (t0 + t1) * 0.5;
+          FS_EVAL_T(t_s, occ);
+          if (sample_ok) {
+            g_sample_n[local_i] = (g_sample_n[local_i] + 1) | 0;
+          }
+          if (!occ) {
+            continue;
+          }
+          y0 = (i32)(t0 * (f64)screen_height);
+          y1 = (i32)(t1 * (f64)screen_height);
+          if (y0 < 0) {
+            y0 = 0;
+          }
+          if (y1 > screen_height) {
+            y1 = screen_height;
+          }
+          if (y1 <= y0) {
+            y1 = (y0 + 1) | 0;
+            if (y1 > screen_height) {
+              continue;
+            }
+          }
+          slack = slack_row;
+          for (rr = y0; rr < y1; rr = (rr + 1) | 0) {
+            i32 cidx = (rr * local_width + local_i) | 0;
+            if (cover && cover[cidx]) {
+              continue;
+            }
+            t_s = ((f64)rr + 0.5) * inv_h;
+            FS_EVAL_T(t_s, occ);
+            if (sample_ok) {
+              g_sample_n[local_i] = (g_sample_n[local_i] + 1) | 0;
+            }
+            if (!occ) {
+              continue;
+            }
+            pixels[((rr * stride + local_i) | 0)] = fs_terrain_color(
+                color_map, wx, wy, nn_off, use_fine, do_filter, wrap,
+                map_w_mask, map_h_mask, g_map_shift, z, far_clip, fog_t,
+                fog_white, apply_fog_t, debug, h_byte,
+                sample_ok ? g_sample_n[local_i] : 0);
+            if (cover) {
+              cover[cidx] = 1;
+            }
+            if (free_n) {
+              free_n[local_i] = (free_n[local_i] - 1) | 0;
+              if (free_n[local_i] <= 0) {
+                live_cols = (live_cols - 1) | 0;
+                break;
+              }
+            }
+          }
+          slack = slack_coarse;
+          if (free_n && (free_n[local_i] <= 0)) {
+            break;
+          }
+        }
+#undef FS_EVAL_T
+      }
+      z = z + step;
+      step = step + step_growth;
     }
   }
 }

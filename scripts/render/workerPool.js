@@ -8,22 +8,26 @@ import {
   MSG_INIT_KERNEL,
   MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
+  MSG_RENDER_FRUSTUM_SPACE,
   MSG_RENDER_PANORAMA,
   MSG_RENDER_PANO_VIEW,
   MSG_RENDER_CUBE_VIEW,
   MSG_RENDER_CUBE_GENERATE,
   MSG_RESULT_CLASSIC,
+  MSG_RESULT_FRUSTUM_SPACE,
   MSG_RESULT_PANORAMA,
   MSG_RESULT_PANO_VIEW,
   MSG_RESULT_CUBE_VIEW,
   MSG_RESULT_CUBE_GENERATE,
   MSG_WORKER_ERROR,
   classicRenderPayload,
+  frustumSpaceRenderPayload,
   panoramaViewPayload,
   panoramaGeneratePayload,
   cubemapViewPayload,
   cubemapGeneratePayload,
 } from "./jobProtocol.js";
+import { PIXEL_OFFSET_ALIGN } from "../constants/classic.js";
 import { BACKEND_JS } from "../constants/backend.js";
 import { canShareBuffers, allocU8, allocU32, isShared } from "./sharedBuffers.js";
 
@@ -388,6 +392,17 @@ class WorkerPool {
     );
   }
 
+  renderFrustumSpace(params) {
+    return this._whenReady().then(() =>
+      this._runJob(
+        MSG_RENDER_FRUSTUM_SPACE,
+        params,
+        params.screenWidth,
+        PIXEL_OFFSET_ALIGN
+      )
+    );
+  }
+
   renderPanorama(params) {
     return this._whenReady().then(() =>
       this._runJob(MSG_RENDER_PANORAMA, params, params.width, 1)
@@ -567,6 +582,8 @@ class WorkerPool {
 
         if (msgType === MSG_RENDER_CLASSIC) {
           slot.worker.postMessage(classicRenderPayload(jobId, range, params));
+        } else if (msgType === MSG_RENDER_FRUSTUM_SPACE) {
+          slot.worker.postMessage(frustumSpaceRenderPayload(jobId, range, params));
         } else if (msgType === MSG_RENDER_PANO_VIEW) {
           slot.worker.postMessage(panoramaViewPayload(jobId, range, params));
         } else if (msgType === MSG_RENDER_CUBE_VIEW) {
@@ -628,7 +645,7 @@ class WorkerPool {
     }
 
     const index = slot.chunkIndex;
-    if (data.type === MSG_RESULT_CLASSIC) {
+    if (data.type === MSG_RESULT_CLASSIC || data.type === MSG_RESULT_FRUSTUM_SPACE) {
       active.onChunk(index, {
         startColumn: data.startColumn,
         endColumn: data.endColumn,

@@ -1,6 +1,7 @@
 "use strict";
 
 import { renderClassicColumns as renderClassicColumnsJs } from "./classicmarch.js";
+import { renderFrustumSpaceColumns as renderFrustumSpaceColumnsJs } from "./frustumspacemarch.js";
 import { renderPanoramaColumns as renderPanoramaColumnsJs } from "./panoramamarch.js";
 import { renderPanoramaViewColumns as renderPanoramaViewColumnsJs } from "./panoramaViewer.js";
 import { renderCubemapViewColumns as renderCubemapViewColumnsJs } from "./cubemapViewer.js";
@@ -15,11 +16,13 @@ import {
   MSG_INIT_KERNEL,
   MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
+  MSG_RENDER_FRUSTUM_SPACE,
   MSG_RENDER_PANORAMA,
   MSG_RENDER_PANO_VIEW,
   MSG_RENDER_CUBE_VIEW,
   MSG_RENDER_CUBE_GENERATE,
   MSG_RESULT_CLASSIC,
+  MSG_RESULT_FRUSTUM_SPACE,
   MSG_RESULT_PANORAMA,
   MSG_RESULT_PANO_VIEW,
   MSG_RESULT_CUBE_VIEW,
@@ -56,6 +59,7 @@ const workerState = {
 };
 
 let renderClassicColumns = renderClassicColumnsJs;
+let renderFrustumSpaceColumns = renderFrustumSpaceColumnsJs;
 let renderPanoramaColumns = renderPanoramaColumnsJs;
 let renderPanoramaViewColumns = renderPanoramaViewColumnsJs;
 
@@ -66,11 +70,13 @@ async function setKernelBackend(backend) {
     const instance = await instantiateMarch();
     const kernels = createWasmKernels(instance);
     renderClassicColumns = kernels.renderClassicColumns;
+    renderFrustumSpaceColumns = kernels.renderFrustumSpaceColumns;
     renderPanoramaColumns = kernels.renderPanoramaColumns;
     renderPanoramaViewColumns = kernels.renderPanoramaViewColumns;
     return;
   }
   renderClassicColumns = renderClassicColumnsJs;
+  renderFrustumSpaceColumns = renderFrustumSpaceColumnsJs;
   renderPanoramaColumns = renderPanoramaColumnsJs;
   renderPanoramaViewColumns = renderPanoramaViewColumnsJs;
 }
@@ -206,6 +212,72 @@ function renderClassic(msg) {
   self.postMessage(
     {
       type: MSG_RESULT_CLASSIC,
+      jobId: msg.jobId,
+      startColumn: msg.startColumn,
+      endColumn: msg.endColumn,
+      pixels: pixels.buffer,
+    },
+    [pixels.buffer]
+  );
+}
+
+function renderFrustumSpace(msg) {
+  const localWidth = (msg.endColumn - msg.startColumn) | 0;
+  const pixels = new Uint32Array((localWidth * msg.screenHeight) | 0);
+  const rowColors = msg.rowColors;
+  if (rowColors) {
+    for (let y = 0; (y < msg.screenHeight) | 0; y = (y + 1) | 0) {
+      const row = (y * localWidth) | 0;
+      pixels.fill(rowColors[y], row, row + localWidth);
+    }
+  }
+  renderFrustumSpaceColumns({
+    heightMap: workerState.heightMap,
+    colorMap: workerState.colorMap,
+    mapW: workerState.mapW,
+    mapH: workerState.mapH,
+    mapShift: workerState.mapShift,
+    altitude: workerState.altitude,
+    maxHeight: workerState.maxHeight,
+    mapsGeneration: workerState.mapsGeneration,
+    panoMips: workerState.panoMips,
+    startColumn: msg.startColumn,
+    endColumn: msg.endColumn,
+    screenWidth: msg.screenWidth,
+    screenHeight: msg.screenHeight,
+    camX: msg.camX,
+    camY: msg.camY,
+    camZ: msg.camZ,
+    rightX: msg.rightX,
+    rightY: msg.rightY,
+    rightZ: msg.rightZ,
+    upX: msg.upX,
+    upY: msg.upY,
+    upZ: msg.upZ,
+    fwdX: msg.fwdX,
+    fwdY: msg.fwdY,
+    fwdZ: msg.fwdZ,
+    tanHalfFovX: msg.tanHalfFovX,
+    dstToProjPlane: msg.dstToProjPlane,
+    nearClip: msg.nearClip,
+    farClip: msg.farClip,
+    minDeltaZ: msg.minDeltaZ,
+    quality: msg.quality,
+    applyFog: msg.applyFog,
+    fogStart: msg.fogStart,
+    debugView: msg.debugView,
+    repeat: msg.repeat,
+    interpolateHeight: msg.interpolateHeight,
+    filterColor: msg.filterColor,
+    filterDistance: msg.filterDistance,
+    pixels,
+    pixelWidth: localWidth,
+    fillUnfilled: rowColors ? 0 : 1,
+    rowColors: rowColors || null,
+  });
+  self.postMessage(
+    {
+      type: MSG_RESULT_FRUSTUM_SPACE,
       jobId: msg.jobId,
       startColumn: msg.startColumn,
       endColumn: msg.endColumn,
@@ -512,6 +584,10 @@ async function handleMessage(msg) {
   }
   if (msg.type === MSG_RENDER_CLASSIC) {
     renderClassic(msg);
+    return;
+  }
+  if (msg.type === MSG_RENDER_FRUSTUM_SPACE) {
+    renderFrustumSpace(msg);
     return;
   }
   if (msg.type === MSG_RENDER_PANORAMA) {

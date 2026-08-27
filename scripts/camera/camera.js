@@ -24,6 +24,8 @@ import {
   DEFAULT_ORBIT_RADIUS,
   CLASSIC_PITCH_MIN,
   CLASSIC_PITCH_MAX,
+  FRUSTUM_SPACE_PITCH_MIN,
+  FRUSTUM_SPACE_PITCH_MAX,
   COLLISION_CLEARANCE,
 } from "../constants/camera.js";
 import { HALF } from "../constants/vmath.js";
@@ -101,6 +103,18 @@ class Camera {
     return this._panoramaLook;
   }
 
+  get frustumLook() {
+    return this._frustumLook;
+  }
+
+  get pitchMin() {
+    return this._pitchMin;
+  }
+
+  get pitchMax() {
+    return this._pitchMax;
+  }
+
   get rightX() {
     return this._rightX;
   }
@@ -157,6 +171,9 @@ class Camera {
     this._orbiterRadius = DEFAULT_ORBIT_RADIUS;
     this._mode = MODE_FLY;
     this._panoramaLook = false;
+    this._frustumLook = false;
+    this._pitchMin = CLASSIC_PITCH_MIN;
+    this._pitchMax = CLASSIC_PITCH_MAX;
     this._roll = 0;
     this._rightX = 1;
     this._rightY = 0;
@@ -175,6 +192,17 @@ class Camera {
 
   setPanoramaLook(enabled) {
     this._panoramaLook = !!enabled;
+  }
+
+  setFrustumLook(enabled) {
+    this._frustumLook = !!enabled;
+    if (this._frustumLook) {
+      this._pitchMin = FRUSTUM_SPACE_PITCH_MIN;
+      this._pitchMax = FRUSTUM_SPACE_PITCH_MAX;
+    } else {
+      this._pitchMin = CLASSIC_PITCH_MIN;
+      this._pitchMax = CLASSIC_PITCH_MAX;
+    }
   }
 
   setPosition(x, y, z) {
@@ -283,6 +311,23 @@ class Camera {
   clampPitchForClassic() {
     this._pitch = VMath.clamp(CLASSIC_PITCH_MIN, CLASSIC_PITCH_MAX, this._pitch);
     this._roll = 0;
+    this._frustumLook = false;
+    this._pitchMin = CLASSIC_PITCH_MIN;
+    this._pitchMax = CLASSIC_PITCH_MAX;
+    rebuildBasisFromEuler(this);
+    this._horizonDirty = true;
+  }
+
+  clampPitchForFrustumSpace() {
+    this._pitch = VMath.clamp(
+      FRUSTUM_SPACE_PITCH_MIN,
+      FRUSTUM_SPACE_PITCH_MAX,
+      this._pitch
+    );
+    this._roll = 0;
+    this._frustumLook = true;
+    this._pitchMin = FRUSTUM_SPACE_PITCH_MIN;
+    this._pitchMax = FRUSTUM_SPACE_PITCH_MAX;
     rebuildBasisFromEuler(this);
     this._horizonDirty = true;
   }
@@ -300,7 +345,7 @@ class Camera {
     if (terrain.collide(this._posX, this._posY, this._posZ - COLLISION_CLEARANCE)) {
       this._posZ =
         terrain.getTerrainHeight(this._posX, this._posY) + COLLISION_CLEARANCE;
-      if (this._mode === MODE_ORBITAL && this._panoramaLook) {
+      if (this._mode === MODE_ORBITAL && (this._panoramaLook || this._frustumLook)) {
         lookAt(this, terrain.width * HALF, terrain.height * HALF, 0);
       }
     }

@@ -7,8 +7,6 @@ import {
   MOUSE_LOOK_SENSITIVITY,
   STICK_LOOK_SENSITIVITY,
   KEY_LOOK_SENSITIVITY,
-  CLASSIC_PITCH_MIN,
-  CLASSIC_PITCH_MAX,
 } from "../constants/camera.js";
 
 export function applyFly(dt, input, camera) {
@@ -39,8 +37,8 @@ export function applyFly(dt, input, camera) {
           stickYaw +
           keyYaw),
       VMath.clamp(
-        CLASSIC_PITCH_MIN,
-        CLASSIC_PITCH_MAX,
+        camera.pitchMin,
+        camera.pitchMax,
         camera.pitch +
           look.y * MOUSE_LOOK_SENSITIVITY +
           input.stickLookY * STICK_LOOK_SENSITIVITY * scaledDt +

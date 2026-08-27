@@ -24,8 +24,10 @@ import { Color } from "../math/color.js";
 import {
   ALGORITHM_CLASSIC,
   ALGORITHM_CUBEMAP,
+  ALGORITHM_FRUSTUM_SPACE,
   ALGORITHM_PANORAMA,
   usesFreeLook,
+  usesFrustumLook,
 } from "../constants/algorithm.js";
 import { BACKEND_JS } from "../constants/backend.js";
 import { detectBackends } from "../backends/contract.js";
@@ -154,10 +156,17 @@ class App {
     const prev = this.renderer.algorithm;
     this.renderer.setOptions({ algorithm });
     this.camera.setPanoramaLook(usesFreeLook(algorithm));
+    this.camera.setFrustumLook(usesFrustumLook(algorithm));
     if (algorithm === ALGORITHM_CLASSIC) {
       this.camera.clampPitchForClassic();
+    } else if (algorithm === ALGORITHM_FRUSTUM_SPACE) {
+      this.camera.clampPitchForFrustumSpace();
     }
     document.body.classList.toggle("classic", algorithm === ALGORITHM_CLASSIC);
+    document.body.classList.toggle(
+      "frustum-space",
+      algorithm === ALGORITHM_FRUSTUM_SPACE
+    );
     document.body.classList.toggle("panorama", algorithm === ALGORITHM_PANORAMA);
     document.body.classList.toggle("cubemap", algorithm === ALGORITHM_CUBEMAP);
     if (prev !== algorithm) {

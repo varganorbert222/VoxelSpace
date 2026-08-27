@@ -19,6 +19,16 @@ async function loadCompute(device, label, file) {
 
 export async function createPipelines(device, canvasFormat) {
   const classicMod = await loadCompute(device, "classicMarch", "classicMarch.wgsl");
+  let frustumSpaceMod = classicMod;
+  try {
+    frustumSpaceMod = await loadCompute(
+      device,
+      "frustumSpaceMarch",
+      "frustumSpaceMarch.wgsl"
+    );
+  } catch (err) {
+    console.warn("frustumSpaceMarch compile failed:", err);
+  }
   const genMod = await loadCompute(device, "panoGenerate", "panoramaGenerate.wgsl");
   const viewMod = await loadCompute(device, "panoView", "panoramaView.wgsl");
   const cubeGenMod = await loadCompute(device, "cubeGenerate", "cubemapGenerate.wgsl");
@@ -188,13 +198,38 @@ export async function createPipelines(device, canvasFormat) {
     ],
   });
 
+  const classicLayout = device.createPipelineLayout({
+    bindGroupLayouts: [frameLayout, classicTablesLayout, mapsLayout, classicOutLayout],
+  });
+
   const classicPipe = device.createComputePipeline({
     label: "classic",
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [frameLayout, classicTablesLayout, mapsLayout, classicOutLayout],
-    }),
+    layout: classicLayout,
     compute: { module: classicMod, entryPoint: "main" },
   });
+
+  let frustumSpacePipe = classicPipe;
+  try {
+    device.pushErrorScope("validation");
+    const pipe = device.createComputePipeline({
+      label: "frustumSpace",
+      layout: classicLayout,
+      compute: { module: frustumSpaceMod, entryPoint: "main" },
+    });
+    const pipeErr = await device.popErrorScope();
+    if (pipeErr) {
+      console.warn("frustumSpace pipeline failed:", pipeErr.message);
+    } else {
+      frustumSpacePipe = pipe;
+    }
+  } catch (err) {
+    try {
+      await device.popErrorScope();
+    } catch {
+      void 0;
+    }
+    console.warn("frustumSpace pipeline failed:", err);
+  }
 
   const genPipe = device.createComputePipeline({
     label: "panoGen",
@@ -284,6 +319,7 @@ export async function createPipelines(device, canvasFormat) {
 
   return {
     classic: classicPipe,
+    frustumSpace: frustumSpacePipe,
     generate: genPipe,
     view: viewPipe,
     cubeGenerate: cubeGenPipe,
