@@ -35,6 +35,41 @@ export const DEBUG_VIEW_LABEL = Object.freeze({
 });
 
 export const ITER_VIS_MAX = 256;
+
+export const DEBUG_LEGEND_ID = "id_debug_legend";
+export const DEBUG_LEGEND_RAMP_GRAY = "gray";
+export const DEBUG_LEGEND_RAMP_ITER = "iter";
+
+export const DEBUG_VIEW_LEGEND = Object.freeze({
+  [DEBUG_VIEW_HEIGHT]: Object.freeze({
+    title: "Height",
+    low: "0",
+    high: "255",
+    miss: "Sky / miss",
+    caption: "Heightmap byte at the hit. Black is 0 (and unhit sky). White is 255.",
+    ramp: DEBUG_LEGEND_RAMP_GRAY,
+  }),
+  [DEBUG_VIEW_DEPTH]: Object.freeze({
+    title: "Depth",
+    low: "Near",
+    high: "Far",
+    miss: "Sky / miss",
+    caption: "Hit distance scaled by far clip. Black is near the camera (and unhit sky). White is the far plane.",
+    ramp: DEBUG_LEGEND_RAMP_GRAY,
+  }),
+  [DEBUG_VIEW_ITERATIONS]: Object.freeze({
+    title: "Iterations",
+    low: "1",
+    high: String(ITER_VIS_MAX) + "+",
+    miss: "Miss",
+    caption:
+      "March steps until a hit. Red is few steps. Magenta is " +
+      String(ITER_VIS_MAX) +
+      " or more.",
+    ramp: DEBUG_LEGEND_RAMP_ITER,
+  }),
+});
+
 export const DEBUG_OVERLAY_MARGIN = 8;
 export const DEBUG_OVERLAY_WIDTH_FRAC = 0.55;
 export const OVERLAY_BORDER = 2;

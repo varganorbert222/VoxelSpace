@@ -4,6 +4,7 @@ import maps from "../../data/maps.json" with { type: "json" };
 import config from "../../data/config.json" with { type: "json" };
 import { BACKEND_CHIP, usesWorkers } from "../constants/backend.js";
 import { MODE_ORBITAL } from "../constants/camera.js";
+import { syncDebugLegend } from "./debugLegend.js";
 import {
   DEBUG_VIEW_COLOR,
   DEBUG_VIEW_LABEL,
@@ -435,6 +436,7 @@ class SettingsForm {
     );
     const debugViewName = options.debugView || DEBUG_VIEW_COLOR;
     setChip("id_hud_debug", DEBUG_VIEW_LABEL[debugViewName] || debugViewName);
+    syncDebugLegend(debugViewName);
   }
 
   syncRenderScale() {

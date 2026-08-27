@@ -18,6 +18,7 @@
   --hud-shadow: 4px 4px 0 #000;
   --hud-top-h: 52px;
   --hud-handle-w: 28px;
+  --hud-radar-size: 196px;
   --hud-safe-top: env(safe-area-inset-top, 0px);
   --hud-safe-right: env(safe-area-inset-right, 0px);
   --hud-safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -83,6 +84,7 @@ canvas {
 .hud-done,
 .hud-radar,
 .hud-radar-tab,
+.hud-legend,
 .hud-btn,
 .hud-menu-handle,
 .tip-mark,
@@ -453,6 +455,129 @@ body.radar-closed .hud-radar {
   display: none;
 }
 
+.hud-legend {
+  position: absolute;
+  top: 10px;
+  left: calc(10px + var(--hud-safe-left) + var(--hud-radar-size) + 10px);
+  z-index: 140;
+  width: 228px;
+  box-sizing: border-box;
+  padding: 8px 10px 8px;
+  background: var(--hud-bg);
+  border: 2px solid;
+  border-color: var(--hud-border-hi) var(--hud-border-lo) var(--hud-border-lo)
+    var(--hud-border-hi);
+  box-shadow: var(--hud-shadow);
+  color: var(--hud-text);
+  pointer-events: none;
+}
+
+.hud-legend[hidden] {
+  display: none !important;
+}
+
+.hud-legend::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 2px,
+    rgba(0, 0, 0, 0.14) 2px,
+    rgba(0, 0, 0, 0.14) 3px
+  );
+  opacity: 0.45;
+}
+
+body.radar-closed .hud-legend {
+  left: calc(10px + var(--hud-safe-left));
+  top: calc(10px + 36px + 8px);
+}
+
+.hud-legend-title {
+  position: relative;
+  z-index: 1;
+  margin: 0 0 6px;
+  font-family: var(--hud-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--hud-amber);
+  text-shadow: 0 0 6px rgba(255, 191, 60, 0.35);
+}
+
+.hud-legend-bar {
+  position: relative;
+  z-index: 1;
+  height: 10px;
+  border: 2px solid;
+  border-color: var(--hud-border-lo) var(--hud-border-hi) var(--hud-border-hi)
+    var(--hud-border-lo);
+  background: #000;
+}
+
+.hud-legend-bar[data-ramp="gray"] {
+  background: linear-gradient(to right, #000, #fff);
+}
+
+.hud-legend-bar[data-ramp="iter"] {
+  background: linear-gradient(
+    to right,
+    #ff0000 0%,
+    #ffa000 25%,
+    #ffff00 50%,
+    #9000ff 75%,
+    #ff00ff 100%
+  );
+}
+
+.hud-legend-ends {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-family: var(--hud-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hud-muted);
+}
+
+.hud-legend-caption,
+.hud-legend-miss {
+  position: relative;
+  z-index: 1;
+  margin: 8px 0 0;
+  font-family: var(--hud-mono);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--hud-text);
+}
+
+.hud-legend-miss {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--hud-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 10px;
+}
+
+.hud-legend-swatch {
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  background: #000;
+  border: 2px solid var(--hud-amber-dim);
+  box-shadow: inset 0 0 0 1px #3a4020;
+}
+
 body.chrome-off .hud-brand,
 body.chrome-off .hud-status,
 body.chrome-off .hud-fps,
@@ -482,6 +607,7 @@ body.chrome-off .hud-top::after {
 
 body.chrome-off .hud-radar,
 body.chrome-off .hud-radar-tab,
+body.chrome-off .hud-legend,
 body.chrome-off .hud-menu-dock,
 body.chrome-off .hud-hint,
 body.chrome-off .hud-backdrop {
@@ -1259,6 +1385,9 @@ body.classic .pano-only {
 }
 
 @media (max-width: 720px) {
+  :root {
+    --hud-radar-size: 112px;
+  }
   .hud-top {
     grid-template-columns: minmax(0, 1fr) auto;
     height: auto;
@@ -1294,6 +1423,17 @@ body.classic .pano-only {
 
   .hud-radar {
     width: 112px;
+  }
+
+  .hud-legend {
+    top: calc(10px + var(--hud-radar-size) + 8px);
+    left: calc(10px + var(--hud-safe-left));
+    width: min(228px, calc(100% - 20px - var(--hud-safe-left) - var(--hud-safe-right)));
+  }
+
+  body.radar-closed .hud-legend {
+    top: calc(10px + 36px + 6px);
+    left: calc(10px + var(--hud-safe-left));
   }
 
   .hud-panel {
@@ -1363,6 +1503,9 @@ body.classic .pano-only {
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
+  :root {
+    --hud-radar-size: 96px;
+  }
   .hud-top {
     min-height: 36px;
     gap: 6px;
@@ -1390,6 +1533,10 @@ body.classic .pano-only {
 
   .hud-radar {
     width: 96px;
+  }
+
+  .hud-legend {
+    width: min(200px, calc(100% - 16px - var(--hud-safe-left) - var(--hud-safe-right)));
   }
 
   .touch-cluster--left {

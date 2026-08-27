@@ -80,6 +80,20 @@
     </aside>
     <button type="button" id="id_radar_show" class="hud-radar-tab" hidden aria-keyshortcuts="K">Radar</button>
 
+    <aside id="id_debug_legend" class="hud-legend" hidden>
+      <h2 class="hud-legend-title" id="id_debug_legend_title">Height</h2>
+      <div class="hud-legend-bar" id="id_debug_legend_bar" data-ramp="gray"></div>
+      <div class="hud-legend-ends">
+        <span id="id_debug_legend_low">0</span>
+        <span id="id_debug_legend_high">255</span>
+      </div>
+      <p class="hud-legend-caption" id="id_debug_legend_caption"></p>
+      <p class="hud-legend-miss">
+        <span class="hud-legend-swatch" aria-hidden="true"></span>
+        <span id="id_debug_legend_miss_label">Sky / miss</span>
+      </p>
+    </aside>
+
     <div id="id_hud_backdrop" class="hud-backdrop" hidden></div>
 
     <div class="hud-menu-dock">
@@ -243,7 +257,7 @@
         <h2 class="hud-section-title"><span>04</span> Debug</h2>
         <div
           class="control"
-          data-tip="Color is the production picture. Height / Depth / Iterations recolor the camera view and the unwrapped env atlas together."
+          data-tip="Color is the production picture. Height / Depth / Iterations recolor the camera view and the env atlas. A floating key next to the radar explains the scale."
         >
           <div class="control-head">
             <label for="id_debugview">Debug view</label>
