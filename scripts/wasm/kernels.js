@@ -429,11 +429,9 @@ export function createWasmKernels(instance) {
     const rowColors = params.rowColors;
     const rowBytes =
       rowColors && rowColors.length ? (params.screenHeight | 0) * 4 : 0;
-    const coverBytes = (localWidth * (params.screenHeight | 0)) | 0;
     ex.reset_scratch();
     const pixelsPtr = mustAlloc(n * 4);
     const hiddenPtr = mustAlloc(localWidth * 4);
-    const coverPtr = mustAlloc(coverBytes);
     let rowPtr = 0;
     if (rowBytes) {
       rowPtr = mustAlloc(rowBytes);
@@ -471,7 +469,6 @@ export function createWasmKernels(instance) {
       pixelsPtr,
       params.pixelWidth | 0,
       hiddenPtr,
-      coverPtr,
       rowPtr,
       debugViewId(params.debugView),
       params.interpolateHeight | 0,

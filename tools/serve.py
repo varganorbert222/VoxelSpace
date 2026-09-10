@@ -9,6 +9,9 @@ class CoopCoepHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header("Cross-Origin-Opener-Policy", "same-origin")
         self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
+        # Without this the browser heuristically caches modules and keeps
+        # running the previous build after an edit.
+        self.send_header("Cache-Control", "no-store")
         super().end_headers()
 
 

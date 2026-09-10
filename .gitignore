@@ -10,3 +10,4 @@ tools/wasm/out/
 .cursorignore
 AGENTS.md
 .vscode/
+tools/serve.py

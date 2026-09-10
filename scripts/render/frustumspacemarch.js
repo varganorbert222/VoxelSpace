@@ -35,19 +35,30 @@ import {
   qualityIndex,
 } from "../constants/quality.js";
 
-// Coarse occupancy probes along P(t). Occupied t-bands are filled per screen
-// row (own XY color) front-to-back with a coverage mask — one texel must not
-// smear down a pitched column. Spec is Y-up; this project is Z-up.
-const SLICE_SAMPLES = 64;
+// View-Z slices, front-to-back, one persistent horizon per column.
+//
+// With roll = 0 the slice point's world Z is column independent:
+//   wz(row, z) = camZ + z * ((H/2 - row - 0.5) * invH2 * upZ + fwdZ)
+// so the terrain slab maps to a closed-form row window per slice, and the
+// hit row of a sampled height is a closed-form projection (the pitch-general
+// form of classic `heightOnScreen`).
+//
+// Per column the slice contributes rows above the running horizon only.
+// If the column's XY drifts less than a texel across that span, one height
+// sample resolves the whole span (classic cost). Otherwise the span is walked
+// upward row by row from the horizon, each row sampling its own XY, which is
+// what a pitched column needs and costs one sample per painted pixel.
+//
+// Spec is Y-up; this project is Z-up (X,Y map, Z altitude).
+const DRIFT_SPAN_TEXELS = 1;
+const ROW_LIMIT = 1e9;
 
 let sampleNScratch = new Int32Array(1);
-let coverScratch = new Uint8Array(1);
-let freeScratch = new Int32Array(1);
+let hiddenScratch = new Int32Array(1);
 const deltasScratch = new Float64Array(LOD_BAND_COUNT);
 const lodDistancesScratch = new Float64Array(LOD_BAND_COUNT + 1);
 let sampleNCapacity = 1;
-let coverCapacity = 1;
-let freeCapacity = 1;
+let hiddenCapacity = 1;
 
 function sampleNBuffer(width) {
   if ((width > sampleNCapacity) | 0) {
@@ -57,20 +68,12 @@ function sampleNBuffer(width) {
   return sampleNScratch;
 }
 
-function coverBuffer(n) {
-  if ((n > coverCapacity) | 0) {
-    coverCapacity = n;
-    coverScratch = new Uint8Array(n);
+function hiddenBuffer(width) {
+  if ((width > hiddenCapacity) | 0) {
+    hiddenCapacity = width;
+    hiddenScratch = new Int32Array(width);
   }
-  return coverScratch;
-}
-
-function freeBuffer(width) {
-  if ((width > freeCapacity) | 0) {
-    freeCapacity = width;
-    freeScratch = new Int32Array(width);
-  }
-  return freeScratch;
+  return hiddenScratch;
 }
 
 function wrapSampleCoord(v, mask, wrap) {
@@ -188,37 +191,6 @@ function heightByteFromFine(hFine) {
   return b;
 }
 
-function drawVerticalLine(pixels, stride, x, ytop, ybottom, col, width, xEnd) {
-  x = x | 0;
-  ytop = ytop | 0;
-  ybottom = ybottom | 0;
-  col = col | 0;
-  if ((ytop < 0) | 0) ytop = 0;
-  if ((ytop > ybottom) | 0) return;
-
-  if (((width === 1) | 0) & ((x < xEnd) | 0)) {
-    let offset = (ytop * stride + x) | 0;
-    for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
-      pixels[offset] = col;
-      offset = (offset + stride) | 0;
-    }
-    return;
-  }
-
-  let offset = 0;
-  for (
-    let j = 0;
-    ((j < width) | 0) & ((x + j < xEnd) | 0);
-    j = (j + 1) | 0
-  ) {
-    offset = (ytop * stride + x + j) | 0;
-    for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
-      pixels[offset] = col;
-      offset = (offset + stride) | 0;
-    }
-  }
-}
-
 function applyFogPacked(plotColor, fogT) {
   const a = (plotColor >>> SHIFT_ALPHA) & CHANNEL_MASK;
   const r = (plotColor >>> SHIFT_RED) & CHANNEL_MASK;
@@ -324,81 +296,23 @@ export function renderFrustumSpaceColumns({
   const filterDist = filterDistance;
   const wrap = repeat | 0;
   const invH2 = dstToProjPlane === 0 ? 0 : 1 / dstToProjPlane;
-  const cover = coverBuffer((localWidth * screenHeight) | 0);
-  cover.fill(0, 0, (localWidth * screenHeight) | 0);
-  const freeN = freeBuffer(localWidth);
+
+  // Row parametrisation: yn(row) = screenHorizon - row - 0.5.
+  const rowBase = screenHorizon - 0.5;
+  const upXY = Math.sqrt(upX * upX + upY * upY);
+  const xnStep = 2 * screenWidthScaler;
+  const xn0 = (startColumn + 0.5) * xnStep - 1;
+
+  const hiddenY = hiddenBuffer(localWidth);
   for (let i = 0; (i < localWidth) | 0; i = (i + 1) | 0) {
-    freeN[i] = screenHeight;
+    hiddenY[i] = screenHeight;
   }
   let liveCols = localWidth;
 
-  const hit = {
-    occ: 0,
-    wx: 0,
-    wy: 0,
-    wz: 0,
-    hFine: 0,
-    hByte: 0,
-    offset: 0,
-  };
-
-  function bumpIter(localI) {
-    if (countIter) {
-      sampleN[localI] = (sampleN[localI] + 1) | 0;
-    }
-  }
-
-  // P(t) = P_top + t (P_bottom - P_top). t=0 screen top, t=1 screen bottom.
-  function evalT(t, xView, yTop, yBot, z, useFine, slack, localI) {
-    const yView = yTop + t * (yBot - yTop);
-    hit.wx = camX + xView * rightX + yView * upX + z * fwdX;
-    hit.wy = camY + xView * rightY + yView * upY + z * fwdY;
-    hit.wz = camZ + xView * rightZ + yView * upZ + z * fwdZ;
-    hit.occ = 0;
-    hit.hFine = 0;
-    hit.hByte = 0;
-    hit.offset = 0;
-    bumpIter(localI);
-    const inside =
-      ((hit.wx >= 0) | 0) &
-      ((hit.wx <= mapW) | 0) &
-      ((hit.wy >= 0) | 0) &
-      ((hit.wy <= mapH) | 0);
-    if (!(inside | wrap)) {
-      return 0;
-    }
-    if (hit.wz > ceiling + slack) {
-      return 0;
-    }
-    if (hit.wz < clipZ) {
-      return 0;
-    }
-    const offset =
-      ((((hit.wy | 0) & mapWMask) << mapShift) + ((hit.wx | 0) & mapHMask)) | 0;
-    const nearestH = heightMap[offset];
-    const doLerp = lerpH & useFine;
-    const hFine = doLerp
-      ? sampleHeightBilinear(
-          heightMap,
-          hit.wx,
-          hit.wy,
-          mapShift,
-          mapWMask,
-          mapHMask,
-          wrap
-        )
-      : nearestH;
-    hit.hFine = hFine;
-    hit.hByte = doLerp ? heightByteFromFine(hFine) : nearestH;
-    hit.offset = offset;
-    hit.occ = hit.wz <= hFine * altScale + slack ? 1 : 0;
-    return hit.occ;
-  }
-
-  function terrainColor(z, fogT, fogWhite, applyFogT, useFine, localI) {
+  function shade(wx, wy, offset, hByte, z, fogT, fogWhite, applyFogT, useFine, localI) {
     if (debug) {
       if (debugView === DEBUG_VIEW_HEIGHT) {
-        return encodeHeight(hit.hByte);
+        return encodeHeight(hByte);
       }
       if (debugView === DEBUG_VIEW_DEPTH) {
         return encodeUnit(farClip > 0 ? z / farClip : 0);
@@ -411,80 +325,24 @@ export function renderFrustumSpaceColumns({
     if (fogWhite) {
       return Color.WHITE;
     }
-    const doFilter = filterC & useFine;
-    let plotColor = doFilter
-      ? sampleColorFiltered(
-          colorMap,
-          hit.wx,
-          hit.wy,
-          mapShift,
-          mapWMask,
-          mapHMask,
-          wrap
-        )
-      : colorMap[hit.offset];
+    let plotColor =
+      filterC & useFine
+        ? sampleColorFiltered(
+            colorMap,
+            wx,
+            wy,
+            mapShift,
+            mapWMask,
+            mapHMask,
+            wrap
+          )
+        : colorMap[offset];
     if (applyFogT) {
       plotColor = applyFogPacked(plotColor, fogT);
     }
     return plotColor;
   }
 
-  function paintOccupiedBand(
-    localI,
-    t0,
-    t1,
-    xView,
-    yTop,
-    yBot,
-    z,
-    useFine,
-    slackRow,
-    fogT,
-    fogWhite,
-    applyFogT
-  ) {
-    let y0 = (t0 * screenHeight) | 0;
-    let y1 = (t1 * screenHeight) | 0;
-    if ((y0 < 0) | 0) {
-      y0 = 0;
-    }
-    if ((y1 > screenHeight) | 0) {
-      y1 = screenHeight;
-    }
-    if ((y1 <= y0) | 0) {
-      y1 = (y0 + 1) | 0;
-      if ((y1 > screenHeight) | 0) {
-        return;
-      }
-    }
-    const invH = screenHeight === 0 ? 0 : 1 / screenHeight;
-    for (let row = y0; (row < y1) | 0; row = (row + 1) | 0) {
-      const cidx = (row * localWidth + localI) | 0;
-      if (cover[cidx]) {
-        continue;
-      }
-      const t = (row + 0.5) * invH;
-      if (!evalT(t, xView, yTop, yBot, z, useFine, slackRow, localI)) {
-        continue;
-      }
-      pixels[(row * stride + localI) | 0] = terrainColor(
-        z,
-        fogT,
-        fogWhite,
-        applyFogT,
-        useFine,
-        localI
-      );
-      cover[cidx] = 1;
-      freeN[localI] = (freeN[localI] - 1) | 0;
-      if ((freeN[localI] <= 0) | 0) {
-        liveCols = (liveCols - 1) | 0;
-        break;
-      }
-    }
-  }
-
-  // Front-to-back view-Z: first occupied hit keeps the pixel (coverage).
   for (let lod = 1; (lod <= LOD_BAND_COUNT) | 0; lod = (lod + 1) | 0) {
     if ((liveCols <= 0) | 0) {
       break;
@@ -512,48 +370,213 @@ export function renderFrustumSpaceColumns({
       const fogWhite = useFog & ((fogT >= FOG_SATURATED) | 0);
       const applyFogT = useFog & ((fogT > 0) | 0) & (fogWhite ^ 1);
       const useFine = (z <= filterDist) | 0;
-      const xScale = z * tanHalfFovX * 2 * screenWidthScaler;
+      const doLerp = lerpH & useFine;
+
+      const zTanX = z * tanHalfFovX;
+      const zInvH2 = z * invH2;
+      // One row step upward (row - 1) moves the sample by these deltas.
+      const rowStepX = zInvH2 * upX;
+      const rowStepY = zInvH2 * upY;
+      const rowStepZ = zInvH2 * upZ;
+      const driftPerRow = zInvH2 * upXY;
+      const hasRowStep = rowStepZ !== 0;
+      const invRowStepZ = hasRowStep ? 1 / rowStepZ : 0;
+
+      const colStepX = xnStep * zTanX * rightX;
+      const colStepY = xnStep * zTanX * rightY;
+      const colStepZ = xnStep * zTanX * rightZ;
+      let wxBase = camX + xn0 * zTanX * rightX + z * fwdX;
+      let wyBase = camY + xn0 * zTanX * rightY + z * fwdY;
+      let wzBase = camZ + xn0 * zTanX * rightZ + z * fwdZ;
 
       for (let i = startColumn; (i < endColumn) | 0; i = (i + 1) | 0) {
         const localI = (i - startColumn) | 0;
-        if ((freeN[localI] <= 0) | 0) {
+        const hy = hiddenY[localI];
+        if ((hy <= 0) | 0) {
+          wxBase += colStepX;
+          wyBase += colStepY;
+          wzBase += colStepZ;
           continue;
         }
-        const xView = (i + 0.5) * xScale - z * tanHalfFovX;
-        const yTop = (screenHorizon - 0.5) * z * invH2;
-        const yBot = (screenHorizon - (screenHeight - 0.5)) * z * invH2;
-        let slackCol = (yBot - yTop) * upZ;
-        if (slackCol < 0) {
-          slackCol = -slackCol;
+
+        // Terrain slab -> row window for this column (M2).
+        let wTop = 0;
+        let wBot = hy;
+        if (hasRowStep) {
+          const rCeil = rowBase - (ceiling - wzBase) * invRowStepZ;
+          const rGround = rowBase - (clipZ - wzBase) * invRowStepZ;
+          let lo = rCeil < rGround ? rCeil : rGround;
+          let hi = rCeil < rGround ? rGround : rCeil;
+          if (!(lo > -ROW_LIMIT)) lo = -ROW_LIMIT;
+          if (!(hi < ROW_LIMIT)) hi = ROW_LIMIT;
+          wTop = Math.ceil(lo) | 0;
+          if ((wTop < 0) | 0) wTop = 0;
+          const bot = (Math.floor(hi) | 0) + 1;
+          if ((bot < wBot) | 0) wBot = bot;
+        } else if (wzBase < clipZ || wzBase > ceiling) {
+          wxBase += colStepX;
+          wyBase += colStepY;
+          wzBase += colStepZ;
+          continue;
         }
-        const slackCoarse = slackCol / SLICE_SAMPLES;
-        const slackRow = screenHeight === 0 ? 0 : slackCol / screenHeight;
-        for (let si = 0; (si < SLICE_SAMPLES) | 0; si = (si + 1) | 0) {
-          const t0 = si / SLICE_SAMPLES;
-          const t1 = (si + 1) / SLICE_SAMPLES;
-          const tS = (t0 + t1) * 0.5;
-          if (!evalT(tS, xView, yTop, yBot, z, useFine, slackCoarse, localI)) {
+
+        if ((wTop >= wBot) | 0) {
+          wxBase += colStepX;
+          wyBase += colStepY;
+          wzBase += colStepZ;
+          continue;
+        }
+
+        if (hasRowStep && driftPerRow * (hy - wTop) < DRIFT_SPAN_TEXELS) {
+          // Sub-texel drift: the whole span shares one XY (M4, exact at
+          // pitch 0). One height sample, closed-form hit row, span fill.
+          const yn = rowBase - (hy - 1);
+          const wx = wxBase + yn * rowStepX;
+          const wy = wyBase + yn * rowStepY;
+          const inside =
+            ((wx >= 0) | 0) &
+            ((wx <= mapW) | 0) &
+            ((wy >= 0) | 0) &
+            ((wy <= mapH) | 0);
+          if (!(inside | wrap)) {
+            wxBase += colStepX;
+            wyBase += colStepY;
+            wzBase += colStepZ;
             continue;
           }
-          paintOccupiedBand(
-            localI,
-            t0,
-            t1,
-            xView,
-            yTop,
-            yBot,
-            z,
-            useFine,
-            slackRow,
-            fogT,
-            fogWhite,
-            applyFogT
-          );
-          if ((freeN[localI] <= 0) | 0) {
-            break;
+          const offset =
+            ((((wy | 0) & mapWMask) << mapShift) + ((wx | 0) & mapHMask)) | 0;
+          const nearestH = heightMap[offset];
+          const hFine = doLerp
+            ? sampleHeightBilinear(
+                heightMap,
+                wx,
+                wy,
+                mapShift,
+                mapWMask,
+                mapHMask,
+                wrap
+              )
+            : nearestH;
+          if (countIter) {
+            sampleN[localI] = (sampleN[localI] + 1) | 0;
+          }
+          let rHit =
+            Math.ceil(rowBase - (hFine * altScale - wzBase) * invRowStepZ) | 0;
+          if ((rHit < hy) | 0) {
+            if ((rHit < wTop) | 0) rHit = wTop;
+            let bottom = hy;
+            if (!wrap && wBot < bottom) {
+              bottom = wBot;
+            }
+            if ((rHit < bottom) | 0) {
+              const hByte = doLerp ? heightByteFromFine(hFine) : nearestH;
+              const col = shade(
+                wx,
+                wy,
+                offset,
+                hByte,
+                z,
+                fogT,
+                fogWhite,
+                applyFogT,
+                useFine,
+                localI
+              );
+              let o = (rHit * stride + localI) | 0;
+              for (let r = rHit; (r < bottom) | 0; r = (r + 1) | 0) {
+                pixels[o] = col;
+                o = (o + stride) | 0;
+              }
+              hiddenY[localI] = rHit;
+              if ((rHit === 0) | 0) {
+                liveCols = (liveCols - 1) | 0;
+              }
+            }
+          }
+        } else {
+          // Pitched column: walk upward from the horizon, one sample per row.
+          let r = (wBot - 1) | 0;
+          let yn = rowBase - r;
+          let wx = wxBase + yn * rowStepX;
+          let wy = wyBase + yn * rowStepY;
+          let wz = wzBase + yn * rowStepZ;
+          let top = wBot;
+          let firstColor = 0;
+          let o = (r * stride + localI) | 0;
+          while ((r >= wTop) | 0) {
+            const inside =
+              ((wx >= 0) | 0) &
+              ((wx <= mapW) | 0) &
+              ((wy >= 0) | 0) &
+              ((wy <= mapH) | 0);
+            if (!(inside | wrap)) {
+              break;
+            }
+            const offset =
+              ((((wy | 0) & mapWMask) << mapShift) + ((wx | 0) & mapHMask)) | 0;
+            const nearestH = heightMap[offset];
+            const hFine = doLerp
+              ? sampleHeightBilinear(
+                  heightMap,
+                  wx,
+                  wy,
+                  mapShift,
+                  mapWMask,
+                  mapHMask,
+                  wrap
+                )
+              : nearestH;
+            if (countIter) {
+              sampleN[localI] = (sampleN[localI] + 1) | 0;
+            }
+            if (wz > hFine * altScale) {
+              break;
+            }
+            const hByte = doLerp ? heightByteFromFine(hFine) : nearestH;
+            const col = shade(
+              wx,
+              wy,
+              offset,
+              hByte,
+              z,
+              fogT,
+              fogWhite,
+              applyFogT,
+              useFine,
+              localI
+            );
+            pixels[o] = col;
+            if ((top === wBot) | 0) {
+              firstColor = col;
+            }
+            top = r;
+            r = (r - 1) | 0;
+            o = (o - stride) | 0;
+            wx += rowStepX;
+            wy += rowStepY;
+            wz += rowStepZ;
+          }
+          if ((top < wBot) | 0) {
+            if (wrap && wBot < hy) {
+              let f = (wBot * stride + localI) | 0;
+              for (let rr = wBot; (rr < hy) | 0; rr = (rr + 1) | 0) {
+                pixels[f] = firstColor;
+                f = (f + stride) | 0;
+              }
+            }
+            hiddenY[localI] = top;
+            if ((top === 0) | 0) {
+              liveCols = (liveCols - 1) | 0;
+            }
           }
         }
+
+        wxBase += colStepX;
+        wyBase += colStepY;
+        wzBase += colStepZ;
       }
+
       z = z + step;
       step += stepGrowth;
     }

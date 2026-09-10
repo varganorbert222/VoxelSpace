@@ -9,8 +9,8 @@
 
 const MAX_STEPS: u32 = 16384u;
 const CLIP_Z: f32 = -20.0;
-const SLICE_SAMPLES: i32 = 64;
-const COVER_WORDS: u32 = 64u;
+const DRIFT_SPAN_TEXELS: f32 = 1.0;
+const ROW_LIMIT: f32 = 1.0e9;
 
 fn classicHeightAt(texX: i32, texY: i32, wrap: bool, mapHMask: i32, mapWMask: i32) -> u32 {
   let x = wrapOrClamp(texX, mapHMask, wrap);
@@ -64,43 +64,42 @@ fn classicSampleColor(plx: f32, ply: f32, doFilter: bool, wrap: bool, mapHMask: 
   return bilinearColor(c00, c10, c01, c11, fx, fy);
 }
 
-fn frustumOccupiedT(
-  cam: vec3f,
-  right: vec3f,
-  up: vec3f,
-  fwd: vec3f,
-  xView: f32,
-  yTop: f32,
-  yBot: f32,
-  t: f32,
+fn frustumShade(
+  px: f32,
+  py: f32,
+  hByte: u32,
   z: f32,
+  farClip: f32,
+  fogT: f32,
+  fogWhite: bool,
+  applyFogT: bool,
   useFine: bool,
   flags: u32,
   repeat: bool,
-  mapW: i32,
-  mapH: i32,
   mapHMask: i32,
   mapWMask: i32,
-  ceiling: f32,
-  altScale: f32,
-  slack: f32
-) -> vec4f {
-  let yView = yTop + t * (yBot - yTop);
-  let p = cam + xView * right + yView * up + z * fwd;
-  var occ = 0.0;
-  var hByte = 0.0;
-  if (((p.x >= 0.0) && (p.x <= f32(mapW)) && (p.y >= 0.0) && (p.y <= f32(mapH))) || repeat) {
-    if ((p.z <= ceiling + slack) && (p.z >= CLIP_Z)) {
-      let sampled = classicSampleHeight(p.x, p.y, flagHeightLerp(flags) && useFine, repeat, mapHMask, mapWMask);
-      hByte = sampled.y;
-      if (p.z <= sampled.x * altScale + slack) {
-        occ = 1.0;
-      }
+  debugView: u32,
+  sampleN: u32
+) -> u32 {
+  if (debugView != DEBUG_COLOR) {
+    if (debugView == DEBUG_HEIGHT) { return encodeHeight(hByte); }
+    if (debugView == DEBUG_DEPTH) {
+      var depthT = 0.0;
+      if (farClip > 0.0) { depthT = z / farClip; }
+      return encodeUnit(depthT);
     }
+    return encodeIter(sampleN);
   }
-  return vec4f(occ, hByte, p.x, p.y);
+  if (fogWhite) {
+    return packRgba(vec4f(1.0));
+  }
+  var plot = classicSampleColor(px, py, flagColorFilter(flags) && useFine, repeat, mapHMask, mapWMask);
+  if (applyFogT) { plot = fogRgb(plot, fogT); }
+  return packRgba(plot);
 }
 
+// One thread per column: view-Z slices front-to-back with a persistent
+// horizon. See scripts/render/frustumspacemarch.js for the derivation.
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) gid: vec3u) {
   let screenW = i32(frame.screenPano.x);
@@ -152,18 +151,17 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let filterDist = frame.sampleLimit.x;
   let _po = pixelOffsets[0];
 
-  var cover: array<u32, 64>;
-  var ci = 0u;
-  loop {
-    if (ci >= COVER_WORDS) { break; }
-    cover[ci] = 0u;
-    ci = ci + 1u;
-  }
-  var painted = 0;
+  let rowBase = screenHorizon - 0.5;
+  let upXY = length(up.xy);
+  let xn = (f32(x) + 0.5) * (2.0 * screenWidthScaler) - 1.0;
+  let mapWf = f32(mapW);
+  let mapHf = f32(mapH);
+
+  var hiddenY = screenH;
   var sampleN = 0u;
   var lod = 1;
   loop {
-    if ((lod > lodCount) || (painted >= screenH)) { break; }
+    if ((lod > lodCount) || (hiddenY <= 0)) { break; }
     let startIndex = lodDistances[lod - 1];
     let endIndex = lodDistances[lod];
     lod = lod + 1;
@@ -172,73 +170,99 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     var z = startIndex;
     var zGuard = 0u;
     loop {
-      if ((z >= endIndex) || (z >= farClip) || (painted >= screenH) || (zGuard >= MAX_STEPS)) { break; }
+      if ((z >= endIndex) || (z >= farClip) || (hiddenY <= 0) || (zGuard >= MAX_STEPS)) { break; }
       zGuard = zGuard + 1u;
       let fogT = fogAmount(z, fogStart, fogEnd);
       let fogWhite = useFog && (fogT >= 1.0);
       let applyFogT = useFog && (fogT > 0.0) && !fogWhite;
       let useFine = z <= filterDist;
-      let xView = (f32(x) + 0.5) * (z * tanHalfX * 2.0 * screenWidthScaler) - z * tanHalfX;
-      let yTop = (screenHorizon - 0.5) * z * invH2;
-      let yBot = (screenHorizon - (f32(screenH) - 0.5)) * z * invH2;
-      let slackCol = abs((yBot - yTop) * up.z);
-      let slackCoarse = slackCol / f32(SLICE_SAMPLES);
-      let slackRow = select(0.0, slackCol / f32(screenH), screenH != 0);
-      var si = 0;
-      loop {
-        if ((si >= SLICE_SAMPLES) || (painted >= screenH)) { break; }
-        let t0 = f32(si) / f32(SLICE_SAMPLES);
-        let t1 = f32(si + 1) / f32(SLICE_SAMPLES);
-        let tS = (t0 + t1) * 0.5;
-        let probe = frustumOccupiedT(cam, right, up, fwd, xView, yTop, yBot, tS, z, useFine, flags, repeat, mapW, mapH, mapHMask, mapWMask, ceiling, altScale, slackCoarse);
-        sampleN = sampleN + 1u;
-        si = si + 1;
-        if (probe.x == 0.0) { continue; }
-        var y0 = i32(t0 * f32(screenH));
-        var y1 = i32(t1 * f32(screenH));
-        if (y0 < 0) { y0 = 0; }
-        if (y1 > screenH) { y1 = screenH; }
-        if (y1 <= y0) { y1 = y0 + 1; }
-        var yy = y0;
-        loop {
-          if ((yy >= y1) || (yy >= screenH) || (painted >= screenH)) { break; }
-          let bit = u32(yy) & 31u;
-          let word = u32(yy) >> 5u;
-          var already = false;
-          if (word < COVER_WORDS) {
-            already = (cover[word] & (1u << bit)) != 0u;
-          }
-          if (!already) {
-            let tRow = (f32(yy) + 0.5) / f32(screenH);
-            let hit = frustumOccupiedT(cam, right, up, fwd, xView, yTop, yBot, tRow, z, useFine, flags, repeat, mapW, mapH, mapHMask, mapWMask, ceiling, altScale, slackRow);
-            sampleN = sampleN + 1u;
-            if (hit.x != 0.0) {
-              var plotPacked = packRgba(vec4f(1.0));
-              let hByte = u32(hit.y);
-              if (debugView != DEBUG_COLOR) {
-                if (debugView == DEBUG_HEIGHT) { plotPacked = encodeHeight(hByte); }
-                else if (debugView == DEBUG_DEPTH) {
-                  var depthT = 0.0;
-                  if (farClip > 0.0) { depthT = z / farClip; }
-                  plotPacked = encodeUnit(depthT);
-                } else { plotPacked = encodeIter(sampleN); }
-              } else if (!fogWhite) {
-                var plot = classicSampleColor(hit.z, hit.w, flagColorFilter(flags) && useFine, repeat, mapHMask, mapWMask);
-                if (applyFogT) { plot = fogRgb(plot, fogT); }
-                plotPacked = packRgba(plot);
+      let doLerp = flagHeightLerp(flags) && useFine;
+      let zTanX = z * tanHalfX;
+      let zInvH2 = z * invH2;
+      let rowStep = up * zInvH2;
+      let driftPerRow = zInvH2 * upXY;
+      let hasRowStep = rowStep.z != 0.0;
+      let invRowStepZ = select(0.0, 1.0 / rowStep.z, hasRowStep);
+      let colBase = cam + (xn * zTanX) * right + z * fwd;
+
+      var wTop = 0;
+      var wBot = hiddenY;
+      var skip = false;
+      if (hasRowStep) {
+        let rCeil = rowBase - (ceiling - colBase.z) * invRowStepZ;
+        let rGround = rowBase - (CLIP_Z - colBase.z) * invRowStepZ;
+        let lo = clamp(min(rCeil, rGround), -ROW_LIMIT, ROW_LIMIT);
+        let hi = clamp(max(rCeil, rGround), -ROW_LIMIT, ROW_LIMIT);
+        wTop = max(0, i32(ceil(lo)));
+        wBot = min(wBot, i32(floor(hi)) + 1);
+      } else if ((colBase.z < CLIP_Z) || (colBase.z > ceiling)) {
+        skip = true;
+      }
+      if (skip || (wTop >= wBot)) {
+        continue;
+      }
+
+      if (hasRowStep && (driftPerRow * f32(hiddenY - wTop) < DRIFT_SPAN_TEXELS)) {
+        // Sub-texel drift across the span: one sample, closed-form hit row.
+        let p = colBase + (rowBase - f32(hiddenY - 1)) * rowStep;
+        let inside = ((p.x >= 0.0) && (p.x <= mapWf) && (p.y >= 0.0) && (p.y <= mapHf)) || repeat;
+        if (inside) {
+          let sampled = classicSampleHeight(p.x, p.y, doLerp, repeat, mapHMask, mapWMask);
+          sampleN = sampleN + 1u;
+          var rHit = i32(ceil(rowBase - (sampled.x * altScale - colBase.z) * invRowStepZ));
+          if (rHit < hiddenY) {
+            rHit = max(rHit, wTop);
+            var bottom = hiddenY;
+            if (!repeat) { bottom = min(bottom, wBot); }
+            if (rHit < bottom) {
+              let plot = frustumShade(p.x, p.y, u32(sampled.y), z, farClip, fogT, fogWhite, applyFogT, useFine, flags, repeat, mapHMask, mapWMask, debugView, sampleN);
+              var r = rHit;
+              loop {
+                if (r >= bottom) { break; }
+                textureStore(outTex, vec2<i32>(x, r), vec4<u32>(plot, 0u, 0u, 0u));
+                r = r + 1;
               }
-              textureStore(outTex, vec2<i32>(x, yy), vec4<u32>(plotPacked, 0u, 0u, 0u));
-              if (word < COVER_WORDS) {
-                cover[word] = cover[word] | (1u << bit);
-              }
-              painted = painted + 1;
+              hiddenY = rHit;
             }
           }
-          yy = yy + 1;
+        }
+      } else {
+        // Pitched column: walk up from the horizon, one sample per row.
+        var r = wBot - 1;
+        var p = colBase + (rowBase - f32(r)) * rowStep;
+        var top = wBot;
+        var firstColor = 0u;
+        loop {
+          if (r < wTop) { break; }
+          let inside = ((p.x >= 0.0) && (p.x <= mapWf) && (p.y >= 0.0) && (p.y <= mapHf)) || repeat;
+          if (!inside) { break; }
+          let sampled = classicSampleHeight(p.x, p.y, doLerp, repeat, mapHMask, mapWMask);
+          sampleN = sampleN + 1u;
+          if (p.z > sampled.x * altScale) { break; }
+          let plot = frustumShade(p.x, p.y, u32(sampled.y), z, farClip, fogT, fogWhite, applyFogT, useFine, flags, repeat, mapHMask, mapWMask, debugView, sampleN);
+          textureStore(outTex, vec2<i32>(x, r), vec4<u32>(plot, 0u, 0u, 0u));
+          if (top == wBot) { firstColor = plot; }
+          top = r;
+          r = r - 1;
+          p = p + rowStep;
+        }
+        if (top < wBot) {
+          if (repeat && (wBot < hiddenY)) {
+            var f = wBot;
+            loop {
+              if (f >= hiddenY) { break; }
+              textureStore(outTex, vec2<i32>(x, f), vec4<u32>(firstColor, 0u, 0u, 0u));
+              f = f + 1;
+            }
+          }
+          hiddenY = top;
         }
       }
-      z = z + step;
-      step = step + stepGrowth;
+
+      continuing {
+        z = z + step;
+        step = step + stepGrowth;
+      }
     }
   }
 }

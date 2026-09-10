@@ -27,12 +27,16 @@ import {
   cubemapViewPayload,
   cubemapGeneratePayload,
 } from "./jobProtocol.js";
-import { PIXEL_OFFSET_ALIGN } from "../constants/classic.js";
 import { BACKEND_JS } from "../constants/backend.js";
 import { canShareBuffers, allocU8, allocU32, isShared } from "./sharedBuffers.js";
 
-function chunkSizeFor(columnCount, workerCount, align) {
-  let size = Math.ceil(columnCount / workerCount);
+// Measured: splitting into more chunks than workers costs more in messages,
+// allocations and blits than the load balancing wins back.
+const FRUSTUM_CHUNKS_PER_WORKER = 1;
+
+function chunkSizeFor(columnCount, workerCount, align, chunksPerWorker) {
+  const parts = Math.max(1, (workerCount * (chunksPerWorker || 1)) | 0);
+  let size = Math.ceil(columnCount / parts);
   if ((align > 1) | 0) {
     size = Math.ceil(size / align) * align;
     if ((size < align) | 0) size = align;
@@ -398,7 +402,8 @@ class WorkerPool {
         MSG_RENDER_FRUSTUM_SPACE,
         params,
         params.screenWidth,
-        PIXEL_OFFSET_ALIGN
+        1,
+        FRUSTUM_CHUNKS_PER_WORKER
       )
     );
   }
@@ -534,7 +539,7 @@ class WorkerPool {
     });
   }
 
-  _runJob(msgType, params, columnCount, align) {
+  _runJob(msgType, params, columnCount, align, chunksPerWorker) {
     this.ensureWorkers();
     if (this._active) {
       this.cancel();
@@ -542,7 +547,7 @@ class WorkerPool {
     this._jobId = (this._jobId + 1) | 0;
     const jobId = this._jobId;
     const workerCount = this._slots.length;
-    const size = chunkSizeFor(columnCount, workerCount, align);
+    const size = chunkSizeFor(columnCount, workerCount, align, chunksPerWorker);
     const ranges = splitRanges(columnCount, size);
 
     return new Promise((resolve) => {
