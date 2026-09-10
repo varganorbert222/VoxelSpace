@@ -249,12 +249,15 @@ export function createWasmKernels(instance) {
 
     const maxHeight =
       params.maxHeight == null ? params.altitude : params.maxHeight;
+    const maxSlope =
+      params.maxSlope == null ? params.altitude : params.maxSlope;
     ex.set_map_info(
       mapW,
       mapH,
       mapShift,
       params.altitude,
       maxHeight,
+      maxSlope,
       mipCount
     );
     for (let m = 0; (m < mipCount) | 0; m = (m + 1) | 0) {
@@ -432,6 +435,7 @@ export function createWasmKernels(instance) {
     ex.reset_scratch();
     const pixelsPtr = mustAlloc(n * 4);
     const hiddenPtr = mustAlloc(localWidth * 4);
+    const coverPtr = mustAlloc(n);
     let rowPtr = 0;
     if (rowBytes) {
       rowPtr = mustAlloc(rowBytes);
@@ -469,6 +473,7 @@ export function createWasmKernels(instance) {
       pixelsPtr,
       params.pixelWidth | 0,
       hiddenPtr,
+      coverPtr,
       rowPtr,
       debugViewId(params.debugView),
       params.interpolateHeight | 0,

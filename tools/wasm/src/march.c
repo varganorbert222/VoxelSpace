@@ -23,6 +23,7 @@ static i32 g_map_h;
 static i32 g_map_shift;
 static f64 g_altitude;
 static f64 g_max_height;
+static f64 g_max_slope;
 static f64 g_alt_scale;
 static i32 g_mip_count;
 static u8 *g_mip_h[4];
@@ -411,12 +412,14 @@ WASM_EXPORT void set_map_info(
     i32 map_shift,
     f64 altitude,
     f64 max_height,
+    f64 max_slope,
     i32 mip_count) {
   g_map_w = map_w;
   g_map_h = map_h;
   g_map_shift = map_shift;
   g_altitude = altitude;
   g_max_height = max_height;
+  g_max_slope = max_slope > 0.0 ? max_slope : altitude;
   g_alt_scale = T_HEIGHTMAP_MAX != 0.0 ? altitude / T_HEIGHTMAP_MAX : 0.0;
   g_mip_count = mip_count;
   if (g_mip_count < 1) {
@@ -1360,6 +1363,9 @@ WASM_EXPORT void pano_view_columns(
 
 #define FS_DRIFT_SPAN_TEXELS 1.0
 #define FS_ROW_LIMIT 1.0e9
+#define FS_MAX_COLS 4096
+static i32 fs_free_n[FS_MAX_COLS];
+static u8 fs_dirty[FS_MAX_COLS];
 
 static u32 fs_terrain_color(
     u32 *color_map,
@@ -1436,12 +1442,14 @@ WASM_EXPORT void frustum_space_columns(
     i32 pixels_ptr,
     i32 pixel_width,
     i32 hidden_ptr,
+    i32 cover_ptr,
     i32 row_colors_ptr,
     i32 debug_view,
     i32 lerp_height,
     i32 filter_color) {
   u32 *pixels = (u32 *)pixels_ptr;
   i32 *hidden_y = (i32 *)hidden_ptr;
+  u8 *cover = (u8 *)cover_ptr;
   u8 *height_map = g_mip_h[0];
   u32 *color_map = g_mip_c[0];
   i32 local_width = (end_column - start_column) | 0;
@@ -1450,6 +1458,7 @@ WASM_EXPORT void frustum_space_columns(
   f64 inv_fog = fog_range == 0.0 ? 0.0 : 1.0 / fog_range;
   i32 use_fog = apply_fog | 0;
   f64 ceiling = g_max_height;
+  f64 slope_cap = g_max_slope;
   f64 clip_z = -T_NON_REPEAT_GROUND;
   f64 screen_horizon = (f64)screen_height * T_HALF;
   i32 map_w_mask = (g_map_w - 1) | 0;
@@ -1530,8 +1539,14 @@ WASM_EXPORT void frustum_space_columns(
   xn0 = ((f64)start_column + 0.5) * xn_step - 1.0;
 
   live_cols = local_width;
+  n = (local_width * screen_height) | 0;
+  for (i = 0; i < n; i = (i + 1) | 0) {
+    cover[i] = 0;
+  }
   for (i = 0; i < local_width; i = (i + 1) | 0) {
     hidden_y[i] = screen_height;
+    fs_free_n[i] = screen_height;
+    fs_dirty[i] = 0;
   }
 
   /* Front-to-back view-Z slices, one persistent horizon per column. */
@@ -1567,6 +1582,11 @@ WASM_EXPORT void frustum_space_columns(
       f64 drift_per_row;
       i32 has_row_step;
       f64 inv_row_step_z;
+      f64 rise_max;
+      f64 close_rate;
+      i32 can_rise;
+      f64 inv_close_rate;
+      i32 skip_texel;
       f64 col_step_x;
       f64 col_step_y;
       f64 col_step_z;
@@ -1591,6 +1611,23 @@ WASM_EXPORT void frustum_space_columns(
       drift_per_row = z_inv_h2 * up_xy;
       has_row_step = row_step_z != 0.0;
       inv_row_step_z = has_row_step ? 1.0 / row_step_z : 0.0;
+      {
+        f64 abs_rsx = row_step_x < 0.0 ? -row_step_x : row_step_x;
+        f64 abs_rsy = row_step_y < 0.0 ? -row_step_y : row_step_y;
+        f64 drift_cheb = abs_rsx > abs_rsy ? abs_rsx : abs_rsy;
+        rise_max = slope_cap * (abs_rsx + abs_rsy);
+        close_rate = rise_max - row_step_z;
+        can_rise = close_rate > 0.0;
+        inv_close_rate = can_rise ? 1.0 / close_rate : 0.0;
+        if (drift_cheb > 0.0) {
+          skip_texel = (i32)wasm_floor(1.0 / drift_cheb);
+        } else {
+          skip_texel = screen_height;
+        }
+        if (skip_texel < 1) {
+          skip_texel = 1;
+        }
+      }
       col_step_x = xn_step * z_tan_x * right_x;
       col_step_y = xn_step * z_tan_x * right_y;
       col_step_z = xn_step * z_tan_x * right_z;
@@ -1671,31 +1708,55 @@ WASM_EXPORT void frustum_space_columns(
               bottom = w_bot;
             }
             if (r_hit < bottom) {
+              i32 painted = 0;
               plot = fs_terrain_color(
                   color_map, wx, wy, nn_off, use_fine, do_filter, wrap,
                   map_w_mask, map_h_mask, g_map_shift, z, far_clip, fog_t,
                   fog_white, apply_fog_t, debug, h_byte,
                   sample_ok ? g_sample_n[local_i] : 0);
-              for (rr = r_hit; rr < bottom; rr = (rr + 1) | 0) {
-                pixels[((rr * stride + local_i) | 0)] = plot;
+              if (fs_dirty[local_i]) {
+                for (rr = r_hit; rr < bottom; rr = (rr + 1) | 0) {
+                  i32 ci = (rr * local_width + local_i) | 0;
+                  if (!cover[ci]) {
+                    pixels[((rr * stride + local_i) | 0)] = plot;
+                    cover[ci] = 1;
+                    painted = (painted + 1) | 0;
+                  }
+                }
+              } else {
+                for (rr = r_hit; rr < bottom; rr = (rr + 1) | 0) {
+                  pixels[((rr * stride + local_i) | 0)] = plot;
+                }
+                painted = (bottom - r_hit) | 0;
               }
+              fs_free_n[local_i] = (fs_free_n[local_i] - painted) | 0;
               hidden_y[local_i] = r_hit;
-              if (r_hit == 0) {
-                live_cols = (live_cols - 1) | 0;
-              }
             }
           }
         } else {
-          /* Pitched column: walk up from the horizon, one sample per row. */
+          /* Pitched column: walk up from the horizon. Occupied rows paint
+           * their own XY; empty rows jump over rows terrain cannot reach. */
+          i32 seed = (w_bot < hy ? w_bot : hy) | 0;
+          i32 suffix = seed;
+          i32 painted = 0;
           i32 rr = (w_bot - 1) | 0;
-          i32 top = w_bot;
-          f64 yn = row_base - (f64)rr;
           u32 first_color = 0;
-          wx = wx_base + yn * row_step_x;
-          wy = wy_base + yn * row_step_y;
-          wz = wz_base + yn * row_step_z;
           while (rr >= w_top) {
+            i32 cidx = (rr * local_width + local_i) | 0;
+            f64 yn;
+            f64 gap;
             u32 plot;
+            if (cover[cidx]) {
+              if (((rr + 1) | 0) == suffix) {
+                suffix = rr;
+              }
+              rr = (rr - 1) | 0;
+              continue;
+            }
+            yn = row_base - (f64)rr;
+            wx = wx_base + yn * row_step_x;
+            wy = wy_base + yn * row_step_y;
+            wz = wz_base + yn * row_step_z;
             inside = (wx >= 0.0) & (wx <= (f64)g_map_w) & (wy >= 0.0) &
                      (wy <= (f64)g_map_h);
             if (!(inside | wrap)) {
@@ -1707,8 +1768,20 @@ WASM_EXPORT void frustum_space_columns(
             if (sample_ok) {
               g_sample_n[local_i] = (g_sample_n[local_i] + 1) | 0;
             }
-            if (wz > h_fine * g_alt_scale) {
-              break;
+            gap = wz - h_fine * g_alt_scale;
+            if (gap > 0.0) {
+              i32 skip_n = skip_texel;
+              if (can_rise) {
+                i32 s2 = (i32)wasm_ceil(gap * inv_close_rate);
+                if (s2 > skip_n) {
+                  skip_n = s2;
+                }
+              }
+              if (skip_n < 1) {
+                skip_n = 1;
+              }
+              rr = (rr - skip_n) | 0;
+              continue;
             }
             plot = fs_terrain_color(
                 color_map, wx, wy, nn_off, use_fine, do_filter, wrap,
@@ -1716,27 +1789,39 @@ WASM_EXPORT void frustum_space_columns(
                 fog_white, apply_fog_t, debug, h_byte,
                 sample_ok ? g_sample_n[local_i] : 0);
             pixels[((rr * stride + local_i) | 0)] = plot;
-            if (top == w_bot) {
+            cover[cidx] = 1;
+            if (painted == 0) {
               first_color = plot;
             }
-            top = rr;
+            painted = (painted + 1) | 0;
+            if (((rr + 1) | 0) == suffix) {
+              suffix = rr;
+            } else {
+              fs_dirty[local_i] = 1;
+            }
             rr = (rr - 1) | 0;
-            wx += row_step_x;
-            wy += row_step_y;
-            wz += row_step_z;
           }
-          if (top < w_bot) {
+          if (painted) {
+            fs_free_n[local_i] = (fs_free_n[local_i] - painted) | 0;
+          }
+          if (suffix < seed) {
             if (wrap && (w_bot < hy)) {
               i32 f;
               for (f = w_bot; f < hy; f = (f + 1) | 0) {
-                pixels[((f * stride + local_i) | 0)] = first_color;
+                i32 ci = (f * local_width + local_i) | 0;
+                if (!cover[ci]) {
+                  pixels[((f * stride + local_i) | 0)] = first_color;
+                  cover[ci] = 1;
+                  fs_free_n[local_i] = (fs_free_n[local_i] - 1) | 0;
+                }
               }
             }
-            hidden_y[local_i] = top;
-            if (top == 0) {
-              live_cols = (live_cols - 1) | 0;
-            }
+            hidden_y[local_i] = suffix;
           }
+        }
+        if ((hidden_y[local_i] <= 0) | (fs_free_n[local_i] <= 0)) {
+          hidden_y[local_i] = 0;
+          live_cols = (live_cols - 1) | 0;
         }
       fs_next_col:
         wx_base += col_step_x;

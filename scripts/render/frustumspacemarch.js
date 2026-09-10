@@ -46,8 +46,21 @@ import {
 // Per column the slice contributes rows above the running horizon only.
 // If the column's XY drifts less than a texel across that span, one height
 // sample resolves the whole span (classic cost). Otherwise the span is walked
-// upward row by row from the horizon, each row sampling its own XY, which is
-// what a pitched column needs and costs one sample per painted pixel.
+// upward from the horizon, each row sampling its own XY.
+//
+// A pitched slice plane is close to parallel to the terrain, so above the first
+// empty row the surface can cross the plane again: the rows a slice adds are
+// contour bands, not one run above the horizon. Stopping at the first empty row
+// leaves those bands to a later slice, which paints them from the wrong XY and
+// eats into steep slopes. Empty rows are therefore skipped by the largest step
+// that provably holds no terrain: with `maxSlope` bounding the steepest
+// neighbour step, the sampled height rises by at most
+//   riseMax = maxSlope * (|rowStepX| + |rowStepY|)
+// per row while the plane rises by rowStepZ, so a gap of `g` world units needs
+// at least g / (riseMax - rowStepZ) rows to close. When riseMax <= rowStepZ the
+// surface can never return and the first empty row ends the column, which is
+// the pitch-0 case. A coverage mask keeps each pixel's first hit even when a
+// detached band reaches it before the horizon does.
 //
 // Spec is Y-up; this project is Z-up (X,Y map, Z altitude).
 const DRIFT_SPAN_TEXELS = 1;
@@ -55,10 +68,15 @@ const ROW_LIMIT = 1e9;
 
 let sampleNScratch = new Int32Array(1);
 let hiddenScratch = new Int32Array(1);
+let coverScratch = new Uint8Array(1);
+let freeScratch = new Int32Array(1);
+let dirtyScratch = new Uint8Array(1);
 const deltasScratch = new Float64Array(LOD_BAND_COUNT);
 const lodDistancesScratch = new Float64Array(LOD_BAND_COUNT + 1);
 let sampleNCapacity = 1;
 let hiddenCapacity = 1;
+let coverCapacity = 1;
+let freeCapacity = 1;
 
 function sampleNBuffer(width) {
   if ((width > sampleNCapacity) | 0) {
@@ -74,6 +92,23 @@ function hiddenBuffer(width) {
     hiddenScratch = new Int32Array(width);
   }
   return hiddenScratch;
+}
+
+function coverBuffer(n) {
+  if ((n > coverCapacity) | 0) {
+    coverCapacity = n;
+    coverScratch = new Uint8Array(n);
+  }
+  return coverScratch;
+}
+
+function freeBuffer(width) {
+  if ((width > freeCapacity) | 0) {
+    freeCapacity = width;
+    freeScratch = new Int32Array(width);
+    dirtyScratch = new Uint8Array(width);
+  }
+  return freeScratch;
 }
 
 function wrapSampleCoord(v, mask, wrap) {
@@ -212,6 +247,7 @@ export function renderFrustumSpaceColumns({
   mapShift,
   altitude,
   maxHeight,
+  maxSlope,
   startColumn,
   endColumn,
   screenWidth,
@@ -258,6 +294,10 @@ export function renderFrustumSpaceColumns({
   }
   const altScale = altitude / HEIGHTMAP_MAX;
   const ceiling = maxHeight == null ? altitude : maxHeight;
+  // World height per texel the terrain can rise at most. Missing map data
+  // degrades to the slowest but still correct bound.
+  const slopeCap =
+    maxSlope == null || !(maxSlope > 0) ? altitude : maxSlope;
   const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
   const screenHorizon = screenHeight * 0.5;
 
@@ -304,8 +344,15 @@ export function renderFrustumSpaceColumns({
   const xn0 = (startColumn + 0.5) * xnStep - 1;
 
   const hiddenY = hiddenBuffer(localWidth);
+  const freeN = freeBuffer(localWidth);
+  const dirty = dirtyScratch;
+  const coverN = (localWidth * screenHeight) | 0;
+  const cover = coverBuffer(coverN);
+  cover.fill(0, 0, coverN);
   for (let i = 0; (i < localWidth) | 0; i = (i + 1) | 0) {
     hiddenY[i] = screenHeight;
+    freeN[i] = screenHeight;
+    dirty[i] = 0;
   }
   let liveCols = localWidth;
 
@@ -381,6 +428,20 @@ export function renderFrustumSpaceColumns({
       const driftPerRow = zInvH2 * upXY;
       const hasRowStep = rowStepZ !== 0;
       const invRowStepZ = hasRowStep ? 1 / rowStepZ : 0;
+
+      // Fastest the terrain can close the gap to the plane, per row upward.
+      // Height only changes after XY moves ~1 texel, so empty rows can jump by
+      // at least that many rows; the slope bound may jump further.
+      const absX = rowStepX < 0 ? -rowStepX : rowStepX;
+      const absY = rowStepY < 0 ? -rowStepY : rowStepY;
+      const riseMax = slopeCap * (absX + absY);
+      const closeRate = riseMax - rowStepZ;
+      const canRise = closeRate > 0;
+      const invCloseRate = canRise ? 1 / closeRate : 0;
+      const driftCheb = absX > absY ? absX : absY;
+      const skipTexelRaw =
+        driftCheb > 0 ? Math.floor(1 / driftCheb) | 0 : screenHeight;
+      const skipTexel = (skipTexelRaw < 1) | 0 ? 1 : skipTexelRaw;
 
       const colStepX = xnStep * zTanX * rightX;
       const colStepY = xnStep * zTanX * rightY;
@@ -483,28 +544,51 @@ export function renderFrustumSpaceColumns({
                 useFine,
                 localI
               );
+              let painted = 0;
               let o = (rHit * stride + localI) | 0;
-              for (let r = rHit; (r < bottom) | 0; r = (r + 1) | 0) {
-                pixels[o] = col;
-                o = (o + stride) | 0;
+              if (dirty[localI]) {
+                let ci = (rHit * localWidth + localI) | 0;
+                for (let r = rHit; (r < bottom) | 0; r = (r + 1) | 0) {
+                  if (!cover[ci]) {
+                    pixels[o] = col;
+                    cover[ci] = 1;
+                    painted = (painted + 1) | 0;
+                  }
+                  o = (o + stride) | 0;
+                  ci = (ci + localWidth) | 0;
+                }
+              } else {
+                for (let r = rHit; (r < bottom) | 0; r = (r + 1) | 0) {
+                  pixels[o] = col;
+                  o = (o + stride) | 0;
+                }
+                painted = (bottom - rHit) | 0;
               }
+              freeN[localI] = (freeN[localI] - painted) | 0;
               hiddenY[localI] = rHit;
-              if ((rHit === 0) | 0) {
-                liveCols = (liveCols - 1) | 0;
-              }
             }
           }
         } else {
-          // Pitched column: walk upward from the horizon, one sample per row.
-          let r = (wBot - 1) | 0;
-          let yn = rowBase - r;
-          let wx = wxBase + yn * rowStepX;
-          let wy = wyBase + yn * rowStepY;
-          let wz = wzBase + yn * rowStepZ;
-          let top = wBot;
+          // Pitched column: walk upward from the horizon. Occupied rows paint
+          // their own XY, empty rows jump over the rows terrain cannot reach.
+          const seed = (wBot < hy ? wBot : hy) | 0;
+          let suffix = seed;
           let firstColor = 0;
-          let o = (r * stride + localI) | 0;
+          let painted = 0;
+          let r = (wBot - 1) | 0;
           while ((r >= wTop) | 0) {
+            const cidx = (r * localWidth + localI) | 0;
+            if (cover[cidx]) {
+              if ((r + 1 === suffix) | 0) {
+                suffix = r;
+              }
+              r = (r - 1) | 0;
+              continue;
+            }
+            const yn = rowBase - r;
+            const wx = wxBase + yn * rowStepX;
+            const wy = wyBase + yn * rowStepY;
+            const wz = wzBase + yn * rowStepZ;
             const inside =
               ((wx >= 0) | 0) &
               ((wx <= mapW) | 0) &
@@ -530,8 +614,20 @@ export function renderFrustumSpaceColumns({
             if (countIter) {
               sampleN[localI] = (sampleN[localI] + 1) | 0;
             }
-            if (wz > hFine * altScale) {
-              break;
+            const gap = wz - hFine * altScale;
+            if (gap > 0) {
+              let skip = skipTexel | 0;
+              if (canRise) {
+                const s2 = Math.ceil(gap * invCloseRate) | 0;
+                if ((s2 > skip) | 0) {
+                  skip = s2;
+                }
+              }
+              if ((skip < 1) | 0) {
+                skip = 1;
+              }
+              r = (r - skip) | 0;
+              continue;
             }
             const hByte = doLerp ? heightByteFromFine(hFine) : nearestH;
             const col = shade(
@@ -546,30 +642,43 @@ export function renderFrustumSpaceColumns({
               useFine,
               localI
             );
-            pixels[o] = col;
-            if ((top === wBot) | 0) {
+            pixels[(r * stride + localI) | 0] = col;
+            cover[cidx] = 1;
+            if ((painted === 0) | 0) {
               firstColor = col;
             }
-            top = r;
+            painted = (painted + 1) | 0;
+            if ((r + 1 === suffix) | 0) {
+              suffix = r;
+            } else {
+              dirty[localI] = 1;
+            }
             r = (r - 1) | 0;
-            o = (o - stride) | 0;
-            wx += rowStepX;
-            wy += rowStepY;
-            wz += rowStepZ;
           }
-          if ((top < wBot) | 0) {
-            if (wrap && wBot < hy) {
+          if (painted) {
+            freeN[localI] = (freeN[localI] - painted) | 0;
+          }
+          if ((suffix < seed) | 0) {
+            if (wrap && ((wBot < hy) | 0)) {
               let f = (wBot * stride + localI) | 0;
+              let ci = (wBot * localWidth + localI) | 0;
               for (let rr = wBot; (rr < hy) | 0; rr = (rr + 1) | 0) {
-                pixels[f] = firstColor;
+                if (!cover[ci]) {
+                  pixels[f] = firstColor;
+                  cover[ci] = 1;
+                  freeN[localI] = (freeN[localI] - 1) | 0;
+                }
                 f = (f + stride) | 0;
+                ci = (ci + localWidth) | 0;
               }
             }
-            hiddenY[localI] = top;
-            if ((top === 0) | 0) {
-              liveCols = (liveCols - 1) | 0;
-            }
+            hiddenY[localI] = suffix;
           }
+        }
+
+        if (((hiddenY[localI] <= 0) | 0) | ((freeN[localI] <= 0) | 0)) {
+          hiddenY[localI] = 0;
+          liveCols = (liveCols - 1) | 0;
         }
 
         wxBase += colStepX;

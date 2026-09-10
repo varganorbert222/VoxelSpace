@@ -40,6 +40,7 @@ const workerState = {
   mapShift: 0,
   altitude: 0,
   maxHeight: 0,
+  maxSlope: 0,
   mapsGeneration: 0,
   panoMips: null,
   panoPixels: null,
@@ -96,6 +97,7 @@ function initMaps(msg) {
   workerState.altitude = msg.altitude;
   workerState.maxHeight =
     msg.maxHeight == null ? workerState.altitude : msg.maxHeight;
+  workerState.maxSlope = msg.maxSlope == null ? 0 : msg.maxSlope;
   workerState.mapsGeneration = (workerState.mapsGeneration + 1) | 0;
   const mipCount = msg.mipCount | 0;
   const heightMaps = [workerState.heightMap];
@@ -239,6 +241,7 @@ function renderFrustumSpace(msg) {
     mapShift: workerState.mapShift,
     altitude: workerState.altitude,
     maxHeight: workerState.maxHeight,
+    maxSlope: workerState.maxSlope,
     mapsGeneration: workerState.mapsGeneration,
     panoMips: workerState.panoMips,
     startColumn: msg.startColumn,

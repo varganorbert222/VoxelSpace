@@ -647,6 +647,7 @@ class WebGpuBackend {
       minDeltaZ: camera.minDeltaZ,
       altitude: maps.altitude,
       maxHeight: maps.maxHeight == null ? maps.altitude : maps.maxHeight,
+      maxSlope: maps.maxSlope == null ? maps.altitude : maps.maxSlope,
       screenWidth: screenW,
       screenHeight: screenH,
       panoWidth: panoW,

@@ -87,6 +87,30 @@ class Terrain {
         }
       }
     }
+    // Steepest neighbour step of the map. Marchers use it to bound how fast
+    // the terrain can rise, which turns "can the surface reappear further
+    // along this line?" into a closed-form row skip.
+    let maxSlope = 0;
+    for (let y = 0; (y < h) | 0; y = (y + 1) | 0) {
+      for (let x = 0; (x < w) | 0; x = (x + 1) | 0) {
+        const byte = heights[mapOffsetAt(x, y, w, h, this._mapShift)];
+        let dx = heights[mapOffsetAt(x + 1, y, w, h, this._mapShift)] - byte;
+        let dy = heights[mapOffsetAt(x, y + 1, w, h, this._mapShift)] - byte;
+        if ((dx < 0) | 0) {
+          dx = -dx;
+        }
+        if ((dy < 0) | 0) {
+          dy = -dy;
+        }
+        if ((dx > maxSlope) | 0) {
+          maxSlope = dx;
+        }
+        if ((dy > maxSlope) | 0) {
+          maxSlope = dy;
+        }
+      }
+    }
+
     this._mapsGeneration = (this._mapsGeneration + 1) | 0;
     this._exportedMaps = {
       heightMap: heights,
@@ -96,6 +120,7 @@ class Terrain {
       mapShift: this._mapShift,
       altitude: this._altitude,
       maxHeight: (maxByte / HEIGHTMAP_MAX) * this._altitude,
+      maxSlope: (maxSlope / HEIGHTMAP_MAX) * this._altitude,
       generation: this._mapsGeneration,
       panoMips: buildPanoMips(heights, colors, w, h, this._mapShift),
     };

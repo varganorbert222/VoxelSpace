@@ -12,6 +12,16 @@ const CLIP_Z: f32 = -20.0;
 const DRIFT_SPAN_TEXELS: f32 = 1.0;
 const ROW_LIMIT: f32 = 1.0e9;
 
+fn coverGet(cover: ptr<function, array<u32, 64>>, row: i32) -> bool {
+  let word = u32(row) >> 5u;
+  return ((*cover)[word] & (1u << (u32(row) & 31u))) != 0u;
+}
+
+fn coverSet(cover: ptr<function, array<u32, 64>>, row: i32) {
+  let word = u32(row) >> 5u;
+  (*cover)[word] = (*cover)[word] | (1u << (u32(row) & 31u));
+}
+
 fn classicHeightAt(texX: i32, texY: i32, wrap: bool, mapHMask: i32, mapWMask: i32) -> u32 {
   let x = wrapOrClamp(texX, mapHMask, wrap);
   let y = wrapOrClamp(texY, mapWMask, wrap);
@@ -149,6 +159,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let fogEnd = frame.sampleLimit.z;
   let screenWidthScaler = 1.0 / f32(screenW);
   let filterDist = frame.sampleLimit.x;
+  let slopeCap = select(altitude, frame.sampleLimit.w, frame.sampleLimit.w > 0.0);
   let _po = pixelOffsets[0];
 
   let rowBase = screenHorizon - 0.5;
@@ -158,10 +169,13 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let mapHf = f32(mapH);
 
   var hiddenY = screenH;
+  var freeN = screenH;
+  var dirty = false;
+  var cover: array<u32, 64>;
   var sampleN = 0u;
   var lod = 1;
   loop {
-    if ((lod > lodCount) || (hiddenY <= 0)) { break; }
+    if ((lod > lodCount) || (hiddenY <= 0) || (freeN <= 0)) { break; }
     let startIndex = lodDistances[lod - 1];
     let endIndex = lodDistances[lod];
     lod = lod + 1;
@@ -170,7 +184,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     var z = startIndex;
     var zGuard = 0u;
     loop {
-      if ((z >= endIndex) || (z >= farClip) || (hiddenY <= 0) || (zGuard >= MAX_STEPS)) { break; }
+      if ((z >= endIndex) || (z >= farClip) || (hiddenY <= 0) || (freeN <= 0) || (zGuard >= MAX_STEPS)) { break; }
       zGuard = zGuard + 1u;
       let fogT = fogAmount(z, fogStart, fogEnd);
       let fogWhite = useFog && (fogT >= 1.0);
@@ -183,6 +197,13 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       let driftPerRow = zInvH2 * upXY;
       let hasRowStep = rowStep.z != 0.0;
       let invRowStepZ = select(0.0, 1.0 / rowStep.z, hasRowStep);
+      let riseMax = slopeCap * (abs(rowStep.x) + abs(rowStep.y));
+      let closeRate = riseMax - rowStep.z;
+      let canRise = closeRate > 0.0;
+      let invCloseRate = select(0.0, 1.0 / closeRate, canRise);
+      let driftCheb = max(abs(rowStep.x), abs(rowStep.y));
+      var skipTexel = select(screenH, i32(floor(1.0 / driftCheb)), driftCheb > 0.0);
+      if (skipTexel < 1) { skipTexel = 1; }
       let colBase = cam + (xn * zTanX) * right + z * fwd;
 
       var wTop = 0;
@@ -216,47 +237,96 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
             if (!repeat) { bottom = min(bottom, wBot); }
             if (rHit < bottom) {
               let plot = frustumShade(p.x, p.y, u32(sampled.y), z, farClip, fogT, fogWhite, applyFogT, useFine, flags, repeat, mapHMask, mapWMask, debugView, sampleN);
+              var painted = 0;
               var r = rHit;
-              loop {
-                if (r >= bottom) { break; }
-                textureStore(outTex, vec2<i32>(x, r), vec4<u32>(plot, 0u, 0u, 0u));
-                r = r + 1;
+              if (dirty) {
+                loop {
+                  if (r >= bottom) { break; }
+                  if (!coverGet(&cover, r)) {
+                    textureStore(outTex, vec2<i32>(x, r), vec4<u32>(plot, 0u, 0u, 0u));
+                    coverSet(&cover, r);
+                    painted = painted + 1;
+                  }
+                  r = r + 1;
+                }
+              } else {
+                loop {
+                  if (r >= bottom) { break; }
+                  textureStore(outTex, vec2<i32>(x, r), vec4<u32>(plot, 0u, 0u, 0u));
+                  r = r + 1;
+                }
+                painted = bottom - rHit;
               }
+              freeN = freeN - painted;
               hiddenY = rHit;
             }
           }
         }
       } else {
-        // Pitched column: walk up from the horizon, one sample per row.
-        var r = wBot - 1;
-        var p = colBase + (rowBase - f32(r)) * rowStep;
-        var top = wBot;
+        // Pitched column: walk up from the horizon. Occupied rows paint their
+        // own XY; empty rows jump over the rows terrain cannot reach.
+        let seed = min(wBot, hiddenY);
+        var suffix = seed;
         var firstColor = 0u;
+        var painted = 0;
+        var r = wBot - 1;
         loop {
           if (r < wTop) { break; }
+          if (coverGet(&cover, r)) {
+            if ((r + 1) == suffix) { suffix = r; }
+            r = r - 1;
+            continue;
+          }
+          let p = colBase + (rowBase - f32(r)) * rowStep;
           let inside = ((p.x >= 0.0) && (p.x <= mapWf) && (p.y >= 0.0) && (p.y <= mapHf)) || repeat;
           if (!inside) { break; }
           let sampled = classicSampleHeight(p.x, p.y, doLerp, repeat, mapHMask, mapWMask);
           sampleN = sampleN + 1u;
-          if (p.z > sampled.x * altScale) { break; }
+          let gap = p.z - sampled.x * altScale;
+          if (gap > 0.0) {
+            var skipN = skipTexel;
+            if (canRise) {
+              let s2 = i32(ceil(gap * invCloseRate));
+              if (s2 > skipN) { skipN = s2; }
+            }
+            if (skipN < 1) { skipN = 1; }
+            r = r - skipN;
+            continue;
+          }
           let plot = frustumShade(p.x, p.y, u32(sampled.y), z, farClip, fogT, fogWhite, applyFogT, useFine, flags, repeat, mapHMask, mapWMask, debugView, sampleN);
           textureStore(outTex, vec2<i32>(x, r), vec4<u32>(plot, 0u, 0u, 0u));
-          if (top == wBot) { firstColor = plot; }
-          top = r;
+          coverSet(&cover, r);
+          if (painted == 0) { firstColor = plot; }
+          painted = painted + 1;
+          if ((r + 1) == suffix) {
+            suffix = r;
+          } else {
+            dirty = true;
+          }
           r = r - 1;
-          p = p + rowStep;
         }
-        if (top < wBot) {
+        if (painted > 0) {
+          freeN = freeN - painted;
+        }
+        if (suffix < seed) {
           if (repeat && (wBot < hiddenY)) {
             var f = wBot;
             loop {
               if (f >= hiddenY) { break; }
-              textureStore(outTex, vec2<i32>(x, f), vec4<u32>(firstColor, 0u, 0u, 0u));
+              if (!coverGet(&cover, f)) {
+                textureStore(outTex, vec2<i32>(x, f), vec4<u32>(firstColor, 0u, 0u, 0u));
+                coverSet(&cover, f);
+                freeN = freeN - 1;
+              }
               f = f + 1;
             }
           }
-          hiddenY = top;
+          hiddenY = suffix;
         }
+      }
+      if ((hiddenY <= 0) || (freeN <= 0)) {
+        hiddenY = 0;
+        freeN = 0;
       }
 
       continuing {
