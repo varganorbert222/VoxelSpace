@@ -24,14 +24,16 @@ import {
 } from "../constants/quality.js";
 import {
   FAR_PLANE_T_SCALE,
-  PANO_MIP_COUNT,
-  PANO_MIP_INV_SCALE,
-  PANO_MIP_STEP_MAX_BY_QUALITY,
-  PANO_MIP_STEP_SCALE,
-  PANO_MIP_T_FRACTIONS_BY_QUALITY,
   PANO_YHIT_LUT_SIZE,
   PANO_YHIT_SLOPE_INF,
 } from "../constants/panorama.js";
+import {
+  TERRAIN_MIP_MAX_COUNT,
+  advanceRayT,
+  mipInvScale,
+  mipSwitchDistances,
+} from "../constants/mip.js";
+import { resolveTerrainMips } from "../terrain/mipChain.js";
 
 const tanMinCache = new Map();
 const yHitLutCache = new Map();
@@ -39,10 +41,10 @@ const yHitLutSinCache = new Map();
 let skyPaletteCache = null;
 let skyPaletteSky = 0;
 let skyPaletteHorizon = 0;
-const mipSwitchT = new Float64Array(PANO_MIP_COUNT);
-const mipInvScale = new Float64Array(PANO_MIP_COUNT);
-const mipWMaskScratch = new Int32Array(PANO_MIP_COUNT);
-const mipHMaskScratch = new Int32Array(PANO_MIP_COUNT);
+const mipSwitchT = new Float64Array(TERRAIN_MIP_MAX_COUNT);
+const mipInvScaleScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
+const mipWMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
+const mipHMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
 const yHitLutLast = (PANO_YHIT_LUT_SIZE - 1) | 0;
 const yHitLutScale = PANO_YHIT_LUT_SIZE * HALF;
 
@@ -333,6 +335,7 @@ export function renderPanoramaColumns({
   tMax,
   tanMin,
   panoMips,
+  terrainMips,
 }) {
   const localWidth = (endPx - startPx) | 0;
   fillSkySlice(
@@ -352,8 +355,6 @@ export function renderPanoramaColumns({
   const yHitLut = buildYHitLut(height, lut);
   const q = qualityIndex(quality);
   const stepGrowth = STEP_GROWTH_BY_QUALITY[q];
-  const mipStepMax = PANO_MIP_STEP_MAX_BY_QUALITY[q];
-  const mipTFractions = PANO_MIP_T_FRACTIONS_BY_QUALITY[q];
   let step0 = initialStep * INITIAL_STEP_SCALE_BY_QUALITY[q];
   if ((step0 <= 0) | 0) step0 = MIN_SAMPLE_DISTANCE;
   const lastRow = (height - 1) | 0;
@@ -371,24 +372,24 @@ export function renderPanoramaColumns({
     tStop = farClip * FAR_PLANE_T_SCALE;
   }
 
-  const mipHeightMaps = panoMips ? panoMips.heightMaps : [heightMap];
-  const mipColorMaps = panoMips ? panoMips.colorMaps : [colorMap];
-  const mipWidths = panoMips ? panoMips.widths : [mapW];
-  const mipHeights = panoMips ? panoMips.heights : [mapH];
-  const mipShifts = panoMips ? panoMips.shifts : [mapShift];
-  let mipCount = panoMips && panoMips.count ? panoMips.count | 0 : 1;
-  if ((mipCount < 1) | 0) mipCount = 1;
-  if ((mipCount > PANO_MIP_COUNT) | 0) mipCount = PANO_MIP_COUNT;
+  const mips = resolveTerrainMips(
+    terrainMips || panoMips,
+    heightMap,
+    colorMap,
+    mapW,
+    mapH,
+    mapShift
+  );
+  const mipHeightMaps = mips.heightMaps;
+  const mipColorMaps = mips.colorMaps;
+  const mipShifts = mips.shifts;
+  const mipCount = mips.count;
   const lastMip = (mipCount - 1) | 0;
-  const fracN = mipTFractions.length;
-  const stepCap0 = mipStepMax[0] < step0 ? step0 : mipStepMax[0];
-  const stepCap1 = mipStepMax[1] < step0 ? step0 : mipStepMax[1];
-  const stepCap2 = mipStepMax[2] < step0 ? step0 : mipStepMax[2];
-  for (let m = 0; (m < PANO_MIP_COUNT) | 0; m = (m + 1) | 0) {
-    mipInvScale[m] = PANO_MIP_INV_SCALE[m];
-    if ((m < fracN) | 0) {
-      mipSwitchT[m] = farClip * mipTFractions[m];
-    }
+  mipSwitchDistances(quality, mipCount, farClip, mipSwitchT);
+  for (let m = 0; (m < mipCount) | 0; m = (m + 1) | 0) {
+    mipInvScaleScratch[m] = mipInvScale(m);
+    mipWMaskScratch[m] = (mips.widths[m] - 1) | 0;
+    mipHMaskScratch[m] = (mips.heights[m] - 1) | 0;
   }
 
   const dTheta = TWO_PI / width;
@@ -406,10 +407,6 @@ export function renderPanoramaColumns({
   let dirY = -Math.cos(theta0);
   const mipWMask = mipWMaskScratch;
   const mipHMask = mipHMaskScratch;
-  for (let m = 0; (m < mipCount) | 0; m = (m + 1) | 0) {
-    mipWMask[m] = (mipWidths[m] - 1) | 0;
-    mipHMask[m] = (mipHeights[m] - 1) | 0;
-  }
 
   for (let px = startPx; (px < endPx) | 0; px = (px + 1) | 0) {
     const localX = (px - startPx) | 0;
@@ -420,7 +417,6 @@ export function renderPanoramaColumns({
     let step = step0;
     let wasInside = 0;
     let mip = 0;
-    let stepCap = stepCap0;
     let tStopCol = tStop;
     let k = 0;
 
@@ -432,9 +428,6 @@ export function renderPanoramaColumns({
 
       while (((mip < lastMip) | 0) && t >= mipSwitchT[mip]) {
         mip = (mip + 1) | 0;
-        step *= PANO_MIP_STEP_SCALE;
-        stepCap = mip === 1 ? stepCap1 : stepCap2;
-        if (step > stepCap) step = stepCap;
       }
 
       const sealed = (H !== height) | 0;
@@ -479,15 +472,17 @@ export function renderPanoramaColumns({
           if (wasInside) {
             break;
           }
-          t += step;
-          step += stepGrowth;
-          if (step > stepCap) step = stepCap;
+          {
+            const adv = advanceRayT(t, step, stepGrowth, mip, wx, wy, dirX, dirY);
+            t = adv.t;
+            step = adv.step;
+          }
           continue;
         }
         wasInside = 1;
       }
 
-      const inv = mipInvScale[mip];
+      const inv = mipInvScaleScratch[mip];
       const sx = wx * inv;
       const sy = wy * inv;
       const useFine = (xyClipDistance(t, dirX, dirY, fwdX, fwdY) <=
@@ -508,9 +503,11 @@ export function renderPanoramaColumns({
       const h = hFine * altScale;
 
       if (sealed && h < camZ + t * tanH - EPSILON) {
-        t += step;
-        step += stepGrowth;
-        if (step > stepCap) step = stepCap;
+        {
+          const adv = advanceRayT(t, step, stepGrowth, mip, wx, wy, dirX, dirY);
+          t = adv.t;
+          step = adv.step;
+        }
         continue;
       }
 
@@ -584,9 +581,11 @@ export function renderPanoramaColumns({
         horizon[localX] = H;
       }
 
-      t += step;
-      step += stepGrowth;
-      if (step > stepCap) step = stepCap;
+      {
+        const adv = advanceRayT(t, step, stepGrowth, mip, wx, wy, dirX, dirY);
+        t = adv.t;
+        step = adv.step;
+      }
     }
 
     const nextX = dirX * rotC + dirY * rotS;
@@ -594,6 +593,7 @@ export function renderPanoramaColumns({
     dirX = nextX;
     dirY = nextY;
   }
+
 
   return pixels;
 }

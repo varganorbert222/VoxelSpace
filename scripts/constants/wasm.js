@@ -6,6 +6,7 @@ export const WASM_EXPORT_COMMIT_PERM = "commit_perm";
 export const WASM_EXPORT_RESET_SCRATCH = "reset_scratch";
 export const WASM_EXPORT_SET_MAP_INFO = "set_map_info";
 export const WASM_EXPORT_SET_MAP_LEVEL = "set_map_level";
+export const WASM_EXPORT_SET_MIP_SWITCH = "set_mip_switch";
 export const WASM_EXPORT_SET_CLASSIC_TABLES = "set_classic_tables";
 export const WASM_EXPORT_SET_LUTS = "set_luts";
 export const WASM_EXPORT_SET_TUNABLES = "set_tunables";

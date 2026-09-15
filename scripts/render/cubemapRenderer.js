@@ -205,6 +205,7 @@ class CubemapRenderer {
       heightBuf: this._cubeHeight,
       iterBuf: this._cubeIter,
       panoMips: maps.panoMips,
+      terrainMips: maps.terrainMips || maps.panoMips,
       mapsGeneration: maps.generation,
     });
   }

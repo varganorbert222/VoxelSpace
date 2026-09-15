@@ -9,33 +9,29 @@ import {
   envOverlayAllowed,
   overlayDestRect,
 } from "../../constants/debugView.js";
-import {
-  LOD_BAND_COUNT,
-  LOD_DISTANCE_FRACTIONS,
-  LOD_FAR_DELTAS,
-  PIXEL_OFFSETS,
-  ULTRA_LOD_FAR_DELTAS,
-  ULTRA_PIXEL_OFFSETS,
-} from "../../constants/classic.js";
 import { cubeSizeForQuality } from "../../constants/cubemap.js";
 import {
   INITIAL_STEP_SCALE_BY_QUALITY,
   MIN_SAMPLE_DISTANCE,
   PANO_SIZE_BY_QUALITY,
-  QUALITY_ULTRA,
   STEP_GROWTH_BY_QUALITY,
   qualityIndex,
 } from "../../constants/quality.js";
 import {
   FAR_PLANE_T_SCALE,
-  PANO_MIP_COUNT,
-  PANO_MIP_INV_SCALE,
-  PANO_MIP_STEP_MAX_BY_QUALITY,
-  PANO_MIP_STEP_SCALE,
-  PANO_MIP_T_FRACTIONS_BY_QUALITY,
   PANO_YHIT_LUT_SIZE,
   farPlaneRayTMax,
 } from "../../constants/panorama.js";
+import {
+  TERRAIN_MIP_MAX_COUNT,
+  classicLodDeltas,
+  classicLodDistanceFractions,
+  classicPixelOffsets,
+  fillClassicLodDistances,
+  mipInvScale,
+  mipSwitchDistances,
+} from "../../constants/mip.js";
+import { resolveTerrainMips } from "../../terrain/mipChain.js";
 import {
   NDC_SCALE,
   PIXEL_CENTER,
@@ -181,11 +177,12 @@ class WebGpuBackend {
     this._offsetBuf = null;
     this._deltaBuf = null;
     this._distBuf = null;
+    this._mipSwitchBuf = null;
     this._skyRowBuf = null;
     this._skyRowCap = 0;
     this._maps = null;
-    this._heightTex = [null, null, null];
-    this._colorTex = [null, null, null];
+    this._heightTex = null;
+    this._colorTex = null;
     this._dummyH = null;
     this._dummyC = null;
     this._screenTex = null;
@@ -271,14 +268,12 @@ class WebGpuBackend {
     this._pipes = await createPipelines(this._device, this._format);
     this._uniformBuf = createUniformBuffer(this._device, this._framePacker.buffer.byteLength);
     this._initCubeFaceUniforms();
-    this._offsetBuf = createStorageBuffer(this._device, 8 * 4);
-    this._deltaBuf = createStorageBuffer(this._device, 8 * 4);
-    this._distBuf = createStorageBuffer(this._device, 16 * 4);
-    const offsets = new Uint32Array(8);
-    offsets.set(PIXEL_OFFSETS);
-    writeBuffer(this._device, this._offsetBuf, offsets);
-    this._dummyH = createHeightTexture(this._device, 1, 1);
-    this._dummyC = createColorTexture(this._device, 1, 1);
+    this._offsetBuf = createStorageBuffer(this._device, TERRAIN_MIP_MAX_COUNT * 4);
+    this._deltaBuf = createStorageBuffer(this._device, TERRAIN_MIP_MAX_COUNT * 4);
+    this._distBuf = createStorageBuffer(this._device, 32 * 4);
+    this._mipSwitchBuf = createStorageBuffer(this._device, TERRAIN_MIP_MAX_COUNT * 4);
+    this._dummyH = createHeightTexture(this._device, 1, 1, 1);
+    this._dummyC = createColorTexture(this._device, 1, 1, 1);
     uploadHeight(this._device, this._dummyH, new Uint8Array(1), 1, 1);
     uploadColor(this._device, this._dummyC, new Uint32Array(1), 1, 1);
     this._atanBuf = createStorageBuffer(this._device, PANO_VIEW_ATAN_LUT_SIZE * 4);
@@ -304,24 +299,45 @@ class WebGpuBackend {
     if (!maps || !this._device) {
       return;
     }
-    const mips = maps.panoMips;
-    const heightMaps = mips && mips.heightMaps ? mips.heightMaps : [maps.heightMap];
-    const colorMaps = mips && mips.colorMaps ? mips.colorMaps : [maps.colorMap];
-    const widths = mips && mips.widths ? mips.widths : [maps.width];
-    const heights = mips && mips.heights ? mips.heights : [maps.height];
-    for (let m = 0; m < 3; m = (m + 1) | 0) {
-      destroyTex(this._heightTex[m]);
-      destroyTex(this._colorTex[m]);
-      this._heightTex[m] = null;
-      this._colorTex[m] = null;
-      if (m < heightMaps.length) {
-        const w = widths[m] | 0;
-        const h = heights[m] | 0;
-        this._heightTex[m] = createHeightTexture(this._device, w, h);
-        this._colorTex[m] = createColorTexture(this._device, w, h);
-        uploadHeight(this._device, this._heightTex[m], heightMaps[m], w, h);
-        uploadColor(this._device, this._colorTex[m], colorMaps[m], w, h);
-      }
+    const mips = resolveTerrainMips(
+      maps.terrainMips || maps.panoMips,
+      maps.heightMap,
+      maps.colorMap,
+      maps.width,
+      maps.height,
+      maps.mapShift
+    );
+    destroyTex(this._heightTex);
+    destroyTex(this._colorTex);
+    this._heightTex = createHeightTexture(
+      this._device,
+      maps.width,
+      maps.height,
+      mips.count
+    );
+    this._colorTex = createColorTexture(
+      this._device,
+      maps.width,
+      maps.height,
+      mips.count
+    );
+    for (let m = 0; (m < mips.count) | 0; m = (m + 1) | 0) {
+      uploadHeight(
+        this._device,
+        this._heightTex,
+        mips.heightMaps[m],
+        mips.widths[m],
+        mips.heights[m],
+        m
+      );
+      uploadColor(
+        this._device,
+        this._colorTex,
+        mips.colorMaps[m],
+        mips.widths[m],
+        mips.heights[m],
+        m
+      );
     }
     this._dropBinds(["maps", "cubeMips", "classicMaps"]);
   }
@@ -566,13 +582,12 @@ class WebGpuBackend {
     this._panoDirty = false;
   }
 
-  _mipOrDummy(kind, i) {
-    const list = kind === "h" ? this._heightTex : this._colorTex;
-    const tex = list[i];
-    if (tex) {
-      return tex;
-    }
-    return kind === "h" ? this._dummyH : this._dummyC;
+  _terrainHeight() {
+    return this._heightTex || this._dummyH;
+  }
+
+  _terrainColor() {
+    return this._colorTex || this._dummyC;
   }
 
   _pack(camera, terrain, screenW, screenH, panoW, panoH, cubeFace, destBuf, destOffset) {
@@ -581,15 +596,20 @@ class WebGpuBackend {
     const fov = camera.calculateFov();
     const dst = camera.calculateProjPlane();
     const horizon = camera.calculateHorizon(dst);
-    const mips = maps && maps.panoMips;
-    const widths = mips && mips.widths ? mips.widths : [maps.width];
-    const heights = mips && mips.heights ? mips.heights : [maps.height];
-    const shifts = mips && mips.shifts ? mips.shifts : [maps.mapShift];
-    let mipCount = mips && mips.count ? mips.count | 0 : 1;
-    if ((mipCount < 1) | 0) mipCount = 1;
-    if ((mipCount > PANO_MIP_COUNT) | 0) mipCount = PANO_MIP_COUNT;
-    const mipStepMax = PANO_MIP_STEP_MAX_BY_QUALITY[q];
-    const mipT = PANO_MIP_T_FRACTIONS_BY_QUALITY[q];
+    const mips = resolveTerrainMips(
+      maps && (maps.terrainMips || maps.panoMips),
+      maps && maps.heightMap,
+      maps && maps.colorMap,
+      maps && maps.width,
+      maps && maps.height,
+      maps && maps.mapShift
+    );
+    const mipCount = mips.count;
+    const switchDist = mipSwitchDistances(q, mipCount, camera.farClip);
+    const switchF32 = new Float32Array(TERRAIN_MIP_MAX_COUNT);
+    switchF32.fill(1e30);
+    switchF32.set(Float32Array.from(switchDist));
+    writeBuffer(this._device, this._mipSwitchBuf, switchF32);
     let step0 = camera.minDeltaZ * INITIAL_STEP_SCALE_BY_QUALITY[q];
     if ((step0 <= 0) | 0) step0 = MIN_SAMPLE_DISTANCE;
     const tanMin = buildTanMinLut(panoH);
@@ -612,12 +632,6 @@ class WebGpuBackend {
     if (!(tMax > 0)) {
       tMax = envFar * FAR_PLANE_T_SCALE;
     }
-    const w0 = widths[0] | 0;
-    const h0 = heights[0] | 0;
-    const w1 = widths[1] | 0 || 1;
-    const h1 = heights[1] | 0 || 1;
-    const w2 = widths[2] | 0 || 1;
-    const h2 = heights[2] | 0 || 1;
     packFrame(this._framePacker, {
       camX: camera.posX,
       camY: camera.posY,
@@ -664,42 +678,42 @@ class WebGpuBackend {
       tanLast: tanLast,
       stepGrowth: STEP_GROWTH_BY_QUALITY[q],
       stepScale: step0,
-      stepCap0: mipStepMax[0],
-      stepCap1: mipStepMax[1],
-      stepCap2: mipStepMax[2],
-      switchT0: envFar * mipT[0],
-      switchT1: envFar * mipT[1],
-      mipStepScale: PANO_MIP_STEP_SCALE,
+      stepCap0: step0,
+      stepCap1: step0,
+      stepCap2: step0,
+      switchT0: 0,
+      switchT1: 0,
+      mipStepScale: 2,
       yHitScale: PANO_YHIT_LUT_SIZE * HALF,
-      inv0: PANO_MIP_INV_SCALE[0],
-      inv1: PANO_MIP_INV_SCALE[1],
-      inv2: PANO_MIP_INV_SCALE[2],
+      inv0: mipInvScale(0),
+      inv1: mipInvScale(1),
+      inv2: mipInvScale(2),
       pixelCenter: PIXEL_CENTER,
       fovY: camera.fov,
       tanHalfY: fov.tanHalfY,
       ndcScale: NDC_SCALE,
       epsilon: EPSILON,
       quality: q,
-      lodCount: LOD_BAND_COUNT,
+      lodCount: mipCount,
       cubeFace: cubeFace,
       yHitLast: (PANO_YHIT_LUT_SIZE - 1) | 0,
       atanLast: (PANO_VIEW_ATAN_LUT_SIZE - 1) | 0,
-      mipShift0: shifts[0] | 0,
-      mipShift1: (shifts[1] | 0) || shifts[0] | 0,
-      mipShift2: (shifts[2] | 0) || shifts[0] | 0,
+      mipShift0: maps.mapShift | 0,
+      mipShift1: ((maps.mapShift | 0) - 1) | 0,
+      mipShift2: ((maps.mapShift | 0) - 2) | 0,
       mipCount: mipCount,
-      mipW0: w0,
-      mipH0: h0,
-      mipW1: w1,
-      mipH1: h1,
-      mipW2: w2,
-      mipH2: h2,
-      maskW0: (w0 - 1) | 0,
-      maskH0: (h0 - 1) | 0,
-      maskW1: (w1 - 1) | 0,
-      maskH1: (h1 - 1) | 0,
-      maskW2: (w2 - 1) | 0,
-      maskH2: (h2 - 1) | 0,
+      mipW0: maps.width | 0,
+      mipH0: maps.height | 0,
+      mipW1: 1,
+      mipH1: 1,
+      mipW2: 1,
+      mipH2: 1,
+      maskW0: (maps.width - 1) | 0,
+      maskH0: (maps.height - 1) | 0,
+      maskW1: 0,
+      maskH1: 0,
+      maskW2: 0,
+      maskH2: 0,
       ...this._debugPack(screenW, screenH),
     });
     writeBuffer(
@@ -734,30 +748,33 @@ class WebGpuBackend {
   }
 
   _writeClassicTables(camera) {
+    const maps = this._maps;
     const q = qualityIndex(camera.quality);
     const stepScale = INITIAL_STEP_SCALE_BY_QUALITY[q];
-    const farDeltas = q === QUALITY_ULTRA ? ULTRA_LOD_FAR_DELTAS : LOD_FAR_DELTAS;
-    const pixelOffsets = q === QUALITY_ULTRA ? ULTRA_PIXEL_OFFSETS : PIXEL_OFFSETS;
-    const deltas = new Float32Array(8);
-    deltas[0] = camera.minDeltaZ * stepScale;
-    for (let i = 0; (i < farDeltas.length) | 0; i = (i + 1) | 0) {
-      deltas[i + 1] = farDeltas[i];
+    const mips = resolveTerrainMips(
+      maps && (maps.terrainMips || maps.panoMips),
+      maps && maps.heightMap,
+      maps && maps.colorMap,
+      maps && maps.width,
+      maps && maps.height,
+      maps && maps.mapShift
+    );
+    const bandCount = mips.count;
+    const deltasAll = classicLodDeltas(q, bandCount, camera.minDeltaZ, stepScale);
+    const deltas = new Float32Array(TERRAIN_MIP_MAX_COUNT);
+    for (let i = 0; (i < bandCount) | 0; i = (i + 1) | 0) {
+      deltas[i] = deltasAll[i];
     }
     const zStart = Math.max(camera.nearClip, deltas[0], MIN_SAMPLE_DISTANCE);
     const far = this._host.effectiveFarClip;
-    const lodDistances = new Float32Array(16);
-    lodDistances[0] = zStart;
-    for (let i = 0; (i < LOD_DISTANCE_FRACTIONS.length) | 0; i = (i + 1) | 0) {
-      lodDistances[i + 1] = LOD_DISTANCE_FRACTIONS[i] * far;
+    const fractions = classicLodDistanceFractions(q, bandCount);
+    const lodDistances = new Float32Array(32);
+    fillClassicLodDistances(lodDistances, zStart, far, fractions, bandCount);
+    const px = classicPixelOffsets(q, bandCount);
+    const offsets = new Uint32Array(TERRAIN_MIP_MAX_COUNT);
+    for (let i = 0; (i < bandCount) | 0; i = (i + 1) | 0) {
+      offsets[i] = px[i];
     }
-    lodDistances[LOD_BAND_COUNT] = far;
-    for (let i = 1; (i < LOD_BAND_COUNT) | 0; i = (i + 1) | 0) {
-      if (lodDistances[i] < lodDistances[i - 1]) {
-        lodDistances[i] = lodDistances[i - 1];
-      }
-    }
-    const offsets = new Uint32Array(8);
-    offsets.set(pixelOffsets);
     writeBuffer(this._device, this._offsetBuf, offsets);
     writeBuffer(this._device, this._deltaBuf, deltas);
     writeBuffer(this._device, this._distBuf, lodDistances);
@@ -787,8 +804,8 @@ class WebGpuBackend {
       this._device.createBindGroup({
         layout: this._pipes.layouts.maps,
         entries: [
-          { binding: 0, resource: this._mipOrDummy("h", 0).createView() },
-          { binding: 1, resource: this._mipOrDummy("c", 0).createView() },
+          { binding: 0, resource: this._terrainHeight().createView() },
+          { binding: 1, resource: this._terrainColor().createView() },
         ],
       })
     );
@@ -816,12 +833,9 @@ class WebGpuBackend {
       this._device.createBindGroup({
         layout: this._pipes.layouts.mips,
         entries: [
-          { binding: 0, resource: this._mipOrDummy("h", 0).createView() },
-          { binding: 1, resource: this._mipOrDummy("c", 0).createView() },
-          { binding: 2, resource: this._mipOrDummy("h", 1).createView() },
-          { binding: 3, resource: this._mipOrDummy("c", 1).createView() },
-          { binding: 4, resource: this._mipOrDummy("h", 2).createView() },
-          { binding: 5, resource: this._mipOrDummy("c", 2).createView() },
+          { binding: 0, resource: this._terrainHeight().createView() },
+          { binding: 1, resource: this._terrainColor().createView() },
+          { binding: 2, resource: { buffer: this._mipSwitchBuf } },
         ],
       })
     );
@@ -1203,15 +1217,14 @@ class WebGpuBackend {
     destroyTex(this._cubeDepthArray);
     destroyTex(this._cubeHeightArray);
     destroyTex(this._cubeIterArray);
-    for (let i = 0; i < 3; i = (i + 1) | 0) {
-      destroyTex(this._heightTex[i]);
-      destroyTex(this._colorTex[i]);
-    }
+    destroyTex(this._heightTex);
+    destroyTex(this._colorTex);
     destroyBuf(this._uniformBuf);
     destroyBuf(this._cubeFaceUniform);
     destroyBuf(this._offsetBuf);
     destroyBuf(this._deltaBuf);
     destroyBuf(this._distBuf);
+    destroyBuf(this._mipSwitchBuf);
     destroyBuf(this._skyRowBuf);
     destroyBuf(this._tanBuf);
     destroyBuf(this._yHitBuf);

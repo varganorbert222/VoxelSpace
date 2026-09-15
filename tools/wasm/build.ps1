@@ -47,6 +47,7 @@ $exports = @(
     "set_fog_range",
     "set_map_info",
   "set_map_level",
+    "set_mip_switch",
   "set_luts",
   "classic_columns",
   "pano_columns",

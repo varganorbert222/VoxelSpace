@@ -51,6 +51,7 @@ function classicParams(renderer, maps) {
     filterColor: renderer.filterColor ? 1 : 0,
     filterDistance: renderer.filterDistance,
     panoMips: maps.panoMips,
+    terrainMips: maps.terrainMips || maps.panoMips,
     mapsGeneration: maps.generation,
   };
 }

@@ -396,6 +396,7 @@ class PanoramaRenderer {
       heightBuf: this._panoramaHeight,
       iterBuf: this._panoramaIter,
       panoMips: maps.panoMips,
+      terrainMips: maps.terrainMips || maps.panoMips,
       mapsGeneration: maps.generation,
     });
   }

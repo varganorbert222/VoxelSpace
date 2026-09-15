@@ -163,7 +163,7 @@ class WorkerPool {
     }
     this._mapsGeneration = snapshot.generation;
     const n = snapshot.heightMap.length;
-    const mips = snapshot.panoMips;
+    const mips = snapshot.terrainMips || snapshot.panoMips;
     const extraCount = mips && mips.count > 1 ? (mips.count - 1) | 0 : 0;
     const share = canShareBuffers();
     this._mapsShared = share;

@@ -85,10 +85,7 @@ export async function createPipelines(device, canvasFormat) {
     entries: [
       { binding: 0, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
       { binding: 1, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "float" } },
-      { binding: 2, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
-      { binding: 3, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "float" } },
-      { binding: 4, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
-      { binding: 5, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "float" } },
+      { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
     ],
   });
 

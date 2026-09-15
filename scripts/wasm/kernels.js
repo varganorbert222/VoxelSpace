@@ -16,12 +16,7 @@ import {
   UNFILLED_PIXEL,
   skyPaletteT,
 } from "../constants/framebuffer.js";
-import {
-  LOD_DISTANCE_FRACTIONS,
-  LOD_FAR_DELTAS,
-  NON_REPEAT_GROUND_OFFSET,
-  PIXEL_OFFSETS,
-} from "../constants/classic.js";
+import { NON_REPEAT_GROUND_OFFSET } from "../constants/classic.js";
 import {
   FOG_SATURATED,
   INITIAL_STEP_SCALE_BY_QUALITY,
@@ -32,13 +27,16 @@ import {
 } from "../constants/quality.js";
 import {
   FAR_PLANE_T_SCALE,
-  PANO_MIP_COUNT,
-  PANO_MIP_INV_SCALE,
-  PANO_MIP_STEP_MAX_BY_QUALITY,
-  PANO_MIP_STEP_SCALE,
-  PANO_MIP_T_FRACTIONS_BY_QUALITY,
   PANO_YHIT_LUT_SIZE,
 } from "../constants/panorama.js";
+import {
+  TERRAIN_MIP_MAX_COUNT,
+  classicLodDeltas,
+  classicLodDistanceFractions,
+  classicPixelOffsets,
+  mipSwitchDistances,
+} from "../constants/mip.js";
+import { resolveTerrainMips } from "../terrain/mipChain.js";
 import {
   PIXEL_CENTER,
   NDC_SCALE,
@@ -121,6 +119,10 @@ export function createWasmKernels(instance) {
     cap: 0,
     fresh: 0,
   };
+  let classicKey = "";
+  let switchKey = "";
+  const classicSlot = { offPtr: 0, delPtr: 0, fracPtr: 0 };
+  const switchSlot = { ptr: 0 };
   const atanLut = buildAtanLut();
 
   function mustAlloc(bytes) {
@@ -146,6 +148,12 @@ export function createWasmKernels(instance) {
     panoSlot.iterPtr = 0;
     panoSlot.cap = 0;
     panoSlot.fresh = 0;
+    classicKey = "";
+    switchKey = "";
+    classicSlot.offPtr = 0;
+    classicSlot.delPtr = 0;
+    classicSlot.fracPtr = 0;
+    switchSlot.ptr = 0;
   }
 
   function ensureTables() {
@@ -161,7 +169,7 @@ export function createWasmKernels(instance) {
       MIN_SAMPLE_DISTANCE,
       FOG_SATURATED,
       NON_REPEAT_GROUND_OFFSET,
-      PANO_MIP_STEP_SCALE,
+      2,
       PANO_YHIT_LUT_SIZE * HALF,
       PIXEL_CENTER,
       NDC_SCALE,
@@ -176,25 +184,66 @@ export function createWasmKernels(instance) {
       (PANO_YHIT_LUT_SIZE - 1) | 0,
       (PANO_VIEW_ATAN_LUT_SIZE - 1) | 0
     );
-    const offsets = Int32Array.from(PIXEL_OFFSETS);
-    const deltas = Float64Array.from(LOD_FAR_DELTAS);
-    const fracs = Float64Array.from(LOD_DISTANCE_FRACTIONS);
-    const offPtr = allocCopy(ex, memory, offsets);
-    const delPtr = allocCopy(ex, memory, deltas);
-    const fracPtr = allocCopy(ex, memory, fracs);
+    classicSlot.offPtr = mustAlloc(TERRAIN_MIP_MAX_COUNT * 4);
+    classicSlot.delPtr = mustAlloc(TERRAIN_MIP_MAX_COUNT * 8);
+    classicSlot.fracPtr = mustAlloc(TERRAIN_MIP_MAX_COUNT * 8);
+    switchSlot.ptr = mustAlloc(TERRAIN_MIP_MAX_COUNT * 8);
     const atanCopied = allocCopy(ex, memory, atanLut);
     atanPtr = atanCopied;
-    ex.set_classic_tables(
-      offPtr,
-      offsets.length,
-      delPtr,
-      deltas.length,
-      fracPtr,
-      fracs.length
-    );
     ex.set_luts(0, 0, 0, 0, 0, atanPtr, atanLut.length, 0, 0);
     ex.commit_perm();
+    classicKey = "";
+    switchKey = "";
     tablesReady = 1;
+  }
+
+  function syncClassicTables(params) {
+    ensureTables();
+    const mips = resolveTerrainMips(
+      params.terrainMips || params.panoMips,
+      params.heightMap,
+      params.colorMap,
+      params.mapW,
+      params.mapH,
+      params.mapShift
+    );
+    const q = qualityIndex(params.quality);
+    const bandCount = mips.count;
+    const key = q + ":" + bandCount + ":" + params.minDeltaZ;
+    if (classicKey === key) {
+      return bandCount;
+    }
+    const stepScale = INITIAL_STEP_SCALE_BY_QUALITY[q];
+    const offsets = classicPixelOffsets(q, bandCount);
+    const deltasAll = classicLodDeltas(q, bandCount, params.minDeltaZ, stepScale);
+    const farDeltas = deltasAll.subarray(1);
+    const fracs = classicLodDistanceFractions(q, bandCount);
+    copyBytes(memory, classicSlot.offPtr, offsets);
+    copyBytes(memory, classicSlot.delPtr, farDeltas);
+    copyBytes(memory, classicSlot.fracPtr, fracs);
+    ex.set_classic_tables(
+      classicSlot.offPtr,
+      bandCount,
+      classicSlot.delPtr,
+      farDeltas.length,
+      classicSlot.fracPtr,
+      fracs.length
+    );
+    classicKey = key;
+    return bandCount;
+  }
+
+  function syncMipSwitch(params, mipCount) {
+    ensureTables();
+    const q = qualityIndex(params.quality);
+    const key = q + ":" + mipCount + ":" + params.farClip;
+    if (switchKey === key) {
+      return;
+    }
+    const dist = mipSwitchDistances(q, mipCount, params.farClip);
+    copyBytes(memory, switchSlot.ptr, dist);
+    ex.set_mip_switch(switchSlot.ptr, dist.length);
+    switchKey = key;
   }
 
   function syncFogRange(params) {
@@ -226,15 +275,20 @@ export function createWasmKernels(instance) {
       params.mapsGeneration != null
         ? params.mapsGeneration
         : heightMap;
-    const mips = params.panoMips;
-    const heightMaps = mips && mips.heightMaps ? mips.heightMaps : [heightMap];
-    const colorMaps = mips && mips.colorMaps ? mips.colorMaps : [colorMap];
-    const widths = mips && mips.widths ? mips.widths : [mapW];
-    const heights = mips && mips.heights ? mips.heights : [mapH];
-    const shifts = mips && mips.shifts ? mips.shifts : [mapShift];
-    let mipCount = mips && mips.count ? mips.count | 0 : heightMaps.length;
-    if ((mipCount < 1) | 0) mipCount = 1;
-    if ((mipCount > PANO_MIP_COUNT) | 0) mipCount = PANO_MIP_COUNT;
+    const mips = resolveTerrainMips(
+      params.terrainMips || params.panoMips,
+      heightMap,
+      colorMap,
+      mapW,
+      mapH,
+      mapShift
+    );
+    const heightMaps = mips.heightMaps;
+    const colorMaps = mips.colorMaps;
+    const widths = mips.widths;
+    const heights = mips.heights;
+    const shifts = mips.shifts;
+    const mipCount = mips.count;
     const mapsKey = generation + ":" + mipCount;
     if (mapsGeneration === mapsKey) {
       return;
@@ -366,6 +420,7 @@ export function createWasmKernels(instance) {
 
   function renderClassicColumns(params) {
     ensureMaps(params);
+    syncClassicTables(params);
     syncSampleFlags(params);
     syncFogRange(params);
     const localWidth = (params.endColumn - params.startColumn) | 0;
@@ -419,13 +474,20 @@ export function createWasmKernels(instance) {
   function renderPanoramaColumns(params) {
     ensureMaps(params);
     syncSampleFlags(params);
+    const mips = resolveTerrainMips(
+      params.terrainMips || params.panoMips,
+      params.heightMap,
+      params.colorMap,
+      params.mapW,
+      params.mapH,
+      params.mapShift
+    );
+    syncMipSwitch(params, mips.count);
     const height = params.height | 0;
     const width = params.width | 0;
     const localWidth = (params.endPx - params.startPx) | 0;
     const q = qualityIndex(params.quality);
     const stepGrowth = STEP_GROWTH_BY_QUALITY[q];
-    const mipStepMax = PANO_MIP_STEP_MAX_BY_QUALITY[q];
-    const mipTFractions = PANO_MIP_T_FRACTIONS_BY_QUALITY[q];
     let step0 = params.initialStep * INITIAL_STEP_SCALE_BY_QUALITY[q];
     if ((step0 <= 0) | 0) step0 = MIN_SAMPLE_DISTANCE;
     const tanMin = params.tanMin || buildTanMinLut(height);
@@ -443,11 +505,6 @@ export function createWasmKernels(instance) {
     if (!(tStop > 0)) {
       tStop = params.farClip * FAR_PLANE_T_SCALE;
     }
-    const stepCap0 = mipStepMax[0] < step0 ? step0 : mipStepMax[0];
-    const stepCap1 = mipStepMax[1] < step0 ? step0 : mipStepMax[1];
-    const stepCap2 = mipStepMax[2] < step0 ? step0 : mipStepMax[2];
-    const switchT0 = params.farClip * mipTFractions[0];
-    const switchT1 = params.farClip * mipTFractions[1];
     const dTheta = TWO_PI / width;
     const rotC = Math.cos(dTheta);
     const rotS = Math.sin(dTheta);
@@ -506,14 +563,14 @@ export function createWasmKernels(instance) {
       pixelsPtr,
       horizonPtr,
       depthPtr,
-      switchT0,
-      switchT1,
-      stepCap0,
-      stepCap1,
-      stepCap2,
-      PANO_MIP_INV_SCALE[0],
-      PANO_MIP_INV_SCALE[1],
-      PANO_MIP_INV_SCALE[2],
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0.5,
+      0.25,
       heightPtr,
       iterPtr,
       params.interpolateHeight | 0,

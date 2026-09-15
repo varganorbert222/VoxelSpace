@@ -39,6 +39,7 @@ const workerState = {
   maxHeight: 0,
   mapsGeneration: 0,
   panoMips: null,
+  terrainMips: null,
   panoPixels: null,
   panoHorizon: null,
   panoDepth: null,
@@ -116,6 +117,7 @@ function initMaps(msg) {
     heights: msg.mipHeights || [workerState.mapH],
     shifts: msg.mipShifts || [workerState.mapShift],
   };
+  workerState.terrainMips = workerState.panoMips;
 }
 
 function initPano(msg) {
@@ -173,6 +175,7 @@ function renderClassic(msg) {
     maxHeight: workerState.maxHeight,
     mapsGeneration: workerState.mapsGeneration,
     panoMips: workerState.panoMips,
+    terrainMips: workerState.terrainMips || workerState.panoMips,
     startColumn: msg.startColumn,
     endColumn: msg.endColumn,
     screenWidth: msg.screenWidth,
@@ -258,6 +261,7 @@ function renderPanorama(msg) {
     heightBuf,
     iterBuf,
     panoMips: workerState.panoMips,
+    terrainMips: workerState.terrainMips || workerState.panoMips,
   });
   const transfer = [pixels.buffer, horizon.buffer, depth.buffer];
   if (heightBuf) {
@@ -437,6 +441,7 @@ function renderCubeGenerate(msg) {
     heightBuf: heightBuf,
     iterBuf: iterBuf,
     panoMips: workerState.panoMips,
+    terrainMips: workerState.terrainMips || workerState.panoMips,
   };
   if (polar) {
     const azCount = n << 2;

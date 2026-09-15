@@ -185,6 +185,155 @@ fn wrapOrClamp(v: i32, mask: i32, wrap: bool) -> i32 {
   return x;
 }
 
+fn terrainInv(mip: i32) -> f32 {
+  return exp2(-f32(max(mip, 0)));
+}
+
+fn terrainMaskH(mip: i32) -> i32 {
+  let mapH = i32(frame.mapFlags.y);
+  let m = u32(max(mip, 0));
+  return max((mapH >> m) - 1, 0);
+}
+
+fn terrainMaskW(mip: i32) -> i32 {
+  let mapW = i32(frame.mapFlags.x);
+  let m = u32(max(mip, 0));
+  return max((mapW >> m) - 1, 0);
+}
+
+fn clampMipU(tex: texture_2d<u32>, mip: i32) -> i32 {
+  return clamp(mip, 0, max(i32(textureNumLevels(tex)) - 1, 0));
+}
+
+fn clampMipF(tex: texture_2d<f32>, mip: i32) -> i32 {
+  return clamp(mip, 0, max(i32(textureNumLevels(tex)) - 1, 0));
+}
+
+fn terrainLastMip(tex: texture_2d<u32>) -> i32 {
+  var last = i32(frame.mipShiftCount.w) - 1;
+  let texLast = i32(textureNumLevels(tex)) - 1;
+  if (last > texLast) {
+    last = texLast;
+  }
+  if (last < 0) {
+    last = 0;
+  }
+  return last;
+}
+
+fn terrainHeightNN(tex: texture_2d<u32>, mip: i32, wx: f32, wy: f32) -> u32 {
+  let m = clampMipU(tex, mip);
+  let inv = terrainInv(m);
+  let ix = i32(wx * inv) & terrainMaskH(m);
+  let iy = i32(wy * inv) & terrainMaskW(m);
+  return textureLoad(tex, vec2<i32>(ix, iy), m).r;
+}
+
+fn terrainHeightAt(tex: texture_2d<u32>, ix: i32, iy: i32, mip: i32, wrap: bool) -> u32 {
+  let m = clampMipU(tex, mip);
+  let x = wrapOrClamp(ix, terrainMaskH(m), wrap);
+  let y = wrapOrClamp(iy, terrainMaskW(m), wrap);
+  return textureLoad(tex, vec2<i32>(x, y), m).r;
+}
+
+fn terrainColorNN(tex: texture_2d<f32>, mip: i32, wx: f32, wy: f32) -> vec4f {
+  let m = clampMipF(tex, mip);
+  let inv = terrainInv(m);
+  let ix = i32(wx * inv) & terrainMaskH(m);
+  let iy = i32(wy * inv) & terrainMaskW(m);
+  return textureLoad(tex, vec2<i32>(ix, iy), m);
+}
+
+fn terrainColorAt(tex: texture_2d<f32>, ix: i32, iy: i32, mip: i32, wrap: bool) -> vec4f {
+  let m = clampMipF(tex, mip);
+  let x = wrapOrClamp(ix, terrainMaskH(m), wrap);
+  let y = wrapOrClamp(iy, terrainMaskW(m), wrap);
+  return textureLoad(tex, vec2<i32>(x, y), m);
+}
+
+fn terrainSampleHeightPair(tex: texture_2d<u32>, mip: i32, wx: f32, wy: f32, dist: f32) -> vec2f {
+  let altitude = frame.tMaxMinDzAltMaxH.z;
+  let nn = f32(terrainHeightNN(tex, mip, wx, wy));
+  if ((mip > 0) || (dist > frame.sampleLimit.x) || !flagHeightLerp(frame.mapFlags.w)) {
+    return vec2f(nn * (altitude / 255.0), nn);
+  }
+  let wrap = flagRepeat(frame.mapFlags.w);
+  let inv = terrainInv(mip);
+  let x0 = floor(wx * inv);
+  let y0 = floor(wy * inv);
+  let fx = wx * inv - x0;
+  let fy = wy * inv - y0;
+  let tx = i32(x0);
+  let ty = i32(y0);
+  let h00 = f32(terrainHeightAt(tex, tx, ty, 0, wrap));
+  let h10 = f32(terrainHeightAt(tex, tx + 1, ty, 0, wrap));
+  let h01 = f32(terrainHeightAt(tex, tx, ty + 1, 0, wrap));
+  let h11 = f32(terrainHeightAt(tex, tx + 1, ty + 1, 0, wrap));
+  let h = bilinearHeight(h00, h10, h01, h11, fx, fy);
+  return vec2f(h * (altitude / 255.0), clamp(h + 0.5, 0.0, 255.0));
+}
+
+fn terrainSampleColor(tex: texture_2d<f32>, mip: i32, wx: f32, wy: f32, dist: f32) -> vec4f {
+  let inv = terrainInv(mip);
+  if ((mip <= 0) && (dist <= frame.sampleLimit.x) && flagColorFilter(frame.mapFlags.w)) {
+    let wrap = flagRepeat(frame.mapFlags.w);
+    let x0 = floor(wx * inv);
+    let y0 = floor(wy * inv);
+    let fx = wx * inv - x0;
+    let fy = wy * inv - y0;
+    let tx = i32(x0);
+    let ty = i32(y0);
+    return bilinearColor(
+      terrainColorAt(tex, tx, ty, 0, wrap),
+      terrainColorAt(tex, tx + 1, ty, 0, wrap),
+      terrainColorAt(tex, tx, ty + 1, 0, wrap),
+      terrainColorAt(tex, tx + 1, ty + 1, 0, wrap),
+      fx,
+      fy
+    );
+  }
+  return terrainColorNN(tex, mip, wx, wy);
+}
+
+fn mipDdaDelta(wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32) -> f32 {
+  let s = exp2(f32(max(mip, 0)));
+  let ix = floor(wx / s);
+  let iy = floor(wy / s);
+  var tMaxX = 1e30;
+  var tMaxY = 1e30;
+  if (dirX > 0.0) {
+    tMaxX = ((ix + 1.0) * s - wx) / dirX;
+  } else if (dirX < 0.0) {
+    tMaxX = (ix * s - wx) / dirX;
+  }
+  if (dirY > 0.0) {
+    tMaxY = ((iy + 1.0) * s - wy) / dirY;
+  } else if (dirY < 0.0) {
+    tMaxY = (iy * s - wy) / dirY;
+  }
+  var dt = min(tMaxX, tMaxY);
+  let minDt = max(s * 1e-4, 0.5);
+  if (!(dt >= minDt)) {
+    dt = minDt;
+  }
+  return dt;
+}
+
+fn advanceRayT(t: f32, step: f32, growth: f32, mip: i32, wx: f32, wy: f32, dirX: f32, dirY: f32) -> vec2f {
+  if (mip <= 0) {
+    var next = t + step;
+    if (!(next > t)) {
+      next = t + 0.5;
+    }
+    return vec2f(next, step + growth);
+  }
+  var next = t + mipDdaDelta(wx, wy, dirX, dirY, mip);
+  if (!(next > t)) {
+    next = t + 0.5;
+  }
+  return vec2f(next, step);
+}
+
 fn bilinearHeight(h00: f32, h10: f32, h01: f32, h11: f32, fx: f32, fy: f32) -> f32 {
   return mix(mix(h00, h10, fx), mix(h01, h11, fx), fy);
 }
