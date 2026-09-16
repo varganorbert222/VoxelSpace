@@ -23,6 +23,21 @@
     "quality": {
       "values": [1, 2, 3, 4, 5]
     },
+    "mipCount": {
+      "min": 1,
+      "step": 1,
+      "default": 5
+    },
+    "lodSpacingMode": {
+      "values": ["linear", "double", "log"],
+      "default": "linear"
+    },
+    "lodSpacing": {
+      "min": 10,
+      "max": 8000,
+      "step": 10,
+      "default": 100
+    },
     "cameraModes": {
       "values": ["fly", "orbital"],
       "default": "fly"

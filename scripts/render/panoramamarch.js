@@ -9,7 +9,6 @@ import {
 import { EPSILON, HALF, TWO_PI } from "../constants/vmath.js";
 import {
   FILTER_DISTANCE_DEFAULT,
-  xyClipDistance,
 } from "../constants/sampling.js";
 import {
   GROUND_CLIP_OFFSET,
@@ -30,8 +29,10 @@ import {
 import {
   TERRAIN_MIP_MAX_COUNT,
   advanceRayT,
+  mipCellFarT,
   mipInvScale,
   mipSwitchDistances,
+  mipTexelFloor,
 } from "../constants/mip.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
 
@@ -154,6 +155,18 @@ function sampleColorFiltered(colorMap, x, y, mapShift, wMask, hMask, wrap) {
     x - x0,
     y - y0
   );
+}
+
+function panoYHitFromDh(dh, t, yHitLut, height) {
+  const absS = dh < 0 ? -dh : dh;
+  const sHat = dh / (t + absS);
+  let idx = ((sHat + 1) * yHitLutScale) | 0;
+  if ((idx < 0) | 0) idx = 0;
+  if ((idx > yHitLutLast) | 0) idx = yHitLutLast;
+  let yHit = yHitLut[idx];
+  if ((yHit < 0) | 0) yHit = 0;
+  if ((yHit >= height) | 0) yHit = (height - 1) | 0;
+  return yHit;
 }
 
 function heightByteFromFine(hFine) {
@@ -336,6 +349,9 @@ export function renderPanoramaColumns({
   tanMin,
   panoMips,
   terrainMips,
+  mipCount: wantedMipCount,
+  lodSpacingMode,
+  lodSpacing,
 }) {
   const localWidth = (endPx - startPx) | 0;
   fillSkySlice(
@@ -378,14 +394,21 @@ export function renderPanoramaColumns({
     colorMap,
     mapW,
     mapH,
-    mapShift
+    mapShift,
+    wantedMipCount
   );
   const mipHeightMaps = mips.heightMaps;
   const mipColorMaps = mips.colorMaps;
   const mipShifts = mips.shifts;
   const mipCount = mips.count;
   const lastMip = (mipCount - 1) | 0;
-  mipSwitchDistances(quality, mipCount, farClip, mipSwitchT);
+  mipSwitchDistances(
+    mipCount,
+    farClip,
+    mipSwitchT,
+    lodSpacingMode,
+    lodSpacing
+  );
   for (let m = 0; (m < mipCount) | 0; m = (m + 1) | 0) {
     mipInvScaleScratch[m] = mipInvScale(m);
     mipWMaskScratch[m] = (mips.widths[m] - 1) | 0;
@@ -483,13 +506,18 @@ export function renderPanoramaColumns({
       }
 
       const inv = mipInvScaleScratch[mip];
-      const sx = wx * inv;
-      const sy = wy * inv;
-      const useFine = (xyClipDistance(t, dirX, dirY, fwdX, fwdY) <=
-        filterDistance) |
-        0;
-      const doLerp = lerpH & ((mip | 0) === 0) & useFine;
-      const doFilter = filterC & ((mip | 0) === 0) & useFine;
+      let sx;
+      let sy;
+      if ((mip | 0) === 0) {
+        sx = wx * inv;
+        sy = wy * inv;
+      } else {
+        const cell = mipTexelFloor(wx, wy, mip, dirX, dirY);
+        sx = cell.ix;
+        sy = cell.iy;
+      }
+      const doLerp = lerpH & ((mip | 0) === 0);
+      const doFilter = filterC & ((mip | 0) === 0);
       const shift = mipShifts[mip];
       const wMask = mipWMask[mip];
       const hMask = mipHMask[mip];
@@ -512,14 +540,14 @@ export function renderPanoramaColumns({
       }
 
       const dh = h - camZ;
-      const absS = dh < 0 ? -dh : dh;
-      const sHat = dh / (t + absS);
-      let idx = ((sHat + 1) * yHitLutScale) | 0;
-      if ((idx < 0) | 0) idx = 0;
-      if ((idx > yHitLutLast) | 0) idx = yHitLutLast;
-      let yHit = yHitLut[idx];
-      if ((yHit < 0) | 0) yHit = 0;
-      if ((yHit >= height) | 0) yHit = (height - 1) | 0;
+      let yHit = panoYHitFromDh(dh, t, yHitLut, height);
+      if ((mip | 0) > 0) {
+        const tFar = mipCellFarT(t, wx, wy, dirX, dirY, mip);
+        const yFar = panoYHitFromDh(dh, tFar, yHitLut, height);
+        if ((yFar < yHit) | 0) {
+          yHit = yFar;
+        }
+      }
 
       if ((yHit < H) | 0) {
         let yBottom = H;

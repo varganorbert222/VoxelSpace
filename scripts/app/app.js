@@ -32,6 +32,7 @@ import { detectBackends } from "../backends/contract.js";
 import { renderScaleForQuality, clampQualityForContext } from "../constants/quality.js";
 import { DEBUG_VIEW_COLOR } from "../constants/debugView.js";
 import { DEFAULT_MULTITHREAD } from "../constants/threading.js";
+import { TERRAIN_MIP_DEFAULT_COUNT, TERRAIN_MIP_MAX_COUNT } from "../constants/mip.js";
 import { CANVAS_ID, VIEWPORT_ID, SPAWN_HEIGHT_OFFSET } from "../constants/main.js";
 import { HALF } from "../constants/vmath.js";
 
@@ -79,6 +80,17 @@ class App {
       interpolateHeight: config.settings.interpolateHeight.default !== false,
       filterColor: config.settings.filterColor.default !== false,
       filterDistance: config.settings.filterDistance.default,
+      mipCount: config.settings.mipCount
+        ? config.settings.mipCount.default
+        : TERRAIN_MIP_DEFAULT_COUNT,
+      lodSpacingMode:
+        (config.settings.lodSpacingMode &&
+          config.settings.lodSpacingMode.default) ||
+        "linear",
+      lodSpacing:
+        config.settings.lodSpacing && config.settings.lodSpacing.default != null
+          ? config.settings.lodSpacing.default
+          : 100,
     });
     if (config.settings.cameraModes.default) {
       this.camera.set({ mode: config.settings.cameraModes.default });
@@ -249,6 +261,9 @@ class App {
         backend: options.backend,
         debugView: options.debugView,
         debugOverlay: options.debugOverlay,
+        mipCount: options.mipCount,
+        lodSpacingMode: options.lodSpacingMode,
+        lodSpacing: options.lodSpacing,
         hudChrome: this.hudChrome,
         radarOpen: this.radarOpen,
       },
@@ -264,6 +279,12 @@ class App {
         backends: config.settings.renderBackends.values,
         debugViews: config.settings.debugViews.values,
         mapNames: maps.map((m) => m.name),
+        mipCount: {
+          min: config.settings.mipCount.min,
+          max: TERRAIN_MIP_MAX_COUNT,
+        },
+        lodSpacingModes: config.settings.lodSpacingMode.values,
+        lodSpacing: config.settings.lodSpacing,
       }
     );
     if (!sanitized) {
@@ -289,6 +310,9 @@ class App {
       backend: sanitized.backend,
       debugView: sanitized.debugView,
       debugOverlay: sanitized.debugOverlay,
+      mipCount: sanitized.mipCount,
+      lodSpacingMode: sanitized.lodSpacingMode,
+      lodSpacing: sanitized.lodSpacing,
     });
     this.currentMapName = sanitized.map;
     this.hudChrome = sanitized.hudChrome;

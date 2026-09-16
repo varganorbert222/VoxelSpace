@@ -79,6 +79,9 @@ export function collectSettings(app) {
     backend: options.backend,
     debugView: options.debugView,
     debugOverlay: options.debugOverlay,
+    mipCount: options.mipCount,
+    lodSpacingMode: options.lodSpacingMode,
+    lodSpacing: options.lodSpacing,
     hudChrome: !!app.hudChrome,
     radarOpen: !!app.radarOpen,
   };
@@ -130,6 +133,21 @@ export function sanitizeSettings(data, defaults, bounds) {
     backend: pickAllowed(data.backend, bounds.backends, defaults.backend),
     debugView: pickAllowed(data.debugView, bounds.debugViews, defaults.debugView),
     debugOverlay: boolOr(data.debugOverlay, defaults.debugOverlay),
+    mipCount: VMath.clamp(
+      bounds.mipCount.min,
+      bounds.mipCount.max,
+      Math.round(finiteOr(data.mipCount, defaults.mipCount))
+    ),
+    lodSpacingMode: pickAllowed(
+      data.lodSpacingMode,
+      bounds.lodSpacingModes,
+      defaults.lodSpacingMode
+    ),
+    lodSpacing: VMath.clamp(
+      bounds.lodSpacing.min,
+      bounds.lodSpacing.max,
+      Math.round(finiteOr(data.lodSpacing, defaults.lodSpacing))
+    ),
     hudChrome: boolOr(data.hudChrome, defaults.hudChrome),
     radarOpen: boolOr(data.radarOpen, defaults.radarOpen),
   };

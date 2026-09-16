@@ -76,6 +76,18 @@ class JsBackend {
     return this._host.filterDistance;
   }
 
+  get mipCount() {
+    return this._host.mipCount;
+  }
+
+  get lodSpacingMode() {
+    return this._host.lodSpacingMode;
+  }
+
+  get lodSpacing() {
+    return this._host.lodSpacing;
+  }
+
   get debugView() {
     return this._host.debugView;
   }

@@ -152,6 +152,9 @@ class PanoramaRenderer {
       this._panoFilter !== this._renderer.filterColor ||
       this._panoFilterDist !== this._renderer.filterDistance ||
       this._panoMinDeltaZ !== camera.minDeltaZ ||
+      this._panoMipCount !== this._renderer.mipCount ||
+      this._panoLodSpacingMode !== this._renderer.lodSpacingMode ||
+      this._panoLodSpacing !== this._renderer.lodSpacing ||
       this._panoSkyColor !== terrain.skyColor ||
       this._panoHorizonColor !== camera.bottomColor ||
       this._panoQuality !== camera.quality;
@@ -184,6 +187,9 @@ class PanoramaRenderer {
     this._panoFwdX = camera.fwdX;
     this._panoFwdY = camera.fwdY;
     this._panoMinDeltaZ = camera.minDeltaZ;
+    this._panoMipCount = this._renderer.mipCount;
+    this._panoLodSpacingMode = this._renderer.lodSpacingMode;
+    this._panoLodSpacing = this._renderer.lodSpacing;
     this._panoSkyColor = terrain.skyColor;
     this._panoHorizonColor = camera.bottomColor;
     this._panoQuality = camera.quality;
@@ -388,6 +394,9 @@ class PanoramaRenderer {
       interpolateHeight: renderer.interpolateHeight ? 1 : 0,
       filterColor: renderer.filterColor ? 1 : 0,
       filterDistance: renderer.filterDistance,
+      mipCount: renderer.mipCount,
+      lodSpacingMode: renderer.lodSpacingMode,
+      lodSpacing: renderer.lodSpacing,
       fwdX: camera.fwdX,
       fwdY: camera.fwdY,
       pixels: this._panoramaPixels,
@@ -397,6 +406,9 @@ class PanoramaRenderer {
       iterBuf: this._panoramaIter,
       panoMips: maps.panoMips,
       terrainMips: maps.terrainMips || maps.panoMips,
+      mipCount: renderer.mipCount,
+      lodSpacingMode: renderer.lodSpacingMode,
+      lodSpacing: renderer.lodSpacing,
       mapsGeneration: maps.generation,
     });
   }
@@ -417,6 +429,9 @@ class PanoramaRenderer {
       tMax: tMax,
       repeat: renderer.repeat,
       minDeltaZ: camera.minDeltaZ,
+      mipCount: renderer.mipCount,
+      lodSpacingMode: renderer.lodSpacingMode,
+      lodSpacing: renderer.lodSpacing,
       camX: camera.posX,
       camY: camera.posY,
       camZ: camera.posZ,
@@ -440,6 +455,9 @@ class PanoramaRenderer {
       interpolateHeight: renderer.interpolateHeight ? 1 : 0,
       filterColor: renderer.filterColor ? 1 : 0,
       filterDistance: renderer.filterDistance,
+      mipCount: renderer.mipCount,
+      lodSpacingMode: renderer.lodSpacingMode,
+      lodSpacing: renderer.lodSpacing,
       fwdX: camera.fwdX,
       fwdY: camera.fwdY,
       wantHeight: needsHeightBuf(renderer.debugView),
@@ -457,6 +475,9 @@ class PanoramaRenderer {
       this._panoTMax() !== token.tMax ||
       renderer.repeat !== token.repeat ||
       camera.minDeltaZ !== token.minDeltaZ ||
+      renderer.mipCount !== token.mipCount ||
+      renderer.lodSpacingMode !== token.lodSpacingMode ||
+      renderer.lodSpacing !== token.lodSpacing ||
       camera.posX !== token.camX ||
       camera.posY !== token.camY ||
       camera.posZ !== token.camZ ||

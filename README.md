@@ -30,6 +30,7 @@ Voxel space is the technique behind *Comanche*: a height map plus a color map, m
 | **CPU · JS** | Readable kernels on a Canvas 2D swap |
 | **CPU · WASM** | The same kernels, compiled `-O3` for wasm32 |
 | **GPU · WebGPU** | Compute shaders, swapchain present |
+| **LOD mips** | Coarser height/color rasters with distance; count and curve are yours |
 | **86 missions** | Color + height maps extracted from Comanche 3 |
 
 No build step to play. Open the demo, pick a map, fly.
@@ -46,7 +47,9 @@ Works in a current desktop or mobile browser. WebGPU is optional (Chrome / Edge 
 
 ## How it works
 
-Height and color maps are 1024×1024 raster pairs. Each camera ray steps across the height field, samples color, and writes a column (or an environment texel). Distant samples use mipmaps and growing step size so the far clip stays cheap.
+Height and color maps are 1024×1024 raster pairs. Each camera ray steps across the height field, samples color, and writes a column (or an environment texel).
+
+A mip chain sits on the maps. Near the camera the march uses the full raster; farther out it drops to coarser LODs so the far clip stays cheap. How many levels and where they switch is a View control. On LOD 0, optional bilinear height and color sampling smooths the nearest voxels; higher LODs stay nearest-texel so coarse blocks stay flat.
 
 ```
   maps/color + maps/height
@@ -71,7 +74,7 @@ Height and color maps are 1024×1024 raster pairs. Each camera ray steps across 
 
 **Classic** redraws the camera frustum every frame: one ray per screen column, LOD bands, fog, optional world wrap.
 
-**Panorama** and **cubemap** first fill a cached environment (equirect or six cube faces). As long as the camera *position* and march settings stay put, looking around is a cheap resample — free look, roll, and orbital inspection without re-marching the world. Move, change distance / delta Z / quality / fog / repeat, and the cache rebuilds.
+**Panorama** and **cubemap** first fill a cached environment (equirect or six cube faces). As long as the camera *position* and march settings stay put, looking around is a cheap resample — free look, roll, and orbital inspection without re-marching the world. Move, or change distance / delta Z / quality / FOV / LOD / sampling / repeat, and the cache rebuilds. Fog is applied when the environment is sampled, so toggling it does not rebuild the cache.
 
 Runtimes plug in behind the same contract:
 
@@ -149,7 +152,7 @@ Then open [http://localhost:8080](http://localhost:8080).
 | **H** | Toggle HUD chrome |
 | **K** | Toggle radar |
 
-Letters match the first unused letter of each HUD label. Hold **Shift** on distance / delta Z / FOV to nudge the other way.
+Letters match the first unused letter of each HUD label. Hold **Shift** on distance / delta Z / FOV to nudge the other way. LOD, height interp, and color filter live in the command panel only.
 
 ### Mouse
 
@@ -165,14 +168,14 @@ The camera stays a clearance above the height field so you cannot sink into terr
 
 On phones and tablets the on-screen pad appears automatically.
 
-| Control | Action |
-| --- | --- |
-| Left stick | Move / strafe |
-| Right stick | Look |
-| **Up** / **Down** | Altitude |
-| **L** / **R** | Bank (panorama / cubemap) |
-| Menu handle | Open / close command panel |
-| Tap radar | Hide radar (tab to show again) |
+| Control | Fly | Orbital |
+| --- | --- | --- |
+| Left stick | Move / strafe | Zoom |
+| Right stick | Look | Orbit |
+| **Up** / **Down** | Altitude | — |
+| **L** / **R** | Bank (panorama / cubemap) | — |
+| Menu handle | Open / close command panel | same |
+| Tap radar | Hide radar (tab to show again) | same |
 
 ---
 
@@ -184,9 +187,9 @@ The top bar is always-on chrome: map, algorithm, runtime, camera, quality, debug
 | --- | --- |
 | **01 Mission** | Pick one of 86 Comanche maps (color + height + sky + altitude). |
 | **02 Engine** | Algorithm, runtime, quality, camera mode. |
-| **03 View** | Distance, fog range, delta Z, FOV. Scale is derived from quality. |
-| **04 Debug** | Recolor the picture; optional unwrapped env atlas. |
-| **05 Flags** | Fog, world wrap, worker threads. |
+| **03 View** | Distance, fog range, delta Z, LOD, LOD curve, LOD step, FOV. Scale is derived from quality. |
+| **04 Debug** | Recolor the picture; optional unwrapped env atlas. Height / Depth / Iterations show a color key next to the radar. |
+| **05 Flags** | Fog, world wrap, height interp, color filter, worker threads. |
 | **06 Input / Touch** | Built-in legend for the current device. |
 | **07 Link** | This GitHub project. |
 
@@ -236,6 +239,9 @@ Internal resolution and march density follow quality. Scale is automatic.
 | **Distance** | 100 – 8000 | Far clip (HUD value; march may stop sooner if Fog is on and Fog range end is lower) |
 | **Fog range** | 0 – Distance | Dual thumbs: fog starts at the lower bound and saturates at the upper. The track max follows Distance. |
 | **Delta Z** | 0.1 – 2.0 | Ray step. Lower is denser and slower. |
+| **LOD** | 1 – map log₂ | How many mip rasters the march uses. 1 is full resolution only. On a 1024 map, 5 stops at 64×64 and 10 at 2×2. Default is the middle of the range. |
+| **LOD curve** | Linear / Doubling / Logarithmic | How switch distances fill 0…Distance. Linear: equal range per level. Doubling: each switch is twice as far as the previous. Logarithmic: log-spaced from the first switch to Distance. |
+| **LOD step** | 10 m – Distance | Meters to the first LOD switch. Editable on Logarithmic; Linear and Doubling fill 0…Distance on their own and show the first switch here. |
 | **FOV** | 10° – 90° | Horizontal field of view |
 | **Scale** | auto | Internal resolution from quality × viewport |
 
@@ -248,6 +254,8 @@ Internal resolution and march density follow quality. Scale is automatic.
 | **Depth** | Distance along the ray |
 | **Iterations** | How hard the march worked |
 
+Height / Depth / Iterations show a floating color key next to the radar (grayscale for Height and Depth; red → magenta for Iterations). Sky / miss stays off the ramp.
+
 **Env atlas** (`N`) overlays the unwrapped panorama strip or cubemap net. Hidden on classic. The overlay uses the same debug view as the 3D picture.
 
 ### Flags
@@ -256,6 +264,8 @@ Internal resolution and march density follow quality. Scale is automatic.
 | --- | --- | --- |
 | **Fog** | On | Fade distant terrain into the sky. Distances come from **Fog range**. |
 | **Repeat** | On | Tile the map so the world wraps |
+| **Height interp** | On | Bilinear height on LOD 0. Higher LODs stay nearest-texel. Off is nearest everywhere. |
+| **Color filter** | On | World-space bilinear color on LOD 0. Higher LODs stay nearest-texel so coarse blocks stay flat. |
 | **Threads** | Off | Split columns across workers (JS / WASM). Forced off on WebGPU. |
 
 ---
@@ -280,7 +290,7 @@ The extractor lineage is the C program from [sioux](https://github.com/hanatos/s
 | `scripts/render/` | Classic / panorama / cubemap, workers, overlay |
 | `scripts/backends/` | JS, WASM, WebGPU (+ WGSL) |
 | `scripts/camera/` | Fly, orbit, projection, collision |
-| `scripts/terrain/` | Height/color, mips, wrap |
+| `scripts/terrain/` | Height/color, mip chain, wrap, LOD-0 sampling |
 | `data/config.json` | Ranges, defaults, allowed modes |
 | `data/maps.json` | Mission table |
 | `maps/` | Color and height rasters |
@@ -302,7 +312,7 @@ The committed artifact is `scripts/wasm/march.bytes.js`. Do not `fetch("*.wasm")
 
 ### Persistence
 
-Key `voxelspace.settings` in `localStorage`: map, algorithm, backend, quality, camera, view knobs, flags, debug view, HUD chrome, radar. Invalid values fall back to `data/config.json`.
+Key `voxelspace.settings` in `localStorage`: map, algorithm, backend, quality, camera, view knobs (including LOD), flags (including height interp and color filter), debug view, HUD chrome, radar. Invalid values fall back to `data/config.json`.
 
 ---
 
@@ -315,4 +325,4 @@ Key `voxelspace.settings` in `localStorage`: map, algorithm, backend, quality, c
 
 ## License
 
-[MIT](LICENSE) © 2022 Norbert Varga
+[MIT](LICENSE) © 2022–2026 Norbert Varga

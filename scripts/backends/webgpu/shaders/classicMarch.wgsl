@@ -1,5 +1,4 @@
 @group(0) @binding(0) var<uniform> frame: Frame;
-@group(1) @binding(0) var<storage, read> pixelOffsets: array<u32, 16>;
 @group(1) @binding(1) var<storage, read> lodDeltas: array<f32, 16>;
 @group(1) @binding(2) var<storage, read> lodDistances: array<f32, 32>;
 @group(2) @binding(0) var heightTex: texture_2d<u32>;
@@ -84,6 +83,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let kLeftY = -cosA - kRightY;
   let kDx = (kRightX + kRightX) * screenWidthScaler;
   let kDy = (kRightY + kRightY) * screenWidthScaler;
+  let dirX = kLeftX + kDx * f32(x);
+  let dirY = kLeftY + kDy * f32(x);
 
   var sampleN = 0u;
   var lod = lodCount;
@@ -93,14 +94,10 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     }
     let startIndex = lodDistances[lod - 1];
     let endIndex = lodDistances[lod];
-    let pxOffset = i32(pixelOffsets[lod - 1]);
     var step = lodDeltas[lod - 1];
     let mip = lod - 1;
     lod = lod - 1;
     if (startIndex >= farClip) {
-      continue;
-    }
-    if ((pxOffset > 1) && ((x % pxOffset) != 0)) {
       continue;
     }
 
@@ -127,12 +124,18 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         let inside = (plx >= 0.0) && (plx <= f32(mapW)) && (ply >= 0.0) && (ply <= f32(mapH));
         let isOk = inside || repeat;
         if (isOk && (ceilingOnScreen < colHidden)) {
-          let useFine = (mip == 0) && (z <= frame.sampleLimit.x);
+          let useFine = mip == 0;
           let sampled = classicSampleHeight(plx, ply, mip, flagHeightLerp(flags) && useFine);
           let hByte = u32(sampled.y);
           let terrainHeight = sampled.x * altScale;
           let terrainSdf = camZ - terrainHeight;
-          let heightOnScreen = i32(terrainSdf * zScale + screenHorizon);
+          let heightOnScreen = projectSdfYSpan(
+            terrainSdf,
+            dst,
+            z,
+            mipSpanFarT(z, step, plx, ply, dirX, dirY, mip),
+            screenHorizon
+          );
           var heightOnScreenBottom = colHidden;
           if (!repeat && (groundOnScreen < heightOnScreenBottom)) {
             heightOnScreenBottom = groundOnScreen;
@@ -160,33 +163,22 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
             plotPacked = packRgba(plot);
           }
           if (heightOnScreen < colHidden) {
-            var drawWidth = pxOffset;
-            if (x + drawWidth > screenW) {
-              drawWidth = screenW - x;
-            }
             var ytop = heightOnScreen;
             if (ytop < 0) {
               ytop = 0;
             }
             if (ytop < heightOnScreenBottom) {
-              var j = 0;
+              var yy = ytop;
               loop {
-                if ((j >= drawWidth) || (x + j >= screenW)) {
+                if (yy >= heightOnScreenBottom) {
                   break;
                 }
-                var yy = ytop;
-                loop {
-                  if (yy >= heightOnScreenBottom) {
-                    break;
-                  }
-                  textureStore(
-                    outTex,
-                    vec2<i32>(x + j, yy),
-                    vec4<u32>(plotPacked, 0u, 0u, 0u)
-                  );
-                  yy = yy + 1;
-                }
-                j = j + 1;
+                textureStore(
+                  outTex,
+                  vec2<i32>(x, yy),
+                  vec4<u32>(plotPacked, 0u, 0u, 0u)
+                );
+                yy = yy + 1;
               }
             }
             hiddenY = heightOnScreen;

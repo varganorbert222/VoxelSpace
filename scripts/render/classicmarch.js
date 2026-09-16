@@ -29,10 +29,11 @@ import {
 import {
   TERRAIN_MIP_MAX_COUNT,
   classicLodDeltas,
-  classicLodDistanceFractions,
-  classicPixelOffsets,
   fillClassicLodDistances,
   mipInvScale,
+  mipSpanFarT,
+  mipSwitchDistances,
+  projectSdfYSpan,
 } from "../constants/mip.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
 
@@ -40,7 +41,6 @@ let hiddenYScratch = new Int32Array(1);
 let sampleNScratch = new Int32Array(1);
 const deltasScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
 const lodDistancesScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT + 1);
-const pixelOffsetScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
 const mipWMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
 const mipHMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
 let hiddenYCapacity = 1;
@@ -54,6 +54,16 @@ function hiddenYBuffer(width) {
   return hiddenYScratch;
 }
 
+function classicProjectedY(sdf, dst, z, step, plx, ply, col, kLeftX, kLeftY, kDx, kDy, mip, horizon) {
+  return projectSdfYSpan(
+    sdf,
+    dst,
+    z,
+    mipSpanFarT(z, step, plx, ply, kLeftX + kDx * col, kLeftY + kDy * col, mip),
+    horizon
+  );
+}
+
 function setupClassicLod(params) {
   const mips = resolveTerrainMips(
     params.terrainMips || params.panoMips,
@@ -61,7 +71,8 @@ function setupClassicLod(params) {
     params.colorMap,
     params.mapW,
     params.mapH,
-    params.mapShift
+    params.mapShift,
+    params.mipCount
   );
   const q = qualityIndex(params.quality);
   const stepGrowth = STEP_GROWTH_BY_QUALITY[q];
@@ -69,15 +80,20 @@ function setupClassicLod(params) {
   const bandCount = mips.count;
   classicLodDeltas(q, bandCount, params.minDeltaZ, stepScale, deltasScratch);
   const zStart = Math.max(params.nearClip, deltasScratch[0], MIN_SAMPLE_DISTANCE);
-  const fractions = classicLodDistanceFractions(q, bandCount);
+  const switches = mipSwitchDistances(
+    bandCount,
+    params.farClip,
+    null,
+    params.lodSpacingMode,
+    params.lodSpacing
+  );
   fillClassicLodDistances(
     lodDistancesScratch,
     zStart,
     params.farClip,
-    fractions,
+    switches,
     bandCount
   );
-  classicPixelOffsets(q, bandCount, pixelOffsetScratch);
   for (let m = 0; (m < bandCount) | 0; m = (m + 1) | 0) {
     mipWMaskScratch[m] = (mips.widths[m] - 1) | 0;
     mipHMaskScratch[m] = (mips.heights[m] - 1) | 0;
@@ -205,34 +221,17 @@ function heightByteFromFine(hFine) {
   return b;
 }
 
-function drawVerticalLine(pixels, stride, x, ytop, ybottom, col, width, xEnd) {
+function drawVerticalLine(pixels, stride, x, ytop, ybottom, col) {
   x = x | 0;
   ytop = ytop | 0;
   ybottom = ybottom | 0;
   col = col | 0;
   if ((ytop < 0) | 0) ytop = 0;
   if ((ytop > ybottom) | 0) return;
-
-  if (((width === 1) | 0) & ((x < xEnd) | 0)) {
-    let offset = (ytop * stride + x) | 0;
-    for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
-      pixels[offset] = col;
-      offset = (offset + stride) | 0;
-    }
-    return;
-  }
-
-  let offset = 0;
-  for (
-    let j = 0;
-    ((j < width) | 0) & ((x + j < xEnd) | 0);
-    j = (j + 1) | 0
-  ) {
-    offset = (ytop * stride + x + j) | 0;
-    for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
-      pixels[offset] = col;
-      offset = (offset + stride) | 0;
-    }
+  let offset = (ytop * stride + x) | 0;
+  for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
+    pixels[offset] = col;
+    offset = (offset + stride) | 0;
   }
 }
 
@@ -316,7 +315,6 @@ function renderClassicColumnsSampled({
   const screenWidthScaler = 1 / screenWidth;
   const lerpH = interpolateHeight | 0;
   const filterC = filterColor | 0;
-  const filterDist = filterDistance;
   const kRightX = cosAngle * tanHalfFovX;
   const kRightY = -sinAngle * tanHalfFovX;
   const kLeftX = -sinAngle - kRightX;
@@ -327,7 +325,6 @@ function renderClassicColumnsSampled({
   for (let lod = bandCount; (lod > 0) | 0; lod = (lod - 1) | 0) {
     const startIndex = lodDistances[lod - 1];
     const endIndex = lodDistances[lod];
-    const pxOffset = pixelOffsetScratch[lod - 1];
     let step = deltas[lod - 1];
     const mip = (lod - 1) | 0;
     const mipHeight = mips.heightMaps[mip];
@@ -371,13 +368,13 @@ function renderClassicColumnsSampled({
       for (
         let i = startColumn;
         (i < endColumn) | 0;
-        i = (i + pxOffset) | 0
+        i = (i + 1) | 0
       ) {
         const localI = (i - startColumn) | 0;
         const colHidden = hiddenY[localI];
         if (colHidden === 0) {
-          plx += dx * pxOffset;
-          ply += dy * pxOffset;
+          plx += dx;
+          ply += dy;
           continue;
         }
 
@@ -390,8 +387,8 @@ function renderClassicColumnsSampled({
 
         if (isOk) {
           if ((ceilingOnScreen >= colHidden) | 0) {
-            plx += dx * pxOffset;
-            ply += dy * pxOffset;
+            plx += dx;
+            ply += dy;
             continue;
           }
 
@@ -401,9 +398,8 @@ function renderClassicColumnsSampled({
             ((((sy | 0) & mapWMask) << mipShift) +
               ((sx | 0) & mapHMask)) |
             0;
-          const useFine = ((mip | 0) === 0) & ((z <= filterDist) | 0);
-          const doLerp = lerpH & useFine;
-          const doFilter = filterC & useFine;
+          const doLerp = lerpH & ((mip | 0) === 0);
+          const doFilter = filterC & ((mip | 0) === 0);
           const nearestH = mipHeight[offset];
           const hFine = doLerp
             ? sampleHeightBilinear(
@@ -419,7 +415,21 @@ function renderClassicColumnsSampled({
           const hByte = doLerp ? heightByteFromFine(hFine) : nearestH;
           const terrainHeight = hFine * altScale;
           const terrainSDF = camZ - terrainHeight;
-          const heightOnScreen = (terrainSDF * zScale + screenHorizon) | 0;
+          const heightOnScreen = classicProjectedY(
+            terrainSDF,
+            dstToProjPlane,
+            z,
+            step,
+            plx,
+            ply,
+            i,
+            kLeftX,
+            kLeftY,
+            kDx,
+            kDy,
+            mip,
+            screenHorizon
+          );
 
           let heightOnScreenBottom = colHidden;
           if (!repeat) {
@@ -466,33 +476,20 @@ function renderClassicColumnsSampled({
           }
 
           if ((heightOnScreen < colHidden) | 0) {
-            let drawWidth = pxOffset;
-            if ((i + drawWidth > endColumn) | 0) {
-              drawWidth = (endColumn - i) | 0;
-            }
             drawVerticalLine(
               pixels,
               stride,
               localI,
               heightOnScreen,
               heightOnScreenBottom,
-              plotColor,
-              drawWidth,
-              localWidth
+              plotColor
             );
-
-            for (
-              let j = localI;
-              ((j < localI + drawWidth) | 0) & ((j < localWidth) | 0);
-              j = (j + 1) | 0
-            ) {
-              hiddenY[j] = heightOnScreen;
-            }
+            hiddenY[localI] = heightOnScreen;
           }
         }
 
-        plx += dx * pxOffset;
-        ply += dy * pxOffset;
+        plx += dx;
+        ply += dy;
       }
 
       step += stepGrowth;
@@ -585,7 +582,6 @@ function renderClassicColumnsNearest({
   for (let lod = bandCount; (lod > 0) | 0; lod = (lod - 1) | 0) {
     const startIndex = lodDistances[lod - 1];
     const endIndex = lodDistances[lod];
-    const pxOffset = pixelOffsetScratch[lod - 1];
     let step = deltas[lod - 1];
     const mip = (lod - 1) | 0;
     const mipHeight = mips.heightMaps[mip];
@@ -629,13 +625,13 @@ function renderClassicColumnsNearest({
       for (
         let i = startColumn;
         (i < endColumn) | 0;
-        i = (i + pxOffset) | 0
+        i = (i + 1) | 0
       ) {
         const localI = (i - startColumn) | 0;
         const colHidden = hiddenY[localI];
         if (colHidden === 0) {
-          plx += dx * pxOffset;
-          ply += dy * pxOffset;
+          plx += dx;
+          ply += dy;
           continue;
         }
 
@@ -648,8 +644,8 @@ function renderClassicColumnsNearest({
 
         if (isOk) {
           if ((ceilingOnScreen >= colHidden) | 0) {
-            plx += dx * pxOffset;
-            ply += dy * pxOffset;
+            plx += dx;
+            ply += dy;
             continue;
           }
 
@@ -661,7 +657,21 @@ function renderClassicColumnsNearest({
             0;
           const terrainHeight = mipHeight[offset] * altScale;
           const terrainSDF = camZ - terrainHeight;
-          const heightOnScreen = (terrainSDF * zScale + screenHorizon) | 0;
+          const heightOnScreen = classicProjectedY(
+            terrainSDF,
+            dstToProjPlane,
+            z,
+            step,
+            plx,
+            ply,
+            i,
+            kLeftX,
+            kLeftY,
+            kDx,
+            kDy,
+            mip,
+            screenHorizon
+          );
 
           let heightOnScreenBottom = colHidden;
           if (!repeat) {
@@ -698,33 +708,20 @@ function renderClassicColumnsNearest({
           }
 
           if ((heightOnScreen < colHidden) | 0) {
-            let drawWidth = pxOffset;
-            if ((i + drawWidth > endColumn) | 0) {
-              drawWidth = (endColumn - i) | 0;
-            }
             drawVerticalLine(
               pixels,
               stride,
               localI,
               heightOnScreen,
               heightOnScreenBottom,
-              plotColor,
-              drawWidth,
-              localWidth
+              plotColor
             );
-
-            for (
-              let j = localI;
-              ((j < localI + drawWidth) | 0) & ((j < localWidth) | 0);
-              j = (j + 1) | 0
-            ) {
-              hiddenY[j] = heightOnScreen;
-            }
+            hiddenY[localI] = heightOnScreen;
           }
         }
 
-        plx += dx * pxOffset;
-        ply += dy * pxOffset;
+        plx += dx;
+        ply += dy;
       }
 
       step += stepGrowth;

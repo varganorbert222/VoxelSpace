@@ -222,7 +222,8 @@
         </div>
         <div
           class="control"
-          data-tip="How far height interp and color filter apply, as clip-plane distance (same units as fog / Distance). Screen corners stay on that plane; bilinear is not computed past it."
+          hidden
+          data-tip="Kept for saved settings. Height interp and color filter now follow LOD 0 instead of this range."
         >
           <div class="control-head">
             <label for="id_filter_distance">Filter range</label>
@@ -236,6 +237,35 @@
             <span class="control-value" data-for="id_delta_z"></span>
           </div>
           <input id="id_delta_z" type="range" autocomplete="off" aria-keyshortcuts="Z Shift+Z" />
+        </div>
+        <div
+          class="control"
+          data-tip="How many terrain mip / LOD rasters the march uses. 1 is full resolution only. On a 1024 map, 5 stops at 64×64 and 10 at 2×2. Default is the middle of the range."
+        >
+          <div class="control-head">
+            <label for="id_mip_count">LOD</label>
+            <span class="control-value" data-for="id_mip_count"></span>
+          </div>
+          <input id="id_mip_count" type="range" autocomplete="off" />
+        </div>
+        <div
+          class="control"
+          data-tip="How coarser LOD levels are spaced between the end of LOD 0 and Distance. Linear: equal remaining range. Doubling: each remaining band is twice the previous. Logarithmic: log-spaced from LOD 0 to Distance."
+        >
+          <div class="control-head">
+            <label for="id_lod_spacing_mode">LOD curve</label>
+          </div>
+          <select id="id_lod_spacing_mode" name="lodSpacingMode" autocomplete="off"></select>
+        </div>
+        <div
+          class="control"
+          data-tip="How far full-resolution LOD 0 lasts, in meters. Coarser levels start here and follow the LOD curve out to Distance. Clamped below Distance."
+        >
+          <div class="control-head">
+            <label for="id_lod_spacing">LOD 0</label>
+            <span class="control-value" data-for="id_lod_spacing"></span>
+          </div>
+          <input id="id_lod_spacing" type="range" autocomplete="off" />
         </div>
         <div class="control" data-tip="Horizontal field of view in degrees.">
           <div class="control-head">
@@ -307,7 +337,7 @@
           <label
             class="check"
             for="id_interpolate_height"
-            data-tip="Bilinear height sampling. Off uses nearest texels."
+            data-tip="Bilinear height sampling on LOD 0 only. Higher LOD voxels stay nearest-texel. Off uses nearest everywhere."
           >
             <input
               id="id_interpolate_height"
@@ -321,7 +351,7 @@
           <label
             class="check"
             for="id_filter_color"
-            data-tip="World-space bilinear blend on the color map. Same 4 samples as the old box filter, but interpolates by position so texel edges fade instead of jumping."
+            data-tip="World-space bilinear blend on the color map, on LOD 0 only. Higher LOD voxels stay nearest-texel so coarse blocks stay flat."
           >
             <input id="id_filter_color" name="filtercolor" type="checkbox" autocomplete="off" />
             <span class="check-box" aria-hidden="true"></span>

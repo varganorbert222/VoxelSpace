@@ -25,8 +25,6 @@ import {
 import {
   TERRAIN_MIP_MAX_COUNT,
   classicLodDeltas,
-  classicLodDistanceFractions,
-  classicPixelOffsets,
   fillClassicLodDistances,
   mipInvScale,
   mipSwitchDistances,
@@ -548,6 +546,9 @@ class WebGpuBackend {
       this._panoFilter !== this._host.filterColor ||
       this._panoFilterDist !== this._host.filterDistance ||
       this._panoMinDeltaZ !== camera.minDeltaZ ||
+      this._panoMipCount !== this._host.mipCount ||
+      this._panoLodSpacingMode !== this._host.lodSpacingMode ||
+      this._panoLodSpacing !== this._host.lodSpacing ||
       this._panoSkyColor !== terrain.skyColor ||
       this._panoHorizonColor !== camera.bottomColor ||
       this._panoQuality !== camera.quality
@@ -575,6 +576,9 @@ class WebGpuBackend {
     this._panoFwdX = camera.fwdX;
     this._panoFwdY = camera.fwdY;
     this._panoMinDeltaZ = camera.minDeltaZ;
+    this._panoMipCount = this._host.mipCount;
+    this._panoLodSpacingMode = this._host.lodSpacingMode;
+    this._panoLodSpacing = this._host.lodSpacing;
     this._panoSkyColor = terrain.skyColor;
     this._panoHorizonColor = camera.bottomColor;
     this._panoQuality = camera.quality;
@@ -602,10 +606,17 @@ class WebGpuBackend {
       maps && maps.colorMap,
       maps && maps.width,
       maps && maps.height,
-      maps && maps.mapShift
+      maps && maps.mapShift,
+      this._host.mipCount
     );
     const mipCount = mips.count;
-    const switchDist = mipSwitchDistances(q, mipCount, camera.farClip);
+    const switchDist = mipSwitchDistances(
+      mipCount,
+      camera.farClip,
+      null,
+      this._host.lodSpacingMode,
+      this._host.lodSpacing
+    );
     const switchF32 = new Float32Array(TERRAIN_MIP_MAX_COUNT);
     switchF32.fill(1e30);
     switchF32.set(Float32Array.from(switchDist));
@@ -757,7 +768,8 @@ class WebGpuBackend {
       maps && maps.colorMap,
       maps && maps.width,
       maps && maps.height,
-      maps && maps.mapShift
+      maps && maps.mapShift,
+      this._host.mipCount
     );
     const bandCount = mips.count;
     const deltasAll = classicLodDeltas(q, bandCount, camera.minDeltaZ, stepScale);
@@ -767,14 +779,17 @@ class WebGpuBackend {
     }
     const zStart = Math.max(camera.nearClip, deltas[0], MIN_SAMPLE_DISTANCE);
     const far = this._host.effectiveFarClip;
-    const fractions = classicLodDistanceFractions(q, bandCount);
+    const switches = mipSwitchDistances(
+      bandCount,
+      far,
+      null,
+      this._host.lodSpacingMode,
+      this._host.lodSpacing
+    );
     const lodDistances = new Float32Array(32);
-    fillClassicLodDistances(lodDistances, zStart, far, fractions, bandCount);
-    const px = classicPixelOffsets(q, bandCount);
+    fillClassicLodDistances(lodDistances, zStart, far, switches, bandCount);
     const offsets = new Uint32Array(TERRAIN_MIP_MAX_COUNT);
-    for (let i = 0; (i < bandCount) | 0; i = (i + 1) | 0) {
-      offsets[i] = px[i];
-    }
+    offsets.fill(1);
     writeBuffer(this._device, this._offsetBuf, offsets);
     writeBuffer(this._device, this._deltaBuf, deltas);
     writeBuffer(this._device, this._distBuf, lodDistances);

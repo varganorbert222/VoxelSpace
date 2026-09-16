@@ -18,6 +18,12 @@ import {
 } from "../constants/quality.js";
 import { listBackends } from "../backends/contract.js";
 import { FOG_RANGE_MIN, FOG_RANGE_STEP } from "../constants/fog.js";
+import { DEFAULT_MAP_SIZE } from "../constants/terrain.js";
+import {
+  TERRAIN_MIP_COUNT_MIN,
+  LOD_SPACING_LABEL,
+  mipCountMax,
+} from "../constants/mip.js";
 import { initDualRangeElement } from "./rangeSlider.js";
 
 function prepareControl(element) {
@@ -35,6 +41,9 @@ function formatRangeValue(id, value) {
   }
   if (id === "id_delta_z") {
     return n.toFixed(1);
+  }
+  if (id === "id_lod_spacing") {
+    return Math.round(n) + " m";
   }
   if (id === "id_fov") {
     return Math.round(n) + "°";
@@ -57,6 +66,35 @@ function updateBoundValue(id, value) {
   const label = document.querySelector(`[data-for="${id}"]`);
   if (label) {
     label.textContent = formatRangeValue(id, value);
+  }
+}
+
+function mipCountRange(terrain) {
+  const w = terrain && terrain.width ? terrain.width : DEFAULT_MAP_SIZE;
+  const h = terrain && terrain.height ? terrain.height : DEFAULT_MAP_SIZE;
+  return {
+    min: TERRAIN_MIP_COUNT_MIN,
+    max: mipCountMax(w, h),
+    step: 1,
+  };
+}
+
+function formatMipCount(count, terrain) {
+  const n = Math.round(Number(count));
+  const w = terrain && terrain.width ? terrain.width : DEFAULT_MAP_SIZE;
+  const h = terrain && terrain.height ? terrain.height : DEFAULT_MAP_SIZE;
+  const size = Math.min(w | 0, h | 0);
+  let coarse = size >> ((n - 1) | 0);
+  if (coarse < 1) {
+    coarse = 1;
+  }
+  return n + " · " + coarse + "×" + coarse;
+}
+
+function updateMipCountValue(count, terrain) {
+  const label = document.querySelector('[data-for="id_mip_count"]');
+  if (label) {
+    label.textContent = formatMipCount(count, terrain);
   }
 }
 
@@ -196,6 +234,20 @@ class SettingsForm {
           fog.setMax(next);
           fog.setValues(app.renderer.fogStart, app.renderer.fogEnd);
           updateFogRangeValue(app.renderer.fogStart, app.renderer.fogEnd);
+          const step = this._elements.lodSpacing;
+          if (step) {
+            const n = app.renderer.mipCount | 0;
+            const lod0Max = Math.max(
+              config.settings.lodSpacing.min,
+              (next | 0) - Math.max(1, n - 1)
+            );
+            step.max = lod0Max;
+            const cur = parseInt(step.value, 10);
+            if (cur > lod0Max) {
+              app.renderer.setOptions({ lodSpacing: lod0Max });
+            }
+          }
+          this.sync();
         },
         persist
       ),
@@ -243,6 +295,43 @@ class SettingsForm {
         camera.minDeltaZ,
         (e) => {
           camera.set({ minDeltaZ: parseFloat(e.target.value) });
+        },
+        persist
+      ),
+      mipCount: initRangeElement(
+        "id_mip_count",
+        mipCountRange(app.terrain),
+        options.mipCount,
+        (e) => {
+          const n = parseInt(e.target.value, 10);
+          app.renderer.setOptions({ mipCount: n });
+          updateMipCountValue(app.renderer.mipCount, app.terrain);
+          this.sync();
+        },
+        persist
+      ),
+      lodSpacingMode: initOptionElement(
+        "id_lod_spacing_mode",
+        config.settings.lodSpacingMode,
+        options.lodSpacingMode,
+        (e) => {
+          app.renderer.setOptions({ lodSpacingMode: e.target.value });
+          persist();
+        },
+        LOD_SPACING_LABEL
+      ),
+      lodSpacing: initRangeElement(
+        "id_lod_spacing",
+        {
+          min: config.settings.lodSpacing.min,
+          max: camera.farClip,
+          step: config.settings.lodSpacing.step,
+        },
+        options.lodSpacing,
+        (e) => {
+          app.renderer.setOptions({
+            lodSpacing: parseInt(e.target.value, 10),
+          });
         },
         persist
       ),
@@ -368,6 +457,9 @@ class SettingsForm {
       renderScale,
       fov,
       deltaZ,
+      mipCount,
+      lodSpacingMode,
+      lodSpacing,
       filterDistance,
       quality,
       applyFog,
@@ -400,10 +492,32 @@ class SettingsForm {
     updateBoundValue("id_fov", camera.fov);
     deltaZ.value = camera.minDeltaZ;
     updateBoundValue("id_delta_z", camera.minDeltaZ);
+    const mipRange = mipCountRange(this._app.terrain);
+    mipCount.min = mipRange.min;
+    mipCount.max = mipRange.max;
+    mipCount.step = mipRange.step;
+    mipCount.value = options.mipCount;
+    updateMipCountValue(options.mipCount, this._app.terrain);
+    lodSpacingMode.value = options.lodSpacingMode;
+    const far = camera.farClip;
+    const lod0Min = config.settings.lodSpacing.min;
+    const lod0Max = Math.max(
+      lod0Min,
+      (far | 0) - Math.max(1, (options.mipCount | 0) - 1)
+    );
+    lodSpacing.min = lod0Min;
+    lodSpacing.max = lod0Max;
+    lodSpacing.step = config.settings.lodSpacing.step;
+    lodSpacing.disabled = false;
+    let spacing = options.lodSpacing;
+    if (spacing > lod0Max) {
+      spacing = lod0Max;
+    }
+    lodSpacing.value = spacing;
+    updateBoundValue("id_lod_spacing", spacing);
     filterDistance.value = options.filterDistance;
     updateBoundValue("id_filter_distance", options.filterDistance);
-    filterDistance.disabled =
-      !options.interpolateHeight && !options.filterColor;
+    filterDistance.disabled = true;
     fillQualityOptions(
       quality,
       config.settings.quality.values,

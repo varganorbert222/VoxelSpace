@@ -52,6 +52,9 @@ function classicParams(renderer, maps) {
     filterDistance: renderer.filterDistance,
     panoMips: maps.panoMips,
     terrainMips: maps.terrainMips || maps.panoMips,
+    mipCount: renderer.mipCount,
+    lodSpacingMode: renderer.lodSpacingMode,
+    lodSpacing: renderer.lodSpacing,
     mapsGeneration: maps.generation,
   };
 }
@@ -73,6 +76,9 @@ function isClassicTokenStale(token, renderer) {
     renderer.interpolateHeight !== token.interpolateHeight ||
     renderer.filterColor !== token.filterColor ||
     renderer.filterDistance !== token.filterDistance ||
+    renderer.mipCount !== token.mipCount ||
+    renderer.lodSpacingMode !== token.lodSpacingMode ||
+    renderer.lodSpacing !== token.lodSpacing ||
     camera.minDeltaZ !== token.minDeltaZ ||
     camera.posX !== token.camX ||
     camera.posY !== token.camY ||
@@ -149,6 +155,9 @@ class ClassicRenderer {
       interpolateHeight: renderer.interpolateHeight,
       filterColor: renderer.filterColor,
       filterDistance: renderer.filterDistance,
+      mipCount: renderer.mipCount,
+      lodSpacingMode: renderer.lodSpacingMode,
+      lodSpacing: renderer.lodSpacing,
       minDeltaZ: camera.minDeltaZ,
       camX: camera.posX,
       camY: camera.posY,

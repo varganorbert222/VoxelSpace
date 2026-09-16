@@ -131,11 +131,21 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       wasInside = 1;
     }
 
-    let hs = sampleHeightPair(mip, wx, wy, filterClip);
+    let sp = terrainSamplePos(wx, wy, dirX, dirY, mip);
+    let hs = sampleHeightPair(mip, sp.x, sp.y, filterClip);
     let h = hs.x;
 
     let zScale = dst / t;
     var yHit = i32((camZ - h) * zScale + horizon);
+    if (mip > 0) {
+      let tFar = mipCellFarT(t, wx, wy, dirX, dirY, mip);
+      if (tFar > t) {
+        let yFar = i32((camZ - h) * (dst / tFar) + horizon);
+        if (yFar < yHit) {
+          yHit = yFar;
+        }
+      }
+    }
     if (yHit < 0) {
       yHit = 0;
     }
@@ -155,7 +165,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         yBottom = yGround;
       }
       if (yHit < yBottom) {
-        let color = sampleColor(mip, wx, wy, filterClip);
+        let color = sampleColor(mip, sp.x, sp.y, filterClip);
         let hByte = u32(hs.y);
         let dh = h - camZ;
         let dist = sqrt(t * t + dh * dh);

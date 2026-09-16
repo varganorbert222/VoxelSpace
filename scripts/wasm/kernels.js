@@ -32,8 +32,6 @@ import {
 import {
   TERRAIN_MIP_MAX_COUNT,
   classicLodDeltas,
-  classicLodDistanceFractions,
-  classicPixelOffsets,
   mipSwitchDistances,
 } from "../constants/mip.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
@@ -205,29 +203,48 @@ export function createWasmKernels(instance) {
       params.colorMap,
       params.mapW,
       params.mapH,
-      params.mapShift
+      params.mapShift,
+      params.mipCount
     );
     const q = qualityIndex(params.quality);
     const bandCount = mips.count;
-    const key = q + ":" + bandCount + ":" + params.minDeltaZ;
+    const key =
+      q +
+      ":" +
+      bandCount +
+      ":" +
+      params.minDeltaZ +
+      ":" +
+      params.lodSpacingMode +
+      ":" +
+      params.lodSpacing +
+      ":" +
+      params.farClip;
     if (classicKey === key) {
       return bandCount;
     }
     const stepScale = INITIAL_STEP_SCALE_BY_QUALITY[q];
-    const offsets = classicPixelOffsets(q, bandCount);
+    const offsets = new Int32Array(bandCount);
+    offsets.fill(1);
     const deltasAll = classicLodDeltas(q, bandCount, params.minDeltaZ, stepScale);
     const farDeltas = deltasAll.subarray(1);
-    const fracs = classicLodDistanceFractions(q, bandCount);
+    const switches = mipSwitchDistances(
+      bandCount,
+      params.farClip,
+      null,
+      params.lodSpacingMode,
+      params.lodSpacing
+    );
     copyBytes(memory, classicSlot.offPtr, offsets);
     copyBytes(memory, classicSlot.delPtr, farDeltas);
-    copyBytes(memory, classicSlot.fracPtr, fracs);
+    copyBytes(memory, classicSlot.fracPtr, switches);
     ex.set_classic_tables(
       classicSlot.offPtr,
       bandCount,
       classicSlot.delPtr,
       farDeltas.length,
       classicSlot.fracPtr,
-      fracs.length
+      switches.length
     );
     classicKey = key;
     return bandCount;
@@ -236,11 +253,26 @@ export function createWasmKernels(instance) {
   function syncMipSwitch(params, mipCount) {
     ensureTables();
     const q = qualityIndex(params.quality);
-    const key = q + ":" + mipCount + ":" + params.farClip;
+    const key =
+      q +
+      ":" +
+      mipCount +
+      ":" +
+      params.farClip +
+      ":" +
+      params.lodSpacingMode +
+      ":" +
+      params.lodSpacing;
     if (switchKey === key) {
       return;
     }
-    const dist = mipSwitchDistances(q, mipCount, params.farClip);
+    const dist = mipSwitchDistances(
+      mipCount,
+      params.farClip,
+      null,
+      params.lodSpacingMode,
+      params.lodSpacing
+    );
     copyBytes(memory, switchSlot.ptr, dist);
     ex.set_mip_switch(switchSlot.ptr, dist.length);
     switchKey = key;
@@ -281,7 +313,8 @@ export function createWasmKernels(instance) {
       colorMap,
       mapW,
       mapH,
-      mapShift
+      mapShift,
+      params.mipCount
     );
     const heightMaps = mips.heightMaps;
     const colorMaps = mips.colorMaps;
@@ -480,7 +513,8 @@ export function createWasmKernels(instance) {
       params.colorMap,
       params.mapW,
       params.mapH,
-      params.mapShift
+      params.mapShift,
+      params.mipCount
     );
     syncMipSwitch(params, mips.count);
     const height = params.height | 0;

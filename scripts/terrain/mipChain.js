@@ -6,6 +6,7 @@ import {
   TERRAIN_MIP_MAX_COUNT,
   TERRAIN_MIP_MIN_SIZE,
   clampMipCount,
+  clampMipCountForMap,
   mipInvScale,
   mipVoxelSize,
 } from "../constants/mip.js";
@@ -16,7 +17,8 @@ export function resolveTerrainMips(
   colorMap,
   width,
   height,
-  mapShift
+  mapShift,
+  wantedCount
 ) {
   const src = mips || null;
   const heightMaps = src && src.heightMaps ? src.heightMaps : [heightMap];
@@ -28,6 +30,17 @@ export function resolveTerrainMips(
   count = clampMipCount(count);
   if ((count > heightMaps.length) | 0) {
     count = heightMaps.length;
+  }
+  if (wantedCount != null) {
+    const want = clampMipCountForMap(
+      wantedCount,
+      width,
+      height,
+      count
+    );
+    if ((want < count) | 0) {
+      count = want;
+    }
   }
   if ((count < 1) | 0) {
     count = 1;

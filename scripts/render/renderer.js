@@ -15,6 +15,15 @@ import {
 import { DEFAULT_MULTITHREAD } from "../constants/threading.js";
 import { DEFAULT_FAR_CLIP } from "../constants/camera.js";
 import {
+  TERRAIN_MIP_DEFAULT_COUNT,
+  LOD_SPACING_DEFAULT_MODE,
+  LOD_SPACING_DEFAULT_METERS,
+  clampMipCount,
+  clampMipCountForMap,
+  clampLodSpacingMeters,
+  normalizeLodSpacingMode,
+} from "../constants/mip.js";
+import {
   FOG_RANGE_DEFAULT_START,
   FOG_RANGE_MIN,
   FOG_RANGE_STEP,
@@ -48,6 +57,9 @@ class Renderer {
     this._multithreadWanted = DEFAULT_MULTITHREAD;
     this._backendId = BACKEND_JS;
     this._backend = null;
+    this._mipCount = TERRAIN_MIP_DEFAULT_COUNT;
+    this._lodSpacingMode = LOD_SPACING_DEFAULT_MODE;
+    this._lodSpacing = LOD_SPACING_DEFAULT_METERS;
     this._opQueue = Promise.resolve();
   }
 
@@ -134,6 +146,27 @@ class Renderer {
     return BACKEND_CHIP[this._backendId] || this._backendId;
   }
 
+  get mipCount() {
+    return this._mipCount;
+  }
+
+  get lodSpacingMode() {
+    return this._lodSpacingMode;
+  }
+
+  get lodSpacing() {
+    return this._lodSpacing;
+  }
+
+  clampMipCountToMap(width, height, builtCount) {
+    const next = clampMipCountForMap(this._mipCount, width, height, builtCount);
+    if (next !== this._mipCount) {
+      this._mipCount = next;
+      this.invalidatePanorama();
+    }
+    return this._mipCount;
+  }
+
   set algorithm(value) {
     if (this._algorithm !== value) {
       this.cancelJobs();
@@ -169,6 +202,9 @@ class Renderer {
       backend: this._backendId,
       debugView: this._debugView,
       debugOverlay: this._debugOverlay,
+      mipCount: this._mipCount,
+      lodSpacingMode: this._lodSpacingMode,
+      lodSpacing: this._lodSpacing,
     };
   }
 
@@ -225,6 +261,32 @@ class Renderer {
     }
     if (options.backend !== undefined && !this._backend) {
       this._backendId = options.backend;
+    }
+    if (options.mipCount !== undefined) {
+      const next = clampMipCount(options.mipCount);
+      if (next !== this._mipCount) {
+        this._mipCount = next;
+        this.cancelJobs();
+        this.invalidatePanorama();
+      }
+    }
+    if (options.lodSpacingMode !== undefined) {
+      const next = normalizeLodSpacingMode(options.lodSpacingMode);
+      if (next !== this._lodSpacingMode) {
+        this._lodSpacingMode = next;
+        this.cancelJobs();
+        this.invalidatePanorama();
+      }
+    }
+    if (options.lodSpacing !== undefined) {
+      const far = this._camera ? this._camera.farClip : 8000;
+      const hi = far > 1 ? (far | 0) - 1 : 1;
+      const next = clampLodSpacingMeters(options.lodSpacing, 1, hi);
+      if (next !== this._lodSpacing) {
+        this._lodSpacing = next;
+        this.cancelJobs();
+        this.invalidatePanorama();
+      }
     }
   }
 

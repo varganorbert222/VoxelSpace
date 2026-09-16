@@ -160,7 +160,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       wasInside = 1;
     }
 
-    let hs = sampleHeightPair(mip, wx, wy, filterClip);
+    let sp = terrainSamplePos(wx, wy, dirX, dirY, mip);
+    let hs = sampleHeightPair(mip, sp.x, sp.y, filterClip);
     let h = hs.x;
     if (sealed && (h < camZ + t * tanH - EPSILON)) {
       let adv = advanceRayT(t, step, stepGrowth, mip, wx, wy, dirX, dirY);
@@ -179,6 +180,21 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     if (yHit >= panoH) {
       yHit = panoH - 1;
     }
+    if (mip > 0) {
+      let tFar = mipCellFarT(t, wx, wy, dirX, dirY, mip);
+      if (tFar > t) {
+        let yFar = yHitFromHat(dh / (tFar + absS));
+        if (yFar < yHit) {
+          yHit = yFar;
+        }
+        if (yHit < 0) {
+          yHit = 0;
+        }
+        if (yHit >= panoH) {
+          yHit = panoH - 1;
+        }
+      }
+    }
     if (yHit < H) {
       var yBottom = H;
       let tanG = dhGround / t;
@@ -191,7 +207,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         yBottom = yGround;
       }
       if (yHit < yBottom) {
-        let color = sampleColor(mip, wx, wy, filterClip);
+        let color = sampleColor(mip, sp.x, sp.y, filterClip);
         let dist = sqrt(t * t + dh * dh);
         let hByte = u32(hs.y);
         var yy = yHit;

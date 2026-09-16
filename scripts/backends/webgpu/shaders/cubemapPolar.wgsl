@@ -210,22 +210,50 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       wasInside = 1;
     }
 
-    let hs = sampleHeightPair(mip, wx, wy, filterClip);
+    let sp = terrainSamplePos(wx, wy, dirX, dirY, mip);
+    let hs = sampleHeightPair(mip, sp.x, sp.y, filterClip);
     let h = hs.x;
 
     let dh = h - camZ;
+    let tFar = mipCellFarT(t, wx, wy, dirX, dirY, mip);
     let slope = dh / t;
-    let color = sampleColor(mip, wx, wy, filterClip);
+    var slopeFar = slope;
+    if (tFar > t) {
+      slopeFar = dh / tFar;
+    }
+    let color = sampleColor(mip, sp.x, sp.y, filterClip);
     let hByte = u32(hs.y);
     let dist = sqrt(t * t + dh * dh);
-    if (face == 4 && slope > EPSILON) {
-      let r = 1.0 / slope;
-      if (r < rOuterUp) {
-        fillSpoke(n, dirX, dirY, r, rOuterUp, color, dist, hByte, k);
-        rOuterUp = r;
+    if (face == 4 && (slope > EPSILON || slopeFar > EPSILON)) {
+      var r = 1.0 / slopeFar;
+      if (slope > EPSILON) {
+        r = 1.0 / slope;
       }
-    } else if (face == 5 && slope < -EPSILON) {
-      let rTop = -1.0 / slope;
+      var rFar = r;
+      if (slopeFar > EPSILON) {
+        rFar = 1.0 / slopeFar;
+      }
+      var rNear = r;
+      if (rFar < rNear) {
+        rNear = rFar;
+      }
+      if (rNear < rOuterUp) {
+        fillSpoke(n, dirX, dirY, rNear, rOuterUp, color, dist, hByte, k);
+        rOuterUp = rNear;
+      }
+    } else if (face == 5 && (slope < -EPSILON || slopeFar < -EPSILON)) {
+      var rTop = -1.0 / slopeFar;
+      if (slope < -EPSILON) {
+        rTop = -1.0 / slope;
+      }
+      var rTopFar = rTop;
+      if (slopeFar < -EPSILON) {
+        rTopFar = -1.0 / slopeFar;
+      }
+      var rHi = rTop;
+      if (rTopFar > rHi) {
+        rHi = rTopFar;
+      }
       let groundDen = camZ - clipZ;
       var rBase = rMaxSpoke;
       if (groundDen > EPSILON) {
@@ -235,16 +263,16 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       if (lo < 0.0) {
         lo = max(rBase, 0.0);
       }
-      var hi = rTop;
+      var hi = rHi;
       if (hi > rMaxSpoke) {
         hi = rMaxSpoke;
       }
       if (lo < rMaxSpoke && hi > lo) {
         fillSpoke(n, dirX, -dirY, lo, hi, color, dist, hByte, k);
       }
-      if (rTop <= rMaxSpoke) {
-        if (rTop > rInnerDown) {
-          rInnerDown = rTop;
+      if (rHi <= rMaxSpoke) {
+        if (rHi > rInnerDown) {
+          rInnerDown = rHi;
         }
       } else if (hi >= rMaxSpoke && rInnerDown < rMaxSpoke) {
         rInnerDown = rMaxSpoke;
