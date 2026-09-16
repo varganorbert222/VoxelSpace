@@ -8,6 +8,16 @@ export const TERRAIN_MIP_COUNT_MIN = 1;
 export const TERRAIN_MIP_MAX_COUNT = 16;
 export const TERRAIN_MIP_DEFAULT_COUNT = 5;
 export const TERRAIN_MIP_DDA_EPS = 1e-4;
+export const LOD0_REFINE_SUBDIV = 16;
+export const LOD0_REFINE_SUBDIV_MIN = 2;
+export const LOD0_REFINE_MIP_COUNT = 4;
+export const LOD0_REFINE_CELL = 1 / LOD0_REFINE_SUBDIV;
+export const LOD0_REFINE_SAMPLES_MIN = 1;
+export const LOD0_REFINE_SAMPLES_MAX = 5;
+export const LOD0_REFINE_SAMPLES_DEFAULT = 3;
+export const LOD0_REFINE_NOISE_AMPLITUDE = 16;
+export const MARCH_MAX_STEPS = 16384;
+export const LOD0_REFINE_MAX_STEPS = 65536;
 
 export const LOD_SPACING_LINEAR = "linear";
 export const LOD_SPACING_DOUBLE = "double";
@@ -34,6 +44,142 @@ export function mipVoxelSize(mip) {
 
 export function mipInvScale(mip) {
   return 1 / mipVoxelSize(mip);
+}
+
+export function lod0RefineSubdiv(refineMip) {
+  const m = refineMip | 0;
+  if (m <= 0) {
+    return LOD0_REFINE_SUBDIV;
+  }
+  if (m >= LOD0_REFINE_MIP_COUNT) {
+    return LOD0_REFINE_SUBDIV_MIN;
+  }
+  const s = LOD0_REFINE_SUBDIV >> m;
+  if (s < LOD0_REFINE_SUBDIV_MIN) {
+    return LOD0_REFINE_SUBDIV_MIN;
+  }
+  return s;
+}
+
+export function lod0RefineCellSize(refineMip) {
+  return 1 / lod0RefineSubdiv(refineMip);
+}
+
+export function lod0RefineMipAt(t, lod0Meters) {
+  const span = Number(lod0Meters);
+  if (!(span > 0)) {
+    return 0;
+  }
+  const band = span / LOD0_REFINE_MIP_COUNT;
+  if (!(band > 0)) {
+    return 0;
+  }
+  let m = Math.floor(t / band);
+  if (!(m >= 0)) {
+    m = 0;
+  }
+  if (m > LOD0_REFINE_MIP_COUNT - 1) {
+    m = LOD0_REFINE_MIP_COUNT - 1;
+  }
+  return m | 0;
+}
+
+export function marchCellSize(mip, refine, refineMip) {
+  if ((mip | 0) <= 0) {
+    return refine ? lod0RefineCellSize(refineMip) : 1;
+  }
+  return mipVoxelSize(mip);
+}
+
+export function clampLod0RefineSamples(value) {
+  let n = Math.round(Number(value));
+  if (!(n >= LOD0_REFINE_SAMPLES_MIN)) {
+    n = LOD0_REFINE_SAMPLES_DEFAULT;
+  }
+  if (n < LOD0_REFINE_SAMPLES_MIN) {
+    n = LOD0_REFINE_SAMPLES_MIN;
+  }
+  if (n > LOD0_REFINE_SAMPLES_MAX) {
+    n = LOD0_REFINE_SAMPLES_MAX;
+  }
+  return n;
+}
+
+export function lod0RefineStep(samples) {
+  return LOD0_REFINE_CELL / clampLod0RefineSamples(samples);
+}
+
+export function lod0RefineAt(enabled, mip) {
+  return !!enabled && ((mip | 0) === 0);
+}
+
+export function marchMaxSteps(refine) {
+  return refine ? LOD0_REFINE_MAX_STEPS : MARCH_MAX_STEPS;
+}
+
+export function lod0SamplePos(wx, wy, dirX, dirY, refine, refineMip) {
+  if (!refine) {
+    return { x: wx, y: wy };
+  }
+  const s = lod0RefineCellSize(refineMip);
+  const e = mipDdaEps(s);
+  const ix = Math.floor((wx + dirX * e) / s);
+  const iy = Math.floor((wy + dirY * e) / s);
+  return {
+    x: (ix + 0.5) * s,
+    y: (iy + 0.5) * s,
+  };
+}
+
+function lod0RefineHash(ix, iy) {
+  let n = (Math.imul(ix | 0, 374761393) + Math.imul(iy | 0, 668265263)) | 0;
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return (n ^ (n >>> 16)) >>> 0;
+}
+
+function lod0RefineFineSpan(refineMip) {
+  let m = refineMip | 0;
+  if (m < 0) {
+    m = 0;
+  }
+  if (m > LOD0_REFINE_MIP_COUNT - 1) {
+    m = LOD0_REFINE_MIP_COUNT - 1;
+  }
+  return (1 << m) | 0;
+}
+
+function lod0RefineHashMax(x0, y0, span) {
+  let maxH = 0;
+  const n = span | 0;
+  for (let dy = 0; (dy < n) | 0; dy = (dy + 1) | 0) {
+    for (let dx = 0; (dx < n) | 0; dx = (dx + 1) | 0) {
+      const h = lod0RefineHash((x0 + dx) | 0, (y0 + dy) | 0);
+      if (h > maxH) {
+        maxH = h;
+      }
+    }
+  }
+  return maxH;
+}
+
+export function applyLod0RefineHeight(hFine, wx, wy, dirX, dirY, refine, refineMip) {
+  if (!refine) {
+    return hFine;
+  }
+  const s = lod0RefineCellSize(refineMip);
+  const e = mipDdaEps(s);
+  const span = lod0RefineFineSpan(refineMip);
+  const ix = Math.floor((wx + dirX * e) / s);
+  const iy = Math.floor((wy + dirY * e) / s);
+  const u = lod0RefineHashMax((ix * span) | 0, (iy * span) | 0, span) / 4294967296;
+  let h = hFine + (u - 0.5) * LOD0_REFINE_NOISE_AMPLITUDE;
+  if (h < 0) {
+    h = 0;
+  }
+  if (h > 255) {
+    h = 255;
+  }
+  return h;
 }
 
 export function clampMipCount(count) {
@@ -206,7 +352,7 @@ export function mipSwitchDistances(mipCount, farClip, out, mode, spacing) {
   return finalizeLodSwitches(dest, switchN, far);
 }
 
-export function classicLodDeltas(quality, bandCount, minDeltaZ, stepScale, out) {
+export function classicLodDeltas(quality, bandCount, minDeltaZ, stepScale, out, refine, samples) {
   const n = clampMipCount(bandCount);
   const dest = out || new Float64Array(n);
   const ultra = qualityIndex(quality) === QUALITY_ULTRA ? 1 : 0;
@@ -286,11 +432,11 @@ export function mipTexelFloor(wx, wy, mip, dirX, dirY) {
   };
 }
 
-export function mipCellFarT(t, wx, wy, dirX, dirY, mip) {
-  if ((mip | 0) <= 0) {
+export function mipCellFarT(t, wx, wy, dirX, dirY, mip, refine, refineMip) {
+  if (((mip | 0) <= 0) & !refine) {
     return t;
   }
-  const dt = mipDdaDelta(wx, wy, dirX, dirY, mipVoxelSize(mip));
+  const dt = mipDdaDelta(wx, wy, dirX, dirY, marchCellSize(mip, refine, refineMip));
   const tFar = t + dt;
   if (tFar > t) {
     return tFar;
@@ -298,12 +444,12 @@ export function mipCellFarT(t, wx, wy, dirX, dirY, mip) {
   return t;
 }
 
-export function mipSpanFarT(t, step, wx, wy, dirX, dirY, mip) {
-  if ((mip | 0) <= 0) {
+export function mipSpanFarT(t, step, wx, wy, dirX, dirY, mip, refine, refineMip) {
+  if (((mip | 0) <= 0) & !refine) {
     return t;
   }
   let tFar = t + step;
-  const cellFar = mipCellFarT(t, wx, wy, dirX, dirY, mip);
+  const cellFar = mipCellFarT(t, wx, wy, dirX, dirY, mip, refine, refineMip);
   if (cellFar > tFar) {
     tFar = cellFar;
   }
@@ -324,15 +470,15 @@ export function projectSdfYSpan(sdf, dst, z, zFar, horizon) {
   return y;
 }
 
-export function advanceRayT(t, step, growth, mip, wx, wy, dirX, dirY) {
-  if ((mip | 0) <= 0) {
+export function advanceRayT(t, step, growth, mip, wx, wy, dirX, dirY, refine, refineMip) {
+  if (((mip | 0) <= 0) & !refine) {
     let next = t + step;
     if (!(next > t)) {
       next = t + MIN_SAMPLE_DISTANCE;
     }
     return { t: next, step: step + growth };
   }
-  const s = mipVoxelSize(mip);
+  const s = marchCellSize(mip, refine, refineMip);
   const dt = mipDdaDelta(wx, wy, dirX, dirY, s);
   const eps = mipDdaEps(s);
   let next = t + dt + eps;

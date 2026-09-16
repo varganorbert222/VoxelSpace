@@ -21,6 +21,8 @@ import {
   clampMipCount,
   clampMipCountForMap,
   clampLodSpacingMeters,
+  clampLod0RefineSamples,
+  LOD0_REFINE_SAMPLES_DEFAULT,
   normalizeLodSpacingMode,
 } from "../constants/mip.js";
 import {
@@ -49,6 +51,8 @@ class Renderer {
     this._repeat = true;
     this._interpolateHeight = true;
     this._filterColor = true;
+    this._lod0Refine = false;
+    this._lod0RefineSamples = LOD0_REFINE_SAMPLES_DEFAULT;
     this._filterDistance = FILTER_DISTANCE_DEFAULT;
     this._debugView = DEBUG_VIEW_COLOR;
     this._debugOverlay = false;
@@ -116,6 +120,14 @@ class Renderer {
 
   get filterColor() {
     return this._filterColor;
+  }
+
+  get lod0Refine() {
+    return this._lod0Refine;
+  }
+
+  get lod0RefineSamples() {
+    return this._lod0RefineSamples;
   }
 
   get filterDistance() {
@@ -196,6 +208,8 @@ class Renderer {
       repeat: this._repeat,
       interpolateHeight: this._interpolateHeight,
       filterColor: this._filterColor,
+      lod0Refine: this._lod0Refine,
+      lod0RefineSamples: this._lod0RefineSamples,
       filterDistance: this._filterDistance,
       algorithm: this._algorithm,
       multithread: this._multithreadWanted,
@@ -237,6 +251,22 @@ class Renderer {
       const next = !!options.filterColor;
       if (next !== this._filterColor) {
         this._filterColor = next;
+        this.invalidatePanorama();
+      }
+    }
+    if (options.lod0Refine !== undefined) {
+      const next = !!options.lod0Refine;
+      if (next !== this._lod0Refine) {
+        this._lod0Refine = next;
+        this.cancelJobs();
+        this.invalidatePanorama();
+      }
+    }
+    if (options.lod0RefineSamples !== undefined) {
+      const next = clampLod0RefineSamples(options.lod0RefineSamples);
+      if (next !== this._lod0RefineSamples) {
+        this._lod0RefineSamples = next;
+        this.cancelJobs();
         this.invalidatePanorama();
       }
     }

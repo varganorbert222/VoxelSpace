@@ -72,6 +72,8 @@ export function collectSettings(app) {
     repeat: options.repeat,
     interpolateHeight: options.interpolateHeight,
     filterColor: options.filterColor,
+    lod0Refine: options.lod0Refine,
+    lod0RefineSamples: options.lod0RefineSamples,
     filterDistance: options.filterDistance,
     multithread: options.multithread,
     mode: app.camera.mode,
@@ -102,6 +104,11 @@ export function sanitizeSettings(data, defaults, bounds) {
     farClip,
     bounds.fogRange
   );
+  const lodSpacing = VMath.clamp(
+    bounds.lodSpacing.min,
+    bounds.lodSpacing.max,
+    Math.round(finiteOr(data.lodSpacing, defaults.lodSpacing))
+  );
   return {
     farClip,
     minDeltaZ: VMath.clamp(
@@ -122,6 +129,12 @@ export function sanitizeSettings(data, defaults, bounds) {
     repeat: boolOr(data.repeat, defaults.repeat),
     interpolateHeight: boolOr(data.interpolateHeight, defaults.interpolateHeight),
     filterColor: boolOr(data.filterColor, defaults.filterColor),
+    lod0Refine: boolOr(data.lod0Refine, defaults.lod0Refine),
+    lod0RefineSamples: VMath.clamp(
+      bounds.lod0RefineSamples.min,
+      bounds.lod0RefineSamples.max,
+      Math.round(finiteOr(data.lod0RefineSamples, defaults.lod0RefineSamples))
+    ),
     filterDistance: VMath.clamp(
       bounds.filterDistance.min,
       bounds.filterDistance.max,
@@ -143,11 +156,7 @@ export function sanitizeSettings(data, defaults, bounds) {
       bounds.lodSpacingModes,
       defaults.lodSpacingMode
     ),
-    lodSpacing: VMath.clamp(
-      bounds.lodSpacing.min,
-      bounds.lodSpacing.max,
-      Math.round(finiteOr(data.lodSpacing, defaults.lodSpacing))
-    ),
+    lodSpacing,
     hudChrome: boolOr(data.hudChrome, defaults.hudChrome),
     radarOpen: boolOr(data.radarOpen, defaults.radarOpen),
   };

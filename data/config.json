@@ -72,6 +72,15 @@
     "filterColor": {
       "default": true
     },
+    "lod0Refine": {
+      "default": false
+    },
+    "lod0RefineSamples": {
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "default": 3
+    },
     "filterDistance": {
       "min": 10,
       "max": 1000,

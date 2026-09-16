@@ -6,11 +6,11 @@
 @group(3) @binding(0) var outTex: texture_storage_2d<r32uint, write>;
 @group(3) @binding(1) var<storage, read> skyRows: array<u32>;
 
-const MAX_STEPS: u32 = 16384u;
+const MAX_STEPS: u32 = 65536u;
 
-fn classicSampleHeight(plx: f32, ply: f32, mip: i32, lerp: bool) -> vec2f {
+fn classicSampleHeight(plx: f32, ply: f32, mip: i32, lerp: bool, z: f32) -> vec2f {
   let dist = select(frame.sampleLimit.x + 1.0, 0.0, lerp);
-  let sampled = terrainSampleHeightPair(heightTex, mip, plx, ply, dist);
+  let sampled = terrainSampleHeightPair(heightTex, mip, plx, ply, dist, z);
   let altitude = frame.tMaxMinDzAltMaxH.z;
   var hFine = sampled.y;
   if (lerp && (mip <= 0) && (altitude > 0.0)) {
@@ -125,7 +125,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         let isOk = inside || repeat;
         if (isOk && (ceilingOnScreen < colHidden)) {
           let useFine = mip == 0;
-          let sampled = classicSampleHeight(plx, ply, mip, flagHeightLerp(flags) && useFine);
+          let sp = terrainSamplePos(plx, ply, dirX, dirY, mip, z);
+          let sampled = classicSampleHeight(sp.x, sp.y, mip, flagHeightLerp(flags) && useFine, z);
           let hByte = u32(sampled.y);
           let terrainHeight = sampled.x * altScale;
           let terrainSdf = camZ - terrainHeight;
@@ -156,7 +157,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
               plotPacked = encodeIter(sampleN);
             }
           } else if (!fogWhite) {
-            plot = classicSampleColor(plx, ply, mip, flagColorFilter(flags) && useFine);
+            plot = classicSampleColor(sp.x, sp.y, mip, flagColorFilter(flags) && useFine);
             if (applyFogT) {
               plot = fogRgb(plot, fogT);
             }
@@ -185,8 +186,12 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
           }
         }
       }
-      step = step + stepGrowth;
-      z = z + step;
+      if (lod0RefineAt(z, mip)) {
+        z = z + lod0RefineCellAt(z);
+      } else {
+        step = step + stepGrowth;
+        z = z + step;
+      }
     }
   }
 }

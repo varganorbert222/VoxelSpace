@@ -7,19 +7,19 @@
 @group(2) @binding(2) var faceHeight: texture_storage_2d<r32uint, write>;
 @group(2) @binding(3) var faceIter: texture_storage_2d<r32uint, write>;
 
-const MAX_STEPS: u32 = 16384u;
+const MAX_STEPS: u32 = 65536u;
 const EPSILON: f32 = 1e-6;
 
-fn sampleHeightPair(mip: i32, wx: f32, wy: f32, dist: f32) -> vec2f {
-  return terrainSampleHeightPair(heightTex, mip, wx, wy, dist);
+fn sampleHeightPair(mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> vec2f {
+  return terrainSampleHeightPair(heightTex, mip, wx, wy, dist, t);
 }
 
-fn sampleHeightByte(mip: i32, wx: f32, wy: f32, dist: f32) -> u32 {
-  return u32(sampleHeightPair(mip, wx, wy, dist).y);
+fn sampleHeightByte(mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> u32 {
+  return u32(sampleHeightPair(mip, wx, wy, dist, t).y);
 }
 
-fn sampleHeight(mip: i32, wx: f32, wy: f32, dist: f32) -> f32 {
-  return sampleHeightPair(mip, wx, wy, dist).x;
+fn sampleHeight(mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> f32 {
+  return sampleHeightPair(mip, wx, wy, dist, t).x;
 }
 
 fn sampleColor(mip: i32, wx: f32, wy: f32, dist: f32) -> vec4f {
@@ -131,13 +131,13 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       wasInside = 1;
     }
 
-    let sp = terrainSamplePos(wx, wy, dirX, dirY, mip);
-    let hs = sampleHeightPair(mip, sp.x, sp.y, filterClip);
+    let sp = terrainSamplePos(wx, wy, dirX, dirY, mip, t);
+    let hs = sampleHeightPair(mip, sp.x, sp.y, filterClip, t);
     let h = hs.x;
 
     let zScale = dst / t;
     var yHit = i32((camZ - h) * zScale + horizon);
-    if (mip > 0) {
+    if (mip > 0 || lod0RefineAt(t, mip)) {
       let tFar = mipCellFarT(t, wx, wy, dirX, dirY, mip);
       if (tFar > t) {
         let yFar = i32((camZ - h) * (dst / tFar) + horizon);

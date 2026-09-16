@@ -72,6 +72,14 @@ class JsBackend {
     return this._host.filterColor;
   }
 
+  get lod0Refine() {
+    return this._host.lod0Refine;
+  }
+
+  get lod0RefineSamples() {
+    return this._host.lod0RefineSamples;
+  }
+
   get filterDistance() {
     return this._host.filterDistance;
   }

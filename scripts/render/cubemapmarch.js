@@ -27,7 +27,13 @@ import {
 } from "../constants/panorama.js";
 import {
   TERRAIN_MIP_MAX_COUNT,
+  LOD0_REFINE_CELL,
   advanceRayT,
+  lod0RefineAt,
+  lod0RefineMipAt,
+  lod0SamplePos,
+  applyLod0RefineHeight,
+  marchMaxSteps,
   mipCellFarT,
   mipInvScale,
   mipSwitchDistances,
@@ -386,17 +392,18 @@ function setupMips(quality, farClip, panoMips, heightMap, colorMap, mapW, mapH, 
 
 const svHit = { offset: 0, hFine: 0, hByte: 0, sx: 0, sy: 0 };
 
-function applyCubeStep(t, step, growth, mip, wx, wy, dirX, dirY) {
-  return advanceRayT(t, step, growth, mip, wx, wy, dirX, dirY);
+function applyCubeStep(t, step, growth, mip, wx, wy, dirX, dirY, refine, refineMip) {
+  return advanceRayT(t, step, growth, mip, wx, wy, dirX, dirY, refine, refineMip);
 }
 
-function sampleCubeHeight(m, wx, wy, mip, wrap, lerp, dirX, dirY) {
+function sampleCubeHeight(m, wx, wy, mip, wrap, lerp, dirX, dirY, refine, refineMip) {
   const inv = mipInvScratch[mip];
   let sx;
   let sy;
   if ((mip | 0) === 0) {
-    sx = wx * inv;
-    sy = wy * inv;
+    const sp = lod0SamplePos(wx, wy, dirX, dirY, refine, refineMip);
+    sx = sp.x * inv;
+    sy = sp.y * inv;
   } else {
     const cell = mipTexelFloor(wx, wy, mip, dirX, dirY);
     sx = cell.ix;
@@ -414,11 +421,19 @@ function sampleCubeHeight(m, wx, wy, mip, wrap, lerp, dirX, dirY) {
   svHit.offset = offset;
   if (doLerp) {
     svHit.hFine = sampleHeightBilinear(hm, sx, sy, shift, wMask, hMask, wrap);
-    svHit.hByte = heightByteFromFine(svHit.hFine);
   } else {
     svHit.hFine = nearestH;
-    svHit.hByte = nearestH;
   }
+  svHit.hFine = applyLod0RefineHeight(
+    svHit.hFine,
+    wx,
+    wy,
+    dirX,
+    dirY,
+    refine & ((mip | 0) === 0),
+    refineMip
+  );
+  svHit.hByte = heightByteFromFine(svHit.hFine);
 }
 
 function sampleCubeColor(m, mip, wrap, filter) {
@@ -610,6 +625,8 @@ export function renderCubemapHorizonColumns({
   quality,
   interpolateHeight,
   filterColor,
+  lod0Refine,
+  lod0RefineSamples,
   filterDistance = FILTER_DISTANCE_DEFAULT,
   fwdX = 0,
   fwdY = -1,
@@ -642,7 +659,11 @@ export function renderCubemapHorizonColumns({
   if ((step0 <= 0) | 0) step0 = MIN_SAMPLE_DISTANCE;
   const lastRow = (n - 1) | 0;
   const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
-  const t0 = Math.max(nearClip, step0, MIN_SAMPLE_DISTANCE);
+  const refine = lod0Refine ? 1 : 0;
+  const refineOn = refine;
+  const t0 = refineOn
+    ? Math.max(nearClip, LOD0_REFINE_CELL)
+    : Math.max(nearClip, step0, MIN_SAMPLE_DISTANCE);
   let tStop = tMax;
   if (!(tStop > 0)) {
     tStop = farClip * FAR_PLANE_T_SCALE;
@@ -651,6 +672,7 @@ export function renderCubemapHorizonColumns({
   const lerpH = interpolateHeight | 0;
   const filterC = filterColor | 0;
   const wrap = repeat | 0;
+  const maxSteps = marchMaxSteps(refineOn);
   const cx = CUBE_FACE_C[face][0];
   const cy = CUBE_FACE_C[face][1];
   const ux = CUBE_FACE_U[face][0];
@@ -690,12 +712,14 @@ export function renderCubemapHorizonColumns({
     let tStopCol = tStop;
     let k = 0;
 
-    while ((t < tStopCol) & (H > 0) & (k < 16384)) {
+    while ((t < tStopCol) & (H > 0) & (k < maxSteps)) {
       k = (k + 1) | 0;
       while (((mip < m.lastMip) | 0) && t >= mipSwitchT[mip]) {
         mip = (mip + 1) | 0;
       }
 
+      const refineHere = lod0RefineAt(refine, mip);
+      const refineMip = refineHere ? lod0RefineMipAt(t, lodSpacing) : 0;
       const wx = camX + dirX * t;
       const wy = camY + dirY * t;
       if (!repeat) {
@@ -709,7 +733,7 @@ export function renderCubemapHorizonColumns({
             break;
           }
           {
-            const adv = applyCubeStep(t, step, m.stepGrowth, mip, wx, wy, dirX, dirY);
+            const adv = applyCubeStep(t, step, m.stepGrowth, mip, wx, wy, dirX, dirY, refineHere, refineMip);
             t = adv.t;
             step = adv.step;
           }
@@ -718,14 +742,14 @@ export function renderCubemapHorizonColumns({
         wasInside = 1;
       }
 
-      sampleCubeHeight(m, wx, wy, mip, wrap, lerpH, dirX, dirY);
+      sampleCubeHeight(m, wx, wy, mip, wrap, lerpH, dirX, dirY, refineHere, refineMip);
       const offset = svHit.offset;
       const h = svHit.hFine * altScale;
 
       const zScale = dst / t;
       let yHit = ((camZ - h) * zScale + horizon) | 0;
-      if ((mip | 0) > 0) {
-        const tFar = mipCellFarT(t, wx, wy, dirX, dirY, mip);
+      if (((mip | 0) > 0) | refineHere) {
+        const tFar = mipCellFarT(t, wx, wy, dirX, dirY, mip, refineHere, refineMip);
         if (tFar > t) {
           const yFar = ((camZ - h) * (dst / tFar) + horizon) | 0;
           if ((yFar < yHit) | 0) {
@@ -736,7 +760,7 @@ export function renderCubemapHorizonColumns({
       if ((yHit < 0) | 0) yHit = 0;
       if ((yHit > lastRow) | 0) {
         {
-          const adv = applyCubeStep(t, step, m.stepGrowth, mip, wx, wy, dirX, dirY);
+          const adv = applyCubeStep(t, step, m.stepGrowth, mip, wx, wy, dirX, dirY, refineHere, refineMip);
           t = adv.t;
           step = adv.step;
         }
@@ -776,7 +800,7 @@ export function renderCubemapHorizonColumns({
       }
 
       {
-        const adv = applyCubeStep(t, step, m.stepGrowth, mip, wx, wy, dirX, dirY);
+        const adv = applyCubeStep(t, step, m.stepGrowth, mip, wx, wy, dirX, dirY, refineHere, refineMip);
         t = adv.t;
         step = adv.step;
       }
@@ -808,6 +832,8 @@ export function renderCubemapPolarAzimuths({
   quality,
   interpolateHeight,
   filterColor,
+  lod0Refine,
+  lod0RefineSamples,
   filterDistance = FILTER_DISTANCE_DEFAULT,
   fwdX = 0,
   fwdY = -1,
@@ -870,7 +896,11 @@ export function renderCubemapPolarAzimuths({
   );
   let step0 = initialStep * INITIAL_STEP_SCALE_BY_QUALITY[m.q];
   if ((step0 <= 0) | 0) step0 = MIN_SAMPLE_DISTANCE;
-  const t0 = Math.max(nearClip, step0, MIN_SAMPLE_DISTANCE);
+  const refine = lod0Refine ? 1 : 0;
+  const refineOn = refine;
+  const t0 = refineOn
+    ? Math.max(nearClip, LOD0_REFINE_CELL)
+    : Math.max(nearClip, step0, MIN_SAMPLE_DISTANCE);
   let tStop = tMax;
   if (!(tStop > 0)) {
     tStop = farClip * FAR_PLANE_T_SCALE;
@@ -879,6 +909,7 @@ export function renderCubemapPolarAzimuths({
   const lerpH = interpolateHeight | 0;
   const filterC = filterColor | 0;
   const wrap = repeat | 0;
+  const maxSteps = marchMaxSteps(refineOn);
   const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
   const azN = azCount > 0 ? azCount : (n << 2);
   const nadirInside =
@@ -914,12 +945,14 @@ export function renderCubemapPolarAzimuths({
     if (tGroundRim > tStopCol) tStopCol = tGroundRim;
     let k = 0;
 
-    while ((t < tStopCol) & (k < 16384)) {
+    while ((t < tStopCol) & (k < maxSteps)) {
       k = (k + 1) | 0;
       while (((mip < m.lastMip) | 0) && t >= mipSwitchT[mip]) {
         mip = (mip + 1) | 0;
       }
 
+      const refineHere = lod0RefineAt(refine, mip);
+      const refineMip = refineHere ? lod0RefineMipAt(t, lodSpacing) : 0;
       const wx = camX + dirX * t;
       const wy = camY + dirY * t;
       if (!repeat) {
@@ -934,7 +967,7 @@ export function renderCubemapPolarAzimuths({
             break;
           }
           {
-            const adv = applyCubeStep(t, step, m.stepGrowth, mip, wx, wy, dirX, dirY);
+            const adv = applyCubeStep(t, step, m.stepGrowth, mip, wx, wy, dirX, dirY, refineHere, refineMip);
             t = adv.t;
             step = adv.step;
           }
@@ -943,12 +976,12 @@ export function renderCubemapPolarAzimuths({
         wasInside = 1;
       }
 
-      sampleCubeHeight(m, wx, wy, mip, wrap, lerpH, dirX, dirY);
+      sampleCubeHeight(m, wx, wy, mip, wrap, lerpH, dirX, dirY, refineHere, refineMip);
       const offset = svHit.offset;
       const h = svHit.hFine * altScale;
 
       const dh = h - camZ;
-      const tFar = mipCellFarT(t, wx, wy, dirX, dirY, mip);
+      const tFar = mipCellFarT(t, wx, wy, dirX, dirY, mip, refineHere, refineMip);
       const slope = dh / t;
       const slopeFar = tFar > t ? dh / tFar : slope;
       const color = sampleCubeColor(m, mip, wrap, filterC);
@@ -1023,7 +1056,7 @@ export function renderCubemapPolarAzimuths({
       }
 
       {
-        const adv = applyCubeStep(t, step, m.stepGrowth, mip, wx, wy, dirX, dirY);
+        const adv = applyCubeStep(t, step, m.stepGrowth, mip, wx, wy, dirX, dirY, refineHere, refineMip);
         t = adv.t;
         step = adv.step;
       }

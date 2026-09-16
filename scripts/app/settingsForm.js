@@ -45,6 +45,9 @@ function formatRangeValue(id, value) {
   if (id === "id_lod_spacing") {
     return Math.round(n) + " m";
   }
+  if (id === "id_lod0_refine_samples") {
+    return String(Math.round(n));
+  }
   if (id === "id_fov") {
     return Math.round(n) + "°";
   }
@@ -332,6 +335,18 @@ class SettingsForm {
           app.renderer.setOptions({
             lodSpacing: parseInt(e.target.value, 10),
           });
+          this.sync();
+        },
+        persist
+      ),
+      lod0RefineSamples: initRangeElement(
+        "id_lod0_refine_samples",
+        config.settings.lod0RefineSamples,
+        options.lod0RefineSamples,
+        (e) => {
+          app.renderer.setOptions({
+            lod0RefineSamples: parseInt(e.target.value, 10),
+          });
         },
         persist
       ),
@@ -374,6 +389,16 @@ class SettingsForm {
         options.filterColor,
         (e) => {
           app.renderer.setOptions({ filterColor: e.target.checked });
+          persist();
+        }
+      ),
+      lod0Refine: initCheckboxElement(
+        "id_lod0_refine",
+        options.lod0Refine,
+        (e) => {
+          app.renderer.setOptions({ lod0Refine: e.target.checked });
+          const on = e.target.checked;
+          this._elements.lod0RefineSamples.disabled = !on;
           persist();
         }
       ),
@@ -460,12 +485,14 @@ class SettingsForm {
       mipCount,
       lodSpacingMode,
       lodSpacing,
+      lod0RefineSamples,
       filterDistance,
       quality,
       applyFog,
       repeat,
       interpolateHeight,
       filterColor,
+      lod0Refine,
       multithread,
       map,
       cameraMode,
@@ -515,6 +542,12 @@ class SettingsForm {
     }
     lodSpacing.value = spacing;
     updateBoundValue("id_lod_spacing", spacing);
+    lod0RefineSamples.min = config.settings.lod0RefineSamples.min;
+    lod0RefineSamples.max = config.settings.lod0RefineSamples.max;
+    lod0RefineSamples.step = config.settings.lod0RefineSamples.step;
+    lod0RefineSamples.value = options.lod0RefineSamples;
+    lod0RefineSamples.disabled = !options.lod0Refine;
+    updateBoundValue("id_lod0_refine_samples", options.lod0RefineSamples);
     filterDistance.value = options.filterDistance;
     updateBoundValue("id_filter_distance", options.filterDistance);
     filterDistance.disabled = true;
@@ -528,6 +561,7 @@ class SettingsForm {
     repeat.checked = options.repeat;
     interpolateHeight.checked = !!options.interpolateHeight;
     filterColor.checked = !!options.filterColor;
+    lod0Refine.checked = !!options.lod0Refine;
     multithread.checked = options.multithread;
     multithread.disabled = !usesWorkers(options.backend);
     map.value = this._app.currentMapName;

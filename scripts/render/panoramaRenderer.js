@@ -150,6 +150,8 @@ class PanoramaRenderer {
       this._panoRepeat !== this._renderer.repeat ||
       this._panoInterp !== this._renderer.interpolateHeight ||
       this._panoFilter !== this._renderer.filterColor ||
+      this._panoLod0Refine !== this._renderer.lod0Refine ||
+      this._panoLod0RefineSamples !== this._renderer.lod0RefineSamples ||
       this._panoFilterDist !== this._renderer.filterDistance ||
       this._panoMinDeltaZ !== camera.minDeltaZ ||
       this._panoMipCount !== this._renderer.mipCount ||
@@ -183,6 +185,8 @@ class PanoramaRenderer {
     this._panoRepeat = this._renderer.repeat;
     this._panoInterp = this._renderer.interpolateHeight;
     this._panoFilter = this._renderer.filterColor;
+    this._panoLod0Refine = this._renderer.lod0Refine;
+    this._panoLod0RefineSamples = this._renderer.lod0RefineSamples;
     this._panoFilterDist = this._renderer.filterDistance;
     this._panoFwdX = camera.fwdX;
     this._panoFwdY = camera.fwdY;
@@ -393,6 +397,8 @@ class PanoramaRenderer {
       quality: camera.quality,
       interpolateHeight: renderer.interpolateHeight ? 1 : 0,
       filterColor: renderer.filterColor ? 1 : 0,
+      lod0Refine: renderer.lod0Refine ? 1 : 0,
+      lod0RefineSamples: renderer.lod0RefineSamples,
       filterDistance: renderer.filterDistance,
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
@@ -432,6 +438,8 @@ class PanoramaRenderer {
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
       lodSpacing: renderer.lodSpacing,
+      lod0Refine: renderer.lod0Refine,
+      lod0RefineSamples: renderer.lod0RefineSamples,
       camX: camera.posX,
       camY: camera.posY,
       camZ: camera.posZ,
@@ -454,6 +462,8 @@ class PanoramaRenderer {
       quality: camera.quality,
       interpolateHeight: renderer.interpolateHeight ? 1 : 0,
       filterColor: renderer.filterColor ? 1 : 0,
+      lod0Refine: renderer.lod0Refine ? 1 : 0,
+      lod0RefineSamples: renderer.lod0RefineSamples,
       filterDistance: renderer.filterDistance,
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
@@ -478,6 +488,8 @@ class PanoramaRenderer {
       renderer.mipCount !== token.mipCount ||
       renderer.lodSpacingMode !== token.lodSpacingMode ||
       renderer.lodSpacing !== token.lodSpacing ||
+      renderer.lod0Refine !== token.lod0Refine ||
+      renderer.lod0RefineSamples !== token.lod0RefineSamples ||
       camera.posX !== token.camX ||
       camera.posY !== token.camY ||
       camera.posZ !== token.camZ ||

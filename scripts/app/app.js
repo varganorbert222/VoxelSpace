@@ -32,7 +32,10 @@ import { detectBackends } from "../backends/contract.js";
 import { renderScaleForQuality, clampQualityForContext } from "../constants/quality.js";
 import { DEBUG_VIEW_COLOR } from "../constants/debugView.js";
 import { DEFAULT_MULTITHREAD } from "../constants/threading.js";
-import { TERRAIN_MIP_DEFAULT_COUNT, TERRAIN_MIP_MAX_COUNT } from "../constants/mip.js";
+import {
+  TERRAIN_MIP_DEFAULT_COUNT,
+  TERRAIN_MIP_MAX_COUNT,
+} from "../constants/mip.js";
 import { CANVAS_ID, VIEWPORT_ID, SPAWN_HEIGHT_OFFSET } from "../constants/main.js";
 import { HALF } from "../constants/vmath.js";
 
@@ -79,6 +82,12 @@ class App {
       debugOverlay: !!config.settings.debugOverlay.default,
       interpolateHeight: config.settings.interpolateHeight.default !== false,
       filterColor: config.settings.filterColor.default !== false,
+      lod0Refine: !!config.settings.lod0Refine && config.settings.lod0Refine.default,
+      lod0RefineSamples:
+        config.settings.lod0RefineSamples &&
+        config.settings.lod0RefineSamples.default != null
+          ? config.settings.lod0RefineSamples.default
+          : 3,
       filterDistance: config.settings.filterDistance.default,
       mipCount: config.settings.mipCount
         ? config.settings.mipCount.default
@@ -254,6 +263,8 @@ class App {
         repeat: options.repeat,
         interpolateHeight: options.interpolateHeight,
         filterColor: options.filterColor,
+        lod0Refine: options.lod0Refine,
+        lod0RefineSamples: options.lod0RefineSamples,
         filterDistance: options.filterDistance,
         multithread: options.multithread,
         map: this.currentMapName,
@@ -285,6 +296,7 @@ class App {
         },
         lodSpacingModes: config.settings.lodSpacingMode.values,
         lodSpacing: config.settings.lodSpacing,
+        lod0RefineSamples: config.settings.lod0RefineSamples,
       }
     );
     if (!sanitized) {
@@ -304,6 +316,8 @@ class App {
       repeat: sanitized.repeat,
       interpolateHeight: sanitized.interpolateHeight,
       filterColor: sanitized.filterColor,
+      lod0Refine: sanitized.lod0Refine,
+      lod0RefineSamples: sanitized.lod0RefineSamples,
       filterDistance: sanitized.filterDistance,
       multithread: sanitized.multithread,
       algorithm: sanitized.algorithm,

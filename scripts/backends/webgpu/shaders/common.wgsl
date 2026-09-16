@@ -171,6 +171,35 @@ fn flagColorFilter(flags: u32) -> bool {
   return (flags & 8192u) != 0u;
 }
 
+fn flagLod0Refine(flags: u32) -> bool {
+  return (flags & 16384u) != 0u;
+}
+
+fn lod0RefineAt(t: f32, mip: i32) -> bool {
+  return (mip <= 0) && flagLod0Refine(frame.mapFlags.w);
+}
+
+fn lod0RefineMipAt(t: f32) -> i32 {
+  let span = frame.mipSwitchYHit.x;
+  if (!(span > 0.0)) {
+    return 0;
+  }
+  let band = span * 0.25;
+  var m = i32(floor(t / band));
+  if (m < 0) {
+    m = 0;
+  }
+  if (m > 3) {
+    m = 3;
+  }
+  return m;
+}
+
+fn lod0RefineCellAt(t: f32) -> f32 {
+  let subdiv = max(16u >> u32(lod0RefineMipAt(t)), 2u);
+  return 1.0 / f32(subdiv);
+}
+
 fn wrapOrClamp(v: i32, mask: i32, wrap: bool) -> i32 {
   if (wrap) {
     return v & mask;
@@ -251,25 +280,77 @@ fn terrainColorAt(tex: texture_2d<f32>, ix: i32, iy: i32, mip: i32, wrap: bool) 
   return textureLoad(tex, vec2<i32>(x, y), m);
 }
 
-fn terrainSampleHeightPair(tex: texture_2d<u32>, mip: i32, wx: f32, wy: f32, dist: f32) -> vec2f {
-  let altitude = frame.tMaxMinDzAltMaxH.z;
-  let nn = f32(terrainHeightNN(tex, mip, wx, wy));
-  if ((mip > 0) || !flagHeightLerp(frame.mapFlags.w)) {
-    return vec2f(nn * (altitude / 255.0), nn);
+fn lod0RefineHash(x: i32, y: i32) -> u32 {
+  var n = u32(x) * 374761393u + u32(y) * 668265263u;
+  n = (n ^ (n >> 13u)) * 1274126177u;
+  n = n ^ (n >> 16u);
+  return n;
+}
+
+fn lod0RefineHashMax(x0: i32, y0: i32, span: u32) -> u32 {
+  var maxH = 0u;
+  var dy = 0u;
+  loop {
+    if (dy >= span) {
+      break;
+    }
+    var dx = 0u;
+    loop {
+      if (dx >= span) {
+        break;
+      }
+      let h = lod0RefineHash(x0 + i32(dx), y0 + i32(dy));
+      if (h > maxH) {
+        maxH = h;
+      }
+      dx = dx + 1u;
+    }
+    dy = dy + 1u;
   }
-  let wrap = flagRepeat(frame.mapFlags.w);
-  let inv = terrainInv(mip);
-  let x0 = floor(wx * inv);
-  let y0 = floor(wy * inv);
-  let fx = wx * inv - x0;
-  let fy = wy * inv - y0;
-  let tx = i32(x0);
-  let ty = i32(y0);
-  let h00 = f32(terrainHeightAt(tex, tx, ty, 0, wrap));
-  let h10 = f32(terrainHeightAt(tex, tx + 1, ty, 0, wrap));
-  let h01 = f32(terrainHeightAt(tex, tx, ty + 1, 0, wrap));
-  let h11 = f32(terrainHeightAt(tex, tx + 1, ty + 1, 0, wrap));
-  let h = bilinearHeight(h00, h10, h01, h11, fx, fy);
+  return maxH;
+}
+
+fn applyLod0RefineHeight(hFine: f32, wx: f32, wy: f32, mip: i32, t: f32) -> f32 {
+  if (!lod0RefineAt(t, mip)) {
+    return hFine;
+  }
+  let s = lod0RefineCellAt(t);
+  let span = 1u << u32(lod0RefineMipAt(t));
+  let ix = i32(floor(wx / s));
+  let iy = i32(floor(wy / s));
+  let u = f32(lod0RefineHashMax(ix * i32(span), iy * i32(span), span)) * (1.0 / 4294967296.0);
+  var h = hFine + (u - 0.5) * 16.0;
+  if (h < 0.0) {
+    h = 0.0;
+  }
+  if (h > 255.0) {
+    h = 255.0;
+  }
+  return h;
+}
+
+fn terrainSampleHeightPair(tex: texture_2d<u32>, mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> vec2f {
+  let altitude = frame.tMaxMinDzAltMaxH.z;
+  var h: f32;
+  let lerp = flagHeightLerp(frame.mapFlags.w);
+  if ((mip > 0) || !lerp) {
+    h = f32(terrainHeightNN(tex, mip, wx, wy));
+  } else {
+    let wrap = flagRepeat(frame.mapFlags.w);
+    let inv = terrainInv(mip);
+    let x0 = floor(wx * inv);
+    let y0 = floor(wy * inv);
+    let fx = wx * inv - x0;
+    let fy = wy * inv - y0;
+    let tx = i32(x0);
+    let ty = i32(y0);
+    let h00 = f32(terrainHeightAt(tex, tx, ty, 0, wrap));
+    let h10 = f32(terrainHeightAt(tex, tx + 1, ty, 0, wrap));
+    let h01 = f32(terrainHeightAt(tex, tx, ty + 1, 0, wrap));
+    let h11 = f32(terrainHeightAt(tex, tx + 1, ty + 1, 0, wrap));
+    h = bilinearHeight(h00, h10, h01, h11, fx, fy);
+  }
+  h = applyLod0RefineHeight(h, wx, wy, mip, t);
   return vec2f(h * (altitude / 255.0), clamp(h + 0.5, 0.0, 255.0));
 }
 
@@ -295,8 +376,18 @@ fn terrainSampleColor(tex: texture_2d<f32>, mip: i32, wx: f32, wy: f32, dist: f3
   return terrainColorNN(tex, mip, wx, wy);
 }
 
-fn mipDdaDelta(wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32) -> f32 {
-  let s = exp2(f32(max(mip, 0)));
+fn mipCellSize(mip: i32, t: f32) -> f32 {
+  if (mip <= 0) {
+    if (lod0RefineAt(t, mip)) {
+      return lod0RefineCellAt(t);
+    }
+    return 1.0;
+  }
+  return exp2(f32(mip));
+}
+
+fn mipDdaDelta(wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32, t: f32) -> f32 {
+  let s = mipCellSize(mip, t);
   let ix = floor(wx / s);
   let iy = floor(wy / s);
   var tMaxX = 1e30;
@@ -319,10 +410,10 @@ fn mipDdaDelta(wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32) -> f32 {
 }
 
 fn mipCellFarT(t: f32, wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32) -> f32 {
-  if (mip <= 0) {
+  if (mip <= 0 && !lod0RefineAt(t, mip)) {
     return t;
   }
-  let tFar = t + mipDdaDelta(wx, wy, dirX, dirY, mip);
+  let tFar = t + mipDdaDelta(wx, wy, dirX, dirY, mip, t);
   if (tFar > t) {
     return tFar;
   }
@@ -330,7 +421,7 @@ fn mipCellFarT(t: f32, wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32) -> f32 
 }
 
 fn mipSpanFarT(t: f32, step: f32, wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32) -> f32 {
-  if (mip <= 0) {
+  if (mip <= 0 && !lod0RefineAt(t, mip)) {
     return t;
   }
   var tFar = t + step;
@@ -355,24 +446,39 @@ fn projectSdfYSpan(sdf: f32, dst: f32, z: f32, zFar: f32, horizon: f32) -> i32 {
   return y;
 }
 
-fn terrainSamplePos(wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32) -> vec2f {
-  if (mip <= 0) {
-    return vec2f(wx, wy);
+fn mipDdaEps(s: f32) -> f32 {
+  let e = s * 1.0e-4;
+  if (e < 1.0e-6) {
+    return 1.0e-6;
   }
-  let e = mipDdaEps(mip);
+  return e;
+}
+
+fn terrainSamplePos(wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32, t: f32) -> vec2f {
+  if (mip <= 0) {
+    if (!lod0RefineAt(t, mip)) {
+      return vec2f(wx, wy);
+    }
+    let s = lod0RefineCellAt(t);
+    let e = mipDdaEps(s);
+    let ix = floor((wx + dirX * e) / s);
+    let iy = floor((wy + dirY * e) / s);
+    return vec2f((ix + 0.5) * s, (iy + 0.5) * s);
+  }
+  let e = mipDdaEps(mipCellSize(mip, t));
   return vec2f(wx + dirX * e, wy + dirY * e);
 }
 
 fn advanceRayT(t: f32, step: f32, growth: f32, mip: i32, wx: f32, wy: f32, dirX: f32, dirY: f32) -> vec2f {
-  if (mip <= 0) {
+  if (mip <= 0 && !lod0RefineAt(t, mip)) {
     var next = t + step;
     if (!(next > t)) {
       next = t + 0.5;
     }
     return vec2f(next, step + growth);
   }
-  let eps = mipDdaEps(mip);
-  var next = t + mipDdaDelta(wx, wy, dirX, dirY, mip) + eps;
+  let eps = mipDdaEps(mipCellSize(mip, t));
+  var next = t + mipDdaDelta(wx, wy, dirX, dirY, mip, t) + eps;
   if (!(next > t)) {
     next = t + eps;
   }

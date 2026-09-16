@@ -28,7 +28,13 @@ import {
 } from "../constants/panorama.js";
 import {
   TERRAIN_MIP_MAX_COUNT,
+  LOD0_REFINE_CELL,
   advanceRayT,
+  lod0RefineAt,
+  lod0RefineMipAt,
+  lod0SamplePos,
+  applyLod0RefineHeight,
+  marchMaxSteps,
   mipCellFarT,
   mipInvScale,
   mipSwitchDistances,
@@ -337,6 +343,8 @@ export function renderPanoramaColumns({
   quality,
   interpolateHeight,
   filterColor,
+  lod0Refine,
+  lod0RefineSamples,
   filterDistance = FILTER_DISTANCE_DEFAULT,
   fwdX = 0,
   fwdY = -1,
@@ -376,7 +384,11 @@ export function renderPanoramaColumns({
   const lastRow = (height - 1) | 0;
   const tanLast = lut[lastRow];
   const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
-  let t0 = Math.max(nearClip, step0, MIN_SAMPLE_DISTANCE);
+  const refine = lod0Refine ? 1 : 0;
+  const refineOn = refine;
+  let t0 = refineOn
+    ? Math.max(nearClip, LOD0_REFINE_CELL)
+    : Math.max(nearClip, step0, MIN_SAMPLE_DISTANCE);
   if ((camZ > clipZ) & (tanLast < 0)) {
     const tGroundPole = (clipZ - camZ) / tanLast;
     if ((tGroundPole > 0) & (tGroundPole < t0)) {
@@ -422,6 +434,7 @@ export function renderPanoramaColumns({
   const lerpH = interpolateHeight | 0;
   const filterC = filterColor | 0;
   const wrap = repeat | 0;
+  const maxSteps = marchMaxSteps(refineOn);
   const ceiling = maxHeight == null ? altitude : maxHeight;
   const dhGround = clipZ - camZ;
   const absGround = dhGround < 0 ? -dhGround : dhGround;
@@ -443,7 +456,7 @@ export function renderPanoramaColumns({
     let tStopCol = tStop;
     let k = 0;
 
-    while ((t < tStopCol) & (k < 16384)) {
+    while ((t < tStopCol) & (k < maxSteps)) {
       k = (k + 1) | 0;
       if (H === 0) {
         break;
@@ -453,6 +466,8 @@ export function renderPanoramaColumns({
         mip = (mip + 1) | 0;
       }
 
+      const refineHere = lod0RefineAt(refine, mip);
+      const refineMip = refineHere ? lod0RefineMipAt(t, lodSpacing) : 0;
       const sealed = (H !== height) | 0;
       const tanH = sealed ? lut[H] : 0;
       if (sealed) {
@@ -496,7 +511,7 @@ export function renderPanoramaColumns({
             break;
           }
           {
-            const adv = advanceRayT(t, step, stepGrowth, mip, wx, wy, dirX, dirY);
+            const adv = advanceRayT(t, step, stepGrowth, mip, wx, wy, dirX, dirY, refineHere, refineMip);
             t = adv.t;
             step = adv.step;
           }
@@ -509,8 +524,9 @@ export function renderPanoramaColumns({
       let sx;
       let sy;
       if ((mip | 0) === 0) {
-        sx = wx * inv;
-        sy = wy * inv;
+        const sp = lod0SamplePos(wx, wy, dirX, dirY, refineHere, refineMip);
+        sx = sp.x * inv;
+        sy = sp.y * inv;
       } else {
         const cell = mipTexelFloor(wx, wy, mip, dirX, dirY);
         sx = cell.ix;
@@ -525,14 +541,23 @@ export function renderPanoramaColumns({
       const offset =
         ((((sy | 0) & wMask) << shift) + ((sx | 0) & hMask)) | 0;
       const nearestH = hm[offset];
-      const hFine = doLerp
+      const hSample = doLerp
         ? sampleHeightBilinear(hm, sx, sy, shift, wMask, hMask, wrap)
         : nearestH;
+      const hFine = applyLod0RefineHeight(
+        hSample,
+        wx,
+        wy,
+        dirX,
+        dirY,
+        refineHere,
+        refineMip
+      );
       const h = hFine * altScale;
 
       if (sealed && h < camZ + t * tanH - EPSILON) {
         {
-          const adv = advanceRayT(t, step, stepGrowth, mip, wx, wy, dirX, dirY);
+          const adv = advanceRayT(t, step, stepGrowth, mip, wx, wy, dirX, dirY, refineHere, refineMip);
           t = adv.t;
           step = adv.step;
         }
@@ -541,8 +566,8 @@ export function renderPanoramaColumns({
 
       const dh = h - camZ;
       let yHit = panoYHitFromDh(dh, t, yHitLut, height);
-      if ((mip | 0) > 0) {
-        const tFar = mipCellFarT(t, wx, wy, dirX, dirY, mip);
+      if (((mip | 0) > 0) | refineHere) {
+        const tFar = mipCellFarT(t, wx, wy, dirX, dirY, mip, refineHere, refineMip);
         const yFar = panoYHitFromDh(dh, tFar, yHitLut, height);
         if ((yFar < yHit) | 0) {
           yHit = yFar;
@@ -610,7 +635,7 @@ export function renderPanoramaColumns({
       }
 
       {
-        const adv = advanceRayT(t, step, stepGrowth, mip, wx, wy, dirX, dirY);
+        const adv = advanceRayT(t, step, stepGrowth, mip, wx, wy, dirX, dirY, refineHere, refineMip);
         t = adv.t;
         step = adv.step;
       }

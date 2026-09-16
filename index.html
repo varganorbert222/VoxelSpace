@@ -284,7 +284,32 @@
       </section>
 
       <section class="hud-section">
-        <h2 class="hud-section-title"><span>04</span> Debug</h2>
+        <h2 class="hud-section-title"><span>04</span> LOD0 refine</h2>
+        <div class="flag-grid">
+          <label
+            class="check"
+            for="id_lod0_refine"
+            data-tip="Optional LOD 0 refinement, from the camera out to the LOD 0 distance. Four equal mips (16, 8, 4, then 2 virtual voxels per meter) keep the far end cheap. Occupancy, stepping, and height jitter use the current refine cell. Height interp and Color filter stay their own switches."
+          >
+            <input id="id_lod0_refine" name="lod0refine" type="checkbox" autocomplete="off" />
+            <span class="check-box" aria-hidden="true"></span>
+            Enable
+          </label>
+        </div>
+        <div
+          class="control"
+          data-tip="Density ceiling: a ray will not sample a 1/16 m voxel more than this many times. The march takes one sample per refined voxel."
+        >
+          <div class="control-head">
+            <label for="id_lod0_refine_samples">Samples</label>
+            <span class="control-value" data-for="id_lod0_refine_samples"></span>
+          </div>
+          <input id="id_lod0_refine_samples" type="range" autocomplete="off" />
+        </div>
+      </section>
+
+      <section class="hud-section">
+        <h2 class="hud-section-title"><span>05</span> Debug</h2>
         <div
           class="control"
           data-tip="Color is the production picture. Height / Depth / Iterations recolor the camera view and the env atlas. A floating key next to the radar explains the scale."
@@ -316,7 +341,7 @@
       </section>
 
       <section class="hud-section">
-        <h2 class="hud-section-title"><span>05</span> Flags</h2>
+        <h2 class="hud-section-title"><span>06</span> Flags</h2>
         <div class="flag-grid">
           <label class="check" for="id_apply_fog" data-tip="Fade distant terrain into the sky. Start and end distances come from Fog range.">
             <input
@@ -337,7 +362,7 @@
           <label
             class="check"
             for="id_interpolate_height"
-            data-tip="Bilinear height sampling on LOD 0 only. Higher LOD voxels stay nearest-texel. Off uses nearest everywhere."
+            data-tip="Bilinear height sampling on LOD 0 only. Independent of LOD0 refine: with refine, the lerp is evaluated at each 1/16 m voxel center and held across that voxel. Higher LOD voxels stay nearest-texel. Off uses nearest everywhere."
           >
             <input
               id="id_interpolate_height"
@@ -351,7 +376,7 @@
           <label
             class="check"
             for="id_filter_color"
-            data-tip="World-space bilinear blend on the color map, on LOD 0 only. Higher LOD voxels stay nearest-texel so coarse blocks stay flat."
+            data-tip="World-space bilinear blend on the color map, on LOD 0 only. Independent of LOD0 refine: with refine, the blend is evaluated at each 1/16 m voxel center. Higher LOD voxels stay nearest-texel so coarse blocks stay flat."
           >
             <input id="id_filter_color" name="filtercolor" type="checkbox" autocomplete="off" />
             <span class="check-box" aria-hidden="true"></span>
@@ -376,7 +401,7 @@
       </section>
 
       <section class="hud-section hud-section--keys">
-        <h2 class="hud-section-title"><span>06</span> Input</h2>
+        <h2 class="hud-section-title"><span>07</span> Input</h2>
         <dl class="key-legend">
           <div><dt>WASD</dt><dd>Move / strafe</dd></div>
           <div><dt>Shift</dt><dd>Faster</dd></div>
@@ -405,7 +430,7 @@
       </section>
 
       <section class="hud-section hud-section--touch">
-        <h2 class="hud-section-title"><span>06</span> Touch</h2>
+        <h2 class="hud-section-title"><span>07</span> Touch</h2>
         <dl class="key-legend">
           <div class="fly-only"><dt>L Stick</dt><dd>Move / strafe</dd></div>
           <div class="orbit-only"><dt>L Stick</dt><dd>Zoom</dd></div>
@@ -419,7 +444,7 @@
       </section>
 
       <section class="hud-section hud-section--link">
-        <h2 class="hud-section-title"><span>07</span> Link</h2>
+        <h2 class="hud-section-title"><span>08</span> Link</h2>
         <a class="hud-link" href="https://github.com/varganorbert222/VoxelSpace"
           >Github project</a
         >

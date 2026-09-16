@@ -31,6 +31,7 @@ import {
 } from "../constants/panorama.js";
 import {
   TERRAIN_MIP_MAX_COUNT,
+  LOD0_REFINE_CELL,
   classicLodDeltas,
   mipSwitchDistances,
 } from "../constants/mip.js";
@@ -219,14 +220,26 @@ export function createWasmKernels(instance) {
       ":" +
       params.lodSpacing +
       ":" +
-      params.farClip;
+      params.farClip +
+      ":" +
+      (params.lod0Refine | 0) +
+      ":" +
+      (params.lod0RefineSamples | 0);
     if (classicKey === key) {
       return bandCount;
     }
     const stepScale = INITIAL_STEP_SCALE_BY_QUALITY[q];
     const offsets = new Int32Array(bandCount);
     offsets.fill(1);
-    const deltasAll = classicLodDeltas(q, bandCount, params.minDeltaZ, stepScale);
+    const deltasAll = classicLodDeltas(
+      q,
+      bandCount,
+      params.minDeltaZ,
+      stepScale,
+      null,
+      params.lod0Refine,
+      params.lod0RefineSamples
+    );
     const farDeltas = deltasAll.subarray(1);
     const switches = mipSwitchDistances(
       bandCount,
@@ -292,7 +305,10 @@ export function createWasmKernels(instance) {
       params.filterColor | 0,
       Number.isFinite(dist) ? dist : FILTER_DISTANCE_DEFAULT,
       Number.isFinite(fwdX) ? fwdX : 0,
-      Number.isFinite(fwdY) ? fwdY : -1
+      Number.isFinite(fwdY) ? fwdY : -1,
+      params.lod0Refine | 0,
+      params.lod0RefineSamples | 0,
+      Number(params.lodSpacing) || 0
     );
   }
 
@@ -528,7 +544,10 @@ export function createWasmKernels(instance) {
     const lastRow = (height - 1) | 0;
     const tanLast = tanMin[lastRow];
     const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
-    let t0 = Math.max(params.nearClip, step0, MIN_SAMPLE_DISTANCE);
+    const refineOn = !!params.lod0Refine;
+    let t0 = refineOn
+      ? Math.max(params.nearClip, LOD0_REFINE_CELL)
+      : Math.max(params.nearClip, step0, MIN_SAMPLE_DISTANCE);
     if ((params.camZ > clipZ) & (tanLast < 0)) {
       const tGroundPole = (clipZ - params.camZ) / tanLast;
       if ((tGroundPole > 0) & (tGroundPole < t0)) {
