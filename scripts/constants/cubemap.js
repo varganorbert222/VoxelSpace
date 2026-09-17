@@ -11,6 +11,13 @@ export const CUBE_FACE_NY = 3;
 export const CUBE_FACE_PZ = 4;
 export const CUBE_FACE_NZ = 5;
 export const CUBE_HORIZON_FACES = 4;
+export const CUBE_HORIZON_TAN_HALF = -1;
+export const CUBE_HORIZON_YAW = Object.freeze([
+  -Math.PI * 0.5,
+  Math.PI * 0.5,
+  Math.PI,
+  0,
+]);
 
 export const CUBE_SIZE_BY_QUALITY = Object.freeze([
   0, 256, 384, 512, 768, 1024,

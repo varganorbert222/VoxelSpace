@@ -9,7 +9,12 @@ import {
   envOverlayAllowed,
   overlayDestRect,
 } from "../../constants/debugView.js";
-import { cubeSizeForQuality } from "../../constants/cubemap.js";
+import {
+  CUBE_HORIZON_FACES,
+  CUBE_HORIZON_TAN_HALF,
+  CUBE_HORIZON_YAW,
+  cubeSizeForQuality,
+} from "../../constants/cubemap.js";
 import {
   PANO_SIZE_BY_QUALITY,
   STEP_GROWTH_BY_QUALITY,
@@ -604,6 +609,8 @@ class WebGpuBackend {
     const fov = camera.calculateFov();
     const dst = camera.calculateProjPlane();
     const horizon = camera.calculateHorizon(dst);
+    const isCubeFace = Number.isFinite(cubeFace);
+    const isHorizonFace = isCubeFace && cubeFace >= 0 && cubeFace < CUBE_HORIZON_FACES;
     const mips = resolveTerrainMips(
       maps && (maps.terrainMips || maps.panoMips),
       maps && maps.heightMap,
@@ -634,11 +641,28 @@ class WebGpuBackend {
     const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
     const refineOn = !!this._host.lod0Refine;
     let t0 = firstMarchT(camera.nearClip, refineOn, this._host.stepDivisor);
-    if ((camera.posZ > clipZ) & (tanLast < 0)) {
+    if (!isCubeFace && (camera.posZ > clipZ) & (tanLast < 0)) {
       const tGroundPole = (clipZ - camera.posZ) / tanLast;
       if ((tGroundPole > 0) & (tGroundPole < t0)) {
         t0 = camera.nearClip > tGroundPole ? camera.nearClip : tGroundPole;
       }
+    }
+    let tanHalfFovX = fov.tanHalfX;
+    let sinAngle = Math.sin(camera.angle);
+    let cosAngle = Math.cos(camera.angle);
+    let dstToProjPlane = dst;
+    let screenHorizon = horizon;
+    let applyFog = this._host.applyFog;
+    if (isHorizonFace) {
+      const yaw = CUBE_HORIZON_YAW[cubeFace | 0];
+      tanHalfFovX = CUBE_HORIZON_TAN_HALF;
+      sinAngle = Math.sin(yaw);
+      cosAngle = Math.cos(yaw);
+      dstToProjPlane = panoW * HALF;
+      screenHorizon = panoW * HALF;
+    }
+    if (isCubeFace) {
+      applyFog = false;
     }
     const aspect = screenH ? screenW / screenH : 0;
     const envFar = camera.farClip;
@@ -654,21 +678,21 @@ class WebGpuBackend {
       camX: camera.posX,
       camY: camera.posY,
       camZ: camera.posZ,
-      tanHalfFovX: fov.tanHalfX,
+      tanHalfFovX: tanHalfFovX,
       rightX: camera.rightX,
       rightY: camera.rightY,
       rightZ: camera.rightZ,
-      dstToProjPlane: dst,
+      dstToProjPlane: dstToProjPlane,
       upX: camera.upX,
       upY: camera.upY,
       upZ: camera.upZ,
-      screenHorizon: horizon,
+      screenHorizon: screenHorizon,
       fwdX: camera.fwdX,
       fwdY: camera.fwdY,
       fwdZ: camera.fwdZ,
       t0: t0,
-      sinAngle: Math.sin(camera.angle),
-      cosAngle: Math.cos(camera.angle),
+      sinAngle: sinAngle,
+      cosAngle: cosAngle,
       nearClip: camera.nearClip,
       farClip: packFar,
       tMax: tMax,
@@ -682,7 +706,7 @@ class WebGpuBackend {
       mapW: maps.width,
       mapH: maps.height,
       mapShift: maps.mapShift,
-      applyFog: this._host.applyFog,
+      applyFog: applyFog,
       repeat: this._host.repeat,
       interpolateHeight: this._host.interpolateHeight,
       filterColor: this._host.filterColor,
