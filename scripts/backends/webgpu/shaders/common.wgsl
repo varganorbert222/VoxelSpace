@@ -422,19 +422,10 @@ fn easeLodSample(t: f32, wx: f32, wy: f32, mip: i32) -> vec4f {
     let start = lod0Far;
     let end = frame.sampleLimit.w;
     if ((end > start) && (end < 1.0e20)) {
-      let inW = (end - start) * 0.25;
-      if (t < start + inW) {
-        let uIn = 1.0 - lodBandU(t, start, start + inW);
-        if (lodEdgePick(uIn, wx, wy, 2.0)) {
-          sampleMip = 0;
-          filt = 0.0;
-        }
-      } else {
-        let span = end - start;
-        let u = lodBandU(t, end - span * 0.25, end);
-        if (lodEdgePick(u, wx, wy, 2.0)) {
-          sampleMip = 2;
-        }
+      let span = end - start;
+      let u = lodBandU(t, end - span * 0.25, end);
+      if (lodEdgePick(u, wx, wy, 2.0)) {
+        sampleMip = 2;
       }
     }
   }

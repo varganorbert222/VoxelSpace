@@ -281,18 +281,9 @@ export function easeLodSample(
     const start = Number(mipSwitches[0]);
     const end = Number(mipSwitches[1]);
     if (end > start && end < LOD_SPACING_UNUSED * 0.5) {
-      const inW = (end - start) * LOD_EDGE_FRACTION;
-      if (t < start + inW && start + inW > start) {
-        const uIn = 1 - lodBandU(t, start, start + inW);
-        if (lodEdgePickNext(uIn, wx, wy, 2)) {
-          sampleMip = 0;
-          filterFade = 0;
-        }
-      } else {
-        const u = lodEdgeBlendU(t, start, end);
-        if (lodEdgePickNext(u, wx, wy, 2)) {
-          sampleMip = 2;
-        }
+      const u = lodEdgeBlendU(t, start, end);
+      if (lodEdgePickNext(u, wx, wy, 2)) {
+        sampleMip = 2;
       }
     }
   }

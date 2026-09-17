@@ -558,19 +558,10 @@ static inline void ease_lod_sample(
     f64 start = g_mip_switch[0];
     f64 end = g_mip_switch[1];
     if (end > start && end < 1.0e20) {
-      f64 in_w = (end - start) * LOD_EDGE_FRACTION;
-      if (t < start + in_w) {
-        f64 u_in = 1.0 - lod_band_u(t, start, start + in_w);
-        if (lod_edge_pick(u_in, wx, wy, 2.0)) {
-          sample_mip = 0;
-          filt = 0.0;
-        }
-      } else {
-        f64 span = end - start;
-        f64 u = lod_band_u(t, end - span * LOD_EDGE_FRACTION, end);
-        if (lod_edge_pick(u, wx, wy, 2.0)) {
-          sample_mip = 2;
-        }
+      f64 span = end - start;
+      f64 u = lod_band_u(t, end - span * LOD_EDGE_FRACTION, end);
+      if (lod_edge_pick(u, wx, wy, 2.0)) {
+        sample_mip = 2;
       }
     }
   }
