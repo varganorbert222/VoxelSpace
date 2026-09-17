@@ -311,6 +311,14 @@ fn lod0RefineHashMax(x0: i32, y0: i32, span: u32) -> u32 {
   return maxH;
 }
 
+fn bilinearHeight(h00: f32, h10: f32, h01: f32, h11: f32, fx: f32, fy: f32) -> f32 {
+  return mix(mix(h00, h10, fx), mix(h01, h11, fx), fy);
+}
+
+fn bilinearColor(c00: vec4f, c10: vec4f, c01: vec4f, c11: vec4f, fx: f32, fy: f32) -> vec4f {
+  return mix(mix(c00, c10, fx), mix(c01, c11, fx), fy);
+}
+
 fn lod0RefineCellFromM(m: i32) -> f32 {
   let subdiv = max(16u >> u32(max(m, 0)), 1u);
   return 1.0 / f32(subdiv);
@@ -360,14 +368,7 @@ fn lodEdgePick(u: f32, wx: f32, wy: f32, cell: f32) -> bool {
   return u > f32(lod0RefineHash(ix, iy)) * (1.0 / 4294967296.0);
 }
 
-struct LodEase {
-  mip: i32,
-  rm: i32,
-  noiseAmp: f32,
-  filterFade: f32,
-}
-
-fn easeLodSample(t: f32, wx: f32, wy: f32, mip: i32) -> LodEase {
+fn easeLodSample(t: f32, wx: f32, wy: f32, mip: i32) -> vec4f {
   var sampleMip = mip;
   let lastR = 4;
   var sampleRm = 0;
@@ -437,7 +438,7 @@ fn easeLodSample(t: f32, wx: f32, wy: f32, mip: i32) -> LodEase {
       }
     }
   }
-  return LodEase(sampleMip, sampleRm, noise, filt);
+  return vec4f(f32(sampleMip), f32(sampleRm), noise, filt);
 }
 
 fn applyLod0RefineHeight(hFine: f32, wx: f32, wy: f32, mip: i32, rm: i32, amp: f32) -> f32 {
@@ -461,17 +462,18 @@ fn applyLod0RefineHeight(hFine: f32, wx: f32, wy: f32, mip: i32, rm: i32, amp: f
 
 fn terrainSampleHeightPair(tex: texture_2d<u32>, mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> vec2f {
   let ease = easeLodSample(t, wx, wy, mip);
-  let useMip = ease.mip;
+  let useMip = i32(ease.x);
+  let useRm = i32(ease.y);
   var sx = wx;
   var sy = wy;
   if ((useMip == 0) && flagLod0Refine(frame.mapFlags.w)) {
-    let s = lod0RefineCellFromM(ease.rm);
+    let s = lod0RefineCellFromM(useRm);
     sx = (floor(wx / s) + 0.5) * s;
     sy = (floor(wy / s) + 0.5) * s;
   }
   let altitude = frame.tMaxMinDzAltMaxH.z;
   var h: f32;
-  let lerp = flagHeightLerp(frame.mapFlags.w) && (useMip == 0) && (ease.filterFade > 0.0);
+  let lerp = flagHeightLerp(frame.mapFlags.w) && (useMip == 0) && (ease.w > 0.0);
   if (!lerp) {
     h = f32(terrainHeightNN(tex, useMip, sx, sy));
   } else {
@@ -488,27 +490,28 @@ fn terrainSampleHeightPair(tex: texture_2d<u32>, mip: i32, wx: f32, wy: f32, dis
     let h01 = f32(terrainHeightAt(tex, tx, ty + 1, 0, wrap));
     let h11 = f32(terrainHeightAt(tex, tx + 1, ty + 1, 0, wrap));
     h = bilinearHeight(h00, h10, h01, h11, fx, fy);
-    if (ease.filterFade < 1.0) {
+    if (ease.w < 1.0) {
       let nearest = f32(terrainHeightNN(tex, useMip, sx, sy));
-      h = nearest + (h - nearest) * ease.filterFade;
+      h = nearest + (h - nearest) * ease.w;
     }
   }
-  h = applyLod0RefineHeight(h, wx, wy, useMip, ease.rm, ease.noiseAmp);
+  h = applyLod0RefineHeight(h, wx, wy, useMip, useRm, ease.z);
   return vec2f(h * (altitude / 255.0), clamp(h + 0.5, 0.0, 255.0));
 }
 
 fn terrainSampleColor(tex: texture_2d<f32>, mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> vec4f {
   let ease = easeLodSample(t, wx, wy, mip);
-  let useMip = ease.mip;
+  let useMip = i32(ease.x);
+  let useRm = i32(ease.y);
   var sx = wx;
   var sy = wy;
   if ((useMip == 0) && flagLod0Refine(frame.mapFlags.w)) {
-    let s = lod0RefineCellFromM(ease.rm);
+    let s = lod0RefineCellFromM(useRm);
     sx = (floor(wx / s) + 0.5) * s;
     sy = (floor(wy / s) + 0.5) * s;
   }
   let inv = terrainInv(useMip);
-  if ((useMip <= 0) && flagColorFilter(frame.mapFlags.w) && (ease.filterFade > 0.0)) {
+  if ((useMip <= 0) && flagColorFilter(frame.mapFlags.w) && (ease.w > 0.0)) {
     let wrap = flagRepeat(frame.mapFlags.w);
     let x0 = floor(sx * inv);
     let y0 = floor(sy * inv);
@@ -524,10 +527,10 @@ fn terrainSampleColor(tex: texture_2d<f32>, mip: i32, wx: f32, wy: f32, dist: f3
       fx,
       fy
     );
-    if (ease.filterFade >= 1.0) {
+    if (ease.w >= 1.0) {
       return bi;
     }
-    return mix(terrainColorNN(tex, useMip, sx, sy), bi, ease.filterFade);
+    return mix(terrainColorNN(tex, useMip, sx, sy), bi, ease.w);
   }
   return terrainColorNN(tex, useMip, sx, sy);
 }
@@ -687,14 +690,6 @@ fn takeMarchStep(t: f32, step: f32, bandKey: i32, mip: i32) -> vec3f {
   let synced = syncBandStep(step, bandKey, mip, t);
   let adv = advanceRayT(t, mip, synced.x);
   return vec3f(adv.x, adv.y, synced.y);
-}
-
-fn bilinearHeight(h00: f32, h10: f32, h01: f32, h11: f32, fx: f32, fy: f32) -> f32 {
-  return mix(mix(h00, h10, fx), mix(h01, h11, fx), fy);
-}
-
-fn bilinearColor(c00: vec4f, c10: vec4f, c01: vec4f, c11: vec4f, fx: f32, fy: f32) -> vec4f {
-  return mix(mix(c00, c10, fx), mix(c01, c11, fx), fy);
 }
 
 const DEBUG_COLOR: u32 = 0u;

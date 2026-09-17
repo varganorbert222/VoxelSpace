@@ -1,5 +1,14 @@
 @group(0) @binding(0) var src: texture_2d<u32>;
 
+fn unpackRgba(p: u32) -> vec4f {
+  return vec4f(
+    f32(p & 255u),
+    f32((p >> 8u) & 255u),
+    f32((p >> 16u) & 255u),
+    f32((p >> 24u) & 255u)
+  ) / 255.0;
+}
+
 struct VsOut {
   @builtin(position) pos: vec4f,
 };

@@ -17,6 +17,10 @@ async function loadCompute(device, label, file) {
   return compileShader(device, label, common + "\n" + body);
 }
 
+async function loadBlit(device) {
+  return compileShader(device, "blit", await loadText("./shaders/blit.wgsl"));
+}
+
 export async function createPipelines(device, canvasFormat) {
   const classicMod = await loadCompute(device, "classicMarch", "classicMarch.wgsl");
   const genMod = await loadCompute(device, "panoGenerate", "panoramaGenerate.wgsl");
@@ -28,7 +32,7 @@ export async function createPipelines(device, canvasFormat) {
   const cubeViewMod = await loadCompute(device, "cubeView", "cubemapView.wgsl");
   const overlayPanoMod = await loadCompute(device, "overlayPano", "debugOverlay.wgsl");
   const overlayCubeMod = await loadCompute(device, "overlayCube", "debugOverlayCube.wgsl");
-  const blitMod = await loadCompute(device, "blit", "blit.wgsl");
+  const blitMod = await loadBlit(device);
 
   const frameLayout = device.createBindGroupLayout({
     label: "frame",
