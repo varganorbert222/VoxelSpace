@@ -41,7 +41,6 @@ function classicParams(renderer, maps) {
     screenHorizon: screenHorizon,
     nearClip: camera.nearClip,
     farClip: renderer.effectiveFarClip,
-    minDeltaZ: camera.minDeltaZ,
     quality: camera.quality,
     applyFog: renderer.applyFog,
     fogStart: renderer.fogStart,
@@ -50,7 +49,8 @@ function classicParams(renderer, maps) {
     interpolateHeight: renderer.interpolateHeight ? 1 : 0,
     filterColor: renderer.filterColor ? 1 : 0,
     lod0Refine: renderer.lod0Refine ? 1 : 0,
-    lod0RefineSamples: renderer.lod0RefineSamples,
+    lod0RefineCurve: renderer.lod0RefineCurve,
+    stepDivisor: renderer.stepDivisor,
     filterDistance: renderer.filterDistance,
     panoMips: maps.panoMips,
     terrainMips: maps.terrainMips || maps.panoMips,
@@ -78,12 +78,12 @@ function isClassicTokenStale(token, renderer) {
     renderer.interpolateHeight !== token.interpolateHeight ||
     renderer.filterColor !== token.filterColor ||
     renderer.lod0Refine !== token.lod0Refine ||
-    renderer.lod0RefineSamples !== token.lod0RefineSamples ||
+    renderer.lod0RefineCurve !== token.lod0RefineCurve ||
+    renderer.stepDivisor !== token.stepDivisor ||
     renderer.filterDistance !== token.filterDistance ||
     renderer.mipCount !== token.mipCount ||
     renderer.lodSpacingMode !== token.lodSpacingMode ||
     renderer.lodSpacing !== token.lodSpacing ||
-    camera.minDeltaZ !== token.minDeltaZ ||
     camera.posX !== token.camX ||
     camera.posY !== token.camY ||
     camera.posZ !== token.camZ
@@ -159,12 +159,12 @@ class ClassicRenderer {
       interpolateHeight: renderer.interpolateHeight,
       filterColor: renderer.filterColor,
       lod0Refine: renderer.lod0Refine,
-      lod0RefineSamples: renderer.lod0RefineSamples,
+      lod0RefineCurve: renderer.lod0RefineCurve,
+      stepDivisor: renderer.stepDivisor,
       filterDistance: renderer.filterDistance,
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
       lodSpacing: renderer.lodSpacing,
-      minDeltaZ: camera.minDeltaZ,
       camX: camera.posX,
       camY: camera.posY,
       camZ: camera.posZ,

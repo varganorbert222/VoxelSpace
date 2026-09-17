@@ -51,7 +51,7 @@ export const SettingChar = Object.freeze({
   RUNTIME: "b",
   CAMERA: "c",
   DISTANCE: "i",
-  DELTA_Z: "z",
+  STEP: "z",
   FOV: "o",
   DEBUG_VIEW: "v",
   ENV_ATLAS: "n",

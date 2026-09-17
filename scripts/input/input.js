@@ -135,9 +135,9 @@ class Input {
     return n;
   }
 
-  get consumeNudgeDeltaZ() {
-    const n = this._nudgeDeltaZ;
-    this._nudgeDeltaZ = 0;
+  get consumeNudgeStepDivisor() {
+    const n = this._nudgeStepDivisor;
+    this._nudgeStepDivisor = 0;
     return n;
   }
 
@@ -184,7 +184,7 @@ class Input {
     this._cycleCamera = false;
     this._setQuality = 0;
     this._nudgeDistance = 0;
-    this._nudgeDeltaZ = 0;
+    this._nudgeStepDivisor = 0;
     this._nudgeFov = 0;
     this._flyLook = true;
     this._rollEnabled = false;

@@ -180,16 +180,14 @@ fn lod0RefineAt(t: f32, mip: i32) -> bool {
 }
 
 fn lod0RefineMipAt(t: f32) -> i32 {
-  let span = frame.mipSwitchYHit.x;
-  if (!(span > 0.0)) {
-    return 0;
+  var m = 0;
+  if (t >= frame.stepScaleCaps.y) {
+    m = 1;
   }
-  let band = span * 0.25;
-  var m = i32(floor(t / band));
-  if (m < 0) {
-    m = 0;
+  if (t >= frame.stepScaleCaps.z) {
+    m = 2;
   }
-  if (m > 3) {
+  if (t >= frame.stepScaleCaps.w) {
     m = 3;
   }
   return m;
@@ -319,7 +317,7 @@ fn applyLod0RefineHeight(hFine: f32, wx: f32, wy: f32, mip: i32, t: f32) -> f32 
   let ix = i32(floor(wx / s));
   let iy = i32(floor(wy / s));
   let u = f32(lod0RefineHashMax(ix * i32(span), iy * i32(span), span)) * (1.0 / 4294967296.0);
-  var h = hFine + (u - 0.5) * 16.0;
+  var h = hFine + (u - 0.5);
   if (h < 0.0) {
     h = 0.0;
   }
@@ -384,6 +382,58 @@ fn mipCellSize(mip: i32, t: f32) -> f32 {
     return 1.0;
   }
   return exp2(f32(mip));
+}
+
+fn stepDivisor() -> f32 {
+  var d = frame.tMaxMinDzAltMaxH.y;
+  if (d < 1.0) {
+    d = 3.0;
+  }
+  if (d > 5.0) {
+    d = 5.0;
+  }
+  return d;
+}
+
+fn marchStep(mip: i32, t: f32) -> f32 {
+  return mipCellSize(mip, t) / stepDivisor();
+}
+
+fn clampMarchStep(step: f32, mip: i32, t: f32) -> f32 {
+  let lo = marchStep(mip, t);
+  let hi = mipCellSize(mip, t);
+  var s = step;
+  if (!(s >= lo)) {
+    s = lo;
+  }
+  if (s > hi) {
+    s = hi;
+  }
+  return s;
+}
+
+fn growMarchStep(step: f32, mip: i32, t: f32) -> f32 {
+  var g = frame.clipDhTanLastGrowth.w;
+  if (!(g > 0.0)) {
+    g = 0.0;
+  }
+  return clampMarchStep(step + g, mip, t);
+}
+
+fn marchBandKey(mip: i32, t: f32) -> i32 {
+  var rm = 0;
+  if (lod0RefineAt(t, mip)) {
+    rm = lod0RefineMipAt(t);
+  }
+  return (mip << 8) | rm;
+}
+
+fn syncBandStep(step: f32, prevKey: i32, mip: i32, t: f32) -> vec2f {
+  let key = marchBandKey(mip, t);
+  if (key != prevKey) {
+    return vec2f(marchStep(mip, t), f32(key));
+  }
+  return vec2f(clampMarchStep(step, mip, t), f32(key));
 }
 
 fn mipDdaDelta(wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32, t: f32) -> f32 {
@@ -469,20 +519,19 @@ fn terrainSamplePos(wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32, t: f32) ->
   return vec2f(wx + dirX * e, wy + dirY * e);
 }
 
-fn advanceRayT(t: f32, step: f32, growth: f32, mip: i32, wx: f32, wy: f32, dirX: f32, dirY: f32) -> vec2f {
-  if (mip <= 0 && !lod0RefineAt(t, mip)) {
-    var next = t + step;
-    if (!(next > t)) {
-      next = t + 0.5;
-    }
-    return vec2f(next, step + growth);
-  }
-  let eps = mipDdaEps(mipCellSize(mip, t));
-  var next = t + mipDdaDelta(wx, wy, dirX, dirY, mip, t) + eps;
+fn advanceRayT(t: f32, mip: i32, step: f32) -> vec2f {
+  let s = clampMarchStep(step, mip, t);
+  var next = t + s;
   if (!(next > t)) {
-    next = t + eps;
+    next = t + 0.5;
   }
-  return vec2f(next, step);
+  return vec2f(next, growMarchStep(s, mip, t));
+}
+
+fn takeMarchStep(t: f32, step: f32, bandKey: i32, mip: i32) -> vec3f {
+  let synced = syncBandStep(step, bandKey, mip, t);
+  let adv = advanceRayT(t, mip, synced.x);
+  return vec3f(adv.x, adv.y, synced.y);
 }
 
 fn bilinearHeight(h00: f32, h10: f32, h01: f32, h11: f32, fx: f32, fy: f32) -> f32 {

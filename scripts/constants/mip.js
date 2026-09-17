@@ -1,6 +1,6 @@
 "use strict";
 
-import { MIN_SAMPLE_DISTANCE, QUALITY_ULTRA, qualityIndex } from "./quality.js";
+import { MIN_SAMPLE_DISTANCE } from "./quality.js";
 
 export const TERRAIN_MIP_KERNEL = 2;
 export const TERRAIN_MIP_MIN_SIZE = 1;
@@ -12,10 +12,10 @@ export const LOD0_REFINE_SUBDIV = 16;
 export const LOD0_REFINE_SUBDIV_MIN = 2;
 export const LOD0_REFINE_MIP_COUNT = 4;
 export const LOD0_REFINE_CELL = 1 / LOD0_REFINE_SUBDIV;
-export const LOD0_REFINE_SAMPLES_MIN = 1;
-export const LOD0_REFINE_SAMPLES_MAX = 5;
-export const LOD0_REFINE_SAMPLES_DEFAULT = 3;
-export const LOD0_REFINE_NOISE_AMPLITUDE = 16;
+export const STEP_DIVISOR_MIN = 1;
+export const STEP_DIVISOR_MAX = 5;
+export const STEP_DIVISOR_DEFAULT = 3;
+export const LOD0_REFINE_NOISE_AMPLITUDE = 1;
 export const MARCH_MAX_STEPS = 16384;
 export const LOD0_REFINE_MAX_STEPS = 65536;
 
@@ -24,6 +24,7 @@ export const LOD_SPACING_DOUBLE = "double";
 export const LOD_SPACING_LOG = "log";
 export const LOD_SPACING_DEFAULT_MODE = LOD_SPACING_LINEAR;
 export const LOD_SPACING_DEFAULT_METERS = 100;
+export const LOD0_MAX_FAR_FRACTION = 0.1;
 export const LOD_SPACING_UNUSED = 1e30;
 export const LOD_SPACING_LABEL = Object.freeze({
   linear: "Linear",
@@ -65,21 +66,53 @@ export function lod0RefineCellSize(refineMip) {
   return 1 / lod0RefineSubdiv(refineMip);
 }
 
-export function lod0RefineMipAt(t, lod0Meters) {
-  const span = Number(lod0Meters);
-  if (!(span > 0)) {
+export function lod0RefineFirstSpacing(lod0Meters, mode) {
+  const far = Number(lod0Meters);
+  const n = LOD0_REFINE_MIP_COUNT;
+  const spacingMode = normalizeLodSpacingMode(mode);
+  if (!(far > 0)) {
+    return 1;
+  }
+  if (spacingMode === LOD_SPACING_DOUBLE) {
+    return far / (Math.pow(2, n) - 1);
+  }
+  if (spacingMode === LOD_SPACING_LOG) {
+    const t0 = Math.pow(far, 1 / n);
+    if (!(t0 > 0) || !(t0 < far)) {
+      return far / n;
+    }
+    return t0;
+  }
+  return far / n;
+}
+
+export function lod0RefineSwitchDistances(lod0Meters, mode, out) {
+  const n = LOD0_REFINE_MIP_COUNT;
+  const far = Number(lod0Meters);
+  return mipSwitchDistances(
+    n,
+    far,
+    out,
+    mode,
+    lod0RefineFirstSpacing(far, mode)
+  );
+}
+
+export function lod0RefineMipAt(t, switches) {
+  const last = (LOD0_REFINE_MIP_COUNT - 1) | 0;
+  if (!switches) {
     return 0;
   }
-  const band = span / LOD0_REFINE_MIP_COUNT;
-  if (!(band > 0)) {
-    return 0;
+  const swN = switches.length | 0;
+  let m = 0;
+  while ((m < swN) & (m < last) & (t >= switches[m])) {
+    m = (m + 1) | 0;
   }
-  let m = Math.floor(t / band);
   if (!(m >= 0)) {
     m = 0;
   }
-  if (m > LOD0_REFINE_MIP_COUNT - 1) {
-    m = LOD0_REFINE_MIP_COUNT - 1;
+  if (m > last) {
+    m = last;
   }
   return m | 0;
 }
@@ -91,22 +124,67 @@ export function marchCellSize(mip, refine, refineMip) {
   return mipVoxelSize(mip);
 }
 
-export function clampLod0RefineSamples(value) {
+export function clampStepDivisor(value) {
   let n = Math.round(Number(value));
-  if (!(n >= LOD0_REFINE_SAMPLES_MIN)) {
-    n = LOD0_REFINE_SAMPLES_DEFAULT;
+  if (!(n >= STEP_DIVISOR_MIN)) {
+    n = STEP_DIVISOR_DEFAULT;
   }
-  if (n < LOD0_REFINE_SAMPLES_MIN) {
-    n = LOD0_REFINE_SAMPLES_MIN;
+  if (n < STEP_DIVISOR_MIN) {
+    n = STEP_DIVISOR_MIN;
   }
-  if (n > LOD0_REFINE_SAMPLES_MAX) {
-    n = LOD0_REFINE_SAMPLES_MAX;
+  if (n > STEP_DIVISOR_MAX) {
+    n = STEP_DIVISOR_MAX;
   }
   return n;
 }
 
-export function lod0RefineStep(samples) {
-  return LOD0_REFINE_CELL / clampLod0RefineSamples(samples);
+export function marchStep(mip, refine, refineMip, divisor) {
+  return marchCellSize(mip, refine, refineMip) / clampStepDivisor(divisor);
+}
+
+export function clampMarchStep(step, mip, refine, refineMip, divisor) {
+  const lo = marchStep(mip, refine, refineMip, divisor);
+  const hi = marchCellSize(mip, refine, refineMip);
+  let s = Number(step);
+  if (!(s >= lo)) {
+    s = lo;
+  }
+  if (s > hi) {
+    s = hi;
+  }
+  return s;
+}
+
+export function growMarchStep(step, growth, mip, refine, refineMip, divisor) {
+  const g = Number(growth);
+  return clampMarchStep(step + (g > 0 ? g : 0), mip, refine, refineMip, divisor);
+}
+
+export function marchBandKey(mip, refineMip) {
+  return (((mip | 0) << 8) | (refineMip & 255)) | 0;
+}
+
+export function syncBandStep(step, prevKey, mip, refine, refineMip, divisor) {
+  const key = marchBandKey(mip, refine ? refineMip : 0);
+  if (key !== prevKey) {
+    return { step: marchStep(mip, refine, refineMip, divisor), key: key };
+  }
+  return {
+    step: clampMarchStep(step, mip, refine, refineMip, divisor),
+    key: key,
+  };
+}
+
+export function firstMarchT(nearClip, refine, divisor) {
+  const step = marchStep(0, refine, 0, divisor);
+  let t0 = Number(nearClip);
+  if (!(t0 > 0)) {
+    t0 = step;
+  }
+  if (step > t0) {
+    t0 = step;
+  }
+  return t0;
 }
 
 export function lod0RefineAt(enabled, mip) {
@@ -162,7 +240,15 @@ function lod0RefineHashMax(x0, y0, span) {
   return maxH;
 }
 
-export function applyLod0RefineHeight(hFine, wx, wy, dirX, dirY, refine, refineMip) {
+export function applyLod0RefineHeight(
+  hFine,
+  wx,
+  wy,
+  dirX,
+  dirY,
+  refine,
+  refineMip
+) {
   if (!refine) {
     return hFine;
   }
@@ -245,6 +331,16 @@ export function normalizeLodSpacingMode(mode) {
   return LOD_SPACING_LINEAR;
 }
 
+export function lod0MaxMeters(farClip, minMeters) {
+  const lo = minMeters > 0 ? minMeters | 0 : 1;
+  const far = Number(farClip);
+  let hi = Math.floor(far * LOD0_MAX_FAR_FRACTION);
+  if (!(hi >= lo)) {
+    hi = lo;
+  }
+  return hi;
+}
+
 export function clampLodSpacingMeters(value, min, max) {
   let n = Math.round(Number(value));
   const lo = min > 0 ? min | 0 : 1;
@@ -320,7 +416,8 @@ export function mipSwitchDistances(mipCount, farClip, out, mode, spacing) {
     return fillUnusedFrom(dest, 0);
   }
 
-  const maxT0 = Math.max(1, (Math.floor(far) - switchN) | 0);
+  const byMips = Math.max(1, (Math.floor(far) - switchN) | 0);
+  const maxT0 = Math.min(byMips, lod0MaxMeters(far, 1));
   let t0 = clampLodSpacingMeters(spacing, 1, maxT0);
   if (!(t0 < far)) {
     t0 = maxT0;
@@ -352,18 +449,12 @@ export function mipSwitchDistances(mipCount, farClip, out, mode, spacing) {
   return finalizeLodSwitches(dest, switchN, far);
 }
 
-export function classicLodDeltas(quality, bandCount, minDeltaZ, stepScale, out, refine, samples) {
+export function classicLodDeltas(bandCount, divisor, out) {
   const n = clampMipCount(bandCount);
   const dest = out || new Float64Array(n);
-  const ultra = qualityIndex(quality) === QUALITY_ULTRA ? 1 : 0;
-  dest[0] = minDeltaZ * stepScale;
-  const k = ultra ? 0.5 : 1;
-  for (let i = 1; (i < n) | 0; i = (i + 1) | 0) {
-    let d = mipVoxelSize(i) * k;
-    if (d < dest[0]) {
-      d = dest[0];
-    }
-    dest[i] = d;
+  const d = clampStepDivisor(divisor);
+  for (let i = 0; (i < n) | 0; i = (i + 1) | 0) {
+    dest[i] = mipVoxelSize(i) / d;
   }
   return dest;
 }
@@ -445,14 +536,7 @@ export function mipCellFarT(t, wx, wy, dirX, dirY, mip, refine, refineMip) {
 }
 
 export function mipSpanFarT(t, step, wx, wy, dirX, dirY, mip, refine, refineMip) {
-  if (((mip | 0) <= 0) & !refine) {
-    return t;
-  }
   let tFar = t + step;
-  const cellFar = mipCellFarT(t, wx, wy, dirX, dirY, mip, refine, refineMip);
-  if (cellFar > tFar) {
-    tFar = cellFar;
-  }
   if (tFar > t) {
     return tFar;
   }
@@ -470,20 +554,14 @@ export function projectSdfYSpan(sdf, dst, z, zFar, horizon) {
   return y;
 }
 
-export function advanceRayT(t, step, growth, mip, wx, wy, dirX, dirY, refine, refineMip) {
-  if (((mip | 0) <= 0) & !refine) {
-    let next = t + step;
-    if (!(next > t)) {
-      next = t + MIN_SAMPLE_DISTANCE;
-    }
-    return { t: next, step: step + growth };
-  }
-  const s = marchCellSize(mip, refine, refineMip);
-  const dt = mipDdaDelta(wx, wy, dirX, dirY, s);
-  const eps = mipDdaEps(s);
-  let next = t + dt + eps;
+export function advanceRayT(t, mip, wx, wy, dirX, dirY, refine, refineMip, divisor, step, growth) {
+  const s = clampMarchStep(step, mip, refine, refineMip, divisor);
+  let next = t + s;
   if (!(next > t)) {
-    next = t + eps;
+    next = t + (s > 0 ? s : MIN_SAMPLE_DISTANCE);
   }
-  return { t: next, step: step };
+  return {
+    t: next,
+    step: growMarchStep(s, growth, mip, refine, refineMip, divisor),
+  };
 }

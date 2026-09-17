@@ -21,8 +21,9 @@ import {
   clampMipCount,
   clampMipCountForMap,
   clampLodSpacingMeters,
-  clampLod0RefineSamples,
-  LOD0_REFINE_SAMPLES_DEFAULT,
+  lod0MaxMeters,
+  clampStepDivisor,
+  STEP_DIVISOR_DEFAULT,
   normalizeLodSpacingMode,
 } from "../constants/mip.js";
 import {
@@ -52,7 +53,8 @@ class Renderer {
     this._interpolateHeight = true;
     this._filterColor = true;
     this._lod0Refine = false;
-    this._lod0RefineSamples = LOD0_REFINE_SAMPLES_DEFAULT;
+    this._lod0RefineCurve = LOD_SPACING_DEFAULT_MODE;
+    this._stepDivisor = STEP_DIVISOR_DEFAULT;
     this._filterDistance = FILTER_DISTANCE_DEFAULT;
     this._debugView = DEBUG_VIEW_COLOR;
     this._debugOverlay = false;
@@ -126,8 +128,12 @@ class Renderer {
     return this._lod0Refine;
   }
 
-  get lod0RefineSamples() {
-    return this._lod0RefineSamples;
+  get lod0RefineCurve() {
+    return this._lod0RefineCurve;
+  }
+
+  get stepDivisor() {
+    return this._stepDivisor;
   }
 
   get filterDistance() {
@@ -167,6 +173,25 @@ class Renderer {
   }
 
   get lodSpacing() {
+    return this._clampedLodSpacing();
+  }
+
+  _lodSpacingHi() {
+    const far = this._camera ? this._camera.farClip : this._lodSpacing;
+    return lod0MaxMeters(far, 1);
+  }
+
+  _clampedLodSpacing() {
+    return clampLodSpacingMeters(this._lodSpacing, 1, this._lodSpacingHi());
+  }
+
+  clampLodSpacingToFarClip() {
+    const next = this._clampedLodSpacing();
+    if (next !== this._lodSpacing) {
+      this._lodSpacing = next;
+      this.cancelJobs();
+      this.invalidatePanorama();
+    }
     return this._lodSpacing;
   }
 
@@ -209,7 +234,8 @@ class Renderer {
       interpolateHeight: this._interpolateHeight,
       filterColor: this._filterColor,
       lod0Refine: this._lod0Refine,
-      lod0RefineSamples: this._lod0RefineSamples,
+      lod0RefineCurve: this._lod0RefineCurve,
+      stepDivisor: this._stepDivisor,
       filterDistance: this._filterDistance,
       algorithm: this._algorithm,
       multithread: this._multithreadWanted,
@@ -218,7 +244,7 @@ class Renderer {
       debugOverlay: this._debugOverlay,
       mipCount: this._mipCount,
       lodSpacingMode: this._lodSpacingMode,
-      lodSpacing: this._lodSpacing,
+      lodSpacing: this._clampedLodSpacing(),
     };
   }
 
@@ -262,10 +288,18 @@ class Renderer {
         this.invalidatePanorama();
       }
     }
-    if (options.lod0RefineSamples !== undefined) {
-      const next = clampLod0RefineSamples(options.lod0RefineSamples);
-      if (next !== this._lod0RefineSamples) {
-        this._lod0RefineSamples = next;
+    if (options.lod0RefineCurve !== undefined) {
+      const next = normalizeLodSpacingMode(options.lod0RefineCurve);
+      if (next !== this._lod0RefineCurve) {
+        this._lod0RefineCurve = next;
+        this.cancelJobs();
+        this.invalidatePanorama();
+      }
+    }
+    if (options.stepDivisor !== undefined) {
+      const next = clampStepDivisor(options.stepDivisor);
+      if (next !== this._stepDivisor) {
+        this._stepDivisor = next;
         this.cancelJobs();
         this.invalidatePanorama();
       }
@@ -309,9 +343,11 @@ class Renderer {
       }
     }
     if (options.lodSpacing !== undefined) {
-      const far = this._camera ? this._camera.farClip : 8000;
-      const hi = far > 1 ? (far | 0) - 1 : 1;
-      const next = clampLodSpacingMeters(options.lodSpacing, 1, hi);
+      const next = clampLodSpacingMeters(
+        options.lodSpacing,
+        1,
+        this._lodSpacingHi()
+      );
       if (next !== this._lodSpacing) {
         this._lodSpacing = next;
         this.cancelJobs();

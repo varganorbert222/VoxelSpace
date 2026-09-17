@@ -19,7 +19,6 @@ import {
 import { NON_REPEAT_GROUND_OFFSET } from "../constants/classic.js";
 import {
   FOG_SATURATED,
-  INITIAL_STEP_SCALE_BY_QUALITY,
   MIN_SAMPLE_DISTANCE,
   PANO_HEIGHT,
   STEP_GROWTH_BY_QUALITY,
@@ -31,9 +30,11 @@ import {
 } from "../constants/panorama.js";
 import {
   TERRAIN_MIP_MAX_COUNT,
-  LOD0_REFINE_CELL,
   classicLodDeltas,
+  firstMarchT,
+  marchStep,
   mipSwitchDistances,
+  lod0RefineSwitchDistances,
 } from "../constants/mip.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
 import {
@@ -214,7 +215,7 @@ export function createWasmKernels(instance) {
       ":" +
       bandCount +
       ":" +
-      params.minDeltaZ +
+      (params.stepDivisor | 0) +
       ":" +
       params.lodSpacingMode +
       ":" +
@@ -222,24 +223,13 @@ export function createWasmKernels(instance) {
       ":" +
       params.farClip +
       ":" +
-      (params.lod0Refine | 0) +
-      ":" +
-      (params.lod0RefineSamples | 0);
+      (params.lod0Refine | 0);
     if (classicKey === key) {
       return bandCount;
     }
-    const stepScale = INITIAL_STEP_SCALE_BY_QUALITY[q];
     const offsets = new Int32Array(bandCount);
     offsets.fill(1);
-    const deltasAll = classicLodDeltas(
-      q,
-      bandCount,
-      params.minDeltaZ,
-      stepScale,
-      null,
-      params.lod0Refine,
-      params.lod0RefineSamples
-    );
+    const deltasAll = classicLodDeltas(bandCount, params.stepDivisor);
     const farDeltas = deltasAll.subarray(1);
     const switches = mipSwitchDistances(
       bandCount,
@@ -300,6 +290,10 @@ export function createWasmKernels(instance) {
     const dist = Number(params.filterDistance);
     const fwdX = Number(params.fwdX);
     const fwdY = Number(params.fwdY);
+    const refineSw = lod0RefineSwitchDistances(
+      params.lodSpacing,
+      params.lod0RefineCurve
+    );
     ex.set_sample_flags(
       params.interpolateHeight | 0,
       params.filterColor | 0,
@@ -307,8 +301,10 @@ export function createWasmKernels(instance) {
       Number.isFinite(fwdX) ? fwdX : 0,
       Number.isFinite(fwdY) ? fwdY : -1,
       params.lod0Refine | 0,
-      params.lod0RefineSamples | 0,
-      Number(params.lodSpacing) || 0
+      params.stepDivisor | 0,
+      Number(refineSw[0]) || 0,
+      Number(refineSw[1]) || 0,
+      Number(refineSw[2]) || 0
     );
   }
 
@@ -474,7 +470,6 @@ export function createWasmKernels(instance) {
     syncFogRange(params);
     const localWidth = (params.endColumn - params.startColumn) | 0;
     const n = (localWidth * params.screenHeight) | 0;
-    const q = qualityIndex(params.quality);
     const rowColors = params.rowColors;
     const rowBytes =
       rowColors && rowColors.length ? (params.screenHeight | 0) * 4 : 0;
@@ -503,9 +498,9 @@ export function createWasmKernels(instance) {
       params.screenHorizon,
       params.nearClip,
       params.farClip,
-      params.minDeltaZ,
-      STEP_GROWTH_BY_QUALITY[q],
-      INITIAL_STEP_SCALE_BY_QUALITY[q],
+      0,
+      STEP_GROWTH_BY_QUALITY[qualityIndex(params.quality)],
+      0,
       params.applyFog | 0,
       params.repeat | 0,
       params.fillUnfilled | 0,
@@ -536,18 +531,12 @@ export function createWasmKernels(instance) {
     const height = params.height | 0;
     const width = params.width | 0;
     const localWidth = (params.endPx - params.startPx) | 0;
-    const q = qualityIndex(params.quality);
-    const stepGrowth = STEP_GROWTH_BY_QUALITY[q];
-    let step0 = params.initialStep * INITIAL_STEP_SCALE_BY_QUALITY[q];
-    if ((step0 <= 0) | 0) step0 = MIN_SAMPLE_DISTANCE;
     const tanMin = params.tanMin || buildTanMinLut(height);
     const lastRow = (height - 1) | 0;
     const tanLast = tanMin[lastRow];
     const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
     const refineOn = !!params.lod0Refine;
-    let t0 = refineOn
-      ? Math.max(params.nearClip, LOD0_REFINE_CELL)
-      : Math.max(params.nearClip, step0, MIN_SAMPLE_DISTANCE);
+    let t0 = firstMarchT(params.nearClip, refineOn, params.stepDivisor);
     if ((params.camZ > clipZ) & (tanLast < 0)) {
       const tGroundPole = (clipZ - params.camZ) / tanLast;
       if ((tGroundPole > 0) & (tGroundPole < t0)) {
@@ -603,8 +592,8 @@ export function createWasmKernels(instance) {
       params.camY,
       params.camZ,
       t0,
-      step0,
-      stepGrowth,
+      marchStep(0, refineOn, 0, params.stepDivisor),
+      STEP_GROWTH_BY_QUALITY[qualityIndex(params.quality)],
       tStop,
       dirX,
       dirY,

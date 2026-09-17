@@ -16,21 +16,18 @@ import {
   GROUND_HEIGHT,
   HEIGHTMAP_MAX,
 } from "../constants/terrain.js";
+import { FAR_PLANE_T_SCALE } from "../constants/panorama.js";
 import {
-  INITIAL_STEP_SCALE_BY_QUALITY,
-  MIN_SAMPLE_DISTANCE,
   STEP_GROWTH_BY_QUALITY,
   qualityIndex,
 } from "../constants/quality.js";
 import {
-  FAR_PLANE_T_SCALE,
-} from "../constants/panorama.js";
-import {
   TERRAIN_MIP_MAX_COUNT,
-  LOD0_REFINE_CELL,
   advanceRayT,
+  firstMarchT,
   lod0RefineAt,
   lod0RefineMipAt,
+  lod0RefineSwitchDistances,
   lod0SamplePos,
   applyLod0RefineHeight,
   marchMaxSteps,
@@ -38,6 +35,7 @@ import {
   mipInvScale,
   mipSwitchDistances,
   mipTexelFloor,
+  syncBandStep,
 } from "../constants/mip.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
 import {
@@ -53,6 +51,7 @@ import {
 } from "../constants/cubemap.js";
 
 const mipSwitchT = new Float64Array(TERRAIN_MIP_MAX_COUNT);
+const lod0RefineSwitchScratch = new Float64Array(3);
 const mipInvScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
 const mipWMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
 const mipHMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
@@ -357,9 +356,7 @@ export function mergeCubePolarSlice(
   }
 }
 
-function setupMips(quality, farClip, panoMips, heightMap, colorMap, mapW, mapH, mapShift, wantedCount, lodSpacingMode, lodSpacing) {
-  const q = qualityIndex(quality);
-  const stepGrowth = STEP_GROWTH_BY_QUALITY[q];
+function setupMips(quality, farClip, panoMips, heightMap, colorMap, mapW, mapH, mapShift, wantedCount, lodSpacingMode, lodSpacing, lod0RefineCurve) {
   const mips = resolveTerrainMips(
     panoMips,
     heightMap,
@@ -372,14 +369,17 @@ function setupMips(quality, farClip, panoMips, heightMap, colorMap, mapW, mapH, 
   const mipCount = mips.count;
   const lastMip = (mipCount - 1) | 0;
   mipSwitchDistances(mipCount, farClip, mipSwitchT, lodSpacingMode, lodSpacing);
+  const refineSwitches = lod0RefineSwitchDistances(
+    lodSpacing,
+    lod0RefineCurve,
+    lod0RefineSwitchScratch
+  );
   for (let m = 0; (m < mipCount) | 0; m = (m + 1) | 0) {
     mipInvScratch[m] = mipInvScale(m);
     mipWMaskScratch[m] = (mips.widths[m] - 1) | 0;
     mipHMaskScratch[m] = (mips.heights[m] - 1) | 0;
   }
   return {
-    q,
-    stepGrowth,
     mipHeightMaps: mips.heightMaps,
     mipColorMaps: mips.colorMaps,
     mipCount,
@@ -387,13 +387,14 @@ function setupMips(quality, farClip, panoMips, heightMap, colorMap, mapW, mapH, 
     mipWMask: mipWMaskScratch,
     mipHMask: mipHMaskScratch,
     mipShifts: mips.shifts,
+    refineSwitches: refineSwitches,
   };
 }
 
 const svHit = { offset: 0, hFine: 0, hByte: 0, sx: 0, sy: 0 };
 
-function applyCubeStep(t, step, growth, mip, wx, wy, dirX, dirY, refine, refineMip) {
-  return advanceRayT(t, step, growth, mip, wx, wy, dirX, dirY, refine, refineMip);
+function applyCubeStep(t, mip, wx, wy, dirX, dirY, refine, refineMip, divisor, step, growth) {
+  return advanceRayT(t, mip, wx, wy, dirX, dirY, refine, refineMip, divisor, step, growth);
 }
 
 function sampleCubeHeight(m, wx, wy, mip, wrap, lerp, dirX, dirY, refine, refineMip) {
@@ -621,12 +622,12 @@ export function renderCubemapHorizonColumns({
   repeat,
   skyColor,
   horizonColor,
-  initialStep,
   quality,
   interpolateHeight,
   filterColor,
   lod0Refine,
-  lod0RefineSamples,
+  lod0RefineCurve,
+  stepDivisor,
   filterDistance = FILTER_DISTANCE_DEFAULT,
   fwdX = 0,
   fwdY = -1,
@@ -653,17 +654,15 @@ export function renderCubemapHorizonColumns({
     mapShift,
     mipCount,
     lodSpacingMode,
-    lodSpacing
+    lodSpacing,
+    lod0RefineCurve
   );
-  let step0 = initialStep * INITIAL_STEP_SCALE_BY_QUALITY[m.q];
-  if ((step0 <= 0) | 0) step0 = MIN_SAMPLE_DISTANCE;
   const lastRow = (n - 1) | 0;
   const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
   const refine = lod0Refine ? 1 : 0;
   const refineOn = refine;
-  const t0 = refineOn
-    ? Math.max(nearClip, LOD0_REFINE_CELL)
-    : Math.max(nearClip, step0, MIN_SAMPLE_DISTANCE);
+  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
+  const t0 = firstMarchT(nearClip, refineOn, stepDivisor);
   let tStop = tMax;
   if (!(tStop > 0)) {
     tStop = farClip * FAR_PLANE_T_SCALE;
@@ -706,7 +705,8 @@ export function renderCubemapHorizonColumns({
     const horizon = halfN;
     let H = n;
     let t = t0;
-    let step = step0;
+    let step = 0;
+    let bandKey = -1;
     let wasInside = 0;
     let mip = 0;
     let tStopCol = tStop;
@@ -719,7 +719,12 @@ export function renderCubemapHorizonColumns({
       }
 
       const refineHere = lod0RefineAt(refine, mip);
-      const refineMip = refineHere ? lod0RefineMipAt(t, lodSpacing) : 0;
+      const refineMip = refineHere ? lod0RefineMipAt(t, m.refineSwitches) : 0;
+      {
+        const synced = syncBandStep(step, bandKey, mip, refineHere, refineMip, stepDivisor);
+        step = synced.step;
+        bandKey = synced.key;
+      }
       const wx = camX + dirX * t;
       const wy = camY + dirY * t;
       if (!repeat) {
@@ -733,7 +738,7 @@ export function renderCubemapHorizonColumns({
             break;
           }
           {
-            const adv = applyCubeStep(t, step, m.stepGrowth, mip, wx, wy, dirX, dirY, refineHere, refineMip);
+            const adv = applyCubeStep(t, mip, wx, wy, dirX, dirY, refineHere, refineMip, stepDivisor, step, stepGrowth);
             t = adv.t;
             step = adv.step;
           }
@@ -760,7 +765,7 @@ export function renderCubemapHorizonColumns({
       if ((yHit < 0) | 0) yHit = 0;
       if ((yHit > lastRow) | 0) {
         {
-          const adv = applyCubeStep(t, step, m.stepGrowth, mip, wx, wy, dirX, dirY, refineHere, refineMip);
+          const adv = applyCubeStep(t, mip, wx, wy, dirX, dirY, refineHere, refineMip, stepDivisor, step, stepGrowth);
           t = adv.t;
           step = adv.step;
         }
@@ -800,7 +805,7 @@ export function renderCubemapHorizonColumns({
       }
 
       {
-        const adv = applyCubeStep(t, step, m.stepGrowth, mip, wx, wy, dirX, dirY, refineHere, refineMip);
+        const adv = applyCubeStep(t, mip, wx, wy, dirX, dirY, refineHere, refineMip, stepDivisor, step, stepGrowth);
         t = adv.t;
         step = adv.step;
       }
@@ -828,12 +833,12 @@ export function renderCubemapPolarAzimuths({
   repeat,
   skyColor,
   horizonColor,
-  initialStep,
   quality,
   interpolateHeight,
   filterColor,
   lod0Refine,
-  lod0RefineSamples,
+  lod0RefineCurve,
+  stepDivisor,
   filterDistance = FILTER_DISTANCE_DEFAULT,
   fwdX = 0,
   fwdY = -1,
@@ -892,15 +897,13 @@ export function renderCubemapPolarAzimuths({
     mapShift,
     mipCount,
     lodSpacingMode,
-    lodSpacing
+    lodSpacing,
+    lod0RefineCurve
   );
-  let step0 = initialStep * INITIAL_STEP_SCALE_BY_QUALITY[m.q];
-  if ((step0 <= 0) | 0) step0 = MIN_SAMPLE_DISTANCE;
   const refine = lod0Refine ? 1 : 0;
   const refineOn = refine;
-  const t0 = refineOn
-    ? Math.max(nearClip, LOD0_REFINE_CELL)
-    : Math.max(nearClip, step0, MIN_SAMPLE_DISTANCE);
+  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
+  const t0 = firstMarchT(nearClip, refineOn, stepDivisor);
   let tStop = tMax;
   if (!(tStop > 0)) {
     tStop = farClip * FAR_PLANE_T_SCALE;
@@ -936,7 +939,8 @@ export function renderCubemapPolarAzimuths({
     let lastDownHeight = 0;
     let lastDownIter = 0;
     let t = t0;
-    let step = step0;
+    let step = 0;
+    let bandKey = -1;
     let wasInside = 0;
     let leftMap = 0;
     let mip = 0;
@@ -952,7 +956,12 @@ export function renderCubemapPolarAzimuths({
       }
 
       const refineHere = lod0RefineAt(refine, mip);
-      const refineMip = refineHere ? lod0RefineMipAt(t, lodSpacing) : 0;
+      const refineMip = refineHere ? lod0RefineMipAt(t, m.refineSwitches) : 0;
+      {
+        const synced = syncBandStep(step, bandKey, mip, refineHere, refineMip, stepDivisor);
+        step = synced.step;
+        bandKey = synced.key;
+      }
       const wx = camX + dirX * t;
       const wy = camY + dirY * t;
       if (!repeat) {
@@ -967,7 +976,7 @@ export function renderCubemapPolarAzimuths({
             break;
           }
           {
-            const adv = applyCubeStep(t, step, m.stepGrowth, mip, wx, wy, dirX, dirY, refineHere, refineMip);
+            const adv = applyCubeStep(t, mip, wx, wy, dirX, dirY, refineHere, refineMip, stepDivisor, step, stepGrowth);
             t = adv.t;
             step = adv.step;
           }
@@ -1056,7 +1065,7 @@ export function renderCubemapPolarAzimuths({
       }
 
       {
-        const adv = applyCubeStep(t, step, m.stepGrowth, mip, wx, wy, dirX, dirY, refineHere, refineMip);
+        const adv = applyCubeStep(t, mip, wx, wy, dirX, dirY, refineHere, refineMip, stepDivisor, step, stepGrowth);
         t = adv.t;
         step = adv.step;
       }

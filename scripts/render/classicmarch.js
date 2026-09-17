@@ -21,32 +21,31 @@ import { encodeHeight, encodeIter, encodeUnit } from "./debugEncode.js";
 import { NON_REPEAT_GROUND_OFFSET } from "../constants/classic.js";
 import {
   FOG_SATURATED,
-  INITIAL_STEP_SCALE_BY_QUALITY,
-  MIN_SAMPLE_DISTANCE,
   STEP_GROWTH_BY_QUALITY,
   qualityIndex,
 } from "../constants/quality.js";
 import {
   TERRAIN_MIP_MAX_COUNT,
-  LOD0_REFINE_CELL,
-  classicLodDeltas,
   fillClassicLodDistances,
+  firstMarchT,
+  growMarchStep,
   lod0RefineAt,
-  lod0RefineCellSize,
   lod0RefineMipAt,
+  lod0RefineSwitchDistances,
   lod0SamplePos,
   applyLod0RefineHeight,
   mipInvScale,
   mipSpanFarT,
   mipSwitchDistances,
   projectSdfYSpan,
+  syncBandStep,
 } from "../constants/mip.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
 
 let hiddenYScratch = new Int32Array(1);
 let sampleNScratch = new Int32Array(1);
-const deltasScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
 const lodDistancesScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT + 1);
+const lod0RefineSwitchScratch = new Float64Array(3);
 const mipWMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
 const mipHMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
 let hiddenYCapacity = 1;
@@ -80,30 +79,21 @@ function setupClassicLod(params) {
     params.mapShift,
     params.mipCount
   );
-  const q = qualityIndex(params.quality);
-  const stepGrowth = STEP_GROWTH_BY_QUALITY[q];
-  const stepScale = INITIAL_STEP_SCALE_BY_QUALITY[q];
   const bandCount = mips.count;
   const refine = !!params.lod0Refine;
-  const refineOn = refine;
-  classicLodDeltas(
-    q,
-    bandCount,
-    params.minDeltaZ,
-    stepScale,
-    deltasScratch,
-    refine,
-    params.lod0RefineSamples
-  );
-  const zStart = refineOn
-    ? Math.max(params.nearClip, LOD0_REFINE_CELL)
-    : Math.max(params.nearClip, deltasScratch[0], MIN_SAMPLE_DISTANCE);
+  const stepDivisor = params.stepDivisor;
+  const zStart = firstMarchT(params.nearClip, refine, stepDivisor);
   const switches = mipSwitchDistances(
     bandCount,
     params.farClip,
     null,
     params.lodSpacingMode,
     params.lodSpacing
+  );
+  const refineSwitches = lod0RefineSwitchDistances(
+    params.lodSpacing,
+    params.lod0RefineCurve,
+    lod0RefineSwitchScratch
   );
   fillClassicLodDistances(
     lodDistancesScratch,
@@ -118,11 +108,11 @@ function setupClassicLod(params) {
   }
   return {
     mips: mips,
-    q: q,
-    stepGrowth: stepGrowth,
     bandCount: bandCount,
     refine: refine,
+    stepDivisor: stepDivisor,
     lodSpacing: params.lodSpacing,
+    refineSwitches: refineSwitches,
   };
 }
 
@@ -277,7 +267,6 @@ function renderClassicColumnsSampled({
   screenHorizon,
   nearClip,
   farClip,
-  minDeltaZ,
   quality,
   applyFog,
   fogStart = 0,
@@ -286,7 +275,8 @@ function renderClassicColumnsSampled({
   interpolateHeight,
   filterColor,
   lod0Refine,
-  lod0RefineSamples,
+  lod0RefineCurve,
+  stepDivisor,
   filterDistance = FILTER_DISTANCE_DEFAULT,
   pixels,
   pixelWidth,
@@ -326,22 +316,20 @@ function renderClassicColumnsSampled({
     mapW: mapW,
     mapH: mapH,
     mapShift: mapShift,
-    quality: quality,
-    minDeltaZ: minDeltaZ,
     nearClip: nearClip,
     farClip: farClip,
     mipCount: mipCount,
     lodSpacingMode: lodSpacingMode,
     lodSpacing: lodSpacing,
     lod0Refine: lod0Refine,
-    lod0RefineSamples: lod0RefineSamples,
+    lod0RefineCurve: lod0RefineCurve,
+    stepDivisor: stepDivisor,
   });
   const mips = lodState.mips;
-  const stepGrowth = lodState.stepGrowth;
   const bandCount = lodState.bandCount;
   const refine = lodState.refine;
-  const lod0Meters = lodState.lodSpacing;
-  const deltas = deltasScratch;
+  const stepDiv = lodState.stepDivisor;
+  const refineSwitches = lodState.refineSwitches;
   const lodDistances = lodDistancesScratch;
 
   const screenWidthScaler = 1 / screenWidth;
@@ -353,11 +341,11 @@ function renderClassicColumnsSampled({
   const kLeftY = -cosAngle - kRightY;
   const kDx = (kRightX + kRightX) * screenWidthScaler;
   const kDy = (kRightY + kRightY) * screenWidthScaler;
+  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
 
   for (let lod = bandCount; (lod > 0) | 0; lod = (lod - 1) | 0) {
     const startIndex = lodDistances[lod - 1];
     const endIndex = lodDistances[lod];
-    let step = deltas[lod - 1];
     const mip = (lod - 1) | 0;
     const mipHeight = mips.heightMaps[mip];
     const mipColor = mips.colorMaps[mip];
@@ -374,13 +362,18 @@ function renderClassicColumnsSampled({
       hiddenY[i] = screenHeight;
     }
 
+    let step = 0;
+    let bandKey = -1;
     for (
       let z = startIndex;
       ((z < endIndex) | 0) & ((z < farClip) | 0);
 
     ) {
       const refineHere = lod0RefineAt(refine, mip);
-      const refineMip = refineHere ? lod0RefineMipAt(z, lod0Meters) : 0;
+      const refineMip = refineHere ? lod0RefineMipAt(z, refineSwitches) : 0;
+      const synced = syncBandStep(step, bandKey, mip, refineHere, refineMip, stepDiv);
+      step = synced.step;
+      bandKey = synced.key;
       const zScale = dstToProjPlane / z;
       const ceilingOnScreen = (ceilingSdf * zScale + screenHorizon) | 0;
       const groundOnScreen = (yGround * zScale + screenHorizon) | 0;
@@ -545,12 +538,8 @@ function renderClassicColumnsSampled({
         ply += dy;
       }
 
-      if (refineHere) {
-        z = z + lod0RefineCellSize(refineMip);
-      } else {
-        step += stepGrowth;
-        z = z + step;
-      }
+      z = z + step;
+      step = growMarchStep(step, stepGrowth, mip, refineHere, refineMip, stepDiv);
     }
   }
 }
@@ -577,7 +566,6 @@ function renderClassicColumnsNearest({
   screenHorizon,
   nearClip,
   farClip,
-  minDeltaZ,
   quality,
   applyFog,
   fogStart = 0,
@@ -592,7 +580,8 @@ function renderClassicColumnsNearest({
   lodSpacingMode,
   lodSpacing,
   lod0Refine,
-  lod0RefineSamples,
+  lod0RefineCurve,
+  stepDivisor,
 }) {
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;
@@ -623,22 +612,20 @@ function renderClassicColumnsNearest({
     mapW: mapW,
     mapH: mapH,
     mapShift: mapShift,
-    quality: quality,
-    minDeltaZ: minDeltaZ,
     nearClip: nearClip,
     farClip: farClip,
     mipCount: mipCount,
     lodSpacingMode: lodSpacingMode,
     lodSpacing: lodSpacing,
     lod0Refine: lod0Refine,
-    lod0RefineSamples: lod0RefineSamples,
+    lod0RefineCurve: lod0RefineCurve,
+    stepDivisor: stepDivisor,
   });
   const mips = lodState.mips;
-  const stepGrowth = lodState.stepGrowth;
   const bandCount = lodState.bandCount;
   const refine = lodState.refine;
-  const lod0Meters = lodState.lodSpacing;
-  const deltas = deltasScratch;
+  const stepDiv = lodState.stepDivisor;
+  const refineSwitches = lodState.refineSwitches;
   const lodDistances = lodDistancesScratch;
 
   const screenWidthScaler = 1 / screenWidth;
@@ -648,11 +635,11 @@ function renderClassicColumnsNearest({
   const kLeftY = -cosAngle - kRightY;
   const kDx = (kRightX + kRightX) * screenWidthScaler;
   const kDy = (kRightY + kRightY) * screenWidthScaler;
+  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
 
   for (let lod = bandCount; (lod > 0) | 0; lod = (lod - 1) | 0) {
     const startIndex = lodDistances[lod - 1];
     const endIndex = lodDistances[lod];
-    let step = deltas[lod - 1];
     const mip = (lod - 1) | 0;
     const mipHeight = mips.heightMaps[mip];
     const mipColor = mips.colorMaps[mip];
@@ -669,13 +656,18 @@ function renderClassicColumnsNearest({
       hiddenY[i] = screenHeight;
     }
 
+    let step = 0;
+    let bandKey = -1;
     for (
       let z = startIndex;
       ((z < endIndex) | 0) & ((z < farClip) | 0);
 
     ) {
       const refineHere = lod0RefineAt(refine, mip);
-      const refineMip = refineHere ? lod0RefineMipAt(z, lod0Meters) : 0;
+      const refineMip = refineHere ? lod0RefineMipAt(z, refineSwitches) : 0;
+      const synced = syncBandStep(step, bandKey, mip, refineHere, refineMip, stepDiv);
+      step = synced.step;
+      bandKey = synced.key;
       const zScale = dstToProjPlane / z;
       const ceilingOnScreen = (ceilingSdf * zScale + screenHorizon) | 0;
       const groundOnScreen = (yGround * zScale + screenHorizon) | 0;
@@ -798,12 +790,8 @@ function renderClassicColumnsNearest({
         ply += dy;
       }
 
-      if (refineHere) {
-        z = z + lod0RefineCellSize(refineMip);
-      } else {
-        step += stepGrowth;
-        z = z + step;
-      }
+      z = z + step;
+      step = growMarchStep(step, stepGrowth, mip, refineHere, refineMip, stepDiv);
     }
   }
 }

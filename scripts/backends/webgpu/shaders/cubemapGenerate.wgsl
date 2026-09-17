@@ -74,8 +74,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let mapW = f32(frame.mapFlags.x);
   let mapH = f32(frame.mapFlags.y);
   let clipZ = frame.clipDhTanLastGrowth.x;
-  let stepGrowth = frame.clipDhTanLastGrowth.w;
-  let step0 = frame.stepScaleCaps.x;
   var lastMip = terrainLastMip(heightTex);
   let pixelCenter = frame.mipInvPixelCenter.w;
   let u = (2.0 * (f32(col) + pixelCenter) / f32(n)) - 1.0;
@@ -95,7 +93,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     t0 = nearClip;
   }
   var t = t0;
-  var step = step0;
+  var step = 0.0;
+  var bandKey = -1;
   var H = n;
   var wasInside = 0;
   var mip = 0;
@@ -123,9 +122,10 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         if (wasInside != 0) {
           break;
         }
-        let adv = advanceRayT(t, step, stepGrowth, mip, wx, wy, dirX, dirY);
-        t = adv.x;
-        step = adv.y;
+        let taken = takeMarchStep(t, step, bandKey, mip);
+        t = taken.x;
+        step = taken.y;
+        bandKey = i32(taken.z);
         continue;
       }
       wasInside = 1;
@@ -150,9 +150,10 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       yHit = 0;
     }
     if (yHit > n - 1) {
-      let adv = advanceRayT(t, step, stepGrowth, mip, wx, wy, dirX, dirY);
-      t = adv.x;
-      step = adv.y;
+      let taken = takeMarchStep(t, step, bandKey, mip);
+      t = taken.x;
+      step = taken.y;
+      bandKey = i32(taken.z);
       continue;
     }
     if (yHit < H) {
@@ -184,10 +185,9 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       H = yHit;
     }
 
-    {
-      let adv = advanceRayT(t, step, stepGrowth, mip, wx, wy, dirX, dirY);
-      t = adv.x;
-      step = adv.y;
-    }
+    let taken = takeMarchStep(t, step, bandKey, mip);
+    t = taken.x;
+    step = taken.y;
+    bandKey = i32(taken.z);
   }
 }

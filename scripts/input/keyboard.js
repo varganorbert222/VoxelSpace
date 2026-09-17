@@ -88,8 +88,8 @@ function detectSettingHotkey(input, e) {
     case SettingChar.DISTANCE:
       input._nudgeDistance += dir;
       break;
-    case SettingChar.DELTA_Z:
-      input._nudgeDeltaZ += dir;
+    case SettingChar.STEP:
+      input._nudgeStepDivisor += dir;
       break;
     case SettingChar.FOV:
       input._nudgeFov += dir;

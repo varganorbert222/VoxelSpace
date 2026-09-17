@@ -6,6 +6,7 @@ import {
 } from "../constants/main.js";
 import { BACKEND_JS } from "../constants/backend.js";
 import { clampFogRange } from "../constants/fog.js";
+import { clampStepDivisor, lod0MaxMeters } from "../constants/mip.js";
 import VMath from "../math/vmath.js";
 
 function finiteOr(value, fallback) {
@@ -63,7 +64,6 @@ export function collectSettings(app) {
   return {
     map: app.currentMapName,
     farClip: app.camera.farClip,
-    minDeltaZ: app.camera.minDeltaZ,
     fov: app.camera.fov,
     quality: app.camera.quality,
     applyFog: options.applyFog,
@@ -73,7 +73,8 @@ export function collectSettings(app) {
     interpolateHeight: options.interpolateHeight,
     filterColor: options.filterColor,
     lod0Refine: options.lod0Refine,
-    lod0RefineSamples: options.lod0RefineSamples,
+    lod0RefineCurve: options.lod0RefineCurve,
+    stepDivisor: options.stepDivisor,
     filterDistance: options.filterDistance,
     multithread: options.multithread,
     mode: app.camera.mode,
@@ -104,18 +105,17 @@ export function sanitizeSettings(data, defaults, bounds) {
     farClip,
     bounds.fogRange
   );
+  const lodSpacingMax = Math.min(
+    bounds.lodSpacing.max,
+    lod0MaxMeters(farClip, bounds.lodSpacing.min)
+  );
   const lodSpacing = VMath.clamp(
     bounds.lodSpacing.min,
-    bounds.lodSpacing.max,
+    lodSpacingMax,
     Math.round(finiteOr(data.lodSpacing, defaults.lodSpacing))
   );
   return {
     farClip,
-    minDeltaZ: VMath.clamp(
-      bounds.deltaZ.min,
-      bounds.deltaZ.max,
-      finiteOr(data.minDeltaZ, defaults.minDeltaZ)
-    ),
     fov: VMath.clamp(
       bounds.fov.min,
       bounds.fov.max,
@@ -130,10 +130,17 @@ export function sanitizeSettings(data, defaults, bounds) {
     interpolateHeight: boolOr(data.interpolateHeight, defaults.interpolateHeight),
     filterColor: boolOr(data.filterColor, defaults.filterColor),
     lod0Refine: boolOr(data.lod0Refine, defaults.lod0Refine),
-    lod0RefineSamples: VMath.clamp(
-      bounds.lod0RefineSamples.min,
-      bounds.lod0RefineSamples.max,
-      Math.round(finiteOr(data.lod0RefineSamples, defaults.lod0RefineSamples))
+    lod0RefineCurve: pickAllowed(
+      data.lod0RefineCurve,
+      bounds.lod0RefineCurves,
+      defaults.lod0RefineCurve
+    ),
+    stepDivisor: clampStepDivisor(
+      data.stepDivisor != null
+        ? data.stepDivisor
+        : data.lod0RefineSamples != null
+          ? data.lod0RefineSamples
+          : defaults.stepDivisor
     ),
     filterDistance: VMath.clamp(
       bounds.filterDistance.min,

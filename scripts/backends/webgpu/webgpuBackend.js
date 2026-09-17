@@ -11,8 +11,6 @@ import {
 } from "../../constants/debugView.js";
 import { cubeSizeForQuality } from "../../constants/cubemap.js";
 import {
-  INITIAL_STEP_SCALE_BY_QUALITY,
-  MIN_SAMPLE_DISTANCE,
   PANO_SIZE_BY_QUALITY,
   STEP_GROWTH_BY_QUALITY,
   qualityIndex,
@@ -24,11 +22,12 @@ import {
 } from "../../constants/panorama.js";
 import {
   TERRAIN_MIP_MAX_COUNT,
-  LOD0_REFINE_CELL,
   classicLodDeltas,
   fillClassicLodDistances,
+  firstMarchT,
   mipInvScale,
   mipSwitchDistances,
+  lod0RefineSwitchDistances,
 } from "../../constants/mip.js";
 import { resolveTerrainMips } from "../../terrain/mipChain.js";
 import {
@@ -210,7 +209,7 @@ class WebGpuBackend {
     this._panoCamZ = 0;
     this._panoFarClip = NaN;
     this._panoRepeat = null;
-    this._panoMinDeltaZ = NaN;
+    this._panoStepDivisor = NaN;
     this._panoSkyColor = null;
     this._panoHorizonColor = null;
     this._panoQuality = NaN;
@@ -546,9 +545,9 @@ class WebGpuBackend {
       this._panoInterp !== this._host.interpolateHeight ||
       this._panoFilter !== this._host.filterColor ||
       this._panoLod0Refine !== this._host.lod0Refine ||
-      this._panoLod0RefineSamples !== this._host.lod0RefineSamples ||
+      this._panoLod0RefineCurve !== this._host.lod0RefineCurve ||
+      this._panoStepDivisor !== this._host.stepDivisor ||
       this._panoFilterDist !== this._host.filterDistance ||
-      this._panoMinDeltaZ !== camera.minDeltaZ ||
       this._panoMipCount !== this._host.mipCount ||
       this._panoLodSpacingMode !== this._host.lodSpacingMode ||
       this._panoLodSpacing !== this._host.lodSpacing ||
@@ -576,11 +575,11 @@ class WebGpuBackend {
     this._panoInterp = this._host.interpolateHeight;
     this._panoFilter = this._host.filterColor;
     this._panoLod0Refine = this._host.lod0Refine;
-    this._panoLod0RefineSamples = this._host.lod0RefineSamples;
+    this._panoLod0RefineCurve = this._host.lod0RefineCurve;
+    this._panoStepDivisor = this._host.stepDivisor;
     this._panoFilterDist = this._host.filterDistance;
     this._panoFwdX = camera.fwdX;
     this._panoFwdY = camera.fwdY;
-    this._panoMinDeltaZ = camera.minDeltaZ;
     this._panoMipCount = this._host.mipCount;
     this._panoLodSpacingMode = this._host.lodSpacingMode;
     this._panoLodSpacing = this._host.lodSpacing;
@@ -622,19 +621,19 @@ class WebGpuBackend {
       this._host.lodSpacingMode,
       this._host.lodSpacing
     );
+    const refineSw = lod0RefineSwitchDistances(
+      this._host.lodSpacing,
+      this._host.lod0RefineCurve
+    );
     const switchF32 = new Float32Array(TERRAIN_MIP_MAX_COUNT);
     switchF32.fill(1e30);
     switchF32.set(Float32Array.from(switchDist));
     writeBuffer(this._device, this._mipSwitchBuf, switchF32);
-    let step0 = camera.minDeltaZ * INITIAL_STEP_SCALE_BY_QUALITY[q];
-    if ((step0 <= 0) | 0) step0 = MIN_SAMPLE_DISTANCE;
     const tanMin = buildTanMinLut(panoH);
     const tanLast = tanMin[(panoH - 1) | 0] || 0;
     const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
     const refineOn = !!this._host.lod0Refine;
-    let t0 = refineOn
-      ? Math.max(camera.nearClip, LOD0_REFINE_CELL)
-      : Math.max(camera.nearClip, step0, MIN_SAMPLE_DISTANCE);
+    let t0 = firstMarchT(camera.nearClip, refineOn, this._host.stepDivisor);
     if ((camera.posZ > clipZ) & (tanLast < 0)) {
       const tGroundPole = (clipZ - camera.posZ) / tanLast;
       if ((tGroundPole > 0) & (tGroundPole < t0)) {
@@ -673,7 +672,7 @@ class WebGpuBackend {
       nearClip: camera.nearClip,
       farClip: packFar,
       tMax: tMax,
-      minDeltaZ: camera.minDeltaZ,
+      stepDivisor: this._host.stepDivisor,
       altitude: maps.altitude,
       maxHeight: maps.maxHeight == null ? maps.altitude : maps.maxHeight,
       screenWidth: screenW,
@@ -688,7 +687,6 @@ class WebGpuBackend {
       interpolateHeight: this._host.interpolateHeight,
       filterColor: this._host.filterColor,
       lod0Refine: this._host.lod0Refine,
-      lod0RefineSamples: this._host.lod0RefineSamples,
       lodSpacing: this._host.lodSpacing,
       filterDistance: this._host.filterDistance,
       fogStart: this._host.fogStart,
@@ -699,10 +697,10 @@ class WebGpuBackend {
       dhGround: clipZ - camera.posZ,
       tanLast: tanLast,
       stepGrowth: STEP_GROWTH_BY_QUALITY[q],
-      stepScale: step0,
-      stepCap0: step0,
-      stepCap1: step0,
-      stepCap2: step0,
+      stepScale: 0,
+      stepCap0: refineSw[0] > 0 ? refineSw[0] : 1e30,
+      stepCap1: refineSw[1] > 0 ? refineSw[1] : 1e30,
+      stepCap2: refineSw[2] > 0 ? refineSw[2] : 1e30,
       switchT0: 0,
       switchT1: 0,
       mipStepScale: 2,
@@ -771,8 +769,6 @@ class WebGpuBackend {
 
   _writeClassicTables(camera) {
     const maps = this._maps;
-    const q = qualityIndex(camera.quality);
-    const stepScale = INITIAL_STEP_SCALE_BY_QUALITY[q];
     const mips = resolveTerrainMips(
       maps && (maps.terrainMips || maps.panoMips),
       maps && maps.heightMap,
@@ -784,22 +780,12 @@ class WebGpuBackend {
     );
     const bandCount = mips.count;
     const refineOn = !!this._host.lod0Refine;
-    const deltasAll = classicLodDeltas(
-      q,
-      bandCount,
-      camera.minDeltaZ,
-      stepScale,
-      null,
-      refineOn,
-      this._host.lod0RefineSamples
-    );
+    const deltasAll = classicLodDeltas(bandCount, this._host.stepDivisor);
     const deltas = new Float32Array(TERRAIN_MIP_MAX_COUNT);
     for (let i = 0; (i < bandCount) | 0; i = (i + 1) | 0) {
       deltas[i] = deltasAll[i];
     }
-    const zStart = refineOn
-      ? Math.max(camera.nearClip, LOD0_REFINE_CELL)
-      : Math.max(camera.nearClip, deltas[0], MIN_SAMPLE_DISTANCE);
+    const zStart = firstMarchT(camera.nearClip, refineOn, this._host.stepDivisor);
     const far = this._host.effectiveFarClip;
     const switches = mipSwitchDistances(
       bandCount,

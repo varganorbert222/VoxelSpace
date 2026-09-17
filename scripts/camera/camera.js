@@ -14,7 +14,6 @@ import {
   MODE_ORBITAL,
   DEFAULT_NEAR_CLIP,
   DEFAULT_FAR_CLIP,
-  DEFAULT_MIN_DELTA_Z,
   DEFAULT_POS_X,
   DEFAULT_POS_Y,
   DEFAULT_POS_Z,
@@ -35,10 +34,6 @@ class Camera {
 
   get farClip() {
     return this._farClip;
-  }
-
-  get minDeltaZ() {
-    return this._minDeltaZ;
   }
 
   get posX() {
@@ -132,7 +127,6 @@ class Camera {
   constructor(settings, frameBuffer) {
     this._nearClip = settings.nearClip ?? DEFAULT_NEAR_CLIP;
     this._farClip = settings.farClip ?? DEFAULT_FAR_CLIP;
-    this._minDeltaZ = settings.minDeltaZ ?? DEFAULT_MIN_DELTA_Z;
     this._posX = settings.posX ?? DEFAULT_POS_X;
     this._posY = settings.posY ?? DEFAULT_POS_Y;
     this._posZ = settings.posZ ?? DEFAULT_POS_Z;
@@ -230,7 +224,6 @@ class Camera {
   set(settings) {
     this._quality = settings.quality ?? this._quality;
     this._farClip = settings.farClip ?? this._farClip;
-    this._minDeltaZ = settings.minDeltaZ ?? this._minDeltaZ;
     this._renderScale = settings.renderScale ?? this._renderScale;
     this._fov = settings.fov ?? this._fov;
     this._topColor = settings.topColor ?? this._topColor;

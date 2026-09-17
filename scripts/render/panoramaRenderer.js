@@ -44,7 +44,7 @@ class PanoramaRenderer {
     this._panoCamZ = 0;
     this._panoFarClip = NaN;
     this._panoRepeat = null;
-    this._panoMinDeltaZ = NaN;
+    this._panoStepDivisor = NaN;
     this._panoSkyColor = null;
     this._panoHorizonColor = null;
     this._panoQuality = NaN;
@@ -151,9 +151,9 @@ class PanoramaRenderer {
       this._panoInterp !== this._renderer.interpolateHeight ||
       this._panoFilter !== this._renderer.filterColor ||
       this._panoLod0Refine !== this._renderer.lod0Refine ||
-      this._panoLod0RefineSamples !== this._renderer.lod0RefineSamples ||
+      this._panoLod0RefineCurve !== this._renderer.lod0RefineCurve ||
+      this._panoStepDivisor !== this._renderer.stepDivisor ||
       this._panoFilterDist !== this._renderer.filterDistance ||
-      this._panoMinDeltaZ !== camera.minDeltaZ ||
       this._panoMipCount !== this._renderer.mipCount ||
       this._panoLodSpacingMode !== this._renderer.lodSpacingMode ||
       this._panoLodSpacing !== this._renderer.lodSpacing ||
@@ -186,11 +186,11 @@ class PanoramaRenderer {
     this._panoInterp = this._renderer.interpolateHeight;
     this._panoFilter = this._renderer.filterColor;
     this._panoLod0Refine = this._renderer.lod0Refine;
-    this._panoLod0RefineSamples = this._renderer.lod0RefineSamples;
+    this._panoLod0RefineCurve = this._renderer.lod0RefineCurve;
+    this._panoStepDivisor = this._renderer.stepDivisor;
     this._panoFilterDist = this._renderer.filterDistance;
     this._panoFwdX = camera.fwdX;
     this._panoFwdY = camera.fwdY;
-    this._panoMinDeltaZ = camera.minDeltaZ;
     this._panoMipCount = this._renderer.mipCount;
     this._panoLodSpacingMode = this._renderer.lodSpacingMode;
     this._panoLodSpacing = this._renderer.lodSpacing;
@@ -393,12 +393,12 @@ class PanoramaRenderer {
       repeat: renderer.repeat,
       skyColor: terrain.skyColor,
       horizonColor: camera.bottomColor,
-      initialStep: camera.minDeltaZ,
       quality: camera.quality,
       interpolateHeight: renderer.interpolateHeight ? 1 : 0,
       filterColor: renderer.filterColor ? 1 : 0,
       lod0Refine: renderer.lod0Refine ? 1 : 0,
-      lod0RefineSamples: renderer.lod0RefineSamples,
+      lod0RefineCurve: renderer.lod0RefineCurve,
+      stepDivisor: renderer.stepDivisor,
       filterDistance: renderer.filterDistance,
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
@@ -434,12 +434,12 @@ class PanoramaRenderer {
       farClip: camera.farClip,
       tMax: tMax,
       repeat: renderer.repeat,
-      minDeltaZ: camera.minDeltaZ,
+      stepDivisor: renderer.stepDivisor,
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
       lodSpacing: renderer.lodSpacing,
       lod0Refine: renderer.lod0Refine,
-      lod0RefineSamples: renderer.lod0RefineSamples,
+      lod0RefineCurve: renderer.lod0RefineCurve,
       camX: camera.posX,
       camY: camera.posY,
       camZ: camera.posZ,
@@ -458,12 +458,12 @@ class PanoramaRenderer {
       repeat: renderer.repeat,
       skyColor: terrain.skyColor,
       horizonColor: camera.bottomColor,
-      initialStep: camera.minDeltaZ,
       quality: camera.quality,
       interpolateHeight: renderer.interpolateHeight ? 1 : 0,
       filterColor: renderer.filterColor ? 1 : 0,
       lod0Refine: renderer.lod0Refine ? 1 : 0,
-      lod0RefineSamples: renderer.lod0RefineSamples,
+      lod0RefineCurve: renderer.lod0RefineCurve,
+      stepDivisor: renderer.stepDivisor,
       filterDistance: renderer.filterDistance,
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
@@ -484,12 +484,12 @@ class PanoramaRenderer {
       camera.farClip !== token.farClip ||
       this._panoTMax() !== token.tMax ||
       renderer.repeat !== token.repeat ||
-      camera.minDeltaZ !== token.minDeltaZ ||
+      renderer.stepDivisor !== token.stepDivisor ||
       renderer.mipCount !== token.mipCount ||
       renderer.lodSpacingMode !== token.lodSpacingMode ||
       renderer.lodSpacing !== token.lodSpacing ||
       renderer.lod0Refine !== token.lod0Refine ||
-      renderer.lod0RefineSamples !== token.lod0RefineSamples ||
+      renderer.lod0RefineCurve !== token.lod0RefineCurve ||
       camera.posX !== token.camX ||
       camera.posY !== token.camY ||
       camera.posZ !== token.camZ ||

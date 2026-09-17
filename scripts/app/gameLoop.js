@@ -89,15 +89,16 @@ function applySettingsHotkeys(app) {
     );
     app.camera.set({ farClip: nextFar });
     app.renderer.syncFogToFarClip(prevFar, nextFar);
+    app.renderer.clampLodSpacingToFarClip();
     app.persistAndSync();
   }
-  const nudgeDeltaZ = app.input.consumeNudgeDeltaZ;
-  if (nudgeDeltaZ) {
-    app.camera.set({
-      minDeltaZ: nudgeRange(
-        app.camera.minDeltaZ,
-        nudgeDeltaZ,
-        config.settings.deltaZ
+  const nudgeStep = app.input.consumeNudgeStepDivisor;
+  if (nudgeStep) {
+    app.renderer.setOptions({
+      stepDivisor: nudgeRange(
+        app.renderer.stepDivisor,
+        nudgeStep,
+        config.settings.stepDivisor
       ),
     });
     app.persistAndSync();

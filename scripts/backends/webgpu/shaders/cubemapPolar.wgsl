@@ -146,8 +146,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let mapW = f32(frame.mapFlags.x);
   let mapH = f32(frame.mapFlags.y);
   let clipZ = frame.clipDhTanLastGrowth.x;
-  let stepGrowth = frame.clipDhTanLastGrowth.w;
-  let step0 = frame.stepScaleCaps.x;
   var lastMip = terrainLastMip(heightTex);
   let theta = (f32(az) + 0.5) / f32(azCount) * TWO_PI;
   let dirX = -sin(theta);
@@ -158,7 +156,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     t0 = nearClip;
   }
   var t = t0;
-  var step = step0;
+  var step = 0.0;
+  var bandKey = -1;
   var wasInside = 0;
   var leftMap = 0;
   var mip = 0;
@@ -202,9 +201,10 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
           leftMap = 1;
           break;
         }
-        let adv = advanceRayT(t, step, stepGrowth, mip, wx, wy, dirX, dirY);
-        t = adv.x;
-        step = adv.y;
+        let taken = takeMarchStep(t, step, bandKey, mip);
+        t = taken.x;
+        step = taken.y;
+        bandKey = i32(taken.z);
         continue;
       }
       wasInside = 1;
@@ -287,11 +287,10 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       break;
     }
 
-    {
-      let adv = advanceRayT(t, step, stepGrowth, mip, wx, wy, dirX, dirY);
-      t = adv.x;
-      step = adv.y;
-    }
+    let taken = takeMarchStep(t, step, bandKey, mip);
+    t = taken.x;
+    step = taken.y;
+    bandKey = i32(taken.z);
   }
   if (face == 5 && leftMap == 0 && hadDown != 0 && rInnerDown > 0.0 && rInnerDown < rMaxSpoke) {
     fillSpoke(n, dirX, -dirY, rInnerDown, rMaxSpoke, lastDownColor, lastDownDist, lastDownHeight, lastDownIter);

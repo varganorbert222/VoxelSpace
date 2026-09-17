@@ -22,6 +22,7 @@ import { DEFAULT_MAP_SIZE } from "../constants/terrain.js";
 import {
   TERRAIN_MIP_COUNT_MIN,
   LOD_SPACING_LABEL,
+  lod0MaxMeters,
   mipCountMax,
 } from "../constants/mip.js";
 import { initDualRangeElement } from "./rangeSlider.js";
@@ -39,14 +40,11 @@ function formatRangeValue(id, value) {
   if (id === "id_filter_distance") {
     return Math.round(n) + " m";
   }
-  if (id === "id_delta_z") {
-    return n.toFixed(1);
+  if (id === "id_step_divisor") {
+    return String(Math.round(n));
   }
   if (id === "id_lod_spacing") {
     return Math.round(n) + " m";
-  }
-  if (id === "id_lod0_refine_samples") {
-    return String(Math.round(n));
   }
   if (id === "id_fov") {
     return Math.round(n) + "°";
@@ -70,6 +68,22 @@ function updateBoundValue(id, value) {
   if (label) {
     label.textContent = formatRangeValue(id, value);
   }
+}
+
+function syncLod0Slider(el, farClip, renderer) {
+  const lod0Min = config.settings.lodSpacing.min;
+  const lod0Max = lod0MaxMeters(farClip, lod0Min);
+  el.min = lod0Min;
+  el.max = lod0Max;
+  el.step = config.settings.lodSpacing.step;
+  el.disabled = false;
+  renderer.setOptions({
+    lodSpacing: Math.min(Number(el.value), lod0Max),
+  });
+  const spacing = Math.min(renderer.lodSpacing, lod0Max);
+  el.value = spacing;
+  updateBoundValue("id_lod_spacing", spacing);
+  return spacing;
 }
 
 function mipCountRange(terrain) {
@@ -109,10 +123,10 @@ function initRangeElement(id, rangeConfig, value, onInput, onChange) {
   element.value = value;
   updateBoundValue(id, value);
   element.addEventListener("input", (e) => {
-    updateBoundValue(id, e.target.value);
     if (onInput) {
       onInput(e);
     }
+    updateBoundValue(id, e.target.value);
   });
   if (onChange) {
     element.addEventListener("change", onChange);
@@ -239,16 +253,7 @@ class SettingsForm {
           updateFogRangeValue(app.renderer.fogStart, app.renderer.fogEnd);
           const step = this._elements.lodSpacing;
           if (step) {
-            const n = app.renderer.mipCount | 0;
-            const lod0Max = Math.max(
-              config.settings.lodSpacing.min,
-              (next | 0) - Math.max(1, n - 1)
-            );
-            step.max = lod0Max;
-            const cur = parseInt(step.value, 10);
-            if (cur > lod0Max) {
-              app.renderer.setOptions({ lodSpacing: lod0Max });
-            }
+            syncLod0Slider(step, next, app.renderer);
           }
           this.sync();
         },
@@ -292,12 +297,14 @@ class SettingsForm {
         },
         persist
       ),
-      deltaZ: initRangeElement(
-        "id_delta_z",
-        config.settings.deltaZ,
-        camera.minDeltaZ,
+      stepDivisor: initRangeElement(
+        "id_step_divisor",
+        config.settings.stepDivisor,
+        options.stepDivisor,
         (e) => {
-          camera.set({ minDeltaZ: parseFloat(e.target.value) });
+          app.renderer.setOptions({
+            stepDivisor: parseInt(e.target.value, 10),
+          });
         },
         persist
       ),
@@ -327,7 +334,7 @@ class SettingsForm {
         "id_lod_spacing",
         {
           min: config.settings.lodSpacing.min,
-          max: camera.farClip,
+          max: lod0MaxMeters(camera.farClip, config.settings.lodSpacing.min),
           step: config.settings.lodSpacing.step,
         },
         options.lodSpacing,
@@ -335,18 +342,7 @@ class SettingsForm {
           app.renderer.setOptions({
             lodSpacing: parseInt(e.target.value, 10),
           });
-          this.sync();
-        },
-        persist
-      ),
-      lod0RefineSamples: initRangeElement(
-        "id_lod0_refine_samples",
-        config.settings.lod0RefineSamples,
-        options.lod0RefineSamples,
-        (e) => {
-          app.renderer.setOptions({
-            lod0RefineSamples: parseInt(e.target.value, 10),
-          });
+          e.target.value = app.renderer.lodSpacing;
         },
         persist
       ),
@@ -397,10 +393,18 @@ class SettingsForm {
         options.lod0Refine,
         (e) => {
           app.renderer.setOptions({ lod0Refine: e.target.checked });
-          const on = e.target.checked;
-          this._elements.lod0RefineSamples.disabled = !on;
           persist();
         }
+      ),
+      lod0RefineCurve: initOptionElement(
+        "id_lod0_refine_curve",
+        config.settings.lod0RefineCurve || config.settings.lodSpacingMode,
+        options.lod0RefineCurve,
+        (e) => {
+          app.renderer.setOptions({ lod0RefineCurve: e.target.value });
+          persist();
+        },
+        LOD_SPACING_LABEL
       ),
       multithread: initCheckboxElement(
         "id_multithread",
@@ -481,11 +485,10 @@ class SettingsForm {
       fogRange,
       renderScale,
       fov,
-      deltaZ,
+      stepDivisor,
       mipCount,
       lodSpacingMode,
       lodSpacing,
-      lod0RefineSamples,
       filterDistance,
       quality,
       applyFog,
@@ -493,6 +496,7 @@ class SettingsForm {
       interpolateHeight,
       filterColor,
       lod0Refine,
+      lod0RefineCurve,
       multithread,
       map,
       cameraMode,
@@ -517,8 +521,11 @@ class SettingsForm {
     updateBoundValue("id_render_scale", camera.renderScale);
     fov.value = camera.fov;
     updateBoundValue("id_fov", camera.fov);
-    deltaZ.value = camera.minDeltaZ;
-    updateBoundValue("id_delta_z", camera.minDeltaZ);
+    stepDivisor.min = config.settings.stepDivisor.min;
+    stepDivisor.max = config.settings.stepDivisor.max;
+    stepDivisor.step = config.settings.stepDivisor.step;
+    stepDivisor.value = options.stepDivisor;
+    updateBoundValue("id_step_divisor", options.stepDivisor);
     const mipRange = mipCountRange(this._app.terrain);
     mipCount.min = mipRange.min;
     mipCount.max = mipRange.max;
@@ -526,28 +533,7 @@ class SettingsForm {
     mipCount.value = options.mipCount;
     updateMipCountValue(options.mipCount, this._app.terrain);
     lodSpacingMode.value = options.lodSpacingMode;
-    const far = camera.farClip;
-    const lod0Min = config.settings.lodSpacing.min;
-    const lod0Max = Math.max(
-      lod0Min,
-      (far | 0) - Math.max(1, (options.mipCount | 0) - 1)
-    );
-    lodSpacing.min = lod0Min;
-    lodSpacing.max = lod0Max;
-    lodSpacing.step = config.settings.lodSpacing.step;
-    lodSpacing.disabled = false;
-    let spacing = options.lodSpacing;
-    if (spacing > lod0Max) {
-      spacing = lod0Max;
-    }
-    lodSpacing.value = spacing;
-    updateBoundValue("id_lod_spacing", spacing);
-    lod0RefineSamples.min = config.settings.lod0RefineSamples.min;
-    lod0RefineSamples.max = config.settings.lod0RefineSamples.max;
-    lod0RefineSamples.step = config.settings.lod0RefineSamples.step;
-    lod0RefineSamples.value = options.lod0RefineSamples;
-    lod0RefineSamples.disabled = !options.lod0Refine;
-    updateBoundValue("id_lod0_refine_samples", options.lod0RefineSamples);
+    syncLod0Slider(lodSpacing, camera.farClip, this._app.renderer);
     filterDistance.value = options.filterDistance;
     updateBoundValue("id_filter_distance", options.filterDistance);
     filterDistance.disabled = true;
@@ -562,6 +548,7 @@ class SettingsForm {
     interpolateHeight.checked = !!options.interpolateHeight;
     filterColor.checked = !!options.filterColor;
     lod0Refine.checked = !!options.lod0Refine;
+    lod0RefineCurve.value = options.lod0RefineCurve;
     multithread.checked = options.multithread;
     multithread.disabled = !usesWorkers(options.backend);
     map.value = this._app.currentMapName;

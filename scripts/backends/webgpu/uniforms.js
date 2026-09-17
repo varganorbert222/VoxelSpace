@@ -48,7 +48,7 @@ export function packFrame(packer, p) {
   f[18] = p.nearClip;
   f[19] = p.farClip;
   f[20] = p.tMax;
-  f[21] = p.minDeltaZ;
+  f[21] = p.stepDivisor;
   f[22] = p.altitude;
   f[23] = p.maxHeight;
   u[24] = p.screenWidth | 0;

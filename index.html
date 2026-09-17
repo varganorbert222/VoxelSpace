@@ -231,12 +231,15 @@
           </div>
           <input id="id_filter_distance" type="range" autocomplete="off" />
         </div>
-        <div class="control" data-tip="Ray step size. Lower is denser and slower.">
+        <div
+          class="control"
+          data-tip="Starting ray step is voxel size divided by this integer. Within each LOD / refine mip the step then grows with quality, but never larger than the current voxel. Applies to LOD 0 refine mips (1/16, 1/8, 1/4, then 1/2 m) and the terrain mip chain. Higher is denser and slower."
+        >
           <div class="control-head">
-            <label for="id_delta_z">Delta Z</label>
-            <span class="control-value" data-for="id_delta_z"></span>
+            <label for="id_step_divisor">Step</label>
+            <span class="control-value" data-for="id_step_divisor"></span>
           </div>
-          <input id="id_delta_z" type="range" autocomplete="off" aria-keyshortcuts="Z Shift+Z" />
+          <input id="id_step_divisor" type="range" autocomplete="off" aria-keyshortcuts="Z Shift+Z" />
         </div>
         <div
           class="control"
@@ -259,7 +262,7 @@
         </div>
         <div
           class="control"
-          data-tip="How far full-resolution LOD 0 lasts, in meters. Coarser levels start here and follow the LOD curve out to Distance. Clamped below Distance."
+          data-tip="How far full-resolution LOD 0 lasts, in meters. Coarser levels start here and follow the LOD curve out to Distance. Always at most 10% of Distance."
         >
           <div class="control-head">
             <label for="id_lod_spacing">LOD 0</label>
@@ -289,7 +292,7 @@
           <label
             class="check"
             for="id_lod0_refine"
-            data-tip="Optional LOD 0 refinement, from the camera out to the LOD 0 distance. Four equal mips (16, 8, 4, then 2 virtual voxels per meter) keep the far end cheap. Occupancy, stepping, and height jitter use the current refine cell. Height interp and Color filter stay their own switches."
+            data-tip="Optional LOD 0 refinement, from the camera out to the LOD 0 distance. Four mips (16, 8, 4, then 2 virtual voxels per meter) follow this section's Curve. Occupancy, stepping, and height jitter use the current refine cell. Height interp and Color filter stay their own switches."
           >
             <input id="id_lod0_refine" name="lod0refine" type="checkbox" autocomplete="off" />
             <span class="check-box" aria-hidden="true"></span>
@@ -298,13 +301,12 @@
         </div>
         <div
           class="control"
-          data-tip="Density ceiling: a ray will not sample a 1/16 m voxel more than this many times. The march takes one sample per refined voxel."
+          data-tip="How the four LOD0 refine mips are spaced from the camera out to the LOD 0 distance. Linear: equal bands. Doubling: each band is twice the previous. Logarithmic: log-spaced. Independent of the View LOD curve."
         >
           <div class="control-head">
-            <label for="id_lod0_refine_samples">Samples</label>
-            <span class="control-value" data-for="id_lod0_refine_samples"></span>
+            <label for="id_lod0_refine_curve">Curve</label>
           </div>
-          <input id="id_lod0_refine_samples" type="range" autocomplete="off" />
+          <select id="id_lod0_refine_curve" name="lod0RefineCurve" autocomplete="off"></select>
         </div>
       </section>
 
@@ -416,7 +418,7 @@
           <div><dt>1-5</dt><dd>Quality</dd></div>
           <div><dt>C</dt><dd>Cycle camera</dd></div>
           <div><dt>I Shift+I</dt><dd>Distance</dd></div>
-          <div><dt>Z Shift+Z</dt><dd>Delta Z</dd></div>
+          <div><dt>Z Shift+Z</dt><dd>Step</dd></div>
           <div><dt>O Shift+O</dt><dd>FOV</dd></div>
           <div><dt>V</dt><dd>Cycle debug view</dd></div>
           <div class="pano-only"><dt>N</dt><dd>Toggle env atlas</dd></div>

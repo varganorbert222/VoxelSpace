@@ -83,10 +83,14 @@ class App {
       interpolateHeight: config.settings.interpolateHeight.default !== false,
       filterColor: config.settings.filterColor.default !== false,
       lod0Refine: !!config.settings.lod0Refine && config.settings.lod0Refine.default,
-      lod0RefineSamples:
-        config.settings.lod0RefineSamples &&
-        config.settings.lod0RefineSamples.default != null
-          ? config.settings.lod0RefineSamples.default
+      lod0RefineCurve:
+        (config.settings.lod0RefineCurve &&
+          config.settings.lod0RefineCurve.default) ||
+        "linear",
+      stepDivisor:
+        config.settings.stepDivisor &&
+        config.settings.stepDivisor.default != null
+          ? config.settings.stepDivisor.default
           : 3,
       filterDistance: config.settings.filterDistance.default,
       mipCount: config.settings.mipCount
@@ -253,7 +257,6 @@ class App {
       data,
       {
         farClip: this.camera.farClip,
-        minDeltaZ: this.camera.minDeltaZ,
         fov: this.camera.fov,
         quality: this.camera.quality,
         mode: this.camera.mode,
@@ -264,7 +267,8 @@ class App {
         interpolateHeight: options.interpolateHeight,
         filterColor: options.filterColor,
         lod0Refine: options.lod0Refine,
-        lod0RefineSamples: options.lod0RefineSamples,
+        lod0RefineCurve: options.lod0RefineCurve,
+        stepDivisor: options.stepDivisor,
         filterDistance: options.filterDistance,
         multithread: options.multithread,
         map: this.currentMapName,
@@ -282,7 +286,7 @@ class App {
         renderDistance: config.settings.renderDistance,
         fogRange: config.settings.fogRange,
         filterDistance: config.settings.filterDistance,
-        deltaZ: config.settings.deltaZ,
+        stepDivisor: config.settings.stepDivisor,
         fov: config.settings.fov,
         qualities: config.settings.quality.values.map(Number),
         modes: config.settings.cameraModes.values,
@@ -295,8 +299,11 @@ class App {
           max: TERRAIN_MIP_MAX_COUNT,
         },
         lodSpacingModes: config.settings.lodSpacingMode.values,
+        lod0RefineCurves:
+          (config.settings.lod0RefineCurve &&
+            config.settings.lod0RefineCurve.values) ||
+          config.settings.lodSpacingMode.values,
         lodSpacing: config.settings.lodSpacing,
-        lod0RefineSamples: config.settings.lod0RefineSamples,
       }
     );
     if (!sanitized) {
@@ -304,7 +311,6 @@ class App {
     }
     this.camera.set({
       farClip: sanitized.farClip,
-      minDeltaZ: sanitized.minDeltaZ,
       fov: sanitized.fov,
       quality: clampQualityForContext(sanitized.quality, sanitized.backend),
       mode: sanitized.mode,
@@ -317,7 +323,8 @@ class App {
       interpolateHeight: sanitized.interpolateHeight,
       filterColor: sanitized.filterColor,
       lod0Refine: sanitized.lod0Refine,
-      lod0RefineSamples: sanitized.lod0RefineSamples,
+      lod0RefineCurve: sanitized.lod0RefineCurve,
+      stepDivisor: sanitized.stepDivisor,
       filterDistance: sanitized.filterDistance,
       multithread: sanitized.multithread,
       algorithm: sanitized.algorithm,

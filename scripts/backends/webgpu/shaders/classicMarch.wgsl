@@ -56,7 +56,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let sinA = frame.sinCosNearFar.x;
   let cosA = frame.sinCosNearFar.y;
   let farClip = frame.sinCosNearFar.w;
-  let minDeltaZ = frame.tMaxMinDzAltMaxH.y;
   let altitude = frame.tMaxMinDzAltMaxH.z;
   let maxHeight = frame.tMaxMinDzAltMaxH.w;
   let mapW = i32(frame.mapFlags.x);
@@ -65,9 +64,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let flags = frame.mapFlags.w;
   let useFog = flagFog(flags);
   let repeat = flagRepeat(flags);
-  let stepGrowth = frame.clipDhTanLastGrowth.w;
-  let stepScale = frame.stepScaleCaps.x;
-  let quality = i32(frame.extraU.x);
   let lodCount = i32(frame.extraU.y);
   let altScale = altitude / 255.0;
   let mapWMask = mapW - 1;
@@ -94,7 +90,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     }
     let startIndex = lodDistances[lod - 1];
     let endIndex = lodDistances[lod];
-    var step = lodDeltas[lod - 1];
     let mip = lod - 1;
     lod = lod - 1;
     if (startIndex >= farClip) {
@@ -104,11 +99,16 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     var hiddenY = screenH;
     var z = startIndex;
     var n = 0u;
+    var step = 0.0;
+    var bandKey = -1;
     loop {
       if ((z >= endIndex) || (z >= farClip) || (n >= MAX_STEPS)) {
         break;
       }
       n = n + 1u;
+      let synced = syncBandStep(step, bandKey, mip, z);
+      step = synced.x;
+      bandKey = i32(synced.y);
       let zScale = dst / z;
       let ceilingOnScreen = i32(ceilingSdf * zScale + screenHorizon);
       let groundOnScreen = i32(yGround * zScale + screenHorizon);
@@ -186,12 +186,9 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
           }
         }
       }
-      if (lod0RefineAt(z, mip)) {
-        z = z + lod0RefineCellAt(z);
-      } else {
-        step = step + stepGrowth;
-        z = z + step;
-      }
+      let grown = growMarchStep(step, mip, z);
+      z = z + step;
+      step = grown;
     }
   }
 }

@@ -76,8 +76,12 @@ class JsBackend {
     return this._host.lod0Refine;
   }
 
-  get lod0RefineSamples() {
-    return this._host.lod0RefineSamples;
+  get lod0RefineCurve() {
+    return this._host.lod0RefineCurve;
+  }
+
+  get stepDivisor() {
+    return this._host.stepDivisor;
   }
 
   get filterDistance() {
