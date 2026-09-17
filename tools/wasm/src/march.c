@@ -27,9 +27,9 @@ static f64 g_alt_scale;
 #define TERRAIN_MIP_MAX 16
 #define MAX_MARCH_STEPS 65536
 #define LOD0_REFINE_CELL (1.0 / 16.0)
-#define LOD0_REFINE_MIP_COUNT 4
+#define LOD0_REFINE_MIP_COUNT 5
 #define LOD0_REFINE_SUBDIV 16
-#define LOD0_REFINE_SUBDIV_MIN 2
+#define LOD0_REFINE_SUBDIV_MIN 1
 #define STEP_DIVISOR_MIN 1
 #define STEP_DIVISOR_MAX 5
 #define STEP_DIVISOR_DEFAULT 3
@@ -54,7 +54,8 @@ static i32 g_lerp_height;
 static i32 g_filter_color;
 static i32 g_lod0_refine;
 static i32 g_step_divisor = STEP_DIVISOR_DEFAULT;
-static f64 g_lod0_switch[LOD0_REFINE_MIP_COUNT] = {1.0e30, 1.0e30, 1.0e30, 1.0e30};
+static f64 g_lod0_switch[LOD0_REFINE_MIP_COUNT] = {
+    1.0e30, 1.0e30, 1.0e30, 1.0e30, 1.0e30};
 static f64 g_filter_distance = 500.0;
 static f64 g_fwd_x = 0.0;
 static f64 g_fwd_y = -1.0;
@@ -265,6 +266,9 @@ static inline i32 lod0_refine_mip_at(f64 t) {
   if (t >= g_lod0_switch[2]) {
     m = 3;
   }
+  if (t >= g_lod0_switch[3]) {
+    m = 4;
+  }
   return m;
 }
 
@@ -319,13 +323,9 @@ static inline f64 grow_march_step(f64 step, f64 growth, i32 mip, f64 t) {
 
 static inline void sync_band_step(f64 *step, i32 *prev_mip, i32 *prev_rm, i32 mip, f64 t) {
   i32 rm = lod0_refine_at(t, mip) ? lod0_refine_mip_at(t) : 0;
-  if (mip != *prev_mip || rm != *prev_rm) {
-    *step = march_step(mip, t);
-    *prev_mip = mip;
-    *prev_rm = rm;
-  } else {
-    *step = clamp_march_step(*step, mip, t);
-  }
+  *step = clamp_march_step(*step, mip, t);
+  *prev_mip = mip;
+  *prev_rm = rm;
 }
 
 static inline f64 first_march_t(f64 near_clip) {
@@ -469,24 +469,143 @@ static inline u32 lod0_refine_hash_max(i32 x0, i32 y0, i32 span) {
   return max_h;
 }
 
-static inline f64 apply_lod0_refine_height(f64 h_fine, f64 wx, f64 wy, f64 dir_x, f64 dir_y, i32 mip, f64 t) {
+#define LOD_EDGE_FRACTION 0.25
+
+static inline f64 lod_band_u(f64 t, f64 start, f64 end) {
+  f64 span = end - start;
+  f64 u;
+  if (!(span > 0.0)) {
+    return 0.0;
+  }
+  u = (t - start) / span;
+  if (!(u > 0.0)) {
+    return 0.0;
+  }
+  if (u > 1.0) {
+    return 1.0;
+  }
+  return u;
+}
+
+static inline i32 lod_edge_pick(f64 u, f64 wx, f64 wy, f64 cell) {
+  f64 s;
+  f64 h;
+  if (!(u > 0.0)) {
+    return 0;
+  }
+  if (u >= 1.0) {
+    return 1;
+  }
+  s = cell > 0.0 ? cell : 1.0;
+  h = (f64)lod0_refine_hash((i32)wasm_floor(wx / s), (i32)wasm_floor(wy / s)) *
+      (1.0 / 4294967296.0);
+  return u > h;
+}
+
+static inline f64 lod0_refine_cell_from_m(i32 m) {
+  i32 subdiv = LOD0_REFINE_SUBDIV >> m;
+  if (subdiv < LOD0_REFINE_SUBDIV_MIN) {
+    subdiv = LOD0_REFINE_SUBDIV_MIN;
+  }
+  return 1.0 / (f64)subdiv;
+}
+
+static inline void ease_lod_sample(
+    f64 t,
+    f64 wx,
+    f64 wy,
+    i32 mip,
+    i32 refine_mip,
+    i32 *out_mip,
+    i32 *out_rm,
+    f64 *out_noise,
+    f64 *out_filt) {
+  i32 sample_mip = mip;
+  i32 last_r = LOD0_REFINE_MIP_COUNT - 1;
+  i32 sample_rm = (g_lod0_refine && sample_mip == 0) ? refine_mip : 0;
+  f64 noise = (g_lod0_refine && sample_mip == 0) ? 1.0 : 0.0;
+  f64 filt = sample_mip == 0 ? 1.0 : 0.0;
+  f64 lod0_far = g_mip_switch_n > 0 ? g_mip_switch[0] : 1.0e30;
+  if (g_lod0_refine && sample_mip == 0) {
+    f64 start = sample_rm > 0 ? g_lod0_switch[sample_rm - 1] : 0.0;
+    f64 end = sample_rm >= last_r ? lod0_far : g_lod0_switch[sample_rm];
+    if (sample_rm >= last_r) {
+      f64 u = lod_band_u(t, start, end);
+      noise = 1.0 - u;
+      filt = 1.0 - u;
+      if (lod_edge_pick(u, wx, wy, 1.0) && g_mip_count > 1) {
+        sample_mip = 1;
+        sample_rm = 0;
+        noise = 0.0;
+        filt = 0.0;
+      }
+    } else {
+      f64 span = end - start;
+      f64 u = lod_band_u(t, end - span * LOD_EDGE_FRACTION, end);
+      if (lod_edge_pick(u, wx, wy, lod0_refine_cell_from_m(sample_rm))) {
+        sample_rm = sample_rm + 1;
+      }
+    }
+  } else if (sample_mip == 0) {
+    f64 start = lod0_far * (1.0 - LOD_EDGE_FRACTION);
+    f64 u = lod_band_u(t, start, lod0_far);
+    filt = 1.0 - u;
+    if (lod_edge_pick(u, wx, wy, 1.0) && g_mip_count > 1) {
+      sample_mip = 1;
+      filt = 0.0;
+    }
+  } else if (sample_mip == 1 && g_mip_count > 2 && g_mip_switch_n > 1) {
+    f64 start = g_mip_switch[0];
+    f64 end = g_mip_switch[1];
+    if (end > start && end < 1.0e20) {
+      f64 in_w = (end - start) * LOD_EDGE_FRACTION;
+      if (t < start + in_w) {
+        f64 u_in = 1.0 - lod_band_u(t, start, start + in_w);
+        if (lod_edge_pick(u_in, wx, wy, 2.0)) {
+          sample_mip = 0;
+          filt = 0.0;
+        }
+      } else {
+        f64 span = end - start;
+        f64 u = lod_band_u(t, end - span * LOD_EDGE_FRACTION, end);
+        if (lod_edge_pick(u, wx, wy, 2.0)) {
+          sample_mip = 2;
+        }
+      }
+    }
+  }
+  *out_mip = sample_mip;
+  *out_rm = sample_rm;
+  *out_noise = noise;
+  *out_filt = filt;
+}
+
+static inline f64 apply_lod0_refine_height(f64 h_fine, f64 wx, f64 wy, f64 dir_x, f64 dir_y, i32 mip, i32 rm, f64 amp) {
   f64 s;
   f64 e;
   i32 ix;
   i32 iy;
   i32 span;
+  i32 m;
   u32 max_h;
   f64 h;
-  if (!lod0_refine_at(t, mip)) {
+  if (mip != 0 || !(amp > 0.0) || !g_lod0_refine) {
     return h_fine;
   }
-  s = lod0_refine_cell_at(t);
+  m = rm;
+  if (m < 0) {
+    m = 0;
+  }
+  if (m > LOD0_REFINE_MIP_COUNT - 1) {
+    m = LOD0_REFINE_MIP_COUNT - 1;
+  }
+  s = lod0_refine_cell_from_m(m);
   e = mip_dda_eps(s);
-  span = 1 << lod0_refine_mip_at(t);
+  span = 1 << m;
   ix = (i32)wasm_floor((wx + dir_x * e) / s);
   iy = (i32)wasm_floor((wy + dir_y * e) / s);
   max_h = lod0_refine_hash_max(ix * span, iy * span, span);
-  h = h_fine + (((f64)max_h * (1.0 / 4294967296.0)) - 0.5);
+  h = h_fine + (((f64)max_h * (1.0 / 4294967296.0)) - 0.5) * amp;
   if (h < 0.0) {
     h = 0.0;
   }
@@ -655,7 +774,8 @@ WASM_EXPORT void set_sample_flags(
     i32 step_divisor,
     f64 lod0_sw0,
     f64 lod0_sw1,
-    f64 lod0_sw2) {
+    f64 lod0_sw2,
+    f64 lod0_sw3) {
   g_lerp_height = height_lerp ? 1 : 0;
   g_filter_color = color_filter ? 1 : 0;
   g_lod0_refine = lod0_refine ? 1 : 0;
@@ -663,6 +783,7 @@ WASM_EXPORT void set_sample_flags(
   g_lod0_switch[0] = lod0_sw0 > 0.0 ? lod0_sw0 : 1.0e30;
   g_lod0_switch[1] = lod0_sw1 > 0.0 ? lod0_sw1 : 1.0e30;
   g_lod0_switch[2] = lod0_sw2 > 0.0 ? lod0_sw2 : 1.0e30;
+  g_lod0_switch[3] = lod0_sw3 > 0.0 ? lod0_sw3 : 1.0e30;
   if (filter_distance < 10.0) {
     g_filter_distance = 10.0;
   } else if (filter_distance > 1000.0) {
@@ -1010,12 +1131,8 @@ WASM_EXPORT void classic_columns(
       i32 prev_rm = -1;
       for (z = start_index; (z < end_index) & (z < far_clip);) {
         i32 rm = lod0_refine_at(z, mip) ? lod0_refine_mip_at(z) : 0;
-        if (rm != prev_rm) {
-          step = march_step(mip, z);
-          prev_rm = rm;
-        } else {
-          step = clamp_march_step(step, mip, z);
-        }
+        step = clamp_march_step(step, mip, z);
+        prev_rm = rm;
         f64 z_scale = dst_to_proj / z;
       i32 ceiling_on_screen = (i32)(ceiling_sdf * z_scale + screen_horizon);
       i32 ground_on_screen = (i32)(y_ground * z_scale + screen_horizon);
@@ -1053,51 +1170,60 @@ WASM_EXPORT void classic_columns(
             continue;
           }
 
-          f64 sx;
-          f64 sy;
-          if (lod0_refine_at(z, mip)) {
-            lod0_sample_xy(
-                plx,
-                ply,
-                k_left_x + k_dx * (f64)col,
-                k_left_y + k_dy * (f64)col,
-                z,
-                &sx,
-                &sy);
-          } else {
-            sx = plx * inv;
-            sy = ply * inv;
-          }
+          i32 use_mip;
+          i32 use_rm;
+          f64 noise_amp;
+          f64 filt_fade;
+          ease_lod_sample(
+              z, plx, ply, mip, rm, &use_mip, &use_rm, &noise_amp, &filt_fade);
+          {
+            u8 *use_h = g_mip_h[use_mip];
+            u32 *use_c = g_mip_c[use_mip];
+            i32 use_w = g_mip_wmask[use_mip];
+            i32 use_hmask = g_mip_hmask[use_mip];
+            i32 use_sh = g_mip_sh[use_mip];
+            f64 use_inv = mip_inv_scale(use_mip);
+            f64 sx;
+            f64 sy;
+            f64 dirx = k_left_x + k_dx * (f64)col;
+            f64 diry = k_left_y + k_dy * (f64)col;
+            i32 lerp_col = do_lerp && use_mip == 0 && filt_fade > 0.0;
+            i32 filter_col = do_filter && use_mip == 0 && filt_fade > 0.0;
+            if (g_lod0_refine && use_mip == 0) {
+              f64 s = lod0_refine_cell_from_m(use_rm);
+              f64 e = mip_dda_eps(s);
+              sx = (wasm_floor((plx + dirx * e) / s) + 0.5) * s;
+              sy = (wasm_floor((ply + diry * e) / s) + 0.5) * s;
+            } else {
+              sx = plx * use_inv;
+              sy = ply * use_inv;
+            }
           i32 nn_off =
-              ((((i32)sy & map_w_mask) << map_shift) +
-               ((i32)sx & map_h_mask)) |
-              0;
+              ((((i32)sy & use_w) << use_sh) + ((i32)sx & use_hmask)) | 0;
           u32 h_byte_sv;
           f64 h_fine;
-          if (lerp_now) {
+          if (lerp_col) {
             h_fine = sample_sv_height(
-                height_map,
+                use_h,
                 sx,
                 sy,
-                map_w_mask,
-                map_h_mask,
-                map_shift,
+                use_w,
+                use_hmask,
+                use_sh,
                 repeat,
                 1,
                 &h_byte_sv,
                 &nn_off);
+            if (filt_fade < 1.0) {
+              h_fine = (f64)use_h[nn_off] +
+                       (h_fine - (f64)use_h[nn_off]) * filt_fade;
+            }
           } else {
-            h_byte_sv = height_map[nn_off];
+            h_byte_sv = use_h[nn_off];
             h_fine = (f64)h_byte_sv;
           }
           h_fine = apply_lod0_refine_height(
-              h_fine,
-              plx,
-              ply,
-              k_left_x + k_dx * (f64)col,
-              k_left_y + k_dy * (f64)col,
-              mip,
-              z);
+              h_fine, plx, ply, dirx, diry, use_mip, use_rm, noise_amp);
           {
             i32 hb = (i32)(h_fine + 0.5);
             if (hb < 0) {
@@ -1143,18 +1269,28 @@ WASM_EXPORT void classic_columns(
               plot_color = encode_iter(sample_ok ? g_sample_n[local_i] : 0);
             }
           } else if (!fog_white) {
-            plot_color = filter_now
+            plot_color = filter_col
                             ? sample_sv_color(
-                                  color_map,
+                                  use_c,
                                   sx,
                                   sy,
-                                  map_w_mask,
-                                  map_h_mask,
-                                  map_shift,
+                                  use_w,
+                                  use_hmask,
+                                  use_sh,
                                   repeat,
                                   1,
                                   nn_off)
-                            : color_map[nn_off];
+                            : use_c[nn_off];
+            if (filter_col && filt_fade < 1.0) {
+              i32 fade_t = (i32)(filt_fade * 256.0);
+              if (fade_t < 0) {
+                fade_t = 0;
+              }
+              if (fade_t > 256) {
+                fade_t = 256;
+              }
+              plot_color = lerp_packed(use_c[nn_off], plot_color, fade_t);
+            }
             if (apply_fog_t) {
               plot_color = fog_pack(plot_color, fog_t);
             }
@@ -1168,6 +1304,7 @@ WASM_EXPORT void classic_columns(
                 height_on_screen_bottom,
                 plot_color);
             hidden_y[local_i] = height_on_screen;
+          }
           }
         }
 
@@ -1357,30 +1494,41 @@ WASM_EXPORT void pano_columns(
       }
 
       {
-        f64 inv = mip_inv_scale(mip);
+        i32 use_mip;
+        i32 use_rm;
+        f64 noise_amp;
+        f64 filt_fade;
+        ease_lod_sample(
+            t, wx, wy, mip, prev_rm < 0 ? 0 : prev_rm, &use_mip, &use_rm,
+            &noise_amp, &filt_fade);
+        f64 inv = mip_inv_scale(use_mip);
         f64 sx;
         f64 sy;
-        if (mip == 0) {
-          lod0_sample_xy(wx, wy, dir_x, dir_y, t, &sx, &sy);
-          sx *= inv;
-          sy *= inv;
+        if (use_mip == 0 && g_lod0_refine) {
+          f64 s = lod0_refine_cell_from_m(use_rm);
+          f64 e = mip_dda_eps(s);
+          sx = (wasm_floor((wx + dir_x * e) / s) + 0.5) * s * inv;
+          sy = (wasm_floor((wy + dir_y * e) / s) + 0.5) * s * inv;
+        } else if (use_mip == 0) {
+          sx = wx * inv;
+          sy = wy * inv;
         } else {
-          f64 s = (f64)mip_voxel_size(mip);
+          f64 s = (f64)mip_voxel_size(use_mip);
           f64 e = mip_dda_eps(s);
           sx = wasm_floor((wx + dir_x * e) / s);
           sy = wasm_floor((wy + dir_y * e) / s);
         }
-        i32 shift = g_mip_sh[mip];
-        i32 wmask = g_mip_wmask[mip];
-        i32 hmask = g_mip_hmask[mip];
+        i32 shift = g_mip_sh[use_mip];
+        i32 wmask = g_mip_wmask[use_mip];
+        i32 hmask = g_mip_hmask[use_mip];
         i32 nn_off =
             ((((i32)sy & wmask) << shift) + ((i32)sx & hmask)) | 0;
         u32 h_byte_sv;
         f64 h_fine;
-        i32 lerp = (mip == 0) && do_lerp;
+        i32 lerp = (use_mip == 0) && do_lerp && filt_fade > 0.0;
         if (lerp) {
           h_fine = sample_sv_height(
-              g_mip_h[mip],
+              g_mip_h[use_mip],
               sx,
               sy,
               wmask,
@@ -1390,11 +1538,16 @@ WASM_EXPORT void pano_columns(
               1,
               &h_byte_sv,
               &nn_off);
+          if (filt_fade < 1.0) {
+            h_fine = (f64)g_mip_h[use_mip][nn_off] +
+                     (h_fine - (f64)g_mip_h[use_mip][nn_off]) * filt_fade;
+          }
         } else {
-          h_byte_sv = g_mip_h[mip][nn_off];
+          h_byte_sv = g_mip_h[use_mip][nn_off];
           h_fine = (f64)h_byte_sv;
         }
-        h_fine = apply_lod0_refine_height(h_fine, wx, wy, dir_x, dir_y, mip, t);
+        h_fine = apply_lod0_refine_height(
+            h_fine, wx, wy, dir_x, dir_y, use_mip, use_rm, noise_amp);
         {
           i32 hb = (i32)(h_fine + 0.5);
           if (hb < 0) {
@@ -1479,9 +1632,9 @@ WASM_EXPORT void pano_columns(
           }
           if (y_hit < y_bottom) {
             u32 color =
-                ((mip == 0) && do_filter)
+                (use_mip == 0 && do_filter && filt_fade > 0.0)
                     ? sample_sv_color(
-                          g_mip_c[mip],
+                          g_mip_c[use_mip],
                           sx,
                           sy,
                           wmask,
@@ -1490,7 +1643,17 @@ WASM_EXPORT void pano_columns(
                           repeat,
                           1,
                           offset)
-                    : g_mip_c[mip][offset];
+                    : g_mip_c[use_mip][offset];
+            if (use_mip == 0 && do_filter && filt_fade > 0.0 && filt_fade < 1.0) {
+              i32 fade_t = (i32)(filt_fade * 256.0);
+              if (fade_t < 0) {
+                fade_t = 0;
+              }
+              if (fade_t > 256) {
+                fade_t = 256;
+              }
+              color = lerp_packed(g_mip_c[use_mip][offset], color, fade_t);
+            }
             f64 dist = wasm_sqrt(t * t + dh * dh);
             i32 y;
             if (height_buf || iter_buf) {

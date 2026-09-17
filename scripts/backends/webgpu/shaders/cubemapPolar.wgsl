@@ -23,8 +23,8 @@ fn sampleHeight(mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> f32 {
   return sampleHeightPair(mip, wx, wy, dist, t).x;
 }
 
-fn sampleColor(mip: i32, wx: f32, wy: f32, dist: f32) -> vec4f {
-  return terrainSampleColor(colorTex, mip, wx, wy, dist);
+fn sampleColor(mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> vec4f {
+  return terrainSampleColor(colorTex, mip, wx, wy, dist, t);
 }
 
 
@@ -210,8 +210,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       wasInside = 1;
     }
 
-    let sp = terrainSamplePos(wx, wy, dirX, dirY, mip, t);
-    let hs = sampleHeightPair(mip, sp.x, sp.y, filterClip, t);
+    let hs = sampleHeightPair(mip, wx, wy, filterClip, t);
     let h = hs.x;
 
     let dh = h - camZ;
@@ -221,7 +220,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     if (tFar > t) {
       slopeFar = dh / tFar;
     }
-    let color = sampleColor(mip, sp.x, sp.y, filterClip);
+    let color = sampleColor(mip, wx, wy, filterClip, t);
     let hByte = u32(hs.y);
     let dist = sqrt(t * t + dh * dh);
     if (face == 4 && (slope > EPSILON || slopeFar > EPSILON)) {

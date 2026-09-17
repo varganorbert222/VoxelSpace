@@ -233,7 +233,7 @@
         </div>
         <div
           class="control"
-          data-tip="Starting ray step is voxel size divided by this integer. Within each LOD / refine mip the step then grows with quality, but never larger than the current voxel. Applies to LOD 0 refine mips (1/16, 1/8, 1/4, then 1/2 m) and the terrain mip chain. Higher is denser and slower."
+          data-tip="Starting ray step is voxel size divided by this integer. Within each LOD / refine mip the step then grows with quality, but never larger than the current voxel. Applies to LOD 0 refine mips (1/16, 1/8, 1/4, 1/2, then 1 m) and the terrain mip chain. Higher is denser and slower."
         >
           <div class="control-head">
             <label for="id_step_divisor">Step</label>
@@ -292,7 +292,7 @@
           <label
             class="check"
             for="id_lod0_refine"
-            data-tip="Optional LOD 0 refinement, from the camera out to the LOD 0 distance. Four mips (16, 8, 4, then 2 virtual voxels per meter) follow this section's Curve. Occupancy, stepping, and height jitter use the current refine cell. Height interp and Color filter stay their own switches."
+            data-tip="Optional LOD 0 refinement, from the camera out to the LOD 0 distance. Five mips (16, 8, 4, 2, then 1 virtual voxel per meter) follow this section's Curve. Occupancy, stepping, and height jitter use the current refine cell, so the last band matches 1 m LOD 0 before global LOD 1 (2 m). Height interp and Color filter stay their own switches."
           >
             <input id="id_lod0_refine" name="lod0refine" type="checkbox" autocomplete="off" />
             <span class="check-box" aria-hidden="true"></span>
@@ -301,7 +301,7 @@
         </div>
         <div
           class="control"
-          data-tip="How the four LOD0 refine mips are spaced from the camera out to the LOD 0 distance. Linear: equal bands. Doubling: each band is twice the previous. Logarithmic: log-spaced. Independent of the View LOD curve."
+          data-tip="How the five LOD0 refine mips are spaced from the camera out to the LOD 0 distance. Linear: equal bands. Doubling: each band is twice the previous. Logarithmic: log-spaced. Independent of the View LOD curve."
         >
           <div class="control-head">
             <label for="id_lod0_refine_curve">Curve</label>
@@ -364,7 +364,7 @@
           <label
             class="check"
             for="id_interpolate_height"
-            data-tip="Bilinear height sampling on LOD 0 only. Independent of LOD0 refine: with refine, the lerp is evaluated at each 1/16 m voxel center and held across that voxel. Higher LOD voxels stay nearest-texel. Off uses nearest everywhere."
+            data-tip="Bilinear height sampling on LOD 0 only. Independent of LOD0 refine: with refine, the lerp is evaluated at the current refine cell center (1/16 m down to 1 m) and held across that voxel. Higher LOD voxels stay nearest-texel. Off uses nearest everywhere."
           >
             <input
               id="id_interpolate_height"
@@ -378,7 +378,7 @@
           <label
             class="check"
             for="id_filter_color"
-            data-tip="World-space bilinear blend on the color map, on LOD 0 only. Independent of LOD0 refine: with refine, the blend is evaluated at each 1/16 m voxel center. Higher LOD voxels stay nearest-texel so coarse blocks stay flat."
+            data-tip="World-space bilinear blend on the color map, on LOD 0 only. Independent of LOD0 refine: with refine, the blend is evaluated at the current refine cell center (1/16 m down to 1 m). Higher LOD voxels stay nearest-texel so coarse blocks stay flat."
           >
             <input id="id_filter_color" name="filtercolor" type="checkbox" autocomplete="off" />
             <span class="check-box" aria-hidden="true"></span>

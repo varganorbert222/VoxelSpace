@@ -304,7 +304,8 @@ export function createWasmKernels(instance) {
       params.stepDivisor | 0,
       Number(refineSw[0]) || 0,
       Number(refineSw[1]) || 0,
-      Number(refineSw[2]) || 0
+      Number(refineSw[2]) || 0,
+      Number(refineSw[3]) || 0
     );
   }
 

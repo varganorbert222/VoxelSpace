@@ -9,8 +9,9 @@ export const TERRAIN_MIP_MAX_COUNT = 16;
 export const TERRAIN_MIP_DEFAULT_COUNT = 5;
 export const TERRAIN_MIP_DDA_EPS = 1e-4;
 export const LOD0_REFINE_SUBDIV = 16;
-export const LOD0_REFINE_SUBDIV_MIN = 2;
-export const LOD0_REFINE_MIP_COUNT = 4;
+export const LOD0_REFINE_SUBDIV_MIN = 1;
+export const LOD0_REFINE_MIP_COUNT = 5;
+export const LOD0_REFINE_SWITCH_COUNT = LOD0_REFINE_MIP_COUNT - 1;
 export const LOD0_REFINE_CELL = 1 / LOD0_REFINE_SUBDIV;
 export const STEP_DIVISOR_MIN = 1;
 export const STEP_DIVISOR_MAX = 5;
@@ -94,7 +95,8 @@ export function lod0RefineSwitchDistances(lod0Meters, mode, out) {
     far,
     out,
     mode,
-    lod0RefineFirstSpacing(far, mode)
+    lod0RefineFirstSpacing(far, mode),
+    false
   );
 }
 
@@ -166,12 +168,141 @@ export function marchBandKey(mip, refineMip) {
 
 export function syncBandStep(step, prevKey, mip, refine, refineMip, divisor) {
   const key = marchBandKey(mip, refine ? refineMip : 0);
-  if (key !== prevKey) {
-    return { step: marchStep(mip, refine, refineMip, divisor), key: key };
-  }
   return {
     step: clampMarchStep(step, mip, refine, refineMip, divisor),
     key: key,
+  };
+}
+
+export const LOD_EDGE_FRACTION = 0.25;
+
+function lodBandU(t, start, end) {
+  const span = Number(end) - Number(start);
+  if (!(span > 0)) {
+    return 0;
+  }
+  let u = (Number(t) - Number(start)) / span;
+  if (!(u > 0)) {
+    return 0;
+  }
+  if (u > 1) {
+    return 1;
+  }
+  return u;
+}
+
+function lodEdgeBlendU(t, start, end) {
+  const span = Number(end) - Number(start);
+  if (!(span > 0)) {
+    return 0;
+  }
+  return lodBandU(t, Number(end) - span * LOD_EDGE_FRACTION, end);
+}
+
+function lodEdgePickNext(u, wx, wy, cellSize) {
+  if (!(u > 0)) {
+    return 0;
+  }
+  if (u >= 1) {
+    return 1;
+  }
+  const s = Number(cellSize);
+  const cs = s > 0 ? s : 1;
+  const ix = Math.floor(Number(wx) / cs);
+  const iy = Math.floor(Number(wy) / cs);
+  return u > lod0RefineHash(ix, iy) / 4294967296 ? 1 : 0;
+}
+
+export function mixNearestBilinear(nearest, bilinear, fade) {
+  if (!(fade > 0)) {
+    return nearest;
+  }
+  if (!(fade < 1)) {
+    return bilinear;
+  }
+  return nearest + (bilinear - nearest) * fade;
+}
+
+export function easeLodSample(
+  t,
+  wx,
+  wy,
+  mip,
+  refineOn,
+  refineMip,
+  refineSwitches,
+  lod0Far,
+  mipCount,
+  mipSwitches
+) {
+  let sampleMip = mip | 0;
+  let sampleRefineOn = lod0RefineAt(refineOn, sampleMip);
+  let sampleRefineMip = sampleRefineOn ? refineMip | 0 : 0;
+  let noiseAmp = sampleRefineOn ? LOD0_REFINE_NOISE_AMPLITUDE : 0;
+  let filterFade = (sampleMip | 0) === 0 ? 1 : 0;
+  const lastRefine = (LOD0_REFINE_MIP_COUNT - 1) | 0;
+  const nMips = mipCount | 0;
+
+  if (sampleRefineOn) {
+    const start =
+      sampleRefineMip > 0 ? Number(refineSwitches[sampleRefineMip - 1]) : 0;
+    const end =
+      sampleRefineMip >= lastRefine
+        ? Number(lod0Far)
+        : Number(refineSwitches[sampleRefineMip]);
+    if (sampleRefineMip >= lastRefine) {
+      const u = lodBandU(t, start, end);
+      noiseAmp = (1 - u) * LOD0_REFINE_NOISE_AMPLITUDE;
+      filterFade = 1 - u;
+      if (lodEdgePickNext(u, wx, wy, 1) && nMips > 1) {
+        sampleMip = 1;
+        sampleRefineOn = false;
+        sampleRefineMip = 0;
+        noiseAmp = 0;
+        filterFade = 0;
+      }
+    } else {
+      const u = lodEdgeBlendU(t, start, end);
+      if (
+        lodEdgePickNext(u, wx, wy, lod0RefineCellSize(sampleRefineMip))
+      ) {
+        sampleRefineMip = (sampleRefineMip + 1) | 0;
+      }
+    }
+  } else if ((sampleMip | 0) === 0) {
+    const start = Number(lod0Far) * (1 - LOD_EDGE_FRACTION);
+    const u = lodBandU(t, start, lod0Far);
+    filterFade = 1 - u;
+    if (lodEdgePickNext(u, wx, wy, 1) && nMips > 1) {
+      sampleMip = 1;
+      filterFade = 0;
+    }
+  } else if ((sampleMip | 0) === 1 && nMips > 2 && mipSwitches) {
+    const start = Number(mipSwitches[0]);
+    const end = Number(mipSwitches[1]);
+    if (end > start && end < LOD_SPACING_UNUSED * 0.5) {
+      const inW = (end - start) * LOD_EDGE_FRACTION;
+      if (t < start + inW && start + inW > start) {
+        const uIn = 1 - lodBandU(t, start, start + inW);
+        if (lodEdgePickNext(uIn, wx, wy, 2)) {
+          sampleMip = 0;
+          filterFade = 0;
+        }
+      } else {
+        const u = lodEdgeBlendU(t, start, end);
+        if (lodEdgePickNext(u, wx, wy, 2)) {
+          sampleMip = 2;
+        }
+      }
+    }
+  }
+
+  return {
+    sampleMip: sampleMip,
+    sampleRefineOn: sampleRefineOn,
+    sampleRefineMip: sampleRefineMip,
+    noiseAmp: noiseAmp,
+    filterFade: filterFade,
   };
 }
 
@@ -247,9 +378,17 @@ export function applyLod0RefineHeight(
   dirX,
   dirY,
   refine,
-  refineMip
+  refineMip,
+  amp
 ) {
   if (!refine) {
+    return hFine;
+  }
+  let a = LOD0_REFINE_NOISE_AMPLITUDE;
+  if (amp != null) {
+    a = Number(amp);
+  }
+  if (!(a > 0)) {
     return hFine;
   }
   const s = lod0RefineCellSize(refineMip);
@@ -258,7 +397,7 @@ export function applyLod0RefineHeight(
   const ix = Math.floor((wx + dirX * e) / s);
   const iy = Math.floor((wy + dirY * e) / s);
   const u = lod0RefineHashMax((ix * span) | 0, (iy * span) | 0, span) / 4294967296;
-  let h = hFine + (u - 0.5) * LOD0_REFINE_NOISE_AMPLITUDE;
+  let h = hFine + (u - 0.5) * a;
   if (h < 0) {
     h = 0;
   }
@@ -405,7 +544,7 @@ function finalizeLodSwitches(dest, switchN, farClip) {
   return fillUnusedFrom(dest, n);
 }
 
-export function mipSwitchDistances(mipCount, farClip, out, mode, spacing) {
+export function mipSwitchDistances(mipCount, farClip, out, mode, spacing, capLod0Fraction) {
   const n = clampMipCount(mipCount);
   const switchN = (n - 1) | 0;
   const dest = out || new Float64Array(switchN);
@@ -417,7 +556,10 @@ export function mipSwitchDistances(mipCount, farClip, out, mode, spacing) {
   }
 
   const byMips = Math.max(1, (Math.floor(far) - switchN) | 0);
-  const maxT0 = Math.min(byMips, lod0MaxMeters(far, 1));
+  const maxT0 =
+    capLod0Fraction === false
+      ? byMips
+      : Math.min(byMips, lod0MaxMeters(far, 1));
   let t0 = clampLodSpacingMeters(spacing, 1, maxT0);
   if (!(t0 < far)) {
     t0 = maxT0;

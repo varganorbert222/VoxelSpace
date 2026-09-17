@@ -31,8 +31,11 @@ import {
   lod0RefineAt,
   lod0RefineMipAt,
   lod0RefineSwitchDistances,
+  LOD0_REFINE_SWITCH_COUNT,
   lod0SamplePos,
   applyLod0RefineHeight,
+  easeLodSample,
+  mixNearestBilinear,
   marchMaxSteps,
   mipCellFarT,
   mipInvScale,
@@ -49,7 +52,7 @@ let skyPaletteCache = null;
 let skyPaletteSky = 0;
 let skyPaletteHorizon = 0;
 const mipSwitchT = new Float64Array(TERRAIN_MIP_MAX_COUNT);
-const lod0RefineSwitchScratch = new Float64Array(3);
+const lod0RefineSwitchScratch = new Float64Array(LOD0_REFINE_SWITCH_COUNT);
 const mipInvScaleScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
 const mipWMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
 const mipHMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
@@ -527,29 +530,49 @@ export function renderPanoramaColumns({
         wasInside = 1;
       }
 
-      const inv = mipInvScaleScratch[mip];
+      const ease = easeLodSample(
+        t,
+        wx,
+        wy,
+        mip,
+        refineHere,
+        refineMip,
+        refineSwitches,
+        lodSpacing,
+        lastMip + 1,
+        mipSwitchT
+      );
+      const useMip = ease.sampleMip;
+      const useRefine = ease.sampleRefineOn;
+      const useRm = ease.sampleRefineMip;
+      const useInv = mipInvScaleScratch[useMip];
       let sx;
       let sy;
-      if ((mip | 0) === 0) {
-        const sp = lod0SamplePos(wx, wy, dirX, dirY, refineHere, refineMip);
-        sx = sp.x * inv;
-        sy = sp.y * inv;
+      if ((useMip | 0) === 0) {
+        const sp = lod0SamplePos(wx, wy, dirX, dirY, useRefine, useRm);
+        sx = useRefine ? sp.x * useInv : wx * useInv;
+        sy = useRefine ? sp.y * useInv : wy * useInv;
       } else {
-        const cell = mipTexelFloor(wx, wy, mip, dirX, dirY);
+        const cell = mipTexelFloor(wx, wy, useMip, dirX, dirY);
         sx = cell.ix;
         sy = cell.iy;
       }
-      const doLerp = lerpH & ((mip | 0) === 0);
-      const doFilter = filterC & ((mip | 0) === 0);
-      const shift = mipShifts[mip];
-      const wMask = mipWMask[mip];
-      const hMask = mipHMask[mip];
-      const hm = mipHeightMaps[mip];
+      const doLerp = lerpH & ((useMip | 0) === 0);
+      const doFilter =
+        filterC & ((useMip | 0) === 0) & (ease.filterFade > 0);
+      const shift = mipShifts[useMip];
+      const wMask = mipWMask[useMip];
+      const hMask = mipHMask[useMip];
+      const hm = mipHeightMaps[useMip];
       const offset =
         ((((sy | 0) & wMask) << shift) + ((sx | 0) & hMask)) | 0;
       const nearestH = hm[offset];
       const hSample = doLerp
-        ? sampleHeightBilinear(hm, sx, sy, shift, wMask, hMask, wrap)
+        ? mixNearestBilinear(
+            nearestH,
+            sampleHeightBilinear(hm, sx, sy, shift, wMask, hMask, wrap),
+            ease.filterFade
+          )
         : nearestH;
       const hFine = applyLod0RefineHeight(
         hSample,
@@ -557,8 +580,9 @@ export function renderPanoramaColumns({
         wy,
         dirX,
         dirY,
-        refineHere,
-        refineMip
+        useRefine,
+        useRm,
+        ease.noiseAmp
       );
       const h = hFine * altScale;
 
@@ -597,16 +621,30 @@ export function renderPanoramaColumns({
         if ((yGround < yBottom) | 0) yBottom = yGround;
         if ((yHit < yBottom) | 0) {
           const color = doFilter
-            ? sampleColorFiltered(
-                mipColorMaps[mip],
-                sx,
-                sy,
-                shift,
-                wMask,
-                hMask,
-                wrap
-              )
-            : mipColorMaps[mip][offset];
+            ? ease.filterFade >= 1
+              ? sampleColorFiltered(
+                  mipColorMaps[useMip],
+                  sx,
+                  sy,
+                  shift,
+                  wMask,
+                  hMask,
+                  wrap
+                )
+              : lerpPacked(
+                  mipColorMaps[useMip][offset],
+                  sampleColorFiltered(
+                    mipColorMaps[useMip],
+                    sx,
+                    sy,
+                    shift,
+                    wMask,
+                    hMask,
+                    wrap
+                  ),
+                  (ease.filterFade * 256) | 0
+                )
+            : mipColorMaps[useMip][offset];
           const dist = Math.sqrt(t * t + dh * dh);
           if (heightBuf || iterBuf) {
             const hByte = heightBuf

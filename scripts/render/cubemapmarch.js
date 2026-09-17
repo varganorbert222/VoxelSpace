@@ -28,8 +28,11 @@ import {
   lod0RefineAt,
   lod0RefineMipAt,
   lod0RefineSwitchDistances,
+  LOD0_REFINE_SWITCH_COUNT,
   lod0SamplePos,
   applyLod0RefineHeight,
+  easeLodSample,
+  mixNearestBilinear,
   marchMaxSteps,
   mipCellFarT,
   mipInvScale,
@@ -51,7 +54,7 @@ import {
 } from "../constants/cubemap.js";
 
 const mipSwitchT = new Float64Array(TERRAIN_MIP_MAX_COUNT);
-const lod0RefineSwitchScratch = new Float64Array(3);
+const lod0RefineSwitchScratch = new Float64Array(LOD0_REFINE_SWITCH_COUNT);
 const mipInvScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
 const mipWMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
 const mipHMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
@@ -391,37 +394,58 @@ function setupMips(quality, farClip, panoMips, heightMap, colorMap, mapW, mapH, 
   };
 }
 
-const svHit = { offset: 0, hFine: 0, hByte: 0, sx: 0, sy: 0 };
+const svHit = { offset: 0, hFine: 0, hByte: 0, sx: 0, sy: 0, mip: 0, filterFade: 0 };
 
 function applyCubeStep(t, mip, wx, wy, dirX, dirY, refine, refineMip, divisor, step, growth) {
   return advanceRayT(t, mip, wx, wy, dirX, dirY, refine, refineMip, divisor, step, growth);
 }
 
-function sampleCubeHeight(m, wx, wy, mip, wrap, lerp, dirX, dirY, refine, refineMip) {
-  const inv = mipInvScratch[mip];
+function sampleCubeHeight(m, wx, wy, mip, wrap, lerp, dirX, dirY, refine, refineMip, t, lod0Far, mipCount) {
+  const ease = easeLodSample(
+    t,
+    wx,
+    wy,
+    mip,
+    refine,
+    refineMip,
+    m.refineSwitches,
+    lod0Far,
+    mipCount,
+    mipSwitchT
+  );
+  const useMip = ease.sampleMip;
+  const useRefine = ease.sampleRefineOn;
+  const useRm = ease.sampleRefineMip;
+  const inv = mipInvScratch[useMip];
   let sx;
   let sy;
-  if ((mip | 0) === 0) {
-    const sp = lod0SamplePos(wx, wy, dirX, dirY, refine, refineMip);
-    sx = sp.x * inv;
-    sy = sp.y * inv;
+  if ((useMip | 0) === 0) {
+    const sp = lod0SamplePos(wx, wy, dirX, dirY, useRefine, useRm);
+    sx = useRefine ? sp.x * inv : wx * inv;
+    sy = useRefine ? sp.y * inv : wy * inv;
   } else {
-    const cell = mipTexelFloor(wx, wy, mip, dirX, dirY);
+    const cell = mipTexelFloor(wx, wy, useMip, dirX, dirY);
     sx = cell.ix;
     sy = cell.iy;
   }
-  const doLerp = lerp & ((mip | 0) === 0);
-  const shift = m.mipShifts[mip];
-  const wMask = m.mipWMask[mip];
-  const hMask = m.mipHMask[mip];
-  const hm = m.mipHeightMaps[mip];
+  const doLerp = lerp & ((useMip | 0) === 0);
+  const shift = m.mipShifts[useMip];
+  const wMask = m.mipWMask[useMip];
+  const hMask = m.mipHMask[useMip];
+  const hm = m.mipHeightMaps[useMip];
   const offset = ((((sy | 0) & wMask) << shift) + ((sx | 0) & hMask)) | 0;
   const nearestH = hm[offset];
   svHit.sx = sx;
   svHit.sy = sy;
   svHit.offset = offset;
+  svHit.mip = useMip;
+  svHit.filterFade = ease.filterFade;
   if (doLerp) {
-    svHit.hFine = sampleHeightBilinear(hm, sx, sy, shift, wMask, hMask, wrap);
+    svHit.hFine = mixNearestBilinear(
+      nearestH,
+      sampleHeightBilinear(hm, sx, sy, shift, wMask, hMask, wrap),
+      ease.filterFade
+    );
   } else {
     svHit.hFine = nearestH;
   }
@@ -431,18 +455,20 @@ function sampleCubeHeight(m, wx, wy, mip, wrap, lerp, dirX, dirY, refine, refine
     wy,
     dirX,
     dirY,
-    refine & ((mip | 0) === 0),
-    refineMip
+    useRefine,
+    useRm,
+    ease.noiseAmp
   );
   svHit.hByte = heightByteFromFine(svHit.hFine);
 }
 
-function sampleCubeColor(m, mip, wrap, filter) {
-  const doFilter = filter & ((mip | 0) === 0);
+function sampleCubeColor(m, wrap, filter) {
+  const mip = svHit.mip | 0;
+  const doFilter = filter & ((mip | 0) === 0) & (svHit.filterFade > 0);
   if (!doFilter) {
     return m.mipColorMaps[mip][svHit.offset];
   }
-  return sampleColorFiltered(
+  const bi = sampleColorFiltered(
     m.mipColorMaps[mip],
     svHit.sx,
     svHit.sy,
@@ -450,6 +476,14 @@ function sampleCubeColor(m, mip, wrap, filter) {
     m.mipWMask[mip],
     m.mipHMask[mip],
     wrap
+  );
+  if (svHit.filterFade >= 1) {
+    return bi;
+  }
+  return lerpPacked(
+    m.mipColorMaps[mip][svHit.offset],
+    bi,
+    (svHit.filterFade * 256) | 0
   );
 }
 
@@ -747,7 +781,7 @@ export function renderCubemapHorizonColumns({
         wasInside = 1;
       }
 
-      sampleCubeHeight(m, wx, wy, mip, wrap, lerpH, dirX, dirY, refineHere, refineMip);
+      sampleCubeHeight(m, wx, wy, mip, wrap, lerpH, dirX, dirY, refineHere, refineMip, t, lodSpacing, m.mipCount);
       const offset = svHit.offset;
       const h = svHit.hFine * altScale;
 
@@ -777,7 +811,7 @@ export function renderCubemapHorizonColumns({
         const yGround = ((camZ - clipZ) * zScale + horizon) | 0;
         if ((yGround < yBottom) | 0) yBottom = yGround < 0 ? 0 : yGround;
         if ((yHit < yBottom) | 0) {
-          const color = sampleCubeColor(m, mip, wrap, filterC);
+          const color = sampleCubeColor(m, wrap, filterC);
           const dh = h - camZ;
           const dist = Math.sqrt(t * t + dh * dh);
           if (heightBuf || iterBuf) {
@@ -985,7 +1019,7 @@ export function renderCubemapPolarAzimuths({
         wasInside = 1;
       }
 
-      sampleCubeHeight(m, wx, wy, mip, wrap, lerpH, dirX, dirY, refineHere, refineMip);
+      sampleCubeHeight(m, wx, wy, mip, wrap, lerpH, dirX, dirY, refineHere, refineMip, t, lodSpacing, m.mipCount);
       const offset = svHit.offset;
       const h = svHit.hFine * altScale;
 
@@ -993,7 +1027,7 @@ export function renderCubemapPolarAzimuths({
       const tFar = mipCellFarT(t, wx, wy, dirX, dirY, mip, refineHere, refineMip);
       const slope = dh / t;
       const slopeFar = tFar > t ? dh / tFar : slope;
-      const color = sampleCubeColor(m, mip, wrap, filterC);
+      const color = sampleCubeColor(m, wrap, filterC);
       const dist = Math.sqrt(t * t + dh * dh);
       const hByte = heightBuf ? svHit.hByte : 0;
       if (slope > EPSILON || slopeFar > EPSILON) {

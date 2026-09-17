@@ -32,8 +32,11 @@ import {
   lod0RefineAt,
   lod0RefineMipAt,
   lod0RefineSwitchDistances,
+  LOD0_REFINE_SWITCH_COUNT,
   lod0SamplePos,
   applyLod0RefineHeight,
+  easeLodSample,
+  mixNearestBilinear,
   mipInvScale,
   mipSpanFarT,
   mipSwitchDistances,
@@ -45,7 +48,7 @@ import { resolveTerrainMips } from "../terrain/mipChain.js";
 let hiddenYScratch = new Int32Array(1);
 let sampleNScratch = new Int32Array(1);
 const lodDistancesScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT + 1);
-const lod0RefineSwitchScratch = new Float64Array(3);
+const lod0RefineSwitchScratch = new Float64Array(LOD0_REFINE_SWITCH_COUNT);
 const mipWMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
 const mipHMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
 let hiddenYCapacity = 1;
@@ -113,6 +116,7 @@ function setupClassicLod(params) {
     stepDivisor: stepDivisor,
     lodSpacing: params.lodSpacing,
     refineSwitches: refineSwitches,
+    mipSwitches: switches,
   };
 }
 
@@ -330,6 +334,8 @@ function renderClassicColumnsSampled({
   const refine = lodState.refine;
   const stepDiv = lodState.stepDivisor;
   const refineSwitches = lodState.refineSwitches;
+  const mipSwitches = lodState.mipSwitches;
+  const lod0Far = lodState.lodSpacing;
   const lodDistances = lodDistancesScratch;
 
   const screenWidthScaler = 1 / screenWidth;
@@ -419,42 +425,64 @@ function renderClassicColumnsSampled({
             continue;
           }
 
-          const sample = lod0SamplePos(
+          const dirX = kLeftX + kDx * i;
+          const dirY = kLeftY + kDy * i;
+          const ease = easeLodSample(
+            z,
             plx,
             ply,
-            kLeftX + kDx * i,
-            kLeftY + kDy * i,
+            mip,
             refineHere,
-            refineMip
+            refineMip,
+            refineSwitches,
+            lod0Far,
+            bandCount,
+            mipSwitches
           );
-          const sx = refineHere ? sample.x : plx * inv;
-          const sy = refineHere ? sample.y : ply * inv;
+          const useMip = ease.sampleMip;
+          const useRefine = ease.sampleRefineOn;
+          const useRm = ease.sampleRefineMip;
+          const useHeight = mips.heightMaps[useMip];
+          const useColor = mips.colorMaps[useMip];
+          const useShift = mips.shifts[useMip];
+          const useWMask = mipWMaskScratch[useMip];
+          const useHMask = mipHMaskScratch[useMip];
+          const useInv = mipInvScale(useMip);
+          const sample = lod0SamplePos(plx, ply, dirX, dirY, useRefine, useRm);
+          const sx = useRefine ? sample.x : plx * useInv;
+          const sy = useRefine ? sample.y : ply * useInv;
           const offset =
-            ((((sy | 0) & mapWMask) << mipShift) +
-              ((sx | 0) & mapHMask)) |
+            ((((sy | 0) & useWMask) << useShift) +
+              ((sx | 0) & useHMask)) |
             0;
-          const doLerp = lerpH & ((mip | 0) === 0);
-          const doFilter = filterC & ((mip | 0) === 0);
-          const nearestH = mipHeight[offset];
+          const doLerp = lerpH & ((useMip | 0) === 0);
+          const doFilter =
+            filterC & ((useMip | 0) === 0) & (ease.filterFade > 0);
+          const nearestH = useHeight[offset];
           const hSample = doLerp
-            ? sampleHeightBilinear(
-                mipHeight,
-                sx,
-                sy,
-                mipShift,
-                mapWMask,
-                mapHMask,
-                repeat | 0
+            ? mixNearestBilinear(
+                nearestH,
+                sampleHeightBilinear(
+                  useHeight,
+                  sx,
+                  sy,
+                  useShift,
+                  useWMask,
+                  useHMask,
+                  repeat | 0
+                ),
+                ease.filterFade
               )
             : nearestH;
           const hFine = applyLod0RefineHeight(
             hSample,
             plx,
             ply,
-            kLeftX + kDx * i,
-            kLeftY + kDy * i,
-            refineHere,
-            refineMip
+            dirX,
+            dirY,
+            useRefine,
+            useRm,
+            ease.noiseAmp
           );
           const hByte = heightByteFromFine(hFine);
           const terrainHeight = hFine * altScale;
@@ -471,10 +499,10 @@ function renderClassicColumnsSampled({
             kLeftY,
             kDx,
             kDy,
-            mip,
+            useMip,
             screenHorizon,
-            refineHere,
-            refineMip
+            useRefine,
+            useRm
           );
 
           let heightOnScreenBottom = colHidden;
@@ -498,16 +526,30 @@ function renderClassicColumnsSampled({
             }
           } else if (!fogWhite) {
             plotColor = doFilter
-              ? sampleColorFiltered(
-                  mipColor,
-                  sx,
-                  sy,
-                  mipShift,
-                  mapWMask,
-                  mapHMask,
-                  repeat | 0
-                )
-              : mipColor[offset];
+              ? ease.filterFade >= 1
+                ? sampleColorFiltered(
+                    useColor,
+                    sx,
+                    sy,
+                    useShift,
+                    useWMask,
+                    useHMask,
+                    repeat | 0
+                  )
+                : lerpPacked(
+                    useColor[offset],
+                    sampleColorFiltered(
+                      useColor,
+                      sx,
+                      sy,
+                      useShift,
+                      useWMask,
+                      useHMask,
+                      repeat | 0
+                    ),
+                    (ease.filterFade * 256) | 0
+                  )
+              : useColor[offset];
             if (applyFogT) {
               const a = (plotColor >>> SHIFT_ALPHA) & CHANNEL_MASK;
               const r = (plotColor >>> SHIFT_RED) & CHANNEL_MASK;
@@ -626,6 +668,8 @@ function renderClassicColumnsNearest({
   const refine = lodState.refine;
   const stepDiv = lodState.stepDivisor;
   const refineSwitches = lodState.refineSwitches;
+  const mipSwitches = lodState.mipSwitches;
+  const lod0Far = lodState.lodSpacing;
   const lodDistances = lodDistancesScratch;
 
   const screenWidthScaler = 1 / screenWidth;
@@ -713,13 +757,32 @@ function renderClassicColumnsNearest({
             continue;
           }
 
-          const sx = plx * inv;
-          const sy = ply * inv;
+          const ease = easeLodSample(
+            z,
+            plx,
+            ply,
+            mip,
+            refineHere,
+            refineMip,
+            refineSwitches,
+            lod0Far,
+            bandCount,
+            mipSwitches
+          );
+          const useMip = ease.sampleMip;
+          const useHeight = mips.heightMaps[useMip];
+          const useColor = mips.colorMaps[useMip];
+          const useShift = mips.shifts[useMip];
+          const useWMask = mipWMaskScratch[useMip];
+          const useHMask = mipHMaskScratch[useMip];
+          const useInv = mipInvScale(useMip);
+          const sx = plx * useInv;
+          const sy = ply * useInv;
           const offset =
-            ((((sy | 0) & mapWMask) << mipShift) +
-              ((sx | 0) & mapHMask)) |
+            ((((sy | 0) & useWMask) << useShift) +
+              ((sx | 0) & useHMask)) |
             0;
-          const terrainHeight = mipHeight[offset] * altScale;
+          const terrainHeight = useHeight[offset] * altScale;
           const terrainSDF = camZ - terrainHeight;
           const heightOnScreen = classicProjectedY(
             terrainSDF,
@@ -733,7 +796,7 @@ function renderClassicColumnsNearest({
             kLeftY,
             kDx,
             kDy,
-            mip,
+            useMip,
             screenHorizon,
             refineHere,
             refineMip
@@ -752,14 +815,14 @@ function renderClassicColumnsNearest({
               sampleN[localI] = (sampleN[localI] + 1) | 0;
             }
             if (debugView === DEBUG_VIEW_HEIGHT) {
-              plotColor = encodeHeight(mipHeight[offset]);
+              plotColor = encodeHeight(useHeight[offset]);
             } else if (debugView === DEBUG_VIEW_DEPTH) {
               plotColor = encodeUnit(farClip > 0 ? z / farClip : 0);
             } else if (countIter) {
               plotColor = encodeIter(sampleN[localI]);
             }
           } else if (!fogWhite) {
-            plotColor = mipColor[offset];
+            plotColor = useColor[offset];
             if (applyFogT) {
               const a = (plotColor >>> SHIFT_ALPHA) & CHANNEL_MASK;
               const r = (plotColor >>> SHIFT_RED) & CHANNEL_MASK;

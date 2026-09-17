@@ -26,8 +26,8 @@ fn sampleHeight(mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> f32 {
   return sampleHeightPair(mip, wx, wy, dist, t).x;
 }
 
-fn sampleColor(mip: i32, wx: f32, wy: f32, dist: f32) -> vec4f {
-  return terrainSampleColor(colorTex, mip, wx, wy, dist);
+fn sampleColor(mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> vec4f {
+  return terrainSampleColor(colorTex, mip, wx, wy, dist, t);
 }
 
 fn yHitFromHat(sHat: f32) -> i32 {
@@ -160,8 +160,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       wasInside = 1;
     }
 
-    let sp = terrainSamplePos(wx, wy, dirX, dirY, mip, t);
-    let hs = sampleHeightPair(mip, sp.x, sp.y, filterClip, t);
+    let hs = sampleHeightPair(mip, wx, wy, filterClip, t);
     let h = hs.x;
     if (sealed && (h < camZ + t * tanH - EPSILON)) {
       let taken = takeMarchStep(t, step, bandKey, mip);
@@ -208,7 +207,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         yBottom = yGround;
       }
       if (yHit < yBottom) {
-        let color = sampleColor(mip, sp.x, sp.y, filterClip);
+        let color = sampleColor(mip, wx, wy, filterClip, t);
         let dist = sqrt(t * t + dh * dh);
         let hByte = u32(hs.y);
         var yy = yHit;

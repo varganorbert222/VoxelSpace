@@ -190,11 +190,14 @@ fn lod0RefineMipAt(t: f32) -> i32 {
   if (t >= frame.stepScaleCaps.w) {
     m = 3;
   }
+  if (t >= frame.mipSwitchYHit.y) {
+    m = 4;
+  }
   return m;
 }
 
 fn lod0RefineCellAt(t: f32) -> f32 {
-  let subdiv = max(16u >> u32(lod0RefineMipAt(t)), 2u);
+  let subdiv = max(16u >> u32(lod0RefineMipAt(t)), 1u);
   return 1.0 / f32(subdiv);
 }
 
@@ -308,16 +311,145 @@ fn lod0RefineHashMax(x0: i32, y0: i32, span: u32) -> u32 {
   return maxH;
 }
 
-fn applyLod0RefineHeight(hFine: f32, wx: f32, wy: f32, mip: i32, t: f32) -> f32 {
-  if (!lod0RefineAt(t, mip)) {
+fn lod0RefineCellFromM(m: i32) -> f32 {
+  let subdiv = max(16u >> u32(max(m, 0)), 1u);
+  return 1.0 / f32(subdiv);
+}
+
+fn lod0RefineSwitchAt(m: i32) -> f32 {
+  if (m <= 0) {
+    return frame.stepScaleCaps.y;
+  }
+  if (m == 1) {
+    return frame.stepScaleCaps.z;
+  }
+  if (m == 2) {
+    return frame.stepScaleCaps.w;
+  }
+  return frame.mipSwitchYHit.y;
+}
+
+fn lodBandU(t: f32, start: f32, end: f32) -> f32 {
+  let span = end - start;
+  if (!(span > 0.0)) {
+    return 0.0;
+  }
+  var u = (t - start) / span;
+  if (!(u > 0.0)) {
+    return 0.0;
+  }
+  if (u > 1.0) {
+    return 1.0;
+  }
+  return u;
+}
+
+fn lodEdgePick(u: f32, wx: f32, wy: f32, cell: f32) -> bool {
+  if (!(u > 0.0)) {
+    return false;
+  }
+  if (u >= 1.0) {
+    return true;
+  }
+  var s = cell;
+  if (!(s > 0.0)) {
+    s = 1.0;
+  }
+  let ix = i32(floor(wx / s));
+  let iy = i32(floor(wy / s));
+  return u > f32(lod0RefineHash(ix, iy)) * (1.0 / 4294967296.0);
+}
+
+struct LodEase {
+  mip: i32,
+  rm: i32,
+  noiseAmp: f32,
+  filterFade: f32,
+}
+
+fn easeLodSample(t: f32, wx: f32, wy: f32, mip: i32) -> LodEase {
+  var sampleMip = mip;
+  let lastR = 4;
+  var sampleRm = 0;
+  var noise = 0.0;
+  var filt = 0.0;
+  let refineOn = lod0RefineAt(t, sampleMip);
+  if (refineOn) {
+    sampleRm = lod0RefineMipAt(t);
+    noise = 1.0;
+  }
+  if (sampleMip == 0) {
+    filt = 1.0;
+  }
+  let lod0Far = frame.mipSwitchYHit.x;
+  let nMips = i32(frame.mipShiftCount.w);
+  if (refineOn) {
+    var start = 0.0;
+    if (sampleRm > 0) {
+      start = lod0RefineSwitchAt(sampleRm - 1);
+    }
+    var end = lod0Far;
+    if (sampleRm < lastR) {
+      end = lod0RefineSwitchAt(sampleRm);
+    }
+    if (sampleRm >= lastR) {
+      let u = lodBandU(t, start, end);
+      noise = 1.0 - u;
+      filt = 1.0 - u;
+      if (lodEdgePick(u, wx, wy, 1.0) && (nMips > 1)) {
+        sampleMip = 1;
+        sampleRm = 0;
+        noise = 0.0;
+        filt = 0.0;
+      }
+    } else {
+      let span = end - start;
+      let u = lodBandU(t, end - span * 0.25, end);
+      if (lodEdgePick(u, wx, wy, lod0RefineCellFromM(sampleRm))) {
+        sampleRm = sampleRm + 1;
+      }
+    }
+  } else if (sampleMip == 0) {
+    let start = lod0Far * 0.75;
+    let u = lodBandU(t, start, lod0Far);
+    filt = 1.0 - u;
+    if (lodEdgePick(u, wx, wy, 1.0) && (nMips > 1)) {
+      sampleMip = 1;
+      filt = 0.0;
+    }
+  } else if ((sampleMip == 1) && (nMips > 2)) {
+    let start = lod0Far;
+    let end = frame.sampleLimit.w;
+    if ((end > start) && (end < 1.0e20)) {
+      let inW = (end - start) * 0.25;
+      if (t < start + inW) {
+        let uIn = 1.0 - lodBandU(t, start, start + inW);
+        if (lodEdgePick(uIn, wx, wy, 2.0)) {
+          sampleMip = 0;
+          filt = 0.0;
+        }
+      } else {
+        let span = end - start;
+        let u = lodBandU(t, end - span * 0.25, end);
+        if (lodEdgePick(u, wx, wy, 2.0)) {
+          sampleMip = 2;
+        }
+      }
+    }
+  }
+  return LodEase(sampleMip, sampleRm, noise, filt);
+}
+
+fn applyLod0RefineHeight(hFine: f32, wx: f32, wy: f32, mip: i32, rm: i32, amp: f32) -> f32 {
+  if ((mip != 0) || !(amp > 0.0) || !flagLod0Refine(frame.mapFlags.w)) {
     return hFine;
   }
-  let s = lod0RefineCellAt(t);
-  let span = 1u << u32(lod0RefineMipAt(t));
+  let s = lod0RefineCellFromM(rm);
+  let span = 1u << u32(max(rm, 0));
   let ix = i32(floor(wx / s));
   let iy = i32(floor(wy / s));
   let u = f32(lod0RefineHashMax(ix * i32(span), iy * i32(span), span)) * (1.0 / 4294967296.0);
-  var h = hFine + (u - 0.5);
+  var h = hFine + (u - 0.5) * amp;
   if (h < 0.0) {
     h = 0.0;
   }
@@ -328,18 +460,27 @@ fn applyLod0RefineHeight(hFine: f32, wx: f32, wy: f32, mip: i32, t: f32) -> f32 
 }
 
 fn terrainSampleHeightPair(tex: texture_2d<u32>, mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> vec2f {
+  let ease = easeLodSample(t, wx, wy, mip);
+  let useMip = ease.mip;
+  var sx = wx;
+  var sy = wy;
+  if ((useMip == 0) && flagLod0Refine(frame.mapFlags.w)) {
+    let s = lod0RefineCellFromM(ease.rm);
+    sx = (floor(wx / s) + 0.5) * s;
+    sy = (floor(wy / s) + 0.5) * s;
+  }
   let altitude = frame.tMaxMinDzAltMaxH.z;
   var h: f32;
-  let lerp = flagHeightLerp(frame.mapFlags.w);
-  if ((mip > 0) || !lerp) {
-    h = f32(terrainHeightNN(tex, mip, wx, wy));
+  let lerp = flagHeightLerp(frame.mapFlags.w) && (useMip == 0) && (ease.filterFade > 0.0);
+  if (!lerp) {
+    h = f32(terrainHeightNN(tex, useMip, sx, sy));
   } else {
     let wrap = flagRepeat(frame.mapFlags.w);
-    let inv = terrainInv(mip);
-    let x0 = floor(wx * inv);
-    let y0 = floor(wy * inv);
-    let fx = wx * inv - x0;
-    let fy = wy * inv - y0;
+    let inv = terrainInv(useMip);
+    let x0 = floor(sx * inv);
+    let y0 = floor(sy * inv);
+    let fx = sx * inv - x0;
+    let fy = sy * inv - y0;
     let tx = i32(x0);
     let ty = i32(y0);
     let h00 = f32(terrainHeightAt(tex, tx, ty, 0, wrap));
@@ -347,22 +488,35 @@ fn terrainSampleHeightPair(tex: texture_2d<u32>, mip: i32, wx: f32, wy: f32, dis
     let h01 = f32(terrainHeightAt(tex, tx, ty + 1, 0, wrap));
     let h11 = f32(terrainHeightAt(tex, tx + 1, ty + 1, 0, wrap));
     h = bilinearHeight(h00, h10, h01, h11, fx, fy);
+    if (ease.filterFade < 1.0) {
+      let nearest = f32(terrainHeightNN(tex, useMip, sx, sy));
+      h = nearest + (h - nearest) * ease.filterFade;
+    }
   }
-  h = applyLod0RefineHeight(h, wx, wy, mip, t);
+  h = applyLod0RefineHeight(h, wx, wy, useMip, ease.rm, ease.noiseAmp);
   return vec2f(h * (altitude / 255.0), clamp(h + 0.5, 0.0, 255.0));
 }
 
-fn terrainSampleColor(tex: texture_2d<f32>, mip: i32, wx: f32, wy: f32, dist: f32) -> vec4f {
-  let inv = terrainInv(mip);
-  if ((mip <= 0) && flagColorFilter(frame.mapFlags.w)) {
+fn terrainSampleColor(tex: texture_2d<f32>, mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> vec4f {
+  let ease = easeLodSample(t, wx, wy, mip);
+  let useMip = ease.mip;
+  var sx = wx;
+  var sy = wy;
+  if ((useMip == 0) && flagLod0Refine(frame.mapFlags.w)) {
+    let s = lod0RefineCellFromM(ease.rm);
+    sx = (floor(wx / s) + 0.5) * s;
+    sy = (floor(wy / s) + 0.5) * s;
+  }
+  let inv = terrainInv(useMip);
+  if ((useMip <= 0) && flagColorFilter(frame.mapFlags.w) && (ease.filterFade > 0.0)) {
     let wrap = flagRepeat(frame.mapFlags.w);
-    let x0 = floor(wx * inv);
-    let y0 = floor(wy * inv);
-    let fx = wx * inv - x0;
-    let fy = wy * inv - y0;
+    let x0 = floor(sx * inv);
+    let y0 = floor(sy * inv);
+    let fx = sx * inv - x0;
+    let fy = sy * inv - y0;
     let tx = i32(x0);
     let ty = i32(y0);
-    return bilinearColor(
+    let bi = bilinearColor(
       terrainColorAt(tex, tx, ty, 0, wrap),
       terrainColorAt(tex, tx + 1, ty, 0, wrap),
       terrainColorAt(tex, tx, ty + 1, 0, wrap),
@@ -370,8 +524,12 @@ fn terrainSampleColor(tex: texture_2d<f32>, mip: i32, wx: f32, wy: f32, dist: f3
       fx,
       fy
     );
+    if (ease.filterFade >= 1.0) {
+      return bi;
+    }
+    return mix(terrainColorNN(tex, useMip, sx, sy), bi, ease.filterFade);
   }
-  return terrainColorNN(tex, mip, wx, wy);
+  return terrainColorNN(tex, useMip, sx, sy);
 }
 
 fn mipCellSize(mip: i32, t: f32) -> f32 {
@@ -430,10 +588,7 @@ fn marchBandKey(mip: i32, t: f32) -> i32 {
 
 fn syncBandStep(step: f32, prevKey: i32, mip: i32, t: f32) -> vec2f {
   let key = marchBandKey(mip, t);
-  if (key != prevKey) {
-    return vec2f(marchStep(mip, t), f32(key));
-  }
-  return vec2f(clampMarchStep(step, mip, t), f32(key));
+  return vec2f(clampMarchStep(step + f32(prevKey) * 0.0, mip, t), f32(key));
 }
 
 fn mipDdaDelta(wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32, t: f32) -> f32 {
