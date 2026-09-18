@@ -324,110 +324,17 @@ fn lod0RefineCellFromM(m: i32) -> f32 {
   return 1.0 / f32(subdiv);
 }
 
-fn lod0RefineSwitchAt(m: i32) -> f32 {
-  if (m <= 0) {
-    return frame.stepScaleCaps.y;
-  }
-  if (m == 1) {
-    return frame.stepScaleCaps.z;
-  }
-  if (m == 2) {
-    return frame.stepScaleCaps.w;
-  }
-  return frame.mipSwitchYHit.y;
-}
-
-fn lodBandU(t: f32, start: f32, end: f32) -> f32 {
-  let span = end - start;
-  if (!(span > 0.0)) {
-    return 0.0;
-  }
-  var u = (t - start) / span;
-  if (!(u > 0.0)) {
-    return 0.0;
-  }
-  if (u > 1.0) {
-    return 1.0;
-  }
-  return u;
-}
-
-fn lodEdgePick(u: f32, wx: f32, wy: f32, cell: f32) -> bool {
-  if (!(u > 0.0)) {
-    return false;
-  }
-  if (u >= 1.0) {
-    return true;
-  }
-  var s = cell;
-  if (!(s > 0.0)) {
-    s = 1.0;
-  }
-  let ix = i32(floor(wx / s));
-  let iy = i32(floor(wy / s));
-  return u > f32(lod0RefineHash(ix, iy)) * (1.0 / 4294967296.0);
-}
-
 fn easeLodSample(t: f32, wx: f32, wy: f32, mip: i32) -> vec4f {
-  var sampleMip = mip;
-  let lastR = 4;
+  let sampleMip = mip;
   var sampleRm = 0;
   var noise = 0.0;
   var filt = 0.0;
-  let refineOn = lod0RefineAt(t, sampleMip);
-  if (refineOn) {
+  if (lod0RefineAt(t, sampleMip)) {
     sampleRm = lod0RefineMipAt(t);
     noise = 1.0;
   }
   if (sampleMip == 0) {
     filt = 1.0;
-  }
-  let lod0Far = frame.mipSwitchYHit.x;
-  let nMips = i32(frame.mipShiftCount.w);
-  if (refineOn) {
-    var start = 0.0;
-    if (sampleRm > 0) {
-      start = lod0RefineSwitchAt(sampleRm - 1);
-    }
-    var end = lod0Far;
-    if (sampleRm < lastR) {
-      end = lod0RefineSwitchAt(sampleRm);
-    }
-    if (sampleRm >= lastR) {
-      let u = lodBandU(t, start, end);
-      noise = 1.0 - u;
-      filt = 1.0 - u;
-      if (lodEdgePick(u, wx, wy, 1.0) && (nMips > 1)) {
-        sampleMip = 1;
-        sampleRm = 0;
-        noise = 0.0;
-        filt = 0.0;
-      }
-    } else {
-      let span = end - start;
-      let u = lodBandU(t, end - span * 0.25, end);
-      if (lodEdgePick(u, wx, wy, lod0RefineCellFromM(sampleRm))) {
-        sampleRm = sampleRm + 1;
-      }
-    }
-  } else if (sampleMip == 0) {
-    let start = lod0Far * 0.75;
-    let u = lodBandU(t, start, lod0Far);
-    filt = 1.0 - u;
-    if (lodEdgePick(u, wx, wy, 1.0) && (nMips > 1)) {
-      sampleMip = 1;
-      filt = 0.0;
-    }
-  } else if ((sampleMip == 1) && (nMips > 2)) {
-    let start = lod0Far;
-    let end = frame.sampleLimit.w;
-    if ((end > start) && (end < 1.0e20)) {
-      let span = end - start;
-      let u = lodBandU(t, end - span * 0.25, end);
-      if (lodEdgePick(u, wx, wy, 2.0)) {
-        sampleMip = 2;
-      }
-    }
   }
   return vec4f(f32(sampleMip), f32(sampleRm), noise, filt);
 }
