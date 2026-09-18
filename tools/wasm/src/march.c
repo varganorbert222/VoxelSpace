@@ -469,39 +469,6 @@ static inline u32 lod0_refine_hash_max(i32 x0, i32 y0, i32 span) {
   return max_h;
 }
 
-#define LOD_EDGE_FRACTION 0.25
-
-static inline f64 lod_band_u(f64 t, f64 start, f64 end) {
-  f64 span = end - start;
-  f64 u;
-  if (!(span > 0.0)) {
-    return 0.0;
-  }
-  u = (t - start) / span;
-  if (!(u > 0.0)) {
-    return 0.0;
-  }
-  if (u > 1.0) {
-    return 1.0;
-  }
-  return u;
-}
-
-static inline i32 lod_edge_pick(f64 u, f64 wx, f64 wy, f64 cell) {
-  f64 s;
-  f64 h;
-  if (!(u > 0.0)) {
-    return 0;
-  }
-  if (u >= 1.0) {
-    return 1;
-  }
-  s = cell > 0.0 ? cell : 1.0;
-  h = (f64)lod0_refine_hash((i32)wasm_floor(wx / s), (i32)wasm_floor(wy / s)) *
-      (1.0 / 4294967296.0);
-  return u > h;
-}
-
 static inline f64 lod0_refine_cell_from_m(i32 m) {
   i32 subdiv = LOD0_REFINE_SUBDIV >> m;
   if (subdiv < LOD0_REFINE_SUBDIV_MIN) {
@@ -521,54 +488,14 @@ static inline void ease_lod_sample(
     f64 *out_noise,
     f64 *out_filt) {
   i32 sample_mip = mip;
-  i32 last_r = LOD0_REFINE_MIP_COUNT - 1;
   i32 sample_rm = (g_lod0_refine && sample_mip == 0) ? refine_mip : 0;
-  f64 noise = (g_lod0_refine && sample_mip == 0) ? 1.0 : 0.0;
-  f64 filt = sample_mip == 0 ? 1.0 : 0.0;
-  f64 lod0_far = g_mip_switch_n > 0 ? g_mip_switch[0] : 1.0e30;
-  if (g_lod0_refine && sample_mip == 0) {
-    f64 start = sample_rm > 0 ? g_lod0_switch[sample_rm - 1] : 0.0;
-    f64 end = sample_rm >= last_r ? lod0_far : g_lod0_switch[sample_rm];
-    if (sample_rm >= last_r) {
-      f64 u = lod_band_u(t, start, end);
-      noise = 1.0 - u;
-      filt = 1.0 - u;
-      if (lod_edge_pick(u, wx, wy, 1.0) && g_mip_count > 1) {
-        sample_mip = 1;
-        sample_rm = 0;
-        noise = 0.0;
-        filt = 0.0;
-      }
-    } else {
-      f64 span = end - start;
-      f64 u = lod_band_u(t, end - span * LOD_EDGE_FRACTION, end);
-      if (lod_edge_pick(u, wx, wy, lod0_refine_cell_from_m(sample_rm))) {
-        sample_rm = sample_rm + 1;
-      }
-    }
-  } else if (sample_mip == 0) {
-    f64 start = lod0_far * (1.0 - LOD_EDGE_FRACTION);
-    f64 u = lod_band_u(t, start, lod0_far);
-    filt = 1.0 - u;
-    if (lod_edge_pick(u, wx, wy, 1.0) && g_mip_count > 1) {
-      sample_mip = 1;
-      filt = 0.0;
-    }
-  } else if (sample_mip == 1 && g_mip_count > 2 && g_mip_switch_n > 1) {
-    f64 start = g_mip_switch[0];
-    f64 end = g_mip_switch[1];
-    if (end > start && end < 1.0e20) {
-      f64 span = end - start;
-      f64 u = lod_band_u(t, end - span * LOD_EDGE_FRACTION, end);
-      if (lod_edge_pick(u, wx, wy, 2.0)) {
-        sample_mip = 2;
-      }
-    }
-  }
+  (void)t;
+  (void)wx;
+  (void)wy;
   *out_mip = sample_mip;
   *out_rm = sample_rm;
-  *out_noise = noise;
-  *out_filt = filt;
+  *out_noise = (g_lod0_refine && sample_mip == 0) ? 1.0 : 0.0;
+  *out_filt = sample_mip == 0 ? 1.0 : 0.0;
 }
 
 static inline f64 apply_lod0_refine_height(f64 h_fine, f64 wx, f64 wy, f64 dir_x, f64 dir_y, i32 mip, i32 rm, f64 amp) {

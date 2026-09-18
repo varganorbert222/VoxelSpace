@@ -174,45 +174,6 @@ export function syncBandStep(step, prevKey, mip, refine, refineMip, divisor) {
   };
 }
 
-export const LOD_EDGE_FRACTION = 0.25;
-
-function lodBandU(t, start, end) {
-  const span = Number(end) - Number(start);
-  if (!(span > 0)) {
-    return 0;
-  }
-  let u = (Number(t) - Number(start)) / span;
-  if (!(u > 0)) {
-    return 0;
-  }
-  if (u > 1) {
-    return 1;
-  }
-  return u;
-}
-
-function lodEdgeBlendU(t, start, end) {
-  const span = Number(end) - Number(start);
-  if (!(span > 0)) {
-    return 0;
-  }
-  return lodBandU(t, Number(end) - span * LOD_EDGE_FRACTION, end);
-}
-
-function lodEdgePickNext(u, wx, wy, cellSize) {
-  if (!(u > 0)) {
-    return 0;
-  }
-  if (u >= 1) {
-    return 1;
-  }
-  const s = Number(cellSize);
-  const cs = s > 0 ? s : 1;
-  const ix = Math.floor(Number(wx) / cs);
-  const iy = Math.floor(Number(wy) / cs);
-  return u > lod0RefineHash(ix, iy) / 4294967296 ? 1 : 0;
-}
-
 export function mixNearestBilinear(nearest, bilinear, fade) {
   if (!(fade > 0)) {
     return nearest;
@@ -229,71 +190,17 @@ export function easeLodSample(
   wy,
   mip,
   refineOn,
-  refineMip,
-  refineSwitches,
-  lod0Far,
-  mipCount,
-  mipSwitches
+  refineMip
 ) {
-  let sampleMip = mip | 0;
-  let sampleRefineOn = lod0RefineAt(refineOn, sampleMip);
-  let sampleRefineMip = sampleRefineOn ? refineMip | 0 : 0;
-  let noiseAmp = sampleRefineOn ? LOD0_REFINE_NOISE_AMPLITUDE : 0;
-  let filterFade = (sampleMip | 0) === 0 ? 1 : 0;
-  const lastRefine = (LOD0_REFINE_MIP_COUNT - 1) | 0;
-  const nMips = mipCount | 0;
-
-  if (sampleRefineOn) {
-    const start =
-      sampleRefineMip > 0 ? Number(refineSwitches[sampleRefineMip - 1]) : 0;
-    const end =
-      sampleRefineMip >= lastRefine
-        ? Number(lod0Far)
-        : Number(refineSwitches[sampleRefineMip]);
-    if (sampleRefineMip >= lastRefine) {
-      const u = lodBandU(t, start, end);
-      noiseAmp = (1 - u) * LOD0_REFINE_NOISE_AMPLITUDE;
-      filterFade = 1 - u;
-      if (lodEdgePickNext(u, wx, wy, 1) && nMips > 1) {
-        sampleMip = 1;
-        sampleRefineOn = false;
-        sampleRefineMip = 0;
-        noiseAmp = 0;
-        filterFade = 0;
-      }
-    } else {
-      const u = lodEdgeBlendU(t, start, end);
-      if (
-        lodEdgePickNext(u, wx, wy, lod0RefineCellSize(sampleRefineMip))
-      ) {
-        sampleRefineMip = (sampleRefineMip + 1) | 0;
-      }
-    }
-  } else if ((sampleMip | 0) === 0) {
-    const start = Number(lod0Far) * (1 - LOD_EDGE_FRACTION);
-    const u = lodBandU(t, start, lod0Far);
-    filterFade = 1 - u;
-    if (lodEdgePickNext(u, wx, wy, 1) && nMips > 1) {
-      sampleMip = 1;
-      filterFade = 0;
-    }
-  } else if ((sampleMip | 0) === 1 && nMips > 2 && mipSwitches) {
-    const start = Number(mipSwitches[0]);
-    const end = Number(mipSwitches[1]);
-    if (end > start && end < LOD_SPACING_UNUSED * 0.5) {
-      const u = lodEdgeBlendU(t, start, end);
-      if (lodEdgePickNext(u, wx, wy, 2)) {
-        sampleMip = 2;
-      }
-    }
-  }
-
+  const sampleMip = mip | 0;
+  const sampleRefineOn = lod0RefineAt(refineOn, sampleMip);
+  const sampleRefineMip = sampleRefineOn ? refineMip | 0 : 0;
   return {
     sampleMip: sampleMip,
     sampleRefineOn: sampleRefineOn,
     sampleRefineMip: sampleRefineMip,
-    noiseAmp: noiseAmp,
-    filterFade: filterFade,
+    noiseAmp: sampleRefineOn ? LOD0_REFINE_NOISE_AMPLITUDE : 0,
+    filterFade: (sampleMip | 0) === 0 ? 1 : 0,
   };
 }
 
