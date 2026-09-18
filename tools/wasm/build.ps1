@@ -51,7 +51,8 @@ $exports = @(
   "set_luts",
   "classic_columns",
   "pano_columns",
-  "pano_view_columns"
+  "pano_view_columns",
+  "voxel_texels"
 )
 $exportFlags = $exports | ForEach-Object { "-Wl,--export=$_" }
 

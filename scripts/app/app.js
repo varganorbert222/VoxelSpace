@@ -25,6 +25,7 @@ import {
   ALGORITHM_CLASSIC,
   ALGORITHM_CUBEMAP,
   ALGORITHM_PANORAMA,
+  ALGORITHM_VOXEL,
   usesFreeLook,
 } from "../constants/algorithm.js";
 import { BACKEND_JS } from "../constants/backend.js";
@@ -185,6 +186,7 @@ class App {
     document.body.classList.toggle("classic", algorithm === ALGORITHM_CLASSIC);
     document.body.classList.toggle("panorama", algorithm === ALGORITHM_PANORAMA);
     document.body.classList.toggle("cubemap", algorithm === ALGORITHM_CUBEMAP);
+    document.body.classList.toggle("voxel", algorithm === ALGORITHM_VOXEL);
     if (prev !== algorithm) {
       this.resize();
     } else {

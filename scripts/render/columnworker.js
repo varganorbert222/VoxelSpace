@@ -8,6 +8,7 @@ import {
   renderCubemapHorizonColumns,
   renderCubemapPolarAzimuths,
 } from "./cubemapmarch.js";
+import { renderVoxelTexels as renderVoxelTexelsJs } from "./voxelmarch.js";
 import {
   MSG_INIT_MAPS,
   MSG_INIT_PANO,
@@ -19,11 +20,13 @@ import {
   MSG_RENDER_PANO_VIEW,
   MSG_RENDER_CUBE_VIEW,
   MSG_RENDER_CUBE_GENERATE,
+  MSG_RENDER_VOXEL,
   MSG_RESULT_CLASSIC,
   MSG_RESULT_PANORAMA,
   MSG_RESULT_PANO_VIEW,
   MSG_RESULT_CUBE_VIEW,
   MSG_RESULT_CUBE_GENERATE,
+  MSG_RESULT_VOXEL,
   MSG_WORKER_ERROR,
 } from "./jobProtocol.js";
 import { BACKEND_WASM } from "../constants/backend.js";
@@ -59,6 +62,7 @@ const workerState = {
 let renderClassicColumns = renderClassicColumnsJs;
 let renderPanoramaColumns = renderPanoramaColumnsJs;
 let renderPanoramaViewColumns = renderPanoramaViewColumnsJs;
+let renderVoxelTexels = renderVoxelTexelsJs;
 
 async function setKernelBackend(backend) {
   if (backend === BACKEND_WASM) {
@@ -69,11 +73,13 @@ async function setKernelBackend(backend) {
     renderClassicColumns = kernels.renderClassicColumns;
     renderPanoramaColumns = kernels.renderPanoramaColumns;
     renderPanoramaViewColumns = kernels.renderPanoramaViewColumns;
+    renderVoxelTexels = kernels.renderVoxelTexels;
     return;
   }
   renderClassicColumns = renderClassicColumnsJs;
   renderPanoramaColumns = renderPanoramaColumnsJs;
   renderPanoramaViewColumns = renderPanoramaViewColumnsJs;
+  renderVoxelTexels = renderVoxelTexelsJs;
 }
 
 function initMaps(msg) {
@@ -395,6 +401,73 @@ function renderCubeView(msg) {
   );
 }
 
+function renderVoxel(msg) {
+  const localWidth = (msg.endColumn - msg.startColumn) | 0;
+  const pixels = new Uint32Array((localWidth * msg.screenHeight) | 0);
+  renderVoxelTexels({
+    heightMap: workerState.heightMap,
+    colorMap: workerState.colorMap,
+    mapW: workerState.mapW,
+    mapH: workerState.mapH,
+    mapShift: workerState.mapShift,
+    altitude: workerState.altitude,
+    maxHeight: workerState.maxHeight,
+    mapsGeneration: workerState.mapsGeneration,
+    panoMips: workerState.panoMips,
+    terrainMips: workerState.terrainMips || workerState.panoMips,
+    startColumn: msg.startColumn,
+    endColumn: msg.endColumn,
+    screenWidth: msg.screenWidth,
+    screenHeight: msg.screenHeight,
+    camX: msg.camX,
+    camY: msg.camY,
+    camZ: msg.camZ,
+    rightX: msg.rightX,
+    rightY: msg.rightY,
+    rightZ: msg.rightZ,
+    upX: msg.upX,
+    upY: msg.upY,
+    upZ: msg.upZ,
+    fwdX: msg.fwdX,
+    fwdY: msg.fwdY,
+    fwdZ: msg.fwdZ,
+    fovY: msg.fovY,
+    dstToProjPlane: msg.dstToProjPlane,
+    nearClip: msg.nearClip,
+    farClip: msg.farClip,
+    quality: msg.quality,
+    applyFog: msg.applyFog,
+    fogStart: msg.fogStart,
+    fogEnd: msg.fogEnd,
+    debugView: msg.debugView,
+    repeat: msg.repeat,
+    interpolateHeight: msg.interpolateHeight,
+    filterColor: msg.filterColor,
+    filterDistance: msg.filterDistance,
+    lod0Refine: msg.lod0Refine,
+    lod0RefineCurve: msg.lod0RefineCurve,
+    stepDivisor: msg.stepDivisor,
+    mipCount: msg.mipCount,
+    lodSpacingMode: msg.lodSpacingMode,
+    lodSpacing: msg.lodSpacing,
+    skyColor: msg.skyColor,
+    horizonColor: msg.horizonColor,
+    pixels,
+    pixelWidth: localWidth,
+    fillUnfilled: 1,
+  });
+  self.postMessage(
+    {
+      type: MSG_RESULT_VOXEL,
+      jobId: msg.jobId,
+      startColumn: msg.startColumn,
+      endColumn: msg.endColumn,
+      pixels: pixels.buffer,
+    },
+    [pixels.buffer]
+  );
+}
+
 function renderCubeGenerate(msg) {
   const n = msg.n | 0;
   const polar = msg.kind === "polar";
@@ -544,6 +617,10 @@ async function handleMessage(msg) {
   }
   if (msg.type === MSG_RENDER_CUBE_VIEW) {
     renderCubeView(msg);
+    return;
+  }
+  if (msg.type === MSG_RENDER_VOXEL) {
+    renderVoxel(msg);
     return;
   }
   if (msg.type === MSG_RENDER_CUBE_GENERATE) {

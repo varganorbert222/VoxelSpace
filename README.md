@@ -2,7 +2,7 @@
 
 **Fly the classic Comanche voxel landscape — in the browser, on CPU or GPU.**
 
-A modern, HUD-driven voxel-space renderer: three algorithms, three runtimes, eighty-six Comanche missions, and a cockpit you can actually fly.
+A modern, HUD-driven voxel-space renderer: four algorithms, three runtimes, eighty-six Comanche missions, and a cockpit you can actually fly.
 
 [**Launch the demo**](https://varganorbert222.github.io/VoxelSpace/index.html) · [YouTube (Unity series)](https://www.youtube.com/channel/UCEOzw2b5SALP72s9TMlW3ug) · [License: MIT](LICENSE)
 
@@ -27,6 +27,7 @@ Voxel space is the technique behind *Comanche*: a height map plus a color map, m
 | **Classic columns** | The original voxel-space picture, every frame |
 | **360° panorama** | Equirectangular environment, cached, then sampled as you look |
 | **Cubemap** | Six-face skybox, cached like panorama, sampled as you look |
+| **Voxel raycast** | Per-pixel 3D rays through height columns, max-mip empty skip |
 | **CPU · JS** | Readable kernels on a Canvas 2D swap |
 | **CPU · WASM** | The same kernels, compiled `-O3` for wasm32 |
 | **GPU · WebGPU** | Compute shaders, swapchain present |
@@ -49,7 +50,7 @@ Works in a current desktop or mobile browser. WebGPU is optional (Chrome / Edge 
 
 Height and color maps are 1024×1024 raster pairs. Each camera ray steps across the height field, samples color, and writes a column (or an environment texel).
 
-A mip chain sits on the maps. Near the camera the march uses the full raster; farther out it drops to coarser LODs so the far clip stays cheap. How many levels and where they switch is a View control. On LOD 0, optional bilinear height and color sampling smooths the nearest voxels; higher LODs stay nearest-texel so coarse blocks stay flat.
+A mip chain sits on the maps. Classic, panorama, cubemap, and voxel drop to coarser LODs farther from the camera. How many levels and where they switch is a View control. On LOD 0, optional bilinear height and color sampling smooths the nearest voxels; LOD0 refine snaps those samples onto the inner 1/16…1 m cell grid, then adds height noise. Higher LODs stay nearest-texel so coarse blocks stay flat. Voxel occupancy at a cell is that same mipmap sample (bilinear + refine at LOD 0, nearest on coarser mips). Voxel step size is the mip / refine cell at that distance, so empty-space skip naturally lengthens with LOD.
 
 ```
   maps/color + maps/height
@@ -60,9 +61,9 @@ A mip chain sits on the maps. Near the camera the march uses the full raster; fa
             ▼
         Renderer
      ┌──────┼──────┐
-  Classic  Panorama  Cubemap
-     │         │         │
-     └──── backends ─────┘
+  Classic  Panorama  Cubemap  Voxel
+     │         │         │      │
+     └────── backends ──────────┘
         JS · WASM · WebGPU
             │
             ▼
@@ -73,6 +74,8 @@ A mip chain sits on the maps. Near the camera the march uses the full raster; fa
 ```
 
 **Classic** redraws the camera frustum every frame: one ray per screen column, LOD bands, fog, optional world wrap.
+
+**Voxel** also redraws every frame, but with one 3D ray per pixel. Height-map texels are solid columns; a max-height mip pyramid skips empty air. Looking around is not free — there is no environment cache.
 
 **Panorama** and **cubemap** first fill a cached environment (equirect or six cube faces). As long as the camera *position* and march settings stay put, looking around is a cheap resample — free look, roll, and orbital inspection without re-marching the world. Move, or change distance / delta Z / quality / FOV / LOD / sampling / repeat, and the cache rebuilds. Fog is applied when the environment is sampled, so toggling it does not rebuild the cache.
 
@@ -128,7 +131,7 @@ Then open [http://localhost:8080](http://localhost:8080).
 | **R** or **Space** | Up |
 | **F** or **Ctrl** | Down |
 | **Arrow keys** | Look |
-| **Q E** | Roll (panorama / cubemap only) |
+| **Q E** | Roll (panorama / cubemap / voxel only) |
 | **Click** the view | Mouse look (pointer lock in fly mode) |
 | **Esc** | Close the command panel (browser also exits pointer lock) |
 
@@ -173,7 +176,7 @@ On phones and tablets the on-screen pad appears automatically.
 | Left stick | Move / strafe | Zoom |
 | Right stick | Look | Orbit |
 | **Up** / **Down** | Altitude | — |
-| **L** / **R** | Bank (panorama / cubemap) | — |
+| **L** / **R** | Bank (panorama / cubemap / voxel) | — |
 | Menu handle | Open / close command panel | same |
 | Tap radar | Hide radar (tab to show again) | same |
 
@@ -210,6 +213,7 @@ A 256×256 top-down of the current map, with heading, FOV wedge, and craft mark.
 | **classic** | Column voxel space | Yaw + limited pitch | None — every frame |
 | **panorama** | 360° equirect | Full Euler + roll | Rebuild on move / march change |
 | **cubemap** | 6-face environment | Full Euler + roll | Same as panorama |
+| **voxel** | Per-pixel 3D column raycast | Full Euler + roll | None — every frame |
 
 ### Camera
 
@@ -238,8 +242,8 @@ Internal resolution and march density follow quality. Scale is automatic.
 | --- | --- | --- |
 | **Distance** | 100 – 8000 | Far clip (HUD value; march may stop sooner if Fog is on and Fog range end is lower) |
 | **Fog range** | 0 – Distance | Dual thumbs: fog starts at the lower bound and saturates at the upper. The track max follows Distance. |
-| **Delta Z** | 0.1 – 2.0 | Ray step. Lower is denser and slower. |
-| **LOD** | 1 – map log₂ | How many mip rasters the march uses. 1 is full resolution only. On a 1024 map, 5 stops at 64×64 and 10 at 2×2. Default is the middle of the range. |
+| **Delta Z** | 0.1 – 2.0 | Ray step for classic / panorama / cubemap. Unused by voxel (mip cell size steps). |
+| **LOD** | 1 – map log₂ | How many mip rasters the march uses. 1 is full resolution only. On a 1024 map, 5 stops at 64×64 and 10 at 2×2. Default is the middle of the range. Voxel uses the same distance bands: hit voxel size is `2^mip` (or lod0 refine 1/16…1 m); coarser max-mips may still skip empty air. |
 | **LOD curve** | Linear / Doubling / Logarithmic | How switch distances fill 0…Distance. Linear: equal range per level. Doubling: each switch is twice as far as the previous. Logarithmic: log-spaced from the first switch to Distance. |
 | **LOD step** | 10 m – Distance | Meters to the first LOD switch. Editable on Logarithmic; Linear and Doubling fill 0…Distance on their own and show the first switch here. |
 | **FOV** | 10° – 90° | Horizontal field of view |
@@ -256,7 +260,7 @@ Internal resolution and march density follow quality. Scale is automatic.
 
 Height / Depth / Iterations show a floating color key next to the radar (grayscale for Height and Depth; red → magenta for Iterations). Sky / miss stays off the ramp.
 
-**Env atlas** (`N`) overlays the unwrapped panorama strip or cubemap net. Hidden on classic. The overlay uses the same debug view as the 3D picture.
+**Env atlas** (`N`) overlays the unwrapped panorama strip or cubemap net. Hidden on classic and voxel. The overlay uses the same debug view as the 3D picture.
 
 ### Flags
 
@@ -287,7 +291,7 @@ The extractor lineage is the C program from [sioux](https://github.com/hanatos/s
 | `index.html` | HUD shell, command panel, canvas, radar, touch pad |
 | `styles/` | Cockpit chrome |
 | `scripts/app/` | Boot, game loop, HUD, settings, radar, map load |
-| `scripts/render/` | Classic / panorama / cubemap, workers, overlay |
+| `scripts/render/` | Classic / panorama / cubemap / voxel, workers, overlay |
 | `scripts/backends/` | JS, WASM, WebGPU (+ WGSL) |
 | `scripts/camera/` | Fly, orbit, projection, collision |
 | `scripts/terrain/` | Height/color, mip chain, wrap, LOD-0 sampling |

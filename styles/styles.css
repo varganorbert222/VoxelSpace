@@ -1225,6 +1225,11 @@ body.classic .pano-only {
   display: none;
 }
 
+body.classic .env-only,
+body.voxel .env-only {
+  display: none;
+}
+
 @media (pointer: coarse), (hover: none) {
   :root {
     --hud-top-h: 40px;

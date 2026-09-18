@@ -23,6 +23,9 @@ import {
   panoramaGeneratePayload,
   cubemapViewPayload,
   cubemapGeneratePayload,
+  voxelRenderPayload,
+  MSG_RENDER_VOXEL,
+  MSG_RESULT_VOXEL,
 } from "./jobProtocol.js";
 import { BACKEND_JS } from "../constants/backend.js";
 import { canShareBuffers, allocU8, allocU32, isShared } from "./sharedBuffers.js";
@@ -406,6 +409,12 @@ class WorkerPool {
     );
   }
 
+  renderVoxel(params) {
+    return this._whenReady().then(() =>
+      this._runJob(MSG_RENDER_VOXEL, params, params.screenWidth, 1)
+    );
+  }
+
   renderCubemapGenerate(params) {
     this.ensureWorkers();
     const n = params.n | 0;
@@ -571,6 +580,8 @@ class WorkerPool {
           slot.worker.postMessage(panoramaViewPayload(jobId, range, params));
         } else if (msgType === MSG_RENDER_CUBE_VIEW) {
           slot.worker.postMessage(cubemapViewPayload(jobId, range, params));
+        } else if (msgType === MSG_RENDER_VOXEL) {
+          slot.worker.postMessage(voxelRenderPayload(jobId, range, params));
         } else {
           slot.worker.postMessage(panoramaGeneratePayload(jobId, range, params));
         }
@@ -651,6 +662,12 @@ class WorkerPool {
         pixels: new Uint32Array(data.pixels),
       });
     } else if (data.type === MSG_RESULT_CUBE_VIEW) {
+      active.onChunk(index, {
+        startColumn: data.startColumn,
+        endColumn: data.endColumn,
+        pixels: new Uint32Array(data.pixels),
+      });
+    } else if (data.type === MSG_RESULT_VOXEL) {
       active.onChunk(index, {
         startColumn: data.startColumn,
         endColumn: data.endColumn,

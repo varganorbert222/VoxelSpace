@@ -7,6 +7,12 @@ Rebuild the scalar `-O3` module after changing `tools/wasm/src/march.c`.
 - clang targeting `wasm32` (LLVM, including `wasm-ld`)
 - Node.js (to embed the `.wasm` as an ES module)
 
+Linux / macOS:
+
+```
+bash tools/wasm/build.sh
+```
+
 Windows (after LLVM is on PATH, or at `C:\Program Files\LLVM\bin`):
 
 ```

@@ -32,6 +32,7 @@ export async function createPipelines(device, canvasFormat) {
   const cubeViewMod = await loadCompute(device, "cubeView", "cubemapView.wgsl");
   const overlayPanoMod = await loadCompute(device, "overlayPano", "debugOverlay.wgsl");
   const overlayCubeMod = await loadCompute(device, "overlayCube", "debugOverlayCube.wgsl");
+  const voxelMod = await loadCompute(device, "voxelRay", "voxelRay.wgsl");
   const blitMod = await loadBlit(device);
 
   const frameLayout = device.createBindGroupLayout({
@@ -269,6 +270,14 @@ export async function createPipelines(device, canvasFormat) {
     compute: { module: overlayCubeMod, entryPoint: "overlayCube" },
   });
 
+  const voxelPipe = device.createComputePipeline({
+    label: "voxelRay",
+    layout: device.createPipelineLayout({
+      bindGroupLayouts: [frameLayout, mipsLayout, viewOutLayout],
+    }),
+    compute: { module: voxelMod, entryPoint: "main" },
+  });
+
   const blitPipe = device.createRenderPipeline({
     label: "blit",
     layout: device.createPipelineLayout({
@@ -294,6 +303,7 @@ export async function createPipelines(device, canvasFormat) {
     cubeView: cubeViewPipe,
     overlayPano: overlayPanoPipe,
     overlayCube: overlayCubePipe,
+    voxel: voxelPipe,
     blit: blitPipe,
     layouts: {
       frame: frameLayout,

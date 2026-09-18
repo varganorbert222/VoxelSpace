@@ -1,7 +1,7 @@
 "use strict";
 
 import { BACKEND_WEBGPU } from "../../constants/backend.js";
-import { ALGORITHM_CUBEMAP, ALGORITHM_PANORAMA } from "../../constants/algorithm.js";
+import { ALGORITHM_CUBEMAP, ALGORITHM_PANORAMA, ALGORITHM_VOXEL } from "../../constants/algorithm.js";
 import {
   CUBE_NET_CELL_H,
   CUBE_NET_CELL_W,
@@ -852,6 +852,21 @@ class WebGpuBackend {
     pass.end();
   }
 
+  _dispatchVoxel(encoder, screenW, screenH) {
+    const maps = this._cubeMipsBind();
+    const out = this._viewOutBind();
+    const pass = encoder.beginComputePass();
+    pass.setPipeline(this._pipes.voxel);
+    pass.setBindGroup(0, this._frameBind());
+    pass.setBindGroup(1, maps);
+    pass.setBindGroup(2, out);
+    pass.dispatchWorkgroups(
+      Math.ceil(screenW / WEBGPU_WORKGROUP_2D),
+      Math.ceil(screenH / WEBGPU_WORKGROUP_2D)
+    );
+    pass.end();
+  }
+
   _cubeMipsBind() {
     return this._cachedBind("cubeMips", () =>
       this._device.createBindGroup({
@@ -1175,6 +1190,15 @@ class WebGpuBackend {
       this._pack(camera, terrain, screenW, screenH, n, n);
       this._dispatchCubeView(encoder, screenW, screenH);
       this._dispatchOverlay(encoder, screenW, screenH, true);
+      this._present(encoder);
+      this._device.queue.submit([encoder.finish()]);
+      return;
+    }
+
+    if (frame.algorithm === ALGORITHM_VOXEL) {
+      this._pack(camera, terrain, screenW, screenH, screenW, screenH);
+      const encoder = this._device.createCommandEncoder();
+      this._dispatchVoxel(encoder, screenW, screenH);
       this._present(encoder);
       this._device.queue.submit([encoder.finish()]);
       return;

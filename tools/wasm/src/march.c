@@ -12,6 +12,24 @@ typedef double f64;
 
 static inline f64 wasm_sqrt(f64 x) { return __builtin_sqrt(x); }
 
+static inline f64 wasm_acos(f64 x) {
+  f64 ax;
+  f64 n;
+  f64 r;
+  if (x <= -1.0) {
+    return 3.141592653589793;
+  }
+  if (x >= 1.0) {
+    return 0.0;
+  }
+  ax = x < 0.0 ? -x : x;
+  n = x < 0.0 ? 1.0 : 0.0;
+  r = (((-0.0187293 * ax) + 0.0742610) * ax - 0.2121144) * ax + 1.5707288;
+  r = r * wasm_sqrt(1.0 - ax);
+  r = r - 2.0 * n * r;
+  return n * 3.141592653589793 + r;
+}
+
 extern unsigned char __heap_base;
 
 static u32 g_bump;
@@ -285,6 +303,21 @@ static inline f64 march_cell_size(i32 mip, f64 t) {
     return lod0_refine_at(t, mip) ? lod0_refine_cell_at(t) : 1.0;
   }
   return (f64)mip_voxel_size(mip);
+}
+
+static inline i32 band_mip_at(f64 t, i32 last_mip) {
+  i32 m = 0;
+  i32 last = last_mip;
+  if (last < 0) {
+    last = 0;
+  }
+  while ((m < last) && (m < g_mip_switch_n) && t >= g_mip_switch[m]) {
+    m = (m + 1) | 0;
+  }
+  if (m > last) {
+    m = last;
+  }
+  return m;
 }
 
 static inline i32 clamp_step_divisor(i32 n) {
@@ -1819,3 +1852,712 @@ WASM_EXPORT void pano_view_columns(
     }
   }
 }
+
+#define VOXEL_MAX_STEPS 16384
+#define VOXEL_AABB_Z_EPS 1.0e-4
+#define VOXEL_DIR_XY_EPS 1.0e-8
+#define VOXEL_SLAB_EPS 1.0e-8
+#define VOXEL_XY_INF 1.0e30
+
+static inline void voxel_xy_cell(
+    f64 cam_x,
+    f64 cam_y,
+    f64 dir_x,
+    f64 dir_y,
+    f64 s,
+    f64 cell_size,
+    i32 *out_ix,
+    i32 *out_iy,
+    f64 *out_t_far) {
+  f64 e = mip_dda_eps(cell_size);
+  f64 px = cam_x + dir_x * (s + e);
+  f64 py = cam_y + dir_y * (s + e);
+  f64 inv = 1.0 / cell_size;
+  i32 ix = (i32)wasm_floor(px * inv);
+  i32 iy = (i32)wasm_floor(py * inv);
+  f64 x0 = (f64)ix * cell_size;
+  f64 y0 = (f64)iy * cell_size;
+  f64 t_far_x = VOXEL_XY_INF;
+  f64 t_far_y = VOXEL_XY_INF;
+  f64 t_far;
+  f64 ax;
+  f64 ay;
+  f64 ad;
+  if (dir_x > VOXEL_SLAB_EPS) {
+    t_far_x = (x0 + cell_size - cam_x) / dir_x;
+  } else if (dir_x < -VOXEL_SLAB_EPS) {
+    t_far_x = (x0 - cam_x) / dir_x;
+  }
+  if (dir_y > VOXEL_SLAB_EPS) {
+    t_far_y = (y0 + cell_size - cam_y) / dir_y;
+  } else if (dir_y < -VOXEL_SLAB_EPS) {
+    t_far_y = (y0 - cam_y) / dir_y;
+  }
+  t_far = t_far_x < t_far_y ? t_far_x : t_far_y;
+  if (!(t_far > s)) {
+    ax = dir_x < 0.0 ? -dir_x : dir_x;
+    ay = dir_y < 0.0 ? -dir_y : dir_y;
+    ad = ax > ay ? ax : ay;
+    t_far = s + (ad > e ? cell_size / ad : e);
+    if (t_far_x <= t_far_y) {
+      ix = (ix + (dir_x > 0.0 ? 1 : dir_x < 0.0 ? -1 : 0)) | 0;
+    } else {
+      iy = (iy + (dir_y > 0.0 ? 1 : dir_y < 0.0 ? -1 : 0)) | 0;
+    }
+  }
+  *out_ix = ix;
+  *out_iy = iy;
+  *out_t_far = t_far;
+}
+
+static inline f64 voxel_column_hit(f64 cam_z, f64 dir_z, f64 h, f64 s, f64 s_exit) {
+  f64 z_enter = cam_z + dir_z * s;
+  f64 z_exit_v = cam_z + dir_z * s_exit;
+  f64 z_lo = z_enter < z_exit_v ? z_enter : z_exit_v;
+  f64 z_hi = z_enter > z_exit_v ? z_enter : z_exit_v;
+  f64 t_hit;
+  if (z_hi < 0.0 || z_lo > h) {
+    return -1.0;
+  }
+  t_hit = s;
+  if (z_enter > h) {
+    if (dir_z < 0.0) {
+      t_hit = (h - cam_z) / dir_z;
+    }
+  } else if (z_enter < 0.0) {
+    if (dir_z > 0.0) {
+      t_hit = (0.0 - cam_z) / dir_z;
+    }
+  }
+  if (t_hit < s) {
+    t_hit = s;
+  }
+  if (t_hit > s_exit) {
+    t_hit = s_exit;
+  }
+  return t_hit;
+}
+
+static inline i32 sky_lut_index_from_hat(f64 hat, i32 height) {
+  f64 h = hat;
+  f64 linear;
+  i32 last;
+  i32 idx;
+  if (h > 1.0) {
+    h = 1.0;
+  }
+  if (h < -1.0) {
+    h = -1.0;
+  }
+  linear = (2.0 * wasm_acos(h)) / T_PI;
+  last = (height - 1) | 0;
+  idx = (i32)(linear * (f64)height * 0.5);
+  if (idx < 0) {
+    idx = 0;
+  }
+  if (idx > last) {
+    idx = last;
+  }
+  return idx;
+}
+
+static inline u32 voxel_sky(f64 hat_z, i32 screen_height) {
+  i32 idx = sky_lut_index_from_hat(hat_z, screen_height);
+  if (idx < g_sky_len) {
+    return g_sky[idx];
+  }
+  return T_WHITE;
+}
+
+static inline u32 voxel_sample_color(
+    i32 mip,
+    f64 hx,
+    f64 hy,
+    f64 dir_x,
+    f64 dir_y,
+    f64 t,
+    i32 col_x,
+    i32 col_y,
+    i32 wrap) {
+  f64 sx;
+  f64 sy;
+  i32 nn_off;
+  i32 sample_x;
+  i32 sample_y;
+  if (mip < 0) {
+    mip = 0;
+  }
+  if (mip == 0) {
+    lod0_sample_xy(hx, hy, dir_x, dir_y, t, &sx, &sy);
+    sample_x = (i32)wasm_floor(sx);
+    sample_y = (i32)wasm_floor(sy);
+    nn_off = (((sample_y & g_mip_wmask[0]) << g_mip_sh[0]) +
+              (sample_x & g_mip_hmask[0])) |
+             0;
+    return sample_sv_color(
+        g_mip_c[0],
+        sx,
+        sy,
+        g_mip_wmask[0],
+        g_mip_hmask[0],
+        g_mip_sh[0],
+        wrap,
+        g_filter_color,
+        nn_off);
+  }
+  return color_at_sv(
+      g_mip_c[mip],
+      col_x,
+      col_y,
+      g_mip_wmask[mip],
+      g_mip_hmask[mip],
+      g_mip_sh[mip],
+      wrap);
+}
+
+static inline void voxel_column(
+    i32 skip_mip,
+    i32 ix,
+    i32 iy,
+    f64 cell_size,
+    f64 t,
+    i32 wrap,
+    f64 alt_scale,
+    u8 *out_byte,
+    f64 *out_h,
+    i32 *out_col_x,
+    i32 *out_col_y) {
+  u8 h_byte;
+  f64 h_fine;
+  f64 h;
+  i32 col_x;
+  i32 col_y;
+  i32 rm;
+  if (skip_mip <= 0) {
+    f64 wx = ((f64)ix + 0.5) * cell_size;
+    f64 wy = ((f64)iy + 0.5) * cell_size;
+    col_x = (i32)wasm_floor(wx);
+    col_y = (i32)wasm_floor(wy);
+    h_fine = (f64)height_at_sv(
+        g_mip_h[0],
+        col_x,
+        col_y,
+        g_mip_wmask[0],
+        g_mip_hmask[0],
+        g_mip_sh[0],
+        wrap);
+    rm = lod0_refine_at(t, 0) ? lod0_refine_mip_at(t) : 0;
+    h_fine = apply_lod0_refine_height(
+        h_fine,
+        wx,
+        wy,
+        0.0,
+        0.0,
+        0,
+        rm,
+        lod0_refine_at(t, 0) ? 1.0 : 0.0);
+    {
+      i32 hb = (i32)(h_fine + 0.5);
+      if (hb < 0) {
+        hb = 0;
+      }
+      if (hb > 255) {
+        hb = 255;
+      }
+      h_byte = (u8)hb;
+    }
+  } else {
+    col_x = ix;
+    col_y = iy;
+    h_byte = height_at_sv(
+        g_mip_h[skip_mip],
+        ix,
+        iy,
+        g_mip_wmask[skip_mip],
+        g_mip_hmask[skip_mip],
+        g_mip_sh[skip_mip],
+        wrap);
+    h_fine = (f64)h_byte;
+  }
+  h = h_fine * alt_scale;
+  if (!(h > 0.0)) {
+    h = VOXEL_AABB_Z_EPS;
+  }
+  *out_byte = h_byte;
+  *out_h = h;
+  *out_col_x = col_x;
+  *out_col_y = col_y;
+}
+
+static inline void voxel_write_hit(
+    u32 *pixels,
+    i32 dest,
+    u32 color,
+    f64 dist,
+    u8 h_byte,
+    i32 iter,
+    f64 hat_z,
+    i32 screen_height,
+    i32 debug,
+    i32 use_fog,
+    f64 near_clip,
+    f64 far_clip,
+    f64 fog_range,
+    f64 inv_fog) {
+  if (debug == DEBUG_HEIGHT) {
+    pixels[dest] = dist > 0.0 ? encode_height((u32)h_byte) : pack_named(0, 0, 0);
+    return;
+  }
+  if (debug == DEBUG_DEPTH) {
+    pixels[dest] =
+        dist > 0.0 ? encode_unit(far_clip > 0.0 ? dist / far_clip : 0.0)
+                   : pack_named(0, 0, 0);
+    return;
+  }
+  if (debug) {
+    pixels[dest] = encode_iter(iter);
+    return;
+  }
+  if (!(dist > 0.0)) {
+    pixels[dest] = voxel_sky(hat_z, screen_height);
+    return;
+  }
+  if (!use_fog && ((dist >= far_clip) || (dist < near_clip))) {
+    pixels[dest] = voxel_sky(hat_z, screen_height);
+    return;
+  }
+  if (use_fog) {
+    f64 fog_t =
+        fog_range == 0.0 ? T_FOG_SAT : (dist - T_FOG_START) * inv_fog;
+    if (fog_t >= T_FOG_SAT) {
+      pixels[dest] = T_WHITE;
+    } else if (fog_t > 0.0) {
+      pixels[dest] = fog_pack(color, fog_t);
+    } else {
+      pixels[dest] = color;
+    }
+    return;
+  }
+  pixels[dest] = color;
+}
+
+WASM_EXPORT void voxel_texels(
+    i32 start_column,
+    i32 end_column,
+    i32 screen_width,
+    i32 screen_height,
+    f64 cam_x,
+    f64 cam_y,
+    f64 cam_z,
+    f64 right_x,
+    f64 right_y,
+    f64 right_z,
+    f64 up_x,
+    f64 up_y,
+    f64 up_z,
+    f64 fwd_x,
+    f64 fwd_y,
+    f64 fwd_z,
+    f64 fov_y,
+    f64 dst_to_proj,
+    f64 tan_half_y_in,
+    f64 near_clip,
+    f64 far_clip,
+    i32 apply_fog,
+    i32 repeat,
+    i32 filter_color,
+    i32 fill_unfilled,
+    i32 pixels_ptr,
+    i32 pixel_width,
+    i32 debug_view) {
+  u32 *pixels = (u32 *)pixels_ptr;
+  i32 local_width = (end_column - start_column) | 0;
+  i32 stride = pixel_width;
+  i32 wrap = repeat | 0;
+  i32 filter_c = filter_color | 0;
+  g_filter_color = filter_c;
+  i32 use_fog = apply_fog | 0;
+  i32 debug = debug_view | 0;
+  i32 last_mip = (g_mip_count - 1) | 0;
+  i32 lod0_shift;
+  i32 lod0_wmask;
+  i32 lod0_hmask;
+  u8 *lod0_h;
+  u32 *lod0_c;
+  f64 alt_scale = g_alt_scale;
+  f64 map_wf;
+  f64 map_hf;
+  f64 fog_range;
+  f64 inv_fog;
+  f64 aspect;
+  f64 tan_half_y = tan_half_y_in;
+  f64 tan_half_x;
+  f64 inv_w;
+  f64 inv_h;
+  f64 d_cam_x;
+  f64 cam_x0;
+  f64 rdx;
+  f64 rdy;
+  f64 rdz;
+  f64 s0;
+  i32 sy;
+  (void)fov_y;
+  if (last_mip < 0) {
+    last_mip = 0;
+  }
+  lod0_h = g_mip_h[0];
+  lod0_c = g_mip_c[0];
+  lod0_shift = g_mip_sh[0];
+  lod0_wmask = g_mip_wmask[0];
+  lod0_hmask = g_mip_hmask[0];
+  map_wf = (f64)g_map_w;
+  map_hf = (f64)g_map_h;
+  if (fill_unfilled) {
+    i32 n = (local_width * screen_height) | 0;
+    i32 i;
+    for (i = 0; i < n; i = (i + 1) | 0) {
+      pixels[i] = 0;
+    }
+  }
+  if (!(tan_half_y > 0.0) && dst_to_proj > 0.0) {
+    tan_half_y = ((f64)screen_height * T_HALF) / dst_to_proj;
+  }
+  aspect = (f64)screen_width / (f64)screen_height;
+  tan_half_x = tan_half_y * aspect;
+  inv_w = 1.0 / (f64)screen_width;
+  inv_h = 1.0 / (f64)screen_height;
+  fog_range = far_clip - T_FOG_START;
+  inv_fog = fog_range == 0.0 ? 0.0 : 1.0 / fog_range;
+  s0 = near_clip;
+  if (!(s0 > 0.0)) {
+    s0 = T_EPSILON;
+  }
+  d_cam_x = T_NDC_SCALE * tan_half_x * inv_w;
+  cam_x0 = (((f64)start_column + T_PIXEL_CENTER) * inv_w * T_NDC_SCALE - 1.0) *
+           tan_half_x;
+  rdx = right_x * d_cam_x;
+  rdy = right_y * d_cam_x;
+  rdz = right_z * d_cam_x;
+
+  for (sy = 0; sy < screen_height; sy = (sy + 1) | 0) {
+    f64 cam_y_ndc =
+        (1.0 - ((f64)sy + T_PIXEL_CENTER) * inv_h * T_NDC_SCALE) * tan_half_y;
+    i32 row = (sy * stride) | 0;
+    f64 cam_x_ndc = cam_x0;
+    f64 dx = right_x * cam_x0 + up_x * cam_y_ndc + fwd_x;
+    f64 dy = right_y * cam_x0 + up_y * cam_y_ndc + fwd_y;
+    f64 dz = right_z * cam_x0 + up_z * cam_y_ndc + fwd_z;
+    i32 sx;
+    i32 local_x;
+    for (sx = start_column, local_x = 0; sx < end_column;
+         sx = (sx + 1) | 0, local_x = (local_x + 1) | 0) {
+      i32 dest = (row + local_x) | 0;
+      f64 len = wasm_sqrt(dx * dx + dy * dy + dz * dz);
+      f64 inv_len;
+      f64 dir_x;
+      f64 dir_y;
+      f64 dir_z;
+      f64 hat_z;
+      f64 len_xy2;
+      i32 cam_ix;
+      i32 cam_iy;
+      i32 cam_col_x;
+      i32 cam_col_y;
+      u8 h_cam;
+      f64 h_cam_w;
+      f64 cam_cell;
+      i32 cam_inside;
+      f64 s_hit;
+      i32 wrote = 0;
+      i32 max_steps = g_lod0_refine ? MAX_MARCH_STEPS : VOXEL_MAX_STEPS;
+      if (!(len > T_EPSILON)) {
+        voxel_write_hit(
+            pixels,
+            dest,
+            0,
+            0.0,
+            0,
+            0,
+            0.0,
+            screen_height,
+            debug,
+            use_fog,
+            near_clip,
+            far_clip,
+            fog_range,
+            inv_fog);
+        cam_x_ndc += d_cam_x;
+        dx += rdx;
+        dy += rdy;
+        dz += rdz;
+        continue;
+      }
+      inv_len = 1.0 / len;
+      dir_x = dx * inv_len;
+      dir_y = dy * inv_len;
+      dir_z = dz * inv_len;
+      hat_z = dir_z;
+      len_xy2 = dir_x * dir_x + dir_y * dir_y;
+      cam_cell = march_cell_size(0, s0);
+      cam_ix = (i32)wasm_floor(cam_x / cam_cell);
+      cam_iy = (i32)wasm_floor(cam_y / cam_cell);
+      voxel_column(
+          0,
+          cam_ix,
+          cam_iy,
+          cam_cell,
+          s0,
+          wrap,
+          alt_scale,
+          &h_cam,
+          &h_cam_w,
+          &cam_col_x,
+          &cam_col_y);
+      cam_inside = wrap |
+                   (((cam_x >= 0.0) & (cam_x < map_wf) & (cam_y >= 0.0) &
+                     (cam_y < map_hf))
+                        ? 1
+                        : 0);
+      if (cam_inside && cam_z <= h_cam_w) {
+        voxel_write_hit(
+            pixels,
+            dest,
+            voxel_sample_color(
+                0, cam_x, cam_y, dir_x, dir_y, s0, cam_col_x, cam_col_y, wrap),
+            s0,
+            h_cam,
+            1,
+            hat_z,
+            screen_height,
+            debug,
+            use_fog,
+            near_clip,
+            far_clip,
+            fog_range,
+            inv_fog);
+        wrote = 1;
+      } else if (!(len_xy2 > VOXEL_DIR_XY_EPS)) {
+        if (!cam_inside) {
+          voxel_write_hit(
+              pixels,
+              dest,
+              0,
+              0.0,
+              0,
+              0,
+              hat_z,
+              screen_height,
+              debug,
+              use_fog,
+              near_clip,
+              far_clip,
+              fog_range,
+              inv_fog);
+          wrote = 1;
+        } else if (dir_z < 0.0 && cam_z > h_cam_w) {
+          s_hit = (h_cam_w - cam_z) / dir_z;
+          if (s_hit >= s0 && s_hit <= far_clip) {
+            voxel_write_hit(
+                pixels,
+                dest,
+                voxel_sample_color(
+                    0, cam_x, cam_y, dir_x, dir_y, s_hit, cam_col_x, cam_col_y, wrap),
+                s_hit,
+                h_cam,
+                1,
+                hat_z,
+                screen_height,
+                debug,
+                use_fog,
+                near_clip,
+                far_clip,
+                fog_range,
+                inv_fog);
+            wrote = 1;
+          } else {
+            voxel_write_hit(
+                pixels,
+                dest,
+                0,
+                0.0,
+                0,
+                0,
+                hat_z,
+                screen_height,
+                debug,
+                use_fog,
+                near_clip,
+                far_clip,
+                fog_range,
+                inv_fog);
+            wrote = 1;
+          }
+        } else {
+          voxel_write_hit(
+              pixels,
+              dest,
+              0,
+              0.0,
+              0,
+              0,
+              hat_z,
+              screen_height,
+              debug,
+              use_fog,
+              near_clip,
+              far_clip,
+              fog_range,
+              inv_fog);
+          wrote = 1;
+        }
+      }
+      if (!wrote) {
+        f64 s = s0;
+        i32 mip = last_mip;
+        i32 k = 0;
+        i32 was_inside = 0;
+        i32 hit = 0;
+        while ((s < far_clip) & (k < max_steps)) {
+          f64 cell_size;
+          f64 s_exit;
+          f64 z_enter;
+          f64 z_exit_v;
+          f64 z_lo;
+          f64 z_hi;
+          f64 h_max;
+          f64 x0;
+          f64 y0;
+          f64 h;
+          i32 ix;
+          i32 iy;
+          i32 hit_mip;
+          i32 col_x;
+          i32 col_y;
+          u8 h_byte;
+          k = (k + 1) | 0;
+          hit_mip = band_mip_at(s, last_mip);
+          if (mip < hit_mip) {
+            mip = hit_mip;
+          }
+          cell_size = march_cell_size(mip, s);
+          voxel_xy_cell(
+              cam_x, cam_y, dir_x, dir_y, s, cell_size, &ix, &iy, &s_exit);
+          if (s_exit > far_clip) {
+            s_exit = far_clip;
+          }
+          if (!(s_exit > s)) {
+            s = s + mip_dda_eps(cell_size);
+            continue;
+          }
+          x0 = (f64)ix * cell_size;
+          y0 = (f64)iy * cell_size;
+          if (!wrap) {
+            i32 overlap = ((x0 < map_wf) & (y0 < map_hf) &
+                           ((x0 + cell_size) > 0.0) & ((y0 + cell_size) > 0.0))
+                              ? 1
+                              : 0;
+            if (!overlap) {
+              if (was_inside) {
+                break;
+              }
+              s = s_exit;
+              continue;
+            }
+            was_inside = 1;
+          }
+          z_enter = cam_z + dir_z * s;
+          z_exit_v = cam_z + dir_z * s_exit;
+          z_lo = z_enter < z_exit_v ? z_enter : z_exit_v;
+          z_hi = z_enter > z_exit_v ? z_enter : z_exit_v;
+          voxel_column(
+              mip,
+              ix,
+              iy,
+              cell_size,
+              s,
+              wrap,
+              alt_scale,
+              &h_byte,
+              &h,
+              &col_x,
+              &col_y);
+          h_max = h;
+          if (z_hi < 0.0) {
+            s = s_exit;
+            if (mip < last_mip) {
+              mip = (mip + 1) | 0;
+            }
+            continue;
+          }
+          if (z_lo > h_max) {
+            s = s_exit;
+            {
+              i32 approaching =
+                  ((dir_z < 0.0) & (z_enter > h_max)) |
+                  ((dir_z > 0.0) & (z_enter < 0.0));
+              if (!approaching && (mip < last_mip)) {
+                mip = (mip + 1) | 0;
+              }
+            }
+            continue;
+          }
+          if (mip > hit_mip) {
+            mip = (mip - 1) | 0;
+            continue;
+          }
+          s_hit = voxel_column_hit(cam_z, dir_z, h, s, s_exit);
+          if (s_hit >= 0.0) {
+            f64 hx = cam_x + dir_x * s_hit;
+            f64 hy = cam_y + dir_y * s_hit;
+            if (!wrap) {
+              if (!((hx >= 0.0) & (hx < map_wf) & (hy >= 0.0) & (hy < map_hf))) {
+                break;
+              }
+            }
+            voxel_write_hit(
+                pixels,
+                dest,
+                voxel_sample_color(
+                    mip, hx, hy, dir_x, dir_y, s_hit, col_x, col_y, wrap),
+                s_hit,
+                h_byte,
+                k,
+                hat_z,
+                screen_height,
+                debug,
+                use_fog,
+                near_clip,
+                far_clip,
+                fog_range,
+                inv_fog);
+            hit = 1;
+            break;
+          }
+          s = s_exit;
+        }
+        if (!hit) {
+          voxel_write_hit(
+              pixels,
+              dest,
+              0,
+              0.0,
+              0,
+              k,
+              hat_z,
+              screen_height,
+              debug,
+              use_fog,
+              near_clip,
+              far_clip,
+              fog_range,
+              inv_fog);
+        }
+      }
+      cam_x_ndc += d_cam_x;
+      dx += rdx;
+      dy += rdy;
+      dz += rdz;
+    }
+  }
+}
+

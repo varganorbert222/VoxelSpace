@@ -110,7 +110,7 @@ export function createWasmKernels(instance) {
   let lutKey = "";
   let panoKey = "";
   let atanPtr = 0;
-  const lut = { tanPtr: 0, yPtr: 0, ysPtr: 0, skyPtr: 0 };
+  const lut = { tanPtr: 0, yPtr: 0, ysPtr: 0, skyPtr: 0, skyCap: 0 };
   const panoSlot = {
     ptr: 0,
     depthPtr: 0,
@@ -142,6 +142,7 @@ export function createWasmKernels(instance) {
     lut.yPtr = 0;
     lut.ysPtr = 0;
     lut.skyPtr = 0;
+    lut.skyCap = 0;
     panoSlot.ptr = 0;
     panoSlot.depthPtr = 0;
     panoSlot.heightPtr = 0;
@@ -373,6 +374,12 @@ export function createWasmKernels(instance) {
       lut.yPtr = mustAlloc(PANO_YHIT_LUT_SIZE * 2);
       lut.ysPtr = mustAlloc(PANO_YHIT_LUT_SIZE * 2);
       lut.skyPtr = mustAlloc(PANO_HEIGHT * 4);
+      lut.skyCap = PANO_HEIGHT;
+      ex.commit_perm();
+    }
+    if ((height > lut.skyCap) | 0) {
+      lut.skyPtr = mustAlloc(height * 4);
+      lut.skyCap = height;
       ex.commit_perm();
     }
     const tanMin = buildTanMinLut(height);
@@ -735,10 +742,76 @@ export function createWasmKernels(instance) {
     });
   }
 
+  function renderVoxelTexels(params) {
+    ensureMaps(params);
+    syncSampleFlags(params);
+    syncFogRange(params);
+    const mips = resolveTerrainMips(
+      params.terrainMips || params.panoMips,
+      params.heightMap,
+      params.colorMap,
+      params.mapW,
+      params.mapH,
+      params.mapShift,
+      params.mipCount
+    );
+    syncMipSwitch(params, mips.count);
+    const localWidth = (params.endColumn - params.startColumn) | 0;
+    const n = (localWidth * params.screenHeight) | 0;
+    let tanHalfY = Math.tan(params.fovY * DEG_TO_RAD * HALF);
+    if (!(tanHalfY > 0) && params.dstToProjPlane > 0) {
+      tanHalfY = (params.screenHeight * HALF) / params.dstToProjPlane;
+    }
+    const fogStop = Number.isFinite(params.fogEnd) ? params.fogEnd : params.farClip;
+    const fogFar = params.applyFog ? fogStop : params.farClip;
+    writeLuts(
+      params.screenHeight | 0,
+      params.skyColor,
+      params.horizonColor ?? Color.WHITE
+    );
+    ex.reset_scratch();
+    const pixelsPtr = mustAlloc(n * 4);
+    if (!(params.fillUnfilled | 0)) {
+      copyBytes(memory, pixelsPtr, params.pixels);
+    }
+    ex.voxel_texels(
+      params.startColumn | 0,
+      params.endColumn | 0,
+      params.screenWidth | 0,
+      params.screenHeight | 0,
+      params.camX,
+      params.camY,
+      params.camZ,
+      params.rightX,
+      params.rightY,
+      params.rightZ,
+      params.upX,
+      params.upY,
+      params.upZ,
+      params.fwdX,
+      params.fwdY,
+      params.fwdZ,
+      params.fovY,
+      params.dstToProjPlane,
+      tanHalfY,
+      params.nearClip,
+      fogFar,
+      params.applyFog | 0,
+      params.repeat | 0,
+      params.filterColor | 0,
+      params.fillUnfilled | 0,
+      pixelsPtr,
+      params.pixelWidth | 0,
+      debugViewId(params.debugView)
+    );
+    copyOutU32(pixelsPtr, params.pixels);
+  }
+
   return {
     renderClassicColumns,
     renderPanoramaColumns,
     renderPanoramaViewColumns,
     renderPanoramaView,
+    renderVoxelTexels,
   };
 }

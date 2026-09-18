@@ -3,8 +3,13 @@
 import ClassicRenderer from "../../render/classicRenderer.js";
 import PanoramaRenderer from "../../render/panoramaRenderer.js";
 import CubemapRenderer from "../../render/cubemapRenderer.js";
+import VoxelRenderer from "../../render/voxelRenderer.js";
 import WorkerPool from "../../render/workerPool.js";
-import { ALGORITHM_CUBEMAP, ALGORITHM_PANORAMA } from "../../constants/algorithm.js";
+import {
+  ALGORITHM_CUBEMAP,
+  ALGORITHM_PANORAMA,
+  ALGORITHM_VOXEL,
+} from "../../constants/algorithm.js";
 import { BACKEND_WASM } from "../../constants/backend.js";
 import { instantiateMarch, marchModuleSupported } from "../../wasm/instantiate.js";
 import { createWasmKernels } from "../../wasm/kernels.js";
@@ -35,6 +40,7 @@ class WasmBackend {
     this._classic = null;
     this._panorama = null;
     this._cubemap = null;
+    this._voxel = null;
     this._pool = null;
     this._maps = null;
     this._kernels = null;
@@ -51,6 +57,7 @@ class WasmBackend {
     this._classic = new ClassicRenderer(this);
     this._panorama = new PanoramaRenderer(this);
     this._cubemap = new CubemapRenderer(this);
+    this._voxel = new VoxelRenderer(this);
   }
 
   get camera() {
@@ -194,6 +201,10 @@ class WasmBackend {
       await this._cubemap.render(frame.terrain);
       return;
     }
+    if (frame.algorithm === ALGORITHM_VOXEL) {
+      await this._voxel.render(frame.terrain);
+      return;
+    }
     await this._classic.render(frame.terrain);
   }
 
@@ -206,6 +217,7 @@ class WasmBackend {
     this._classic = null;
     this._panorama = null;
     this._cubemap = null;
+    this._voxel = null;
     this._host = null;
     this._maps = null;
     this._kernels = null;

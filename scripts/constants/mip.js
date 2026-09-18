@@ -119,6 +119,28 @@ export function lod0RefineMipAt(t, switches) {
   return m | 0;
 }
 
+export function mipLevelAtDistance(t, switches, lastMip) {
+  const last = lastMip | 0;
+  if ((last <= 0) | 0) {
+    return 0;
+  }
+  if (!switches) {
+    return 0;
+  }
+  const swN = switches.length | 0;
+  let m = 0;
+  while ((m < swN) & (m < last) & (t >= switches[m])) {
+    m = (m + 1) | 0;
+  }
+  if (!(m >= 0)) {
+    m = 0;
+  }
+  if (m > last) {
+    m = last;
+  }
+  return m | 0;
+}
+
 export function marchCellSize(mip, refine, refineMip) {
   if ((mip | 0) <= 0) {
     return refine ? lod0RefineCellSize(refineMip) : 1;
