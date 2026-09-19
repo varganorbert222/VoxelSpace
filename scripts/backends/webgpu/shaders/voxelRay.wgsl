@@ -125,11 +125,14 @@ fn voxelColumn(skipMip: i32, ix: i32, iy: i32, cellSize: f32, t: f32) -> VoxelCo
   return VoxelColumn(h, hByte, colX, colY);
 }
 
-fn voxelHitColor(wx: f32, wy: f32, mip: i32, t: f32, colX: i32, colY: i32) -> vec4f {
-  if (mip <= 0) {
-    return terrainSampleColor(colorTex, 0, wx, wy, 0.0, t);
-  }
-  return terrainColorAt(colorTex, colX, colY, mip, flagRepeat(frame.mapFlags.w));
+fn voxelHitColor(mip: i32, colX: i32, colY: i32) -> vec4f {
+  return terrainColorAt(
+    colorTex,
+    colX,
+    colY,
+    mip,
+    flagRepeat(frame.mapFlags.w)
+  );
 }
 
 fn voxelWrite(
@@ -236,7 +239,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   if (camInside && (cam.z <= hCamW)) {
     voxelWrite(
       p,
-      voxelHitColor(cam.x, cam.y, 0, s0, camCol.colX, camCol.colY),
+      voxelHitColor(0, camCol.colX, camCol.colY),
       s0,
       hCamByte,
       1u,
@@ -261,7 +264,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         if (sHit >= s0 && sHit <= farClip) {
           voxelWrite(
             p,
-            voxelHitColor(cam.x, cam.y, 0, sHit, camCol.colX, camCol.colY),
+            voxelHitColor(0, camCol.colX, camCol.colY),
             sHit,
             hCamByte,
             1u,
@@ -280,7 +283,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       if (sHit >= s0 && sHit <= farClip) {
         voxelWrite(
           p,
-            voxelHitColor(cam.x, cam.y, 0, sHit, camCol.colX, camCol.colY),
+          voxelHitColor(0, camCol.colX, camCol.colY),
           sHit,
           hCamByte,
           1u,
@@ -378,7 +381,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     }
     voxelWrite(
       p,
-      voxelHitColor(hx, hy, mip, sHit, col.colX, col.colY),
+      voxelHitColor(mip, col.colX, col.colY),
       sHit,
       col.hByte,
       k,
