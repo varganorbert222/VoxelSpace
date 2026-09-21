@@ -5,6 +5,7 @@ import maps from "../../data/maps.json" with { type: "json" };
 import config from "../../data/config.json" with { type: "json" };
 import { cycleAvailableBackend } from "../backends/contract.js";
 import { usesWorkers } from "../constants/backend.js";
+import { algorithmsForBackend } from "../constants/algorithm.js";
 import { envOverlayAllowed } from "../constants/debugView.js";
 import VMath from "../math/vmath.js";
 
@@ -30,7 +31,13 @@ function applySettingsHotkeys(app) {
     : null;
   if (app.input.consumeToggleRenderAlgorithm) {
     app.setRenderAlgorithm(
-      cycleValue(config.settings.renderAlgorithms.values, app.renderer.algorithm)
+      cycleValue(
+        algorithmsForBackend(
+          config.settings.renderAlgorithms.values,
+          app.renderer.backend
+        ),
+        app.renderer.algorithm
+      )
     );
   }
   if (app.input.consumeToggleDebugView) {

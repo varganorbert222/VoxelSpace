@@ -6,7 +6,10 @@ import {
   usesCanvas2d,
   usesWorkers,
 } from "../constants/backend.js";
-import { ALGORITHM_CLASSIC } from "../constants/algorithm.js";
+import {
+  ALGORITHM_CLASSIC,
+  isAlgorithmAllowed,
+} from "../constants/algorithm.js";
 import { DEBUG_VIEW_COLOR } from "../constants/debugView.js";
 import {
   FILTER_DISTANCE_DEFAULT,
@@ -205,6 +208,9 @@ class Renderer {
   }
 
   set algorithm(value) {
+    if (!isAlgorithmAllowed(value, this._backendId)) {
+      value = ALGORITHM_CLASSIC;
+    }
     if (this._algorithm !== value) {
       this.cancelJobs();
       this.invalidatePanorama();
@@ -317,14 +323,14 @@ class Renderer {
     if (options.debugOverlay !== undefined) {
       this._debugOverlay = !!options.debugOverlay;
     }
-    if (options.algorithm !== undefined) {
-      this.algorithm = options.algorithm;
-    }
     if (options.multithread !== undefined) {
       this.multithread = options.multithread;
     }
     if (options.backend !== undefined && !this._backend) {
       this._backendId = options.backend;
+    }
+    if (options.algorithm !== undefined) {
+      this.algorithm = options.algorithm;
     }
     if (options.mipCount !== undefined) {
       const next = clampMipCount(options.mipCount);
@@ -487,6 +493,9 @@ class Renderer {
     const prev = this._backend;
     this._backend = created;
     this._backendId = id;
+    if (!isAlgorithmAllowed(this._algorithm, id)) {
+      this.algorithm = ALGORITHM_CLASSIC;
+    }
     this._syncWorkerFlag();
     if (prev && prev.dispose) {
       try {

@@ -914,11 +914,11 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 1px 1px 0 #000;
 }
 
-.control:has(#id_render_scale:disabled) {
+.control:has(:disabled) {
   opacity: 0.45;
 }
 
-.control:has(#id_render_scale:disabled) input[type="range"] {
+.control:has(input[type="range"]:disabled) input[type="range"] {
   pointer-events: none;
 }
 

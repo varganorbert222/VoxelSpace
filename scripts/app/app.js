@@ -26,6 +26,7 @@ import {
   ALGORITHM_CUBEMAP,
   ALGORITHM_PANORAMA,
   ALGORITHM_VOXEL,
+  isAlgorithmAllowed,
   usesFreeLook,
 } from "../constants/algorithm.js";
 import { BACKEND_JS } from "../constants/backend.js";
@@ -180,6 +181,9 @@ class App {
   }
 
   setRenderAlgorithm(algorithm) {
+    if (!isAlgorithmAllowed(algorithm, this.renderer.backend)) {
+      algorithm = ALGORITHM_CLASSIC;
+    }
     const prev = this.renderer.algorithm;
     this.renderer.setOptions({ algorithm });
     this.camera.setPanoramaLook(usesFreeLook(algorithm));
@@ -199,12 +203,16 @@ class App {
   }
 
   async setRenderBackend(id) {
+    const previousAlgorithm = this.renderer.algorithm;
     const ok = await this.renderer.setBackend(id);
     if (ok && this.terrain) {
       const snapshot = this.terrain.peekExportedMaps();
       if (snapshot) {
         await this.renderer.setMaps(snapshot);
       }
+    }
+    if (ok && previousAlgorithm !== this.renderer.algorithm) {
+      this.setRenderAlgorithm(this.renderer.algorithm);
     }
     const prevQuality = this.camera.quality;
     this._clampQualityToRuntime();

@@ -16,6 +16,10 @@ import {
   QUALITY_VERY_HIGH,
   isUltraQualityAllowed,
 } from "../constants/quality.js";
+import {
+  ALGORITHM_VOXEL,
+  isAlgorithmAllowed,
+} from "../constants/algorithm.js";
 import { listBackends } from "../backends/contract.js";
 import { FOG_RANGE_MIN, FOG_RANGE_STEP } from "../constants/fog.js";
 import { DEFAULT_MAP_SIZE } from "../constants/terrain.js";
@@ -30,6 +34,15 @@ import { initDualRangeElement } from "./rangeSlider.js";
 function prepareControl(element) {
   element.setAttribute("autocomplete", "off");
   return element;
+}
+
+function setDisabled(element, disabled, title) {
+  element.disabled = disabled;
+  if (disabled && title) {
+    element.title = title;
+  } else if (!disabled) {
+    element.removeAttribute("title");
+  }
 }
 
 function formatRangeValue(id, value) {
@@ -134,25 +147,34 @@ function initRangeElement(id, rangeConfig, value, onInput, onChange) {
   return element;
 }
 
-function fillQualityOptions(element, values, backend) {
+function fillOptionElements(element, values, labels, getState) {
   const current = element.value;
   while (element.firstChild) {
     element.removeChild(element.firstChild);
   }
   values.forEach((v) => {
-    const n = Number(v);
     const option = document.createElement("option");
-    option.value = String(n);
-    option.text = QUALITY_LABEL[n] || String(n);
-    if (n === QUALITY_ULTRA && !isUltraQualityAllowed(backend)) {
-      option.disabled = true;
-      option.title = "Desktop WebGPU only";
+    const state = (getState && getState(v)) || {};
+    option.value = String(v);
+    option.text = (labels && labels[v]) || v;
+    option.disabled = !!state.disabled;
+    if (state.title) {
+      option.title = state.title;
     }
     element.append(option);
   });
   if (current) {
     element.value = current;
   }
+}
+
+function fillQualityOptions(element, values, backend) {
+  fillOptionElements(element, values, QUALITY_LABEL, (value) => {
+    if (Number(value) === QUALITY_ULTRA && !isUltraQualityAllowed(backend)) {
+      return { disabled: true, title: "Desktop WebGPU only" };
+    }
+    return null;
+  });
 }
 
 function initQualityElement(id, values, value, onChange, getBackend) {
@@ -172,15 +194,12 @@ function initQualityElement(id, values, value, onChange, getBackend) {
 
 function initOptionElement(id, optionConfig, value, onChange, labels) {
   const element = prepareControl(document.getElementById(id));
-  while (element.firstChild) {
-    element.removeChild(element.firstChild);
-  }
-  optionConfig.values.forEach((v) => {
-    const option = document.createElement("option");
-    option.text = (labels && labels[v]) || v;
-    option.value = v;
-    element.append(option);
-  });
+  fillOptionElements(
+    element,
+    optionConfig.values,
+    labels,
+    optionConfig.getState
+  );
   element.value = String(value);
   element.addEventListener("change", onChange);
   return element;
@@ -188,17 +207,20 @@ function initOptionElement(id, optionConfig, value, onChange, labels) {
 
 function initBackendElement(id, backends, value, onChange, getCurrent) {
   const element = prepareControl(document.getElementById(id));
-  while (element.firstChild) {
-    element.removeChild(element.firstChild);
-  }
-  backends.forEach((b) => {
-    const option = document.createElement("option");
-    option.value = b.id;
-    option.text = b.label;
-    option.title = b.title;
-    option.disabled = !b.available;
-    element.append(option);
-  });
+  fillOptionElements(
+    element,
+    backends.map((backend) => backend.id),
+    Object.fromEntries(backends.map((backend) => [backend.id, backend.label])),
+    (id) => {
+      const backend = backends.find((item) => item.id === id);
+      return {
+        disabled: !backend.available,
+        title: backend.available
+          ? backend.title
+          : backend.label + " is not available in this browser or device.",
+      };
+    }
+  );
   element.value = String(value);
   element.addEventListener("change", (e) => {
     const selected = backends.find((b) => b.id === e.target.value);
@@ -421,7 +443,13 @@ class SettingsForm {
       ),
       algorithm: initOptionElement(
         "id_algorithmselector",
-        config.settings.renderAlgorithms,
+        {
+          values: config.settings.renderAlgorithms.values,
+          getState: (algorithm) =>
+            isAlgorithmAllowed(algorithm, options.backend)
+              ? null
+              : { disabled: true, title: "Requires WebGPU backend." },
+        },
         options.algorithm,
         (e) => {
           app.setRenderAlgorithm(e.target.value);
@@ -459,7 +487,11 @@ class SettingsForm {
         }
       ),
     };
-    this._elements.renderScale.disabled = true;
+    setDisabled(
+      this._elements.renderScale,
+      true,
+      "Render scale is controlled by quality."
+    );
     this.sync();
   }
 
@@ -503,7 +535,7 @@ class SettingsForm {
       Number.isFinite(options.fogStart) ? options.fogStart : 0,
       Number.isFinite(options.fogEnd) ? options.fogEnd : camera.farClip
     );
-    renderScale.disabled = true;
+    setDisabled(renderScale, true, "Render scale is controlled by quality.");
     renderScale.value = camera.renderScale;
     updateBoundValue("id_render_scale", camera.renderScale);
     fov.value = camera.fov;
@@ -512,6 +544,11 @@ class SettingsForm {
     stepDivisor.max = config.settings.stepDivisor.max;
     stepDivisor.step = config.settings.stepDivisor.step;
     stepDivisor.value = options.stepDivisor;
+    setDisabled(
+      stepDivisor,
+      options.algorithm === ALGORITHM_VOXEL,
+      "Step divisor is not used by the Voxel algorithm."
+    );
     updateBoundValue("id_step_divisor", options.stepDivisor);
     const mipRange = mipCountRange(this._app.terrain);
     mipCount.min = mipRange.min;
@@ -523,7 +560,11 @@ class SettingsForm {
     syncLod0Slider(lodSpacing, camera.farClip, this._app.renderer);
     filterDistance.value = options.filterDistance;
     updateBoundValue("id_filter_distance", options.filterDistance);
-    filterDistance.disabled = true;
+    setDisabled(
+      filterDistance,
+      true,
+      "Filter distance is controlled by the current renderer."
+    );
     fillQualityOptions(
       quality,
       config.settings.quality.values,
@@ -535,16 +576,33 @@ class SettingsForm {
     lod0Refine.checked = !!options.lod0Refine;
     lod0RefineCurve.value = options.lod0RefineCurve;
     multithread.checked = options.multithread;
-    multithread.disabled = !usesWorkers(options.backend);
+    setDisabled(
+      multithread,
+      !usesWorkers(options.backend),
+      "Multithreading is only available for CPU backends."
+    );
     map.value = this._app.currentMapName;
     cameraMode.value = camera.mode;
     document.body.classList.toggle("cam-orbital", camera.mode === MODE_ORBITAL);
     document.body.classList.toggle("cam-fly", camera.mode !== MODE_ORBITAL);
+    fillOptionElements(
+      algorithm,
+      config.settings.renderAlgorithms.values,
+      null,
+      (algorithm) =>
+        isAlgorithmAllowed(algorithm, options.backend)
+          ? null
+          : { disabled: true, title: "Requires WebGPU backend." }
+    );
     algorithm.value = options.algorithm;
     backend.value = options.backend;
     debugView.value = options.debugView || DEBUG_VIEW_COLOR;
     const overlayOk = envOverlayAllowed(options.algorithm);
-    debugOverlay.disabled = !overlayOk;
+    setDisabled(
+      debugOverlay,
+      !overlayOk,
+      "Debug overlay is only available for panorama and cubemap algorithms."
+    );
     debugOverlay.checked = overlayOk && !!options.debugOverlay;
     setChip("id_hud_map", this._app.currentMapName);
     setChip("id_hud_algorithm", options.algorithm);
@@ -563,7 +621,11 @@ class SettingsForm {
     if (!this._elements || !this._elements.renderScale) {
       return;
     }
-    this._elements.renderScale.disabled = true;
+    setDisabled(
+      this._elements.renderScale,
+      true,
+      "Render scale is controlled by quality."
+    );
     this._elements.renderScale.value = this._app.camera.renderScale;
     updateBoundValue("id_render_scale", this._app.camera.renderScale);
   }
