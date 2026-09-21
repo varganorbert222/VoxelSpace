@@ -28,6 +28,7 @@ import {
   fillClassicLodDistances,
   mipSwitchDistances,
 } from "../constants/mip.js";
+import { resolveTerrainMips } from "../terrain/mipChain.js";
 import {
   FOG_SATURATED,
   MIN_SAMPLE_DISTANCE,
@@ -248,6 +249,7 @@ export function renderFrustumSpaceColumns({
   altitude,
   maxHeight,
   maxSlope,
+  terrainMips,
   startColumn,
   endColumn,
   screenWidth,
@@ -311,8 +313,17 @@ export function renderFrustumSpaceColumns({
 
   const q = qualityIndex(quality);
   const stepGrowth = STEP_GROWTH_BY_QUALITY[q];
+  const mips = resolveTerrainMips(
+    terrainMips,
+    heightMap,
+    colorMap,
+    mapW,
+    mapH,
+    mapShift,
+    mipCount
+  );
   const deltas = deltasScratch;
-  const bandCount = Math.max(1, Math.min(TERRAIN_MIP_MAX_COUNT, mipCount | 0));
+  const bandCount = Math.max(1, Math.min(TERRAIN_MIP_MAX_COUNT, mips.count | 0));
   classicLodDeltas(bandCount, stepDivisor, deltas);
   const zStart = Math.max(nearClip, deltas[0], MIN_SAMPLE_DISTANCE);
   const lodDistances = lodDistancesScratch;
@@ -339,6 +350,11 @@ export function renderFrustumSpaceColumns({
   const filterDist = filterDistance;
   const wrap = repeat | 0;
   const invH2 = dstToProjPlane === 0 ? 0 : 1 / dstToProjPlane;
+  let shadeColorMap = colorMap;
+  let shadeMapShift = mapShift;
+  let shadeWMask = mapWMask;
+  let shadeHMask = mapHMask;
+  let shadeInvScale = 1;
 
   // Row parametrisation: yn(row) = screenHorizon - row - 0.5.
   const rowBase = screenHorizon - 0.5;
@@ -378,15 +394,15 @@ export function renderFrustumSpaceColumns({
     let plotColor =
       filterC & useFine
         ? sampleColorFiltered(
-            colorMap,
-            wx,
-            wy,
-            mapShift,
-            mapWMask,
-            mapHMask,
+            shadeColorMap,
+            wx * shadeInvScale,
+            wy * shadeInvScale,
+            shadeMapShift,
+            shadeWMask,
+            shadeHMask,
             wrap
           )
-        : colorMap[offset];
+        : shadeColorMap[offset];
     if (applyFogT) {
       plotColor = applyFogPacked(plotColor, fogT);
     }
@@ -403,6 +419,12 @@ export function renderFrustumSpaceColumns({
       continue;
     }
     let step = deltas[lod - 1];
+    const useHeightMap = mips.heightMaps[lod - 1];
+    shadeColorMap = mips.colorMaps[lod - 1];
+    shadeMapShift = mips.shifts[lod - 1];
+    shadeWMask = (mips.widths[lod - 1] - 1) | 0;
+    shadeHMask = (mips.heights[lod - 1] - 1) | 0;
+    shadeInvScale = 1 / (1 << (lod - 1));
     let z = startIndex;
     while (
       ((z < endIndex) | 0) &
@@ -508,17 +530,20 @@ export function renderFrustumSpaceColumns({
             wzBase += colStepZ;
             continue;
           }
+          const sampleX = wx * shadeInvScale;
+          const sampleY = wy * shadeInvScale;
           const offset =
-            ((((wy | 0) & mapWMask) << mapShift) + ((wx | 0) & mapHMask)) | 0;
-          const nearestH = heightMap[offset];
+            ((((sampleY | 0) & shadeWMask) << shadeMapShift) +
+              ((sampleX | 0) & shadeHMask)) | 0;
+          const nearestH = useHeightMap[offset];
           const hFine = doLerp
             ? sampleHeightBilinear(
-                heightMap,
-                wx,
-                wy,
-                mapShift,
-                mapWMask,
-                mapHMask,
+                useHeightMap,
+                sampleX,
+                sampleY,
+                shadeMapShift,
+                shadeWMask,
+                shadeHMask,
                 wrap
               )
             : nearestH;
@@ -536,8 +561,8 @@ export function renderFrustumSpaceColumns({
             if ((rHit < bottom) | 0) {
               const hByte = doLerp ? heightByteFromFine(hFine) : nearestH;
               const col = shade(
-                wx,
-                wy,
+                sampleX,
+                sampleY,
                 offset,
                 hByte,
                 z,
@@ -600,17 +625,20 @@ export function renderFrustumSpaceColumns({
             if (!(inside | wrap)) {
               break;
             }
+            const sampleX = wx * shadeInvScale;
+            const sampleY = wy * shadeInvScale;
             const offset =
-              ((((wy | 0) & mapWMask) << mapShift) + ((wx | 0) & mapHMask)) | 0;
-            const nearestH = heightMap[offset];
+              ((((sampleY | 0) & shadeWMask) << shadeMapShift) +
+                ((sampleX | 0) & shadeHMask)) | 0;
+            const nearestH = useHeightMap[offset];
             const hFine = doLerp
               ? sampleHeightBilinear(
-                  heightMap,
-                  wx,
-                  wy,
-                  mapShift,
-                  mapWMask,
-                  mapHMask,
+                  useHeightMap,
+                  sampleX,
+                  sampleY,
+                  shadeMapShift,
+                  shadeWMask,
+                  shadeHMask,
                   wrap
                 )
               : nearestH;
@@ -634,8 +662,8 @@ export function renderFrustumSpaceColumns({
             }
             const hByte = doLerp ? heightByteFromFine(hFine) : nearestH;
             const col = shade(
-              wx,
-              wy,
+              sampleX,
+              sampleY,
               offset,
               hByte,
               z,

@@ -29,6 +29,7 @@ function frustumSpaceParams(renderer, maps) {
     altitude: maps.altitude,
     maxHeight: maps.maxHeight,
     maxSlope: maps.maxSlope,
+    terrainMips: maps.terrainMips || maps.panoMips,
     startColumn: 0,
     endColumn: frameBuffer.width,
     screenWidth: frameBuffer.width,

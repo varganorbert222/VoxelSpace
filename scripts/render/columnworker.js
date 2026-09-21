@@ -256,6 +256,7 @@ function renderFrustumSpace(msg) {
     altitude: workerState.altitude,
     maxHeight: workerState.maxHeight,
     maxSlope: workerState.maxSlope,
+    terrainMips: workerState.terrainMips || workerState.panoMips,
     mapsGeneration: workerState.mapsGeneration,
     panoMips: workerState.panoMips,
     startColumn: msg.startColumn,
