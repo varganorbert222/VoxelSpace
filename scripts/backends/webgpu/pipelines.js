@@ -11,29 +11,35 @@ async function loadText(rel) {
   return res.text();
 }
 
-async function loadCompute(device, label, file) {
+async function loadCompute(device, label, file, onStatus) {
+  if (onStatus) {
+    onStatus("Compiling shader", label);
+  }
   const common = await loadText("./shaders/common.wgsl");
   const body = await loadText("./shaders/" + file);
   return compileShader(device, label, common + "\n" + body);
 }
 
-async function loadBlit(device) {
+async function loadBlit(device, onStatus) {
+  if (onStatus) {
+    onStatus("Compiling shader", "blit");
+  }
   return compileShader(device, "blit", await loadText("./shaders/blit.wgsl"));
 }
 
-export async function createPipelines(device, canvasFormat) {
-  const classicMod = await loadCompute(device, "classicMarch", "classicMarch.wgsl");
-  const genMod = await loadCompute(device, "panoGenerate", "panoramaGenerate.wgsl");
-  const viewMod = await loadCompute(device, "panoView", "panoramaView.wgsl");
-  const cubeGenMod = await loadCompute(device, "cubeGenerate", "cubemapGenerate.wgsl");
-  const cubePolarMod = await loadCompute(device, "cubePolar", "cubemapPolar.wgsl");
-  const cubeFillMod = await loadCompute(device, "cubeFill", "cubemapFill.wgsl");
-  const cubeStitchMod = await loadCompute(device, "cubeStitch", "cubemapStitch.wgsl");
-  const cubeViewMod = await loadCompute(device, "cubeView", "cubemapView.wgsl");
-  const overlayPanoMod = await loadCompute(device, "overlayPano", "debugOverlay.wgsl");
-  const overlayCubeMod = await loadCompute(device, "overlayCube", "debugOverlayCube.wgsl");
-  const voxelMod = await loadCompute(device, "voxelRay", "voxelRay.wgsl");
-  const blitMod = await loadBlit(device);
+export async function createPipelines(device, canvasFormat, onStatus) {
+  const classicMod = await loadCompute(device, "classicMarch", "classicMarch.wgsl", onStatus);
+  const genMod = await loadCompute(device, "panoGenerate", "panoramaGenerate.wgsl", onStatus);
+  const viewMod = await loadCompute(device, "panoView", "panoramaView.wgsl", onStatus);
+  const cubeGenMod = await loadCompute(device, "cubeGenerate", "cubemapGenerate.wgsl", onStatus);
+  const cubePolarMod = await loadCompute(device, "cubePolar", "cubemapPolar.wgsl", onStatus);
+  const cubeFillMod = await loadCompute(device, "cubeFill", "cubemapFill.wgsl", onStatus);
+  const cubeStitchMod = await loadCompute(device, "cubeStitch", "cubemapStitch.wgsl", onStatus);
+  const cubeViewMod = await loadCompute(device, "cubeView", "cubemapView.wgsl", onStatus);
+  const overlayPanoMod = await loadCompute(device, "overlayPano", "debugOverlay.wgsl", onStatus);
+  const overlayCubeMod = await loadCompute(device, "overlayCube", "debugOverlayCube.wgsl", onStatus);
+  const voxelMod = await loadCompute(device, "voxelRay", "voxelRay.wgsl", onStatus);
+  const blitMod = await loadBlit(device, onStatus);
 
   const frameLayout = device.createBindGroupLayout({
     label: "frame",

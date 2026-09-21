@@ -32,6 +32,9 @@ function migratePersisted(data) {
   if (data.version === 2) {
     return { ...data, version: SETTINGS_STORAGE_VERSION };
   }
+  if (data.version === 3) {
+    return { ...data, version: SETTINGS_STORAGE_VERSION, multithread: true };
+  }
   return data;
 }
 

@@ -65,7 +65,7 @@
       "default": true
     },
     "multithread": {
-      "default": false
+      "default": true
     },
     "interpolateHeight": {
       "default": true

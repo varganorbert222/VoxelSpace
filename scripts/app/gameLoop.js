@@ -139,6 +139,13 @@ export function startGameLoop(app) {
       })
       .catch((err) => {
         console.error("render", err);
+        if (app._setSystemStatus) {
+          app._setSystemStatus(
+            "Render error",
+            err && err.message ? err.message : String(err),
+            true
+          );
+        }
       })
       .then(() => {
         window.requestAnimationFrame(run);

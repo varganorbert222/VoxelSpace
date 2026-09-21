@@ -472,6 +472,7 @@ class Renderer {
         camera: this._camera,
         frameBuffer: this._frameBuffer,
         surface: this._surface,
+        onStatus: this._statusHandler,
         onDeviceLost: () => {
           this.setBackend(BACKEND_JS);
         },
@@ -483,6 +484,9 @@ class Renderer {
       }
       if (nextPresent === "webgpu") {
         this._surface.restoreForSoftware();
+      }
+      if (this._statusHandler) {
+        this._statusHandler("WebGPU initialization failed", err && err.message ? err.message : String(err), true);
       }
       if (id !== BACKEND_JS) {
         return this._swapBackend(BACKEND_JS);
@@ -509,6 +513,10 @@ class Renderer {
       await this._backend.resize(this._surface);
     }
     return true;
+  }
+
+  setStatusHandler(handler) {
+    this._statusHandler = handler;
   }
 
   async render(terrain) {

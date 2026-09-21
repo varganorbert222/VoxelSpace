@@ -421,6 +421,11 @@ class SettingsForm {
         "id_multithread",
         options.multithread,
         (e) => {
+          if (!e.target.checked) {
+            e.target.checked = true;
+            this._app.confirmThreadsOff(e.target);
+            return;
+          }
           app.renderer.setOptions({ multithread: e.target.checked });
           persist();
         }

@@ -258,12 +258,23 @@ class WebGpuBackend {
       }
       this._lost = true;
       this._dead = true;
+      if (ctx.onStatus) {
+        ctx.onStatus("WebGPU device lost", "Falling back to CPU", true);
+      }
       if (ctx.onDeviceLost) {
         ctx.onDeviceLost();
       }
     });
     this._configureCanvas(canvas);
-    this._pipes = await createPipelines(this._device, this._format);
+    this._pipes = await createPipelines(
+      this._device,
+      this._format,
+      (message, detail) => {
+        if (ctx.onStatus) {
+          ctx.onStatus(message, detail);
+        }
+      }
+    );
     this._uniformBuf = createUniformBuffer(this._device, this._framePacker.buffer.byteLength);
     this._initCubeFaceUniforms();
     this._offsetBuf = createStorageBuffer(this._device, TERRAIN_MIP_MAX_COUNT * 4);

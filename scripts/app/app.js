@@ -29,9 +29,14 @@ import {
   isAlgorithmAllowed,
   usesFreeLook,
 } from "../constants/algorithm.js";
-import { BACKEND_JS } from "../constants/backend.js";
+import { BACKEND_JS, BACKEND_WEBGPU } from "../constants/backend.js";
 import { detectBackends } from "../backends/contract.js";
-import { renderScaleForQuality, clampQualityForContext } from "../constants/quality.js";
+import {
+  QUALITY_LABEL,
+  QUALITY_LOW,
+  renderScaleForQuality,
+  clampQualityForContext,
+} from "../constants/quality.js";
 import { DEBUG_VIEW_COLOR } from "../constants/debugView.js";
 import { DEFAULT_MULTITHREAD } from "../constants/threading.js";
 import {
@@ -48,12 +53,16 @@ class App {
     this.renderer = null;
     this.surface = null;
     this.input = null;
-    this.fpsCounter = new FpsCounter();
+    this.fpsCounter = new FpsCounter((fps) => this._handleFps(fps));
     this.settingsForm = new SettingsForm(this);
     this.radar = new Radar();
     this.currentMapName = null;
     this.hudChrome = true;
     this.radarOpen = true;
+    this._lowFpsSamples = 0;
+    this._performanceAlertQuality = null;
+    this._performancePromptOpen = false;
+    this._performancePromptMode = "quality";
   }
 
   async start() {
@@ -64,6 +73,9 @@ class App {
     this.surface = new Surface(canvas, frameBuffer);
     this.terrain = new Terrain();
     this.renderer = new Renderer(frameBuffer, this.surface);
+    this.renderer.setStatusHandler((message, detail, error) => {
+      this._setSystemStatus(message, detail, error);
+    });
     this.camera = new Camera(config.camera, frameBuffer);
     this.renderer.setCamera(this.camera);
     this.camera.setResizeHandler(() => this.renderer.onFrameBufferResized());
@@ -126,7 +138,11 @@ class App {
     this.settingsForm.init();
     this.radar.init();
     initHud(this);
+    this._bindPerformancePrompt();
+    this._setSystemStatus("Starting renderer", "Preparing WebGPU", false);
     await this.setRenderBackend(this.renderer.backend);
+    this._setSystemStatus("Renderer ready", "", false);
+    window.setTimeout(() => this._setSystemStatus("", "", false), 900);
     this.setRenderAlgorithm(this.renderer.algorithm);
     this._bindViewportResize();
 
@@ -175,6 +191,9 @@ class App {
       return;
     }
     const q = clampQualityForContext(Number(quality), this.renderer.backend);
+    if (q !== this.camera.quality && !this._performancePromptOpen) {
+      this._performanceAlertQuality = null;
+    }
     this.camera.set({ quality: q });
     this.resize();
     this.persistAndSync();
@@ -203,6 +222,11 @@ class App {
   }
 
   async setRenderBackend(id) {
+    this._setSystemStatus(
+      id === BACKEND_WEBGPU ? "Initializing WebGPU" : "Switching renderer",
+      id === BACKEND_WEBGPU ? "Requesting device and compiling shaders" : id,
+      false
+    );
     const previousAlgorithm = this.renderer.algorithm;
     const ok = await this.renderer.setBackend(id);
     if (ok && this.terrain) {
@@ -220,7 +244,179 @@ class App {
       this.resize();
     }
     this.persistAndSync();
+    if (ok && this.renderer.backend === id) {
+      window.setTimeout(() => this._setSystemStatus("", "", false), 900);
+    } else if (id === BACKEND_WEBGPU) {
+      this._setSystemStatus(
+        "WebGPU unavailable",
+        "Fallback: CPU / JavaScript renderer",
+        true
+      );
+    }
     return ok;
+  }
+
+  _setSystemStatus(message, detail, error) {
+    const screen = document.getElementById("id_system");
+    const messageEl = document.getElementById("id_system_message");
+    const detailEl = document.getElementById("id_system_detail");
+    if (!screen || !messageEl || !detailEl) {
+      return;
+    }
+    if (!message) {
+      screen.hidden = true;
+      return;
+    }
+    screen.hidden = false;
+    screen.classList.toggle("system-screen--error", !!error);
+    messageEl.textContent = message;
+    detailEl.textContent = detail || "";
+  }
+
+  _handleFps(fps) {
+    if (fps < 5) {
+      this._lowFpsSamples++;
+    } else {
+      this._lowFpsSamples = 0;
+    }
+    if (
+      this._lowFpsSamples < 2 ||
+      this._performancePromptOpen ||
+      this._performanceAlertQuality === this.camera.quality
+    ) {
+      return;
+    }
+    const currentQuality = this.camera.quality;
+    this._performanceAlertQuality = currentQuality;
+    this._showPerformancePrompt(currentQuality, currentQuality);
+  }
+
+  _bindPerformancePrompt() {
+    const alert = document.getElementById("id_performance_alert");
+    const continueButton = document.getElementById("id_performance_continue");
+    const keepQualityButton = document.getElementById("id_performance_keep_quality");
+    const fallbackButton = document.getElementById("id_performance_fallback");
+    if (!alert || !continueButton || !keepQualityButton || !fallbackButton) {
+      return;
+    }
+    continueButton.addEventListener("click", () => {
+      if (this._performancePromptMode === "threads") {
+        this._finishThreadsPrompt(true);
+        return;
+      }
+      this._lowerQualityFromPrompt();
+    });
+    keepQualityButton.addEventListener("click", () => {
+      this._closePerformancePrompt();
+    });
+    fallbackButton.addEventListener("click", () => {
+      if (this._performancePromptMode === "threads") {
+        this._finishThreadsPrompt(false);
+        return;
+      }
+      this._closePerformancePrompt();
+      this._setSystemStatus("Switching to CPU", "Classic renderer", false);
+      this.setRenderAlgorithm(ALGORITHM_CLASSIC);
+      this.setRenderBackend(BACKEND_JS);
+    });
+    alert.addEventListener("keydown", (event) => {
+      if (event.code === "Escape") {
+        event.preventDefault();
+        if (this._performancePromptMode === "threads") {
+          this._finishThreadsPrompt(false);
+          return;
+        }
+        this._closePerformancePrompt();
+      }
+    });
+  }
+
+  _showPerformancePrompt(previousQuality, nextQuality) {
+    const alert = document.getElementById("id_performance_alert");
+    const continueButton = document.getElementById("id_performance_continue");
+    const keepQualityButton = document.getElementById("id_performance_keep_quality");
+    const fallbackButton = document.getElementById("id_performance_fallback");
+    const title = document.getElementById("id_performance_alert_title");
+    const copy = document.getElementById("id_performance_alert_copy");
+    if (!alert || !continueButton || !keepQualityButton) {
+      return;
+    }
+    const backendName = this.renderer.backend === BACKEND_WEBGPU ? "WebGPU" : "CPU";
+    const previousLabel = QUALITY_LABEL[previousQuality] || String(previousQuality);
+    const nextLabel = QUALITY_LABEL[nextQuality] || String(nextQuality);
+    title.textContent = "Low performance detected";
+    copy.textContent =
+      nextQuality > QUALITY_LOW
+        ? `${backendName} performance is below 5 FPS at ${previousLabel} quality. Choose whether to lower quality or continue unchanged.`
+        : `${backendName} performance is below 5 FPS. Quality is already at its minimum.`;
+    continueButton.textContent = "Lower quality";
+    continueButton.hidden = nextQuality === QUALITY_LOW;
+    keepQualityButton.hidden = false;
+    if (fallbackButton) {
+      fallbackButton.hidden = this.renderer.backend !== BACKEND_WEBGPU;
+    }
+    this._performancePromptOpen = true;
+    this._performancePromptMode = "quality";
+    alert.hidden = false;
+    (continueButton.hidden ? keepQualityButton : continueButton).focus();
+  }
+
+  _lowerQualityFromPrompt() {
+    const currentQuality = this.camera.quality;
+    const nextQuality = Math.max(QUALITY_LOW, currentQuality - 1);
+    this._closePerformancePrompt();
+    if (nextQuality !== currentQuality) {
+      this.setQuality(nextQuality);
+    }
+  }
+
+  confirmThreadsOff(checkbox) {
+    const alert = document.getElementById("id_performance_alert");
+    const continueButton = document.getElementById("id_performance_continue");
+    const keepQualityButton = document.getElementById("id_performance_keep_quality");
+    const fallbackButton = document.getElementById("id_performance_fallback");
+    const title = document.getElementById("id_performance_alert_title");
+    const copy = document.getElementById("id_performance_alert_copy");
+    if (!alert || !continueButton || !keepQualityButton || !fallbackButton || !title || !copy) {
+      checkbox.checked = true;
+      return;
+    }
+    checkbox.checked = true;
+    title.textContent = "Threads disabled";
+    copy.textContent =
+      "Disabling Threads may reduce performance. Do you want to continue without multithreading?";
+    continueButton.textContent = "Disable Threads";
+    fallbackButton.textContent = "Keep Threads";
+    fallbackButton.hidden = false;
+    this._performancePromptMode = "threads";
+    keepQualityButton.hidden = true;
+    this._performancePromptOpen = true;
+    this._pendingThreadsCheckbox = checkbox;
+    alert.hidden = false;
+    continueButton.focus();
+  }
+
+  _finishThreadsPrompt(disable) {
+    const checkbox = this._pendingThreadsCheckbox;
+    this._pendingThreadsCheckbox = null;
+    this._closePerformancePrompt();
+    if (!checkbox) {
+      return;
+    }
+    checkbox.checked = !disable;
+    this.renderer.setOptions({ multithread: !disable });
+    this.persistAndSync();
+  }
+
+  _closePerformancePrompt() {
+    const alert = document.getElementById("id_performance_alert");
+    if (!alert) {
+      return;
+    }
+    this._performancePromptOpen = false;
+    this._performancePromptMode = "quality";
+    this._pendingThreadsCheckbox = null;
+    alert.hidden = true;
   }
 
   resize() {

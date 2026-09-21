@@ -2,7 +2,7 @@
 
 export const DEFAULT_WORKER_COUNT = 4;
 export const MAX_WORKERS = 16;
-export const DEFAULT_MULTITHREAD = false;
+export const DEFAULT_MULTITHREAD = true;
 
 export const MSG_INIT_MAPS = "initMaps";
 export const MSG_INIT_PANO = "initPano";

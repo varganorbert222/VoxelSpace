@@ -472,6 +472,44 @@
         <p class="offline-pulse" id="id_offline_status">Reconnecting…</p>
       </div>
     </div>
+    <div id="id_system" class="system-screen" hidden role="status" aria-live="polite">
+      <div class="system-card">
+        <span id="id_system_spinner" class="system-spinner" aria-hidden="true"></span>
+        <div>
+          <p class="system-kicker">System</p>
+          <p id="id_system_message" class="system-message"></p>
+          <p id="id_system_detail" class="system-detail"></p>
+        </div>
+      </div>
+    </div>
+    <div
+      id="id_performance_alert"
+      class="performance-alert"
+      hidden
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="id_performance_alert_title"
+      aria-describedby="id_performance_alert_copy"
+    >
+      <div class="performance-alert-card">
+        <p class="performance-alert-kicker">Performance warning</p>
+        <h2 id="id_performance_alert_title" class="performance-alert-title">Low performance detected</h2>
+        <p id="id_performance_alert_copy" class="performance-alert-copy">
+          Rendering is below 5 FPS. Lower the quality or continue without changing it.
+        </p>
+        <div class="performance-alert-actions">
+          <button type="button" id="id_performance_continue" class="performance-alert-btn performance-alert-btn--primary">
+            Lower quality
+          </button>
+          <button type="button" id="id_performance_keep_quality" class="performance-alert-btn">
+            Continue at this quality
+          </button>
+          <button type="button" id="id_performance_fallback" class="performance-alert-btn">
+            Use CPU / Classic
+          </button>
+        </div>
+      </div>
+    </div>
     <script>
       (function () {
         var overlay = document.getElementById("id_offline");
