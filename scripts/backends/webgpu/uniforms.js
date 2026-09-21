@@ -141,5 +141,5 @@ export function packFrame(packer, p) {
     : FILTER_DISTANCE_DEFAULT;
   f[85] = Number.isFinite(p.fogStart) ? p.fogStart : 0;
   f[86] = Number.isFinite(p.fogEnd) ? p.fogEnd : 0;
-  f[87] = Number.isFinite(p.switchT2) ? p.switchT2 : 1e30;
+  f[87] = Number.isFinite(p.maxSlope) ? p.maxSlope : p.altitude;
 }

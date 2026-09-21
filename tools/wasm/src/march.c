@@ -26,17 +26,17 @@ static f64 g_max_height;
 static f64 g_max_slope;
 static f64 g_alt_scale;
 static i32 g_mip_count;
-static u8 *g_mip_h[4];
-static u32 *g_mip_c[4];
-static i32 g_mip_w[4];
-static i32 g_mip_ht[4];
-static i32 g_mip_sh[4];
-static i32 g_mip_wmask[4];
-static i32 g_mip_hmask[4];
+static u8 *g_mip_h[16];
+static u32 *g_mip_c[16];
+static i32 g_mip_w[16];
+static i32 g_mip_ht[16];
+static i32 g_mip_sh[16];
+static i32 g_mip_wmask[16];
+static i32 g_mip_hmask[16];
 
-static i32 g_pixel_offsets[8];
-static f64 g_lod_deltas[8];
-static f64 g_lod_fracs[8];
+static i32 g_pixel_offsets[16];
+static f64 g_lod_deltas[16];
+static f64 g_lod_fracs[16];
 static i32 g_lod_n;
 static i32 g_lod_delta_n;
 static i32 g_lod_frac_n;
@@ -194,16 +194,16 @@ WASM_EXPORT void set_classic_tables(
   f64 *del = (f64 *)deltas_ptr;
   f64 *frac = (f64 *)fracs_ptr;
   g_lod_n = offset_n;
-  if (g_lod_n > 8) {
-    g_lod_n = 8;
+  if (g_lod_n > 16) {
+    g_lod_n = 16;
   }
   g_lod_delta_n = delta_n;
-  if (g_lod_delta_n > 8) {
-    g_lod_delta_n = 8;
+  if (g_lod_delta_n > 16) {
+    g_lod_delta_n = 16;
   }
   g_lod_frac_n = frac_n;
-  if (g_lod_frac_n > 8) {
-    g_lod_frac_n = 8;
+  if (g_lod_frac_n > 16) {
+    g_lod_frac_n = 16;
   }
   for (i = 0; i < g_lod_n; i++) {
     g_pixel_offsets[i] = off[i];
@@ -425,8 +425,8 @@ WASM_EXPORT void set_map_info(
   if (g_mip_count < 1) {
     g_mip_count = 1;
   }
-  if (g_mip_count > 4) {
-    g_mip_count = 4;
+  if (g_mip_count > 16) {
+    g_mip_count = 16;
   }
 }
 
@@ -437,7 +437,7 @@ WASM_EXPORT void set_map_level(
     i32 width,
     i32 height,
     i32 shift) {
-  if (level < 0 || level > 3) {
+  if (level < 0 || level > 15) {
     return;
   }
   g_mip_h[level] = (u8 *)height_ptr;
@@ -631,8 +631,8 @@ WASM_EXPORT void classic_columns(
   i32 lod;
   i32 i;
   i32 n;
-  f64 deltas[8];
-  f64 lod_distances[9];
+  f64 deltas[16];
+  f64 lod_distances[17];
   f64 z_start;
   f64 screen_width_scaler;
   f64 k_right_x;
@@ -1472,8 +1472,8 @@ WASM_EXPORT void frustum_space_columns(
   i32 lod;
   i32 i;
   i32 n;
-  f64 deltas[8];
-  f64 lod_distances[9];
+  f64 deltas[16];
+  f64 lod_distances[17];
   f64 z_start;
   f64 screen_width_scaler;
   f64 inv_h2;
@@ -1555,6 +1555,13 @@ WASM_EXPORT void frustum_space_columns(
     f64 end_index;
     f64 step;
     f64 z;
+    i32 mip;
+    u8 *lod_height_map;
+    u32 *lod_color_map;
+    i32 lod_w_mask;
+    i32 lod_h_mask;
+    i32 lod_shift;
+    f64 lod_scale;
     if (live_cols <= 0) {
       break;
     }
@@ -1563,6 +1570,16 @@ WASM_EXPORT void frustum_space_columns(
     if (start_index >= far_clip) {
       continue;
     }
+    mip = (lod - 1) | 0;
+    if (mip >= g_mip_count) {
+      mip = (g_mip_count - 1) | 0;
+    }
+    lod_height_map = g_mip_h[mip];
+    lod_color_map = g_mip_c[mip];
+    lod_w_mask = g_mip_wmask[mip];
+    lod_h_mask = g_mip_hmask[mip];
+    lod_shift = g_mip_sh[mip];
+    lod_scale = 1.0 / (f64)(1 << mip);
     step = deltas[lod - 1];
     z = start_index;
     while ((z < end_index) & (z < far_clip) & (live_cols > 0)) {
@@ -1689,8 +1706,9 @@ WASM_EXPORT void frustum_space_columns(
           if (!(inside | wrap)) {
             goto fs_next_col;
           }
-          h_fine = sample_sv_height(
-              height_map, wx, wy, map_w_mask, map_h_mask, g_map_shift, wrap,
+            h_fine = sample_sv_height(
+              lod_height_map, wx * lod_scale, wy * lod_scale,
+              lod_w_mask, lod_h_mask, lod_shift, wrap,
               fine_lerp, &h_byte, &nn_off);
           if (sample_ok) {
             g_sample_n[local_i] = (g_sample_n[local_i] + 1) | 0;
@@ -1710,8 +1728,9 @@ WASM_EXPORT void frustum_space_columns(
             if (r_hit < bottom) {
               i32 painted = 0;
               plot = fs_terrain_color(
-                  color_map, wx, wy, nn_off, use_fine, do_filter, wrap,
-                  map_w_mask, map_h_mask, g_map_shift, z, far_clip, fog_t,
+                  lod_color_map, wx * lod_scale, wy * lod_scale, nn_off,
+                  use_fine, do_filter, wrap, lod_w_mask, lod_h_mask, lod_shift,
+                  z, far_clip, fog_t,
                   fog_white, apply_fog_t, debug, h_byte,
                   sample_ok ? g_sample_n[local_i] : 0);
               if (fs_dirty[local_i]) {
@@ -1763,7 +1782,8 @@ WASM_EXPORT void frustum_space_columns(
               break;
             }
             h_fine = sample_sv_height(
-                height_map, wx, wy, map_w_mask, map_h_mask, g_map_shift, wrap,
+              lod_height_map, wx * lod_scale, wy * lod_scale,
+              lod_w_mask, lod_h_mask, lod_shift, wrap,
                 fine_lerp, &h_byte, &nn_off);
             if (sample_ok) {
               g_sample_n[local_i] = (g_sample_n[local_i] + 1) | 0;
@@ -1784,8 +1804,9 @@ WASM_EXPORT void frustum_space_columns(
               continue;
             }
             plot = fs_terrain_color(
-                color_map, wx, wy, nn_off, use_fine, do_filter, wrap,
-                map_w_mask, map_h_mask, g_map_shift, z, far_clip, fog_t,
+              lod_color_map, wx * lod_scale, wy * lod_scale, nn_off,
+              use_fine, do_filter, wrap, lod_w_mask, lod_h_mask, lod_shift,
+              z, far_clip, fog_t,
                 fog_white, apply_fog_t, debug, h_byte,
                 sample_ok ? g_sample_n[local_i] : 0);
             pixels[((rr * stride + local_i) | 0)] = plot;

@@ -585,7 +585,11 @@ export function createWasmKernels(instance) {
       params.dstToProjPlane,
       params.nearClip,
       params.farClip,
-      params.minDeltaZ,
+      Number.isFinite(params.minDeltaZ)
+        ? params.minDeltaZ
+        : 1 /
+          (INITIAL_STEP_SCALE_BY_QUALITY[q] *
+            Math.max(1, params.stepDivisor | 0)),
       STEP_GROWTH_BY_QUALITY[q],
       INITIAL_STEP_SCALE_BY_QUALITY[q],
       params.applyFog | 0,

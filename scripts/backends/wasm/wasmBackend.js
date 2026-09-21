@@ -54,7 +54,7 @@ class WasmBackend {
   }
 
   get useJsFrustumSpace() {
-    return true;
+    return false;
   }
 
   async init(ctx) {

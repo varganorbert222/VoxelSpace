@@ -22,16 +22,14 @@ fn coverSet(cover: ptr<function, array<u32, 64>>, row: i32) {
   (*cover)[word] = (*cover)[word] | (1u << (u32(row) & 31u));
 }
 
-fn classicHeightAt(texX: i32, texY: i32, wrap: bool, mapHMask: i32, mapWMask: i32) -> u32 {
+fn classicHeightAt(texX: i32, texY: i32, mip: i32, wrap: bool, mapHMask: i32, mapWMask: i32) -> u32 {
   let x = wrapOrClamp(texX, mapHMask, wrap);
   let y = wrapOrClamp(texY, mapWMask, wrap);
-  return textureLoad(heightTex, vec2<i32>(x, y), 0).r;
+  return textureLoad(heightTex, vec2<i32>(x, y), mip).r;
 }
 
-fn classicSampleHeight(plx: f32, ply: f32, lerp: bool, wrap: bool, mapHMask: i32, mapWMask: i32) -> vec2f {
-  let jx = i32(plx) & mapHMask;
-  let ix = i32(ply) & mapWMask;
-  let base = f32(textureLoad(heightTex, vec2<i32>(jx, ix), 0).r);
+fn classicSampleHeight(plx: f32, ply: f32, mip: i32, lerp: bool, wrap: bool, mapHMask: i32, mapWMask: i32) -> vec2f {
+  let base = f32(classicHeightAt(i32(plx), i32(ply), mip, wrap, mapHMask, mapWMask));
   if (!lerp) {
     return vec2f(base, base);
   }
@@ -41,25 +39,23 @@ fn classicSampleHeight(plx: f32, ply: f32, lerp: bool, wrap: bool, mapHMask: i32
   let fy = ply - y0;
   let tx = i32(x0);
   let ty = i32(y0);
-  let h00 = f32(classicHeightAt(tx, ty, wrap, mapHMask, mapWMask));
-  let h10 = f32(classicHeightAt(tx + 1, ty, wrap, mapHMask, mapWMask));
-  let h01 = f32(classicHeightAt(tx, ty + 1, wrap, mapHMask, mapWMask));
-  let h11 = f32(classicHeightAt(tx + 1, ty + 1, wrap, mapHMask, mapWMask));
+  let h00 = f32(classicHeightAt(tx, ty, mip, wrap, mapHMask, mapWMask));
+  let h10 = f32(classicHeightAt(tx + 1, ty, mip, wrap, mapHMask, mapWMask));
+  let h01 = f32(classicHeightAt(tx, ty + 1, mip, wrap, mapHMask, mapWMask));
+  let h11 = f32(classicHeightAt(tx + 1, ty + 1, mip, wrap, mapHMask, mapWMask));
   let h = bilinearHeight(h00, h10, h01, h11, fx, fy);
   return vec2f(h, clamp(h + 0.5, 0.0, 255.0));
 }
 
-fn classicColorAt(texX: i32, texY: i32, wrap: bool, mapHMask: i32, mapWMask: i32) -> vec4f {
+fn classicColorAt(texX: i32, texY: i32, mip: i32, wrap: bool, mapHMask: i32, mapWMask: i32) -> vec4f {
   let x = wrapOrClamp(texX, mapHMask, wrap);
   let y = wrapOrClamp(texY, mapWMask, wrap);
-  return textureLoad(colorTex, vec2<i32>(x, y), 0);
+  return textureLoad(colorTex, vec2<i32>(x, y), mip);
 }
 
-fn classicSampleColor(plx: f32, ply: f32, doFilter: bool, wrap: bool, mapHMask: i32, mapWMask: i32) -> vec4f {
-  let jx = i32(plx) & mapHMask;
-  let ix = i32(ply) & mapWMask;
+fn classicSampleColor(plx: f32, ply: f32, mip: i32, doFilter: bool, wrap: bool, mapHMask: i32, mapWMask: i32) -> vec4f {
   if (!doFilter) {
-    return textureLoad(colorTex, vec2<i32>(jx, ix), 0);
+    return classicColorAt(i32(plx), i32(ply), mip, wrap, mapHMask, mapWMask);
   }
   let x0 = floor(plx);
   let y0 = floor(ply);
@@ -67,10 +63,10 @@ fn classicSampleColor(plx: f32, ply: f32, doFilter: bool, wrap: bool, mapHMask: 
   let fy = ply - y0;
   let tx = i32(x0);
   let ty = i32(y0);
-  let c00 = classicColorAt(tx, ty, wrap, mapHMask, mapWMask);
-  let c10 = classicColorAt(tx + 1, ty, wrap, mapHMask, mapWMask);
-  let c01 = classicColorAt(tx, ty + 1, wrap, mapHMask, mapWMask);
-  let c11 = classicColorAt(tx + 1, ty + 1, wrap, mapHMask, mapWMask);
+  let c00 = classicColorAt(tx, ty, mip, wrap, mapHMask, mapWMask);
+  let c10 = classicColorAt(tx + 1, ty, mip, wrap, mapHMask, mapWMask);
+  let c01 = classicColorAt(tx, ty + 1, mip, wrap, mapHMask, mapWMask);
+  let c11 = classicColorAt(tx + 1, ty + 1, mip, wrap, mapHMask, mapWMask);
   return bilinearColor(c00, c10, c01, c11, fx, fy);
 }
 
@@ -84,6 +80,7 @@ fn frustumShade(
   fogWhite: bool,
   applyFogT: bool,
   useFine: bool,
+  mip: i32,
   flags: u32,
   repeat: bool,
   mapHMask: i32,
@@ -103,7 +100,7 @@ fn frustumShade(
   if (fogWhite) {
     return packRgba(vec4f(1.0));
   }
-  var plot = classicSampleColor(px, py, flagColorFilter(flags) && useFine, repeat, mapHMask, mapWMask);
+  var plot = classicSampleColor(px, py, mip, flagColorFilter(flags) && useFine, repeat, mapHMask, mapWMask);
   if (applyFogT) { plot = fogRgb(plot, fogT); }
   return packRgba(plot);
 }
@@ -172,10 +169,20 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   var freeN = screenH;
   var dirty = false;
   var cover: array<u32, 64>;
+  var coverWord = 0u;
+  loop {
+    if (coverWord >= 64u) { break; }
+    cover[coverWord] = 0u;
+    coverWord = coverWord + 1u;
+  }
   var sampleN = 0u;
   var lod = 1;
   loop {
     if ((lod > lodCount) || (hiddenY <= 0) || (freeN <= 0)) { break; }
+    let mip = lod - 1;
+    let mipScale = exp2(-f32(mip));
+    let lodWMask = (mapW >> u32(mip)) - 1;
+    let lodHMask = (mapH >> u32(mip)) - 1;
     let startIndex = lodDistances[lod - 1];
     let endIndex = lodDistances[lod];
     lod = lod + 1;
@@ -228,7 +235,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         let p = colBase + (rowBase - f32(hiddenY - 1)) * rowStep;
         let inside = ((p.x >= 0.0) && (p.x <= mapWf) && (p.y >= 0.0) && (p.y <= mapHf)) || repeat;
         if (inside) {
-          let sampled = classicSampleHeight(p.x, p.y, doLerp, repeat, mapHMask, mapWMask);
+          let sampled = classicSampleHeight(p.x * mipScale, p.y * mipScale, mip, doLerp, repeat, lodHMask, lodWMask);
           sampleN = sampleN + 1u;
           var rHit = i32(ceil(rowBase - (sampled.x * altScale - colBase.z) * invRowStepZ));
           if (rHit < hiddenY) {
@@ -236,7 +243,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
             var bottom = hiddenY;
             if (!repeat) { bottom = min(bottom, wBot); }
             if (rHit < bottom) {
-              let plot = frustumShade(p.x, p.y, u32(sampled.y), z, farClip, fogT, fogWhite, applyFogT, useFine, flags, repeat, mapHMask, mapWMask, debugView, sampleN);
+              let plot = frustumShade(p.x * mipScale, p.y * mipScale, u32(sampled.y), z, farClip, fogT, fogWhite, applyFogT, useFine, mip, flags, repeat, lodHMask, lodWMask, debugView, sampleN);
               var painted = 0;
               var r = rHit;
               if (dirty) {
@@ -280,7 +287,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
           let p = colBase + (rowBase - f32(r)) * rowStep;
           let inside = ((p.x >= 0.0) && (p.x <= mapWf) && (p.y >= 0.0) && (p.y <= mapHf)) || repeat;
           if (!inside) { break; }
-          let sampled = classicSampleHeight(p.x, p.y, doLerp, repeat, mapHMask, mapWMask);
+          let sampled = classicSampleHeight(p.x * mipScale, p.y * mipScale, mip, doLerp, repeat, lodHMask, lodWMask);
           sampleN = sampleN + 1u;
           let gap = p.z - sampled.x * altScale;
           if (gap > 0.0) {
@@ -293,7 +300,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
             r = r - skipN;
             continue;
           }
-          let plot = frustumShade(p.x, p.y, u32(sampled.y), z, farClip, fogT, fogWhite, applyFogT, useFine, flags, repeat, mapHMask, mapWMask, debugView, sampleN);
+          let plot = frustumShade(p.x * mipScale, p.y * mipScale, u32(sampled.y), z, farClip, fogT, fogWhite, applyFogT, useFine, mip, flags, repeat, lodHMask, lodWMask, debugView, sampleN);
           textureStore(outTex, vec2<i32>(x, r), vec4<u32>(plot, 0u, 0u, 0u));
           coverSet(&cover, r);
           if (painted == 0) { firstColor = plot; }
