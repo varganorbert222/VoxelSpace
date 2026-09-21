@@ -372,27 +372,16 @@ class SettingsForm {
         app.renderer.setOptions({ repeat: e.target.checked });
         persist();
       }),
-      interpolateHeight: initCheckboxElement(
-        "id_interpolate_height",
-        options.interpolateHeight,
-        (e) => {
-          app.renderer.setOptions({ interpolateHeight: e.target.checked });
-          persist();
-        }
-      ),
-      filterColor: initCheckboxElement(
-        "id_filter_color",
-        options.filterColor,
-        (e) => {
-          app.renderer.setOptions({ filterColor: e.target.checked });
-          persist();
-        }
-      ),
       lod0Refine: initCheckboxElement(
         "id_lod0_refine",
         options.lod0Refine,
         (e) => {
-          app.renderer.setOptions({ lod0Refine: e.target.checked });
+          const enabled = e.target.checked;
+          app.renderer.setOptions({
+            interpolateHeight: enabled,
+            filterColor: enabled,
+            lod0Refine: enabled,
+          });
           persist();
         }
       ),
@@ -493,8 +482,6 @@ class SettingsForm {
       quality,
       applyFog,
       repeat,
-      interpolateHeight,
-      filterColor,
       lod0Refine,
       lod0RefineCurve,
       multithread,
@@ -545,8 +532,6 @@ class SettingsForm {
     quality.value = String(camera.quality);
     applyFog.checked = options.applyFog;
     repeat.checked = options.repeat;
-    interpolateHeight.checked = !!options.interpolateHeight;
-    filterColor.checked = !!options.filterColor;
     lod0Refine.checked = !!options.lod0Refine;
     lod0RefineCurve.value = options.lod0RefineCurve;
     multithread.checked = options.multithread;

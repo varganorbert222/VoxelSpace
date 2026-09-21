@@ -81,9 +81,12 @@ class App {
       algorithm: config.settings.renderAlgorithms.default || ALGORITHM_CLASSIC,
       debugView: config.settings.debugViews.default || DEBUG_VIEW_COLOR,
       debugOverlay: !!config.settings.debugOverlay.default,
-      interpolateHeight: config.settings.interpolateHeight.default !== false,
-      filterColor: config.settings.filterColor.default !== false,
-      lod0Refine: !!config.settings.lod0Refine && config.settings.lod0Refine.default,
+      interpolateHeight:
+        !!config.settings.lod0Refine && config.settings.lod0Refine.default,
+      filterColor:
+        !!config.settings.lod0Refine && config.settings.lod0Refine.default,
+      lod0Refine:
+        !!config.settings.lod0Refine && config.settings.lod0Refine.default,
       lod0RefineCurve:
         (config.settings.lod0RefineCurve &&
           config.settings.lod0RefineCurve.default) ||

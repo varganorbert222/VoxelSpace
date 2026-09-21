@@ -114,6 +114,7 @@ export function sanitizeSettings(data, defaults, bounds) {
     lodSpacingMax,
     Math.round(finiteOr(data.lodSpacing, defaults.lodSpacing))
   );
+  const lod0FeatureGroup = boolOr(data.lod0Refine, defaults.lod0Refine);
   return {
     farClip,
     fov: VMath.clamp(
@@ -127,9 +128,9 @@ export function sanitizeSettings(data, defaults, bounds) {
     fogStart: fog.fogStart,
     fogEnd: fog.fogEnd,
     repeat: boolOr(data.repeat, defaults.repeat),
-    interpolateHeight: boolOr(data.interpolateHeight, defaults.interpolateHeight),
-    filterColor: boolOr(data.filterColor, defaults.filterColor),
-    lod0Refine: boolOr(data.lod0Refine, defaults.lod0Refine),
+    interpolateHeight: lod0FeatureGroup,
+    filterColor: lod0FeatureGroup,
+    lod0Refine: lod0FeatureGroup,
     lod0RefineCurve: pickAllowed(
       data.lod0RefineCurve,
       bounds.lod0RefineCurves,

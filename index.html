@@ -292,7 +292,7 @@
           <label
             class="check"
             for="id_lod0_refine"
-            data-tip="Optional LOD 0 refinement, from the camera out to the LOD 0 distance. Five mips (16, 8, 4, 2, then 1 virtual voxel per meter) follow this section's Curve. Occupancy, stepping, and height jitter use the current refine cell, so the last band matches 1 m LOD 0 before global LOD 1 (2 m). Height interp and Color filter stay their own switches."
+            data-tip="LOD 0 refinement, height interpolation, and color filtering. Five mips (16, 8, 4, 2, then 1 virtual voxel per meter) follow this section's Curve."
           >
             <input id="id_lod0_refine" name="lod0refine" type="checkbox" autocomplete="off" />
             <span class="check-box" aria-hidden="true"></span>
@@ -360,29 +360,6 @@
             <input id="id_repeat" name="repeat" type="checkbox" autocomplete="off" aria-keyshortcuts="P" />
             <span class="check-box" aria-hidden="true"></span>
             Repeat
-          </label>
-          <label
-            class="check"
-            for="id_interpolate_height"
-            data-tip="Bilinear height sampling on LOD 0 only. Independent of LOD0 refine: with refine, the lerp is evaluated at the current refine cell center (1/16 m down to 1 m) and held across that voxel. Higher LOD voxels stay nearest-texel. Off uses nearest everywhere."
-          >
-            <input
-              id="id_interpolate_height"
-              name="interpolateheight"
-              type="checkbox"
-              autocomplete="off"
-            />
-            <span class="check-box" aria-hidden="true"></span>
-            Height interp
-          </label>
-          <label
-            class="check"
-            for="id_filter_color"
-            data-tip="World-space bilinear blend on the color map, on LOD 0 only. Independent of LOD0 refine: with refine, the blend is evaluated at the current refine cell center (1/16 m down to 1 m). Higher LOD voxels stay nearest-texel so coarse blocks stay flat."
-          >
-            <input id="id_filter_color" name="filtercolor" type="checkbox" autocomplete="off" />
-            <span class="check-box" aria-hidden="true"></span>
-            Color filter
           </label>
           <label
             class="check"
