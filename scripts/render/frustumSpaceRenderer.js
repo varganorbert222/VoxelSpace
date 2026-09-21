@@ -7,7 +7,9 @@ import { canShareBuffers, ensureU32 } from "./sharedBuffers.js";
 
 function frustumSpaceKernel(renderer) {
   return (
-    (renderer.kernels && renderer.kernels.renderFrustumSpaceColumns) ||
+    (!renderer.useJsFrustumSpace &&
+      renderer.kernels &&
+      renderer.kernels.renderFrustumSpaceColumns) ||
     renderFrustumSpaceColumns
   );
 }
@@ -57,6 +59,10 @@ function frustumSpaceParams(renderer, maps) {
     interpolateHeight: renderer.interpolateHeight ? 1 : 0,
     filterColor: renderer.filterColor ? 1 : 0,
     filterDistance: renderer.filterDistance,
+    mipCount: renderer.mipCount,
+    stepDivisor: renderer.stepDivisor,
+    lodSpacingMode: renderer.lodSpacingMode,
+    lodSpacing: renderer.lodSpacing,
     panoMips: maps.panoMips,
     mapsGeneration: maps.generation,
   };
@@ -79,6 +85,10 @@ function isFrustumSpaceTokenStale(token, renderer) {
     renderer.interpolateHeight !== token.interpolateHeight ||
     renderer.filterColor !== token.filterColor ||
     renderer.filterDistance !== token.filterDistance ||
+    renderer.mipCount !== token.mipCount ||
+    renderer.stepDivisor !== token.stepDivisor ||
+    renderer.lodSpacingMode !== token.lodSpacingMode ||
+    renderer.lodSpacing !== token.lodSpacing ||
     camera.minDeltaZ !== token.minDeltaZ ||
     camera.posX !== token.camX ||
     camera.posY !== token.camY ||
@@ -167,6 +177,10 @@ class FrustumSpaceRenderer {
       interpolateHeight: renderer.interpolateHeight,
       filterColor: renderer.filterColor,
       filterDistance: renderer.filterDistance,
+      mipCount: renderer.mipCount,
+      stepDivisor: renderer.stepDivisor,
+      lodSpacingMode: renderer.lodSpacingMode,
+      lodSpacing: renderer.lodSpacing,
       minDeltaZ: camera.minDeltaZ,
       camX: camera.posX,
       camY: camera.posY,
@@ -207,7 +221,7 @@ class FrustumSpaceRenderer {
 
   async render(terrain) {
     const renderer = this._renderer;
-    if (renderer.useWorkers()) {
+    if (renderer.useWorkers() && !renderer.useJsFrustumSpace) {
       const ok = await this.renderMulti(terrain);
       if (ok) {
         renderer.writeToContext();

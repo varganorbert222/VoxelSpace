@@ -19,6 +19,7 @@ import {
 import { NON_REPEAT_GROUND_OFFSET } from "../constants/classic.js";
 import {
   FOG_SATURATED,
+  INITIAL_STEP_SCALE_BY_QUALITY,
   MIN_SAMPLE_DISTANCE,
   PANO_HEIGHT,
   STEP_GROWTH_BY_QUALITY,
@@ -259,6 +260,9 @@ export function createWasmKernels(instance) {
 
   function syncMipSwitch(params, mipCount) {
     ensureTables();
+    if (typeof ex.set_mip_switch !== "function") {
+      return;
+    }
     const q = qualityIndex(params.quality);
     const key =
       q +
@@ -533,6 +537,16 @@ export function createWasmKernels(instance) {
     ensureMaps(params);
     syncSampleFlags(params);
     syncFogRange(params);
+    const mips = resolveTerrainMips(
+      params.terrainMips || params.panoMips,
+      params.heightMap,
+      params.colorMap,
+      params.mapW,
+      params.mapH,
+      params.mapShift,
+      params.mipCount
+    );
+    syncClassicTables(params);
     const localWidth = (params.endColumn - params.startColumn) | 0;
     const n = (localWidth * params.screenHeight) | 0;
     const q = qualityIndex(params.quality);

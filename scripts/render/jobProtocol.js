@@ -117,6 +117,10 @@ export function frustumSpaceRenderPayload(jobId, range, params) {
     interpolateHeight: params.interpolateHeight,
     filterColor: params.filterColor,
     filterDistance: params.filterDistance,
+    mipCount: params.mipCount,
+    stepDivisor: params.stepDivisor,
+    lodSpacingMode: params.lodSpacingMode,
+    lodSpacing: params.lodSpacing,
     rowColors: params.rowColors,
   };
 }

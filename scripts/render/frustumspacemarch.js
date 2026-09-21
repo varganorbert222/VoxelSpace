@@ -23,13 +23,13 @@ import {
 } from "../constants/debugView.js";
 import { encodeHeight, encodeIter, encodeUnit } from "./debugEncode.js";
 import {
-  LOD_BAND_COUNT,
-  LOD_DISTANCE_FRACTIONS,
-  LOD_FAR_DELTAS,
-} from "../constants/classic.js";
+  TERRAIN_MIP_MAX_COUNT,
+  classicLodDeltas,
+  fillClassicLodDistances,
+  mipSwitchDistances,
+} from "../constants/mip.js";
 import {
   FOG_SATURATED,
-  INITIAL_STEP_SCALE_BY_QUALITY,
   MIN_SAMPLE_DISTANCE,
   STEP_GROWTH_BY_QUALITY,
   qualityIndex,
@@ -71,8 +71,8 @@ let hiddenScratch = new Int32Array(1);
 let coverScratch = new Uint8Array(1);
 let freeScratch = new Int32Array(1);
 let dirtyScratch = new Uint8Array(1);
-const deltasScratch = new Float64Array(LOD_BAND_COUNT);
-const lodDistancesScratch = new Float64Array(LOD_BAND_COUNT + 1);
+const deltasScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
+const lodDistancesScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT + 1);
 let sampleNCapacity = 1;
 let hiddenCapacity = 1;
 let coverCapacity = 1;
@@ -277,6 +277,10 @@ export function renderFrustumSpaceColumns({
   interpolateHeight,
   filterColor,
   filterDistance = FILTER_DISTANCE_DEFAULT,
+  mipCount = TERRAIN_MIP_MAX_COUNT,
+  stepDivisor,
+  lodSpacingMode,
+  lodSpacing,
   pixels,
   pixelWidth,
   fillUnfilled,
@@ -307,26 +311,25 @@ export function renderFrustumSpaceColumns({
 
   const q = qualityIndex(quality);
   const stepGrowth = STEP_GROWTH_BY_QUALITY[q];
-  const stepScale = INITIAL_STEP_SCALE_BY_QUALITY[q];
-
   const deltas = deltasScratch;
-  deltas[0] = minDeltaZ * stepScale;
-  for (let i = 0; (i < LOD_FAR_DELTAS.length) | 0; i = (i + 1) | 0) {
-    deltas[i + 1] = LOD_FAR_DELTAS[i];
-  }
-
+  const bandCount = Math.max(1, Math.min(TERRAIN_MIP_MAX_COUNT, mipCount | 0));
+  classicLodDeltas(bandCount, stepDivisor, deltas);
   const zStart = Math.max(nearClip, deltas[0], MIN_SAMPLE_DISTANCE);
   const lodDistances = lodDistancesScratch;
-  lodDistances[0] = zStart;
-  for (let i = 0; (i < LOD_DISTANCE_FRACTIONS.length) | 0; i = (i + 1) | 0) {
-    lodDistances[i + 1] = LOD_DISTANCE_FRACTIONS[i] * farClip;
-  }
-  lodDistances[LOD_BAND_COUNT] = farClip;
-  for (let i = 1; (i < LOD_BAND_COUNT) | 0; i = (i + 1) | 0) {
-    if ((lodDistances[i] < lodDistances[i - 1]) | 0) {
-      lodDistances[i] = lodDistances[i - 1];
-    }
-  }
+  const switches = mipSwitchDistances(
+    bandCount,
+    farClip,
+    null,
+    lodSpacingMode,
+    lodSpacing
+  );
+  fillClassicLodDistances(
+    lodDistances,
+    zStart,
+    farClip,
+    switches,
+    bandCount
+  );
 
   const screenWidthScaler = 1 / screenWidth;
   const mapWMask = (mapW - 1) | 0;
@@ -390,7 +393,7 @@ export function renderFrustumSpaceColumns({
     return plotColor;
   }
 
-  for (let lod = 1; (lod <= LOD_BAND_COUNT) | 0; lod = (lod + 1) | 0) {
+  for (let lod = 1; (lod <= bandCount) | 0; lod = (lod + 1) | 0) {
     if ((liveCols <= 0) | 0) {
       break;
     }

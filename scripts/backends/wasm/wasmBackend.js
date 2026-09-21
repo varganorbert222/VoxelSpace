@@ -53,6 +53,10 @@ class WasmBackend {
     return this._kernels;
   }
 
+  get useJsFrustumSpace() {
+    return true;
+  }
+
   async init(ctx) {
     const instance = await instantiateMarch();
     this._kernels = createWasmKernels(instance);
