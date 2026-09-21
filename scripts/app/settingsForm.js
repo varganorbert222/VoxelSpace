@@ -16,13 +16,33 @@ import {
   QUALITY_VERY_HIGH,
   isUltraQualityAllowed,
 } from "../constants/quality.js";
+import {
+  ALGORITHM_VOXEL,
+  isAlgorithmAllowed,
+} from "../constants/algorithm.js";
 import { listBackends } from "../backends/contract.js";
 import { FOG_RANGE_MIN, FOG_RANGE_STEP } from "../constants/fog.js";
+import { DEFAULT_MAP_SIZE } from "../constants/terrain.js";
+import {
+  TERRAIN_MIP_COUNT_MIN,
+  LOD_SPACING_LABEL,
+  lod0MaxMeters,
+  mipCountMax,
+} from "../constants/mip.js";
 import { initDualRangeElement } from "./rangeSlider.js";
 
 function prepareControl(element) {
   element.setAttribute("autocomplete", "off");
   return element;
+}
+
+function setDisabled(element, disabled, title) {
+  element.disabled = disabled;
+  if (disabled && title) {
+    element.title = title;
+  } else if (!disabled) {
+    element.removeAttribute("title");
+  }
 }
 
 function formatRangeValue(id, value) {
@@ -33,8 +53,11 @@ function formatRangeValue(id, value) {
   if (id === "id_filter_distance") {
     return Math.round(n) + " m";
   }
-  if (id === "id_delta_z") {
-    return n.toFixed(1);
+  if (id === "id_step_divisor") {
+    return String(Math.round(n));
+  }
+  if (id === "id_lod_spacing") {
+    return Math.round(n) + " m";
   }
   if (id === "id_fov") {
     return Math.round(n) + "°";
@@ -60,6 +83,51 @@ function updateBoundValue(id, value) {
   }
 }
 
+function syncLod0Slider(el, farClip, renderer) {
+  const lod0Min = config.settings.lodSpacing.min;
+  const lod0Max = lod0MaxMeters(farClip, lod0Min);
+  el.min = lod0Min;
+  el.max = lod0Max;
+  el.step = config.settings.lodSpacing.step;
+  el.disabled = false;
+  renderer.setOptions({
+    lodSpacing: Math.min(Number(el.value), lod0Max),
+  });
+  const spacing = Math.min(renderer.lodSpacing, lod0Max);
+  el.value = spacing;
+  updateBoundValue("id_lod_spacing", spacing);
+  return spacing;
+}
+
+function mipCountRange(terrain) {
+  const w = terrain && terrain.width ? terrain.width : DEFAULT_MAP_SIZE;
+  const h = terrain && terrain.height ? terrain.height : DEFAULT_MAP_SIZE;
+  return {
+    min: TERRAIN_MIP_COUNT_MIN,
+    max: mipCountMax(w, h),
+    step: 1,
+  };
+}
+
+function formatMipCount(count, terrain) {
+  const n = Math.round(Number(count));
+  const w = terrain && terrain.width ? terrain.width : DEFAULT_MAP_SIZE;
+  const h = terrain && terrain.height ? terrain.height : DEFAULT_MAP_SIZE;
+  const size = Math.min(w | 0, h | 0);
+  let coarse = size >> ((n - 1) | 0);
+  if (coarse < 1) {
+    coarse = 1;
+  }
+  return n + " · " + coarse + "×" + coarse;
+}
+
+function updateMipCountValue(count, terrain) {
+  const label = document.querySelector('[data-for="id_mip_count"]');
+  if (label) {
+    label.textContent = formatMipCount(count, terrain);
+  }
+}
+
 function initRangeElement(id, rangeConfig, value, onInput, onChange) {
   const element = prepareControl(document.getElementById(id));
   element.setAttribute("min", rangeConfig.min);
@@ -68,10 +136,10 @@ function initRangeElement(id, rangeConfig, value, onInput, onChange) {
   element.value = value;
   updateBoundValue(id, value);
   element.addEventListener("input", (e) => {
-    updateBoundValue(id, e.target.value);
     if (onInput) {
       onInput(e);
     }
+    updateBoundValue(id, e.target.value);
   });
   if (onChange) {
     element.addEventListener("change", onChange);
@@ -79,25 +147,34 @@ function initRangeElement(id, rangeConfig, value, onInput, onChange) {
   return element;
 }
 
-function fillQualityOptions(element, values, backend) {
+function fillOptionElements(element, values, labels, getState) {
   const current = element.value;
   while (element.firstChild) {
     element.removeChild(element.firstChild);
   }
   values.forEach((v) => {
-    const n = Number(v);
     const option = document.createElement("option");
-    option.value = String(n);
-    option.text = QUALITY_LABEL[n] || String(n);
-    if (n === QUALITY_ULTRA && !isUltraQualityAllowed(backend)) {
-      option.disabled = true;
-      option.title = "Desktop WebGPU only";
+    const state = (getState && getState(v)) || {};
+    option.value = String(v);
+    option.text = (labels && labels[v]) || v;
+    option.disabled = !!state.disabled;
+    if (state.title) {
+      option.title = state.title;
     }
     element.append(option);
   });
   if (current) {
     element.value = current;
   }
+}
+
+function fillQualityOptions(element, values, backend) {
+  fillOptionElements(element, values, QUALITY_LABEL, (value) => {
+    if (Number(value) === QUALITY_ULTRA && !isUltraQualityAllowed(backend)) {
+      return { disabled: true, title: "Desktop WebGPU only" };
+    }
+    return null;
+  });
 }
 
 function initQualityElement(id, values, value, onChange, getBackend) {
@@ -117,15 +194,12 @@ function initQualityElement(id, values, value, onChange, getBackend) {
 
 function initOptionElement(id, optionConfig, value, onChange, labels) {
   const element = prepareControl(document.getElementById(id));
-  while (element.firstChild) {
-    element.removeChild(element.firstChild);
-  }
-  optionConfig.values.forEach((v) => {
-    const option = document.createElement("option");
-    option.text = (labels && labels[v]) || v;
-    option.value = v;
-    element.append(option);
-  });
+  fillOptionElements(
+    element,
+    optionConfig.values,
+    labels,
+    optionConfig.getState
+  );
   element.value = String(value);
   element.addEventListener("change", onChange);
   return element;
@@ -133,17 +207,20 @@ function initOptionElement(id, optionConfig, value, onChange, labels) {
 
 function initBackendElement(id, backends, value, onChange, getCurrent) {
   const element = prepareControl(document.getElementById(id));
-  while (element.firstChild) {
-    element.removeChild(element.firstChild);
-  }
-  backends.forEach((b) => {
-    const option = document.createElement("option");
-    option.value = b.id;
-    option.text = b.label;
-    option.title = b.title;
-    option.disabled = !b.available;
-    element.append(option);
-  });
+  fillOptionElements(
+    element,
+    backends.map((backend) => backend.id),
+    Object.fromEntries(backends.map((backend) => [backend.id, backend.label])),
+    (id) => {
+      const backend = backends.find((item) => item.id === id);
+      return {
+        disabled: !backend.available,
+        title: backend.available
+          ? backend.title
+          : backend.label + " is not available in this browser or device.",
+      };
+    }
+  );
   element.value = String(value);
   element.addEventListener("change", (e) => {
     const selected = backends.find((b) => b.id === e.target.value);
@@ -196,6 +273,11 @@ class SettingsForm {
           fog.setMax(next);
           fog.setValues(app.renderer.fogStart, app.renderer.fogEnd);
           updateFogRangeValue(app.renderer.fogStart, app.renderer.fogEnd);
+          const step = this._elements.lodSpacing;
+          if (step) {
+            syncLod0Slider(step, next, app.renderer);
+          }
+          this.sync();
         },
         persist
       ),
@@ -237,12 +319,52 @@ class SettingsForm {
         },
         persist
       ),
-      deltaZ: initRangeElement(
-        "id_delta_z",
-        config.settings.deltaZ,
-        camera.minDeltaZ,
+      stepDivisor: initRangeElement(
+        "id_step_divisor",
+        config.settings.stepDivisor,
+        options.stepDivisor,
         (e) => {
-          camera.set({ minDeltaZ: parseFloat(e.target.value) });
+          app.renderer.setOptions({
+            stepDivisor: parseInt(e.target.value, 10),
+          });
+        },
+        persist
+      ),
+      mipCount: initRangeElement(
+        "id_mip_count",
+        mipCountRange(app.terrain),
+        options.mipCount,
+        (e) => {
+          const n = parseInt(e.target.value, 10);
+          app.renderer.setOptions({ mipCount: n });
+          updateMipCountValue(app.renderer.mipCount, app.terrain);
+          this.sync();
+        },
+        persist
+      ),
+      lodSpacingMode: initOptionElement(
+        "id_lod_spacing_mode",
+        config.settings.lodSpacingMode,
+        options.lodSpacingMode,
+        (e) => {
+          app.renderer.setOptions({ lodSpacingMode: e.target.value });
+          persist();
+        },
+        LOD_SPACING_LABEL
+      ),
+      lodSpacing: initRangeElement(
+        "id_lod_spacing",
+        {
+          min: config.settings.lodSpacing.min,
+          max: lod0MaxMeters(camera.farClip, config.settings.lodSpacing.min),
+          step: config.settings.lodSpacing.step,
+        },
+        options.lodSpacing,
+        (e) => {
+          app.renderer.setOptions({
+            lodSpacing: parseInt(e.target.value, 10),
+          });
+          e.target.value = app.renderer.lodSpacing;
         },
         persist
       ),
@@ -272,26 +394,38 @@ class SettingsForm {
         app.renderer.setOptions({ repeat: e.target.checked });
         persist();
       }),
-      interpolateHeight: initCheckboxElement(
-        "id_interpolate_height",
-        options.interpolateHeight,
+      lod0Refine: initCheckboxElement(
+        "id_lod0_refine",
+        options.lod0Refine,
         (e) => {
-          app.renderer.setOptions({ interpolateHeight: e.target.checked });
+          const enabled = e.target.checked;
+          app.renderer.setOptions({
+            interpolateHeight: enabled,
+            filterColor: enabled,
+            lod0Refine: enabled,
+          });
           persist();
         }
       ),
-      filterColor: initCheckboxElement(
-        "id_filter_color",
-        options.filterColor,
+      lod0RefineCurve: initOptionElement(
+        "id_lod0_refine_curve",
+        config.settings.lod0RefineCurve || config.settings.lodSpacingMode,
+        options.lod0RefineCurve,
         (e) => {
-          app.renderer.setOptions({ filterColor: e.target.checked });
+          app.renderer.setOptions({ lod0RefineCurve: e.target.value });
           persist();
-        }
+        },
+        LOD_SPACING_LABEL
       ),
       multithread: initCheckboxElement(
         "id_multithread",
         options.multithread,
         (e) => {
+          if (!e.target.checked) {
+            e.target.checked = true;
+            this._app.confirmThreadsOff(e.target);
+            return;
+          }
           app.renderer.setOptions({ multithread: e.target.checked });
           persist();
         }
@@ -314,7 +448,13 @@ class SettingsForm {
       ),
       algorithm: initOptionElement(
         "id_algorithmselector",
-        config.settings.renderAlgorithms,
+        {
+          values: config.settings.renderAlgorithms.values,
+          getState: (algorithm) =>
+            isAlgorithmAllowed(algorithm, options.backend)
+              ? null
+              : { disabled: true, title: "Requires WebGPU backend." },
+        },
         options.algorithm,
         (e) => {
           app.setRenderAlgorithm(e.target.value);
@@ -352,7 +492,11 @@ class SettingsForm {
         }
       ),
     };
-    this._elements.renderScale.disabled = true;
+    setDisabled(
+      this._elements.renderScale,
+      true,
+      "Render scale is controlled by quality."
+    );
     this.sync();
   }
 
@@ -367,13 +511,16 @@ class SettingsForm {
       fogRange,
       renderScale,
       fov,
-      deltaZ,
+      stepDivisor,
+      mipCount,
+      lodSpacingMode,
+      lodSpacing,
       filterDistance,
       quality,
       applyFog,
       repeat,
-      interpolateHeight,
-      filterColor,
+      lod0Refine,
+      lod0RefineCurve,
       multithread,
       map,
       cameraMode,
@@ -393,17 +540,36 @@ class SettingsForm {
       Number.isFinite(options.fogStart) ? options.fogStart : 0,
       Number.isFinite(options.fogEnd) ? options.fogEnd : camera.farClip
     );
-    renderScale.disabled = true;
+    setDisabled(renderScale, true, "Render scale is controlled by quality.");
     renderScale.value = camera.renderScale;
     updateBoundValue("id_render_scale", camera.renderScale);
     fov.value = camera.fov;
     updateBoundValue("id_fov", camera.fov);
-    deltaZ.value = camera.minDeltaZ;
-    updateBoundValue("id_delta_z", camera.minDeltaZ);
+    stepDivisor.min = config.settings.stepDivisor.min;
+    stepDivisor.max = config.settings.stepDivisor.max;
+    stepDivisor.step = config.settings.stepDivisor.step;
+    stepDivisor.value = options.stepDivisor;
+    setDisabled(
+      stepDivisor,
+      options.algorithm === ALGORITHM_VOXEL,
+      "Step divisor is not used by the Voxel algorithm."
+    );
+    updateBoundValue("id_step_divisor", options.stepDivisor);
+    const mipRange = mipCountRange(this._app.terrain);
+    mipCount.min = mipRange.min;
+    mipCount.max = mipRange.max;
+    mipCount.step = mipRange.step;
+    mipCount.value = options.mipCount;
+    updateMipCountValue(options.mipCount, this._app.terrain);
+    lodSpacingMode.value = options.lodSpacingMode;
+    syncLod0Slider(lodSpacing, camera.farClip, this._app.renderer);
     filterDistance.value = options.filterDistance;
     updateBoundValue("id_filter_distance", options.filterDistance);
-    filterDistance.disabled =
-      !options.interpolateHeight && !options.filterColor;
+    setDisabled(
+      filterDistance,
+      true,
+      "Filter distance is controlled by the current renderer."
+    );
     fillQualityOptions(
       quality,
       config.settings.quality.values,
@@ -412,19 +578,36 @@ class SettingsForm {
     quality.value = String(camera.quality);
     applyFog.checked = options.applyFog;
     repeat.checked = options.repeat;
-    interpolateHeight.checked = !!options.interpolateHeight;
-    filterColor.checked = !!options.filterColor;
+    lod0Refine.checked = !!options.lod0Refine;
+    lod0RefineCurve.value = options.lod0RefineCurve;
     multithread.checked = options.multithread;
-    multithread.disabled = !usesWorkers(options.backend);
+    setDisabled(
+      multithread,
+      !usesWorkers(options.backend),
+      "Multithreading is only available for CPU backends."
+    );
     map.value = this._app.currentMapName;
     cameraMode.value = camera.mode;
     document.body.classList.toggle("cam-orbital", camera.mode === MODE_ORBITAL);
     document.body.classList.toggle("cam-fly", camera.mode !== MODE_ORBITAL);
+    fillOptionElements(
+      algorithm,
+      config.settings.renderAlgorithms.values,
+      null,
+      (algorithm) =>
+        isAlgorithmAllowed(algorithm, options.backend)
+          ? null
+          : { disabled: true, title: "Requires WebGPU backend." }
+    );
     algorithm.value = options.algorithm;
     backend.value = options.backend;
     debugView.value = options.debugView || DEBUG_VIEW_COLOR;
     const overlayOk = envOverlayAllowed(options.algorithm);
-    debugOverlay.disabled = !overlayOk;
+    setDisabled(
+      debugOverlay,
+      !overlayOk,
+      "Debug overlay is only available for panorama and cubemap algorithms."
+    );
     debugOverlay.checked = overlayOk && !!options.debugOverlay;
     setChip("id_hud_map", this._app.currentMapName);
     setChip("id_hud_algorithm", options.algorithm);
@@ -443,7 +626,11 @@ class SettingsForm {
     if (!this._elements || !this._elements.renderScale) {
       return;
     }
-    this._elements.renderScale.disabled = true;
+    setDisabled(
+      this._elements.renderScale,
+      true,
+      "Render scale is controlled by quality."
+    );
     this._elements.renderScale.value = this._app.camera.renderScale;
     updateBoundValue("id_render_scale", this._app.camera.renderScale);
   }

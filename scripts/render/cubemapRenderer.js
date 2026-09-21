@@ -42,7 +42,7 @@ class CubemapRenderer {
     this._camZ = 0;
     this._farClip = NaN;
     this._repeat = null;
-    this._minDeltaZ = NaN;
+    this._stepDivisor = NaN;
     this._skyColor = null;
     this._horizonColor = null;
     this._quality = NaN;
@@ -131,8 +131,13 @@ class CubemapRenderer {
       this._repeat !== this._renderer.repeat ||
       this._interp !== this._renderer.interpolateHeight ||
       this._filter !== this._renderer.filterColor ||
+      this._lod0Refine !== this._renderer.lod0Refine ||
+      this._lod0RefineCurve !== this._renderer.lod0RefineCurve ||
+      this._stepDivisor !== this._renderer.stepDivisor ||
       this._filterDist !== this._renderer.filterDistance ||
-      this._minDeltaZ !== camera.minDeltaZ ||
+      this._mipCount !== this._renderer.mipCount ||
+      this._lodSpacingMode !== this._renderer.lodSpacingMode ||
+      this._lodSpacing !== this._renderer.lodSpacing ||
       this._skyColor !== terrain.skyColor ||
       this._horizonColor !== camera.bottomColor ||
       this._quality !== camera.quality
@@ -159,10 +164,15 @@ class CubemapRenderer {
     this._repeat = this._renderer.repeat;
     this._interp = this._renderer.interpolateHeight;
     this._filter = this._renderer.filterColor;
+    this._lod0Refine = this._renderer.lod0Refine;
+    this._lod0RefineCurve = this._renderer.lod0RefineCurve;
+    this._stepDivisor = this._renderer.stepDivisor;
     this._filterDist = this._renderer.filterDistance;
     this._fwdX = camera.fwdX;
     this._fwdY = camera.fwdY;
-    this._minDeltaZ = camera.minDeltaZ;
+    this._mipCount = this._renderer.mipCount;
+    this._lodSpacingMode = this._renderer.lodSpacingMode;
+    this._lodSpacing = this._renderer.lodSpacing;
     this._skyColor = terrain.skyColor;
     this._horizonColor = camera.bottomColor;
     this._quality = camera.quality;
@@ -193,11 +203,16 @@ class CubemapRenderer {
       repeat: renderer.repeat,
       skyColor: terrain.skyColor,
       horizonColor: camera.bottomColor,
-      initialStep: camera.minDeltaZ,
       quality: camera.quality,
       interpolateHeight: renderer.interpolateHeight ? 1 : 0,
       filterColor: renderer.filterColor ? 1 : 0,
+      lod0Refine: renderer.lod0Refine ? 1 : 0,
+      lod0RefineCurve: renderer.lod0RefineCurve,
+      stepDivisor: renderer.stepDivisor,
       filterDistance: renderer.filterDistance,
+      mipCount: renderer.mipCount,
+      lodSpacingMode: renderer.lodSpacingMode,
+      lodSpacing: renderer.lodSpacing,
       fwdX: camera.fwdX,
       fwdY: camera.fwdY,
       pixels: this._cubeColor,
@@ -205,6 +220,10 @@ class CubemapRenderer {
       heightBuf: this._cubeHeight,
       iterBuf: this._cubeIter,
       panoMips: maps.panoMips,
+      terrainMips: maps.terrainMips || maps.panoMips,
+      mipCount: renderer.mipCount,
+      lodSpacingMode: renderer.lodSpacingMode,
+      lodSpacing: renderer.lodSpacing,
       mapsGeneration: maps.generation,
     });
   }
@@ -295,7 +314,12 @@ class CubemapRenderer {
       farClip: camera.farClip,
       tMax: tMax,
       repeat: renderer.repeat,
-      minDeltaZ: camera.minDeltaZ,
+      stepDivisor: renderer.stepDivisor,
+      mipCount: renderer.mipCount,
+      lodSpacingMode: renderer.lodSpacingMode,
+      lodSpacing: renderer.lodSpacing,
+      lod0Refine: renderer.lod0Refine,
+      lod0RefineCurve: renderer.lod0RefineCurve,
       camX: camera.posX,
       camY: camera.posY,
       camZ: camera.posZ,
@@ -311,11 +335,16 @@ class CubemapRenderer {
       repeat: renderer.repeat,
       skyColor: terrain.skyColor,
       horizonColor: camera.bottomColor,
-      initialStep: camera.minDeltaZ,
       quality: camera.quality,
       interpolateHeight: renderer.interpolateHeight ? 1 : 0,
       filterColor: renderer.filterColor ? 1 : 0,
+      lod0Refine: renderer.lod0Refine ? 1 : 0,
+      lod0RefineCurve: renderer.lod0RefineCurve,
+      stepDivisor: renderer.stepDivisor,
       filterDistance: renderer.filterDistance,
+      mipCount: renderer.mipCount,
+      lodSpacingMode: renderer.lodSpacingMode,
+      lodSpacing: renderer.lodSpacing,
       fwdX: camera.fwdX,
       fwdY: camera.fwdY,
       wantHeight: needsHeightBuf(renderer.debugView),
@@ -335,7 +364,12 @@ class CubemapRenderer {
       camera.farClip !== token.farClip ||
       this._tMax() !== token.tMax ||
       renderer.repeat !== token.repeat ||
-      camera.minDeltaZ !== token.minDeltaZ ||
+      renderer.stepDivisor !== token.stepDivisor ||
+      renderer.mipCount !== token.mipCount ||
+      renderer.lodSpacingMode !== token.lodSpacingMode ||
+      renderer.lodSpacing !== token.lodSpacing ||
+      renderer.lod0Refine !== token.lod0Refine ||
+      renderer.lod0RefineCurve !== token.lod0RefineCurve ||
       camera.posX !== token.camX ||
       camera.posY !== token.camY ||
       camera.posZ !== token.camZ

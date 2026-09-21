@@ -18,7 +18,10 @@ export function loadMap(app, mapName) {
       colorMap: images[0],
       heightMap: images[1],
     });
-    app.renderer.setMaps(app.terrain.exportMaps());
+    const exported = app.terrain.exportMaps();
+    const built = exported.terrainMips ? exported.terrainMips.count : 1;
+    app.renderer.clampMipCountToMap(app.terrain.width, app.terrain.height, built);
+    app.renderer.setMaps(exported);
     if (app.radar) {
       app.radar.invalidate();
     }
@@ -27,5 +30,6 @@ export function loadMap(app, mapName) {
       topColor: app.terrain.skyColor,
       bottomColor: Color.WHITE,
     });
+    app.persistAndSync();
   });
 }

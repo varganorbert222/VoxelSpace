@@ -13,6 +13,7 @@ const FLAG_OVERLAY = 1 << 10;
 const FLAG_OVERLAY_CUBE = 1 << 11;
 const FLAG_HEIGHT_LERP = 1 << 12;
 const FLAG_COLOR_FILTER = 1 << 13;
+const FLAG_LOD0_REFINE = 1 << 14;
 
 export function createFramePacker() {
   const buffer = new ArrayBuffer(FRAME_BYTES);
@@ -47,7 +48,7 @@ export function packFrame(packer, p) {
   f[18] = p.nearClip;
   f[19] = p.farClip;
   f[20] = p.tMax;
-  f[21] = p.minDeltaZ;
+  f[21] = p.stepDivisor;
   f[22] = p.altitude;
   f[23] = p.maxHeight;
   u[24] = p.screenWidth | 0;
@@ -69,6 +70,9 @@ export function packFrame(packer, p) {
   }
   if (p.filterColor) {
     flags |= FLAG_COLOR_FILTER;
+  }
+  if (p.lod0Refine) {
+    flags |= FLAG_LOD0_REFINE;
   }
   flags |= ((p.debugViewId | 0) & 3) << FLAG_DEBUG_SHIFT;
   if (p.debugOverlay) {
@@ -96,7 +100,7 @@ export function packFrame(packer, p) {
   f[45] = p.stepCap0;
   f[46] = p.stepCap1;
   f[47] = p.stepCap2;
-  f[48] = p.switchT0;
+  f[48] = Number.isFinite(p.lodSpacing) ? p.lodSpacing : 0;
   f[49] = p.switchT1;
   f[50] = p.mipStepScale;
   f[51] = p.yHitScale;
@@ -137,5 +141,5 @@ export function packFrame(packer, p) {
     : FILTER_DISTANCE_DEFAULT;
   f[85] = Number.isFinite(p.fogStart) ? p.fogStart : 0;
   f[86] = Number.isFinite(p.fogEnd) ? p.fogEnd : 0;
-  f[87] = Number.isFinite(p.maxSlope) ? p.maxSlope : 0;
+  f[87] = Number.isFinite(p.switchT2) ? p.switchT2 : 1e30;
 }

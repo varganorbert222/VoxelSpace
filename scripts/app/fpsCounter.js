@@ -19,11 +19,12 @@ const FPS_COLOR_MID = Color.makeColor(255, 191, 60, CHANNEL_MAX);
 const FPS_COLOR_HIGH = Color.makeColor(157, 255, 74, CHANNEL_MAX);
 
 class FpsCounter {
-  constructor() {
+  constructor(onFps) {
     this._totalFrames = 0;
     this._lastTimeForFps = 0;
     this._lastLabel = "";
     this._element = null;
+    this._onFps = onFps;
     this._lowPalette = new ColorPalette(
       FPS_COLOR_LOW,
       FPS_COLOR_MID,
@@ -66,6 +67,9 @@ class FpsCounter {
     let fps = elapsed > 0 ? (this._totalFrames / elapsed) * MS_PER_SECOND : 0;
     if (!Number.isFinite(fps)) {
       fps = 0;
+    }
+    if (this._onFps) {
+      this._onFps(fps);
     }
     const label = fps.toFixed(FPS_DECIMALS) + " fps";
     if (label !== this._lastLabel) {

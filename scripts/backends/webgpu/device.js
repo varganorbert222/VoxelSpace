@@ -55,11 +55,25 @@ export async function createGpuDevice() {
 }
 
 export async function compileShader(device, label, code) {
-  device.pushErrorScope("validation");
   const module = device.createShaderModule({ label: label, code: code });
-  const err = await device.popErrorScope();
-  if (err) {
-    throw new Error(label + ": " + err.message);
+  if (module.getCompilationInfo) {
+    const info = await module.getCompilationInfo();
+    const messages = info && info.messages ? info.messages : [];
+    const errors = [];
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i].type === "error") {
+        errors.push(messages[i]);
+      }
+    }
+    if (errors.length) {
+      const details = errors
+        .map((m) => {
+          const loc = m.lineNum ? m.lineNum + ":" + (m.linePos || 0) + " " : "";
+          return loc + m.message;
+        })
+        .join("; ");
+      throw new Error(label + ": " + details);
+    }
   }
   return module;
 }

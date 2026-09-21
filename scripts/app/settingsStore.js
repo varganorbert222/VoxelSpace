@@ -6,6 +6,7 @@ import {
 } from "../constants/main.js";
 import { BACKEND_JS } from "../constants/backend.js";
 import { clampFogRange } from "../constants/fog.js";
+import { clampStepDivisor, lod0MaxMeters } from "../constants/mip.js";
 import VMath from "../math/vmath.js";
 
 function finiteOr(value, fallback) {
@@ -30,6 +31,9 @@ function migratePersisted(data) {
   }
   if (data.version === 2) {
     return { ...data, version: SETTINGS_STORAGE_VERSION };
+  }
+  if (data.version === 3) {
+    return { ...data, version: SETTINGS_STORAGE_VERSION, multithread: true };
   }
   return data;
 }
@@ -63,7 +67,6 @@ export function collectSettings(app) {
   return {
     map: app.currentMapName,
     farClip: app.camera.farClip,
-    minDeltaZ: app.camera.minDeltaZ,
     fov: app.camera.fov,
     quality: app.camera.quality,
     applyFog: options.applyFog,
@@ -72,6 +75,9 @@ export function collectSettings(app) {
     repeat: options.repeat,
     interpolateHeight: options.interpolateHeight,
     filterColor: options.filterColor,
+    lod0Refine: options.lod0Refine,
+    lod0RefineCurve: options.lod0RefineCurve,
+    stepDivisor: options.stepDivisor,
     filterDistance: options.filterDistance,
     multithread: options.multithread,
     mode: app.camera.mode,
@@ -79,6 +85,9 @@ export function collectSettings(app) {
     backend: options.backend,
     debugView: options.debugView,
     debugOverlay: options.debugOverlay,
+    mipCount: options.mipCount,
+    lodSpacingMode: options.lodSpacingMode,
+    lodSpacing: options.lodSpacing,
     hudChrome: !!app.hudChrome,
     radarOpen: !!app.radarOpen,
   };
@@ -99,13 +108,18 @@ export function sanitizeSettings(data, defaults, bounds) {
     farClip,
     bounds.fogRange
   );
+  const lodSpacingMax = Math.min(
+    bounds.lodSpacing.max,
+    lod0MaxMeters(farClip, bounds.lodSpacing.min)
+  );
+  const lodSpacing = VMath.clamp(
+    bounds.lodSpacing.min,
+    lodSpacingMax,
+    Math.round(finiteOr(data.lodSpacing, defaults.lodSpacing))
+  );
+  const lod0FeatureGroup = boolOr(data.lod0Refine, defaults.lod0Refine);
   return {
     farClip,
-    minDeltaZ: VMath.clamp(
-      bounds.deltaZ.min,
-      bounds.deltaZ.max,
-      finiteOr(data.minDeltaZ, defaults.minDeltaZ)
-    ),
     fov: VMath.clamp(
       bounds.fov.min,
       bounds.fov.max,
@@ -117,8 +131,21 @@ export function sanitizeSettings(data, defaults, bounds) {
     fogStart: fog.fogStart,
     fogEnd: fog.fogEnd,
     repeat: boolOr(data.repeat, defaults.repeat),
-    interpolateHeight: boolOr(data.interpolateHeight, defaults.interpolateHeight),
-    filterColor: boolOr(data.filterColor, defaults.filterColor),
+    interpolateHeight: lod0FeatureGroup,
+    filterColor: lod0FeatureGroup,
+    lod0Refine: lod0FeatureGroup,
+    lod0RefineCurve: pickAllowed(
+      data.lod0RefineCurve,
+      bounds.lod0RefineCurves,
+      defaults.lod0RefineCurve
+    ),
+    stepDivisor: clampStepDivisor(
+      data.stepDivisor != null
+        ? data.stepDivisor
+        : data.lod0RefineSamples != null
+          ? data.lod0RefineSamples
+          : defaults.stepDivisor
+    ),
     filterDistance: VMath.clamp(
       bounds.filterDistance.min,
       bounds.filterDistance.max,
@@ -130,6 +157,17 @@ export function sanitizeSettings(data, defaults, bounds) {
     backend: pickAllowed(data.backend, bounds.backends, defaults.backend),
     debugView: pickAllowed(data.debugView, bounds.debugViews, defaults.debugView),
     debugOverlay: boolOr(data.debugOverlay, defaults.debugOverlay),
+    mipCount: VMath.clamp(
+      bounds.mipCount.min,
+      bounds.mipCount.max,
+      Math.round(finiteOr(data.mipCount, defaults.mipCount))
+    ),
+    lodSpacingMode: pickAllowed(
+      data.lodSpacingMode,
+      bounds.lodSpacingModes,
+      defaults.lodSpacingMode
+    ),
+    lodSpacing,
     hudChrome: boolOr(data.hudChrome, defaults.hudChrome),
     radarOpen: boolOr(data.radarOpen, defaults.radarOpen),
   };

@@ -9,7 +9,6 @@ import {
 import { EPSILON, HALF, TWO_PI } from "../constants/vmath.js";
 import {
   FILTER_DISTANCE_DEFAULT,
-  xyClipDistance,
 } from "../constants/sampling.js";
 import {
   GROUND_CLIP_OFFSET,
@@ -17,21 +16,34 @@ import {
   HEIGHTMAP_MAX,
 } from "../constants/terrain.js";
 import {
-  INITIAL_STEP_SCALE_BY_QUALITY,
-  MIN_SAMPLE_DISTANCE,
+  FAR_PLANE_T_SCALE,
+  PANO_YHIT_LUT_SIZE,
+  PANO_YHIT_SLOPE_INF,
+} from "../constants/panorama.js";
+import {
   STEP_GROWTH_BY_QUALITY,
   qualityIndex,
 } from "../constants/quality.js";
 import {
-  FAR_PLANE_T_SCALE,
-  PANO_MIP_COUNT,
-  PANO_MIP_INV_SCALE,
-  PANO_MIP_STEP_MAX_BY_QUALITY,
-  PANO_MIP_STEP_SCALE,
-  PANO_MIP_T_FRACTIONS_BY_QUALITY,
-  PANO_YHIT_LUT_SIZE,
-  PANO_YHIT_SLOPE_INF,
-} from "../constants/panorama.js";
+  TERRAIN_MIP_MAX_COUNT,
+  advanceRayT,
+  firstMarchT,
+  lod0RefineAt,
+  lod0RefineMipAt,
+  lod0RefineSwitchDistances,
+  LOD0_REFINE_SWITCH_COUNT,
+  lod0SamplePos,
+  applyLod0RefineHeight,
+  easeLodSample,
+  mixNearestBilinear,
+  marchMaxSteps,
+  mipCellFarT,
+  mipInvScale,
+  mipSwitchDistances,
+  mipTexelFloor,
+  syncBandStep,
+} from "../constants/mip.js";
+import { resolveTerrainMips } from "../terrain/mipChain.js";
 
 const tanMinCache = new Map();
 const yHitLutCache = new Map();
@@ -39,10 +51,11 @@ const yHitLutSinCache = new Map();
 let skyPaletteCache = null;
 let skyPaletteSky = 0;
 let skyPaletteHorizon = 0;
-const mipSwitchT = new Float64Array(PANO_MIP_COUNT);
-const mipInvScale = new Float64Array(PANO_MIP_COUNT);
-const mipWMaskScratch = new Int32Array(PANO_MIP_COUNT);
-const mipHMaskScratch = new Int32Array(PANO_MIP_COUNT);
+const mipSwitchT = new Float64Array(TERRAIN_MIP_MAX_COUNT);
+const lod0RefineSwitchScratch = new Float64Array(LOD0_REFINE_SWITCH_COUNT);
+const mipInvScaleScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
+const mipWMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
+const mipHMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
 const yHitLutLast = (PANO_YHIT_LUT_SIZE - 1) | 0;
 const yHitLutScale = PANO_YHIT_LUT_SIZE * HALF;
 
@@ -152,6 +165,18 @@ function sampleColorFiltered(colorMap, x, y, mapShift, wMask, hMask, wrap) {
     x - x0,
     y - y0
   );
+}
+
+function panoYHitFromDh(dh, t, yHitLut, height) {
+  const absS = dh < 0 ? -dh : dh;
+  const sHat = dh / (t + absS);
+  let idx = ((sHat + 1) * yHitLutScale) | 0;
+  if ((idx < 0) | 0) idx = 0;
+  if ((idx > yHitLutLast) | 0) idx = yHitLutLast;
+  let yHit = yHitLut[idx];
+  if ((yHit < 0) | 0) yHit = 0;
+  if ((yHit >= height) | 0) yHit = (height - 1) | 0;
+  return yHit;
 }
 
 function heightByteFromFine(hFine) {
@@ -318,10 +343,12 @@ export function renderPanoramaColumns({
   repeat,
   skyColor,
   horizonColor,
-  initialStep,
   quality,
   interpolateHeight,
   filterColor,
+  lod0Refine,
+  lod0RefineCurve,
+  stepDivisor,
   filterDistance = FILTER_DISTANCE_DEFAULT,
   fwdX = 0,
   fwdY = -1,
@@ -333,6 +360,10 @@ export function renderPanoramaColumns({
   tMax,
   tanMin,
   panoMips,
+  terrainMips,
+  mipCount: wantedMipCount,
+  lodSpacingMode,
+  lodSpacing,
 }) {
   const localWidth = (endPx - startPx) | 0;
   fillSkySlice(
@@ -350,16 +381,12 @@ export function renderPanoramaColumns({
 
   const lut = tanMin || buildTanMinLut(height);
   const yHitLut = buildYHitLut(height, lut);
-  const q = qualityIndex(quality);
-  const stepGrowth = STEP_GROWTH_BY_QUALITY[q];
-  const mipStepMax = PANO_MIP_STEP_MAX_BY_QUALITY[q];
-  const mipTFractions = PANO_MIP_T_FRACTIONS_BY_QUALITY[q];
-  let step0 = initialStep * INITIAL_STEP_SCALE_BY_QUALITY[q];
-  if ((step0 <= 0) | 0) step0 = MIN_SAMPLE_DISTANCE;
   const lastRow = (height - 1) | 0;
   const tanLast = lut[lastRow];
   const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
-  let t0 = Math.max(nearClip, step0, MIN_SAMPLE_DISTANCE);
+  const refine = lod0Refine ? 1 : 0;
+  const refineOn = refine;
+  let t0 = firstMarchT(nearClip, refineOn, stepDivisor);
   if ((camZ > clipZ) & (tanLast < 0)) {
     const tGroundPole = (clipZ - camZ) / tanLast;
     if ((tGroundPole > 0) & (tGroundPole < t0)) {
@@ -371,24 +398,36 @@ export function renderPanoramaColumns({
     tStop = farClip * FAR_PLANE_T_SCALE;
   }
 
-  const mipHeightMaps = panoMips ? panoMips.heightMaps : [heightMap];
-  const mipColorMaps = panoMips ? panoMips.colorMaps : [colorMap];
-  const mipWidths = panoMips ? panoMips.widths : [mapW];
-  const mipHeights = panoMips ? panoMips.heights : [mapH];
-  const mipShifts = panoMips ? panoMips.shifts : [mapShift];
-  let mipCount = panoMips && panoMips.count ? panoMips.count | 0 : 1;
-  if ((mipCount < 1) | 0) mipCount = 1;
-  if ((mipCount > PANO_MIP_COUNT) | 0) mipCount = PANO_MIP_COUNT;
+  const mips = resolveTerrainMips(
+    terrainMips || panoMips,
+    heightMap,
+    colorMap,
+    mapW,
+    mapH,
+    mapShift,
+    wantedMipCount
+  );
+  const mipHeightMaps = mips.heightMaps;
+  const mipColorMaps = mips.colorMaps;
+  const mipShifts = mips.shifts;
+  const mipCount = mips.count;
   const lastMip = (mipCount - 1) | 0;
-  const fracN = mipTFractions.length;
-  const stepCap0 = mipStepMax[0] < step0 ? step0 : mipStepMax[0];
-  const stepCap1 = mipStepMax[1] < step0 ? step0 : mipStepMax[1];
-  const stepCap2 = mipStepMax[2] < step0 ? step0 : mipStepMax[2];
-  for (let m = 0; (m < PANO_MIP_COUNT) | 0; m = (m + 1) | 0) {
-    mipInvScale[m] = PANO_MIP_INV_SCALE[m];
-    if ((m < fracN) | 0) {
-      mipSwitchT[m] = farClip * mipTFractions[m];
-    }
+  mipSwitchDistances(
+    mipCount,
+    farClip,
+    mipSwitchT,
+    lodSpacingMode,
+    lodSpacing
+  );
+  const refineSwitches = lod0RefineSwitchDistances(
+    lodSpacing,
+    lod0RefineCurve,
+    lod0RefineSwitchScratch
+  );
+  for (let m = 0; (m < mipCount) | 0; m = (m + 1) | 0) {
+    mipInvScaleScratch[m] = mipInvScale(m);
+    mipWMaskScratch[m] = (mips.widths[m] - 1) | 0;
+    mipHMaskScratch[m] = (mips.heights[m] - 1) | 0;
   }
 
   const dTheta = TWO_PI / width;
@@ -398,6 +437,8 @@ export function renderPanoramaColumns({
   const lerpH = interpolateHeight | 0;
   const filterC = filterColor | 0;
   const wrap = repeat | 0;
+  const maxSteps = marchMaxSteps(refineOn);
+  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
   const ceiling = maxHeight == null ? altitude : maxHeight;
   const dhGround = clipZ - camZ;
   const absGround = dhGround < 0 ? -dhGround : dhGround;
@@ -406,10 +447,6 @@ export function renderPanoramaColumns({
   let dirY = -Math.cos(theta0);
   const mipWMask = mipWMaskScratch;
   const mipHMask = mipHMaskScratch;
-  for (let m = 0; (m < mipCount) | 0; m = (m + 1) | 0) {
-    mipWMask[m] = (mipWidths[m] - 1) | 0;
-    mipHMask[m] = (mipHeights[m] - 1) | 0;
-  }
 
   for (let px = startPx; (px < endPx) | 0; px = (px + 1) | 0) {
     const localX = (px - startPx) | 0;
@@ -417,14 +454,14 @@ export function renderPanoramaColumns({
     horizon[localX] = H;
 
     let t = t0;
-    let step = step0;
+    let step = 0;
+    let bandKey = -1;
     let wasInside = 0;
     let mip = 0;
-    let stepCap = stepCap0;
     let tStopCol = tStop;
     let k = 0;
 
-    while ((t < tStopCol) & (k < 16384)) {
+    while ((t < tStopCol) & (k < maxSteps)) {
       k = (k + 1) | 0;
       if (H === 0) {
         break;
@@ -432,11 +469,15 @@ export function renderPanoramaColumns({
 
       while (((mip < lastMip) | 0) && t >= mipSwitchT[mip]) {
         mip = (mip + 1) | 0;
-        step *= PANO_MIP_STEP_SCALE;
-        stepCap = mip === 1 ? stepCap1 : stepCap2;
-        if (step > stepCap) step = stepCap;
       }
 
+      const refineHere = lod0RefineAt(refine, mip);
+      const refineMip = refineHere ? lod0RefineMipAt(t, refineSwitches) : 0;
+      {
+        const synced = syncBandStep(step, bandKey, mip, refineHere, refineMip, stepDivisor);
+        step = synced.step;
+        bandKey = synced.key;
+      }
       const sealed = (H !== height) | 0;
       const tanH = sealed ? lut[H] : 0;
       if (sealed) {
@@ -479,50 +520,90 @@ export function renderPanoramaColumns({
           if (wasInside) {
             break;
           }
-          t += step;
-          step += stepGrowth;
-          if (step > stepCap) step = stepCap;
+          {
+            const adv = advanceRayT(t, mip, wx, wy, dirX, dirY, refineHere, refineMip, stepDivisor, step, stepGrowth);
+            t = adv.t;
+            step = adv.step;
+          }
           continue;
         }
         wasInside = 1;
       }
 
-      const inv = mipInvScale[mip];
-      const sx = wx * inv;
-      const sy = wy * inv;
-      const useFine = (xyClipDistance(t, dirX, dirY, fwdX, fwdY) <=
-        filterDistance) |
-        0;
-      const doLerp = lerpH & ((mip | 0) === 0) & useFine;
-      const doFilter = filterC & ((mip | 0) === 0) & useFine;
-      const shift = mipShifts[mip];
-      const wMask = mipWMask[mip];
-      const hMask = mipHMask[mip];
-      const hm = mipHeightMaps[mip];
+      const ease = easeLodSample(
+        t,
+        wx,
+        wy,
+        mip,
+        refineHere,
+        refineMip,
+        refineSwitches,
+        lodSpacing,
+        lastMip + 1,
+        mipSwitchT
+      );
+      const useMip = ease.sampleMip;
+      const useRefine = ease.sampleRefineOn;
+      const useRm = ease.sampleRefineMip;
+      const useInv = mipInvScaleScratch[useMip];
+      let sx;
+      let sy;
+      if ((useMip | 0) === 0) {
+        const sp = lod0SamplePos(wx, wy, dirX, dirY, useRefine, useRm);
+        sx = useRefine ? sp.x * useInv : wx * useInv;
+        sy = useRefine ? sp.y * useInv : wy * useInv;
+      } else {
+        const cell = mipTexelFloor(wx, wy, useMip, dirX, dirY);
+        sx = cell.ix;
+        sy = cell.iy;
+      }
+      const doLerp = lerpH & ((useMip | 0) === 0);
+      const doFilter =
+        filterC & ((useMip | 0) === 0) & (ease.filterFade > 0);
+      const shift = mipShifts[useMip];
+      const wMask = mipWMask[useMip];
+      const hMask = mipHMask[useMip];
+      const hm = mipHeightMaps[useMip];
       const offset =
         ((((sy | 0) & wMask) << shift) + ((sx | 0) & hMask)) | 0;
       const nearestH = hm[offset];
-      const hFine = doLerp
-        ? sampleHeightBilinear(hm, sx, sy, shift, wMask, hMask, wrap)
+      const hSample = doLerp
+        ? mixNearestBilinear(
+            nearestH,
+            sampleHeightBilinear(hm, sx, sy, shift, wMask, hMask, wrap),
+            ease.filterFade
+          )
         : nearestH;
+      const hFine = applyLod0RefineHeight(
+        hSample,
+        wx,
+        wy,
+        dirX,
+        dirY,
+        useRefine,
+        useRm,
+        ease.noiseAmp
+      );
       const h = hFine * altScale;
 
       if (sealed && h < camZ + t * tanH - EPSILON) {
-        t += step;
-        step += stepGrowth;
-        if (step > stepCap) step = stepCap;
+        {
+          const adv = advanceRayT(t, mip, wx, wy, dirX, dirY, refineHere, refineMip, stepDivisor, step, stepGrowth);
+          t = adv.t;
+          step = adv.step;
+        }
         continue;
       }
 
       const dh = h - camZ;
-      const absS = dh < 0 ? -dh : dh;
-      const sHat = dh / (t + absS);
-      let idx = ((sHat + 1) * yHitLutScale) | 0;
-      if ((idx < 0) | 0) idx = 0;
-      if ((idx > yHitLutLast) | 0) idx = yHitLutLast;
-      let yHit = yHitLut[idx];
-      if ((yHit < 0) | 0) yHit = 0;
-      if ((yHit >= height) | 0) yHit = (height - 1) | 0;
+      let yHit = panoYHitFromDh(dh, t, yHitLut, height);
+      if (((mip | 0) > 0) | refineHere) {
+        const tFar = mipCellFarT(t, wx, wy, dirX, dirY, mip, refineHere, refineMip);
+        const yFar = panoYHitFromDh(dh, tFar, yHitLut, height);
+        if ((yFar < yHit) | 0) {
+          yHit = yFar;
+        }
+      }
 
       if ((yHit < H) | 0) {
         let yBottom = H;
@@ -540,16 +621,30 @@ export function renderPanoramaColumns({
         if ((yGround < yBottom) | 0) yBottom = yGround;
         if ((yHit < yBottom) | 0) {
           const color = doFilter
-            ? sampleColorFiltered(
-                mipColorMaps[mip],
-                sx,
-                sy,
-                shift,
-                wMask,
-                hMask,
-                wrap
-              )
-            : mipColorMaps[mip][offset];
+            ? ease.filterFade >= 1
+              ? sampleColorFiltered(
+                  mipColorMaps[useMip],
+                  sx,
+                  sy,
+                  shift,
+                  wMask,
+                  hMask,
+                  wrap
+                )
+              : lerpPacked(
+                  mipColorMaps[useMip][offset],
+                  sampleColorFiltered(
+                    mipColorMaps[useMip],
+                    sx,
+                    sy,
+                    shift,
+                    wMask,
+                    hMask,
+                    wrap
+                  ),
+                  (ease.filterFade * 256) | 0
+                )
+            : mipColorMaps[useMip][offset];
           const dist = Math.sqrt(t * t + dh * dh);
           if (heightBuf || iterBuf) {
             const hByte = heightBuf
@@ -584,9 +679,11 @@ export function renderPanoramaColumns({
         horizon[localX] = H;
       }
 
-      t += step;
-      step += stepGrowth;
-      if (step > stepCap) step = stepCap;
+      {
+        const adv = advanceRayT(t, mip, wx, wy, dirX, dirY, refineHere, refineMip, stepDivisor, step, stepGrowth);
+        t = adv.t;
+        step = adv.step;
+      }
     }
 
     const nextX = dirX * rotC + dirY * rotS;
@@ -594,6 +691,7 @@ export function renderPanoramaColumns({
     dirX = nextX;
     dirY = nextY;
   }
+
 
   return pixels;
 }

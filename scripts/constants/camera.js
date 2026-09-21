@@ -5,7 +5,6 @@ export const MODE_ORBITAL = "orbital";
 
 export const DEFAULT_NEAR_CLIP = 1;
 export const DEFAULT_FAR_CLIP = 2000;
-export const DEFAULT_MIN_DELTA_Z = 1;
 export const DEFAULT_POS_X = 512;
 export const DEFAULT_POS_Y = 512;
 export const DEFAULT_POS_Z = 150;
@@ -31,4 +30,4 @@ export const ORBIT_THETA_MIN_FRUSTUM_SPACE = 0.15;
 export const ORBIT_THETA_MIN_PANORAMA = 0.05;
 export const ORBIT_PITCH_SCALE = 60;
 
-export const COLLISION_CLEARANCE = 10;
+export const COLLISION_CLEARANCE = 1;

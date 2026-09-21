@@ -5,10 +5,11 @@
       "max": 8000.0,
       "step": 100.0
     },
-    "deltaZ": {
-      "min": 0.1,
-      "max": 2.0,
-      "step": 0.1
+    "stepDivisor": {
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "default": 3
     },
     "renderScale": {
       "min": 0.1,
@@ -23,12 +24,27 @@
     "quality": {
       "values": [1, 2, 3, 4, 5]
     },
+    "mipCount": {
+      "min": 1,
+      "step": 1,
+      "default": 5
+    },
+    "lodSpacingMode": {
+      "values": ["linear", "double", "log"],
+      "default": "linear"
+    },
+    "lodSpacing": {
+      "min": 10,
+      "max": 800,
+      "step": 10,
+      "default": 100
+    },
     "cameraModes": {
       "values": ["fly", "orbital"],
       "default": "fly"
     },
     "renderAlgorithms": {
-      "values": ["classic", "frustum-space", "panorama", "cubemap"],
+  "values": ["classic", "frustum-space", "panorama", "cubemap", "voxel"],
       "default": "classic"
     },
     "renderBackends": {
@@ -49,13 +65,20 @@
       "default": true
     },
     "multithread": {
-      "default": false
+      "default": true
     },
     "interpolateHeight": {
       "default": true
     },
     "filterColor": {
       "default": true
+    },
+    "lod0Refine": {
+      "default": false
+    },
+    "lod0RefineCurve": {
+      "values": ["linear", "double", "log"],
+      "default": "linear"
     },
     "filterDistance": {
       "min": 10,
@@ -74,7 +97,6 @@
     "farClip": 2000.0,
     "quality": 1,
     "renderScale": 0.5,
-    "minDeltaZ": 1,
     "fov": 90.0
   }
 }

@@ -4,11 +4,13 @@ import ClassicRenderer from "../../render/classicRenderer.js";
 import FrustumSpaceRenderer from "../../render/frustumSpaceRenderer.js";
 import PanoramaRenderer from "../../render/panoramaRenderer.js";
 import CubemapRenderer from "../../render/cubemapRenderer.js";
+import VoxelRenderer from "../../render/voxelRenderer.js";
 import WorkerPool from "../../render/workerPool.js";
 import {
   ALGORITHM_CUBEMAP,
   ALGORITHM_FRUSTUM_SPACE,
   ALGORITHM_PANORAMA,
+  ALGORITHM_VOXEL,
 } from "../../constants/algorithm.js";
 import { BACKEND_JS } from "../../constants/backend.js";
 
@@ -27,6 +29,7 @@ class JsBackend {
     this._frustumSpace = null;
     this._panorama = null;
     this._cubemap = null;
+    this._voxel = null;
     this._pool = null;
     this._maps = null;
   }
@@ -37,6 +40,7 @@ class JsBackend {
     this._frustumSpace = new FrustumSpaceRenderer(this);
     this._panorama = new PanoramaRenderer(this);
     this._cubemap = new CubemapRenderer(this);
+    this._voxel = new VoxelRenderer(this);
   }
 
   get camera() {
@@ -79,8 +83,32 @@ class JsBackend {
     return this._host.filterColor;
   }
 
+  get lod0Refine() {
+    return this._host.lod0Refine;
+  }
+
+  get lod0RefineCurve() {
+    return this._host.lod0RefineCurve;
+  }
+
+  get stepDivisor() {
+    return this._host.stepDivisor;
+  }
+
   get filterDistance() {
     return this._host.filterDistance;
+  }
+
+  get mipCount() {
+    return this._host.mipCount;
+  }
+
+  get lodSpacingMode() {
+    return this._host.lodSpacingMode;
+  }
+
+  get lodSpacing() {
+    return this._host.lodSpacing;
   }
 
   get debugView() {
@@ -158,6 +186,10 @@ class JsBackend {
     }
     if (frame.algorithm === ALGORITHM_FRUSTUM_SPACE) {
       await this._frustumSpace.render(frame.terrain);
+  return;
+    }
+    if (frame.algorithm === ALGORITHM_VOXEL) {
+      await this._voxel.render(frame.terrain);
       return;
     }
     await this._classic.render(frame.terrain);
@@ -173,6 +205,7 @@ class JsBackend {
     this._frustumSpace = null;
     this._panorama = null;
     this._cubemap = null;
+    this._voxel = null;
     this._host = null;
     this._maps = null;
   }

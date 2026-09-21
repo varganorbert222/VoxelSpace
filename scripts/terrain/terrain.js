@@ -3,7 +3,7 @@
 import { Color } from "../math/color.js";
 import { loadRGBAImageToArray, loadRImageToArray } from "../assets/imageLoader.js";
 import { mapOffsetAt } from "./mapOffset.js";
-import { buildPanoMips } from "./mipChain.js";
+import { buildTerrainMips } from "./mipChain.js";
 import {
   DEFAULT_MAP_SIZE,
   DEFAULT_MAP_SHIFT,
@@ -122,8 +122,9 @@ class Terrain {
       maxHeight: (maxByte / HEIGHTMAP_MAX) * this._altitude,
       maxSlope: (maxSlope / HEIGHTMAP_MAX) * this._altitude,
       generation: this._mapsGeneration,
-      panoMips: buildPanoMips(heights, colors, w, h, this._mapShift),
+      terrainMips: buildTerrainMips(heights, colors, w, h, this._mapShift),
     };
+    this._exportedMaps.panoMips = this._exportedMaps.terrainMips;
     return this._exportedMaps;
   }
 

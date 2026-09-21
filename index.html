@@ -124,7 +124,7 @@
       <section class="hud-section">
         <h2 class="hud-section-title"><span>02</span> Engine</h2>
         <div class="control-grid">
-          <div class="control" data-tip="Classic: column voxel space. Frustum-space: view-Z slices with real pitch. Panorama: 360° equirect. Cubemap: 6-face environment, cached like panorama.">
+          <div class="control" data-tip="Classic: column voxel space. Frustum-space: view-Z slices with real pitch. Panorama: 360° equirect. Cubemap: 6-face environment, cached like panorama. Voxel: per-pixel 3D column raycast, max-mip empty skip, no cache.">
             <div class="control-head">
               <label for="id_algorithmselector">Algorithm</label>
             </div>
@@ -222,7 +222,8 @@
         </div>
         <div
           class="control"
-          data-tip="How far height interp and color filter apply, as clip-plane distance (same units as fog / Distance). Screen corners stay on that plane; bilinear is not computed past it."
+          hidden
+          data-tip="Kept for saved settings. Height interp and color filter now follow LOD 0 instead of this range."
         >
           <div class="control-head">
             <label for="id_filter_distance">Filter range</label>
@@ -230,12 +231,44 @@
           </div>
           <input id="id_filter_distance" type="range" autocomplete="off" />
         </div>
-        <div class="control" data-tip="Ray step size. Lower is denser and slower.">
+        <div
+          class="control"
+          data-tip="Starting ray step is voxel size divided by this integer. Within each LOD / refine mip the step then grows with quality, but never larger than the current voxel. Applies to LOD 0 refine mips (1/16, 1/8, 1/4, 1/2, then 1 m) and the terrain mip chain. Higher is denser and slower."
+        >
           <div class="control-head">
-            <label for="id_delta_z">Delta Z</label>
-            <span class="control-value" data-for="id_delta_z"></span>
+            <label for="id_step_divisor">Step</label>
+            <span class="control-value" data-for="id_step_divisor"></span>
           </div>
-          <input id="id_delta_z" type="range" autocomplete="off" aria-keyshortcuts="Z Shift+Z" />
+          <input id="id_step_divisor" type="range" autocomplete="off" aria-keyshortcuts="Z Shift+Z" />
+        </div>
+        <div
+          class="control"
+          data-tip="How many terrain mip / LOD rasters the march uses. 1 is full resolution only. On a 1024 map, 5 stops at 64×64 and 10 at 2×2. Default is the middle of the range."
+        >
+          <div class="control-head">
+            <label for="id_mip_count">LOD</label>
+            <span class="control-value" data-for="id_mip_count"></span>
+          </div>
+          <input id="id_mip_count" type="range" autocomplete="off" />
+        </div>
+        <div
+          class="control"
+          data-tip="How coarser LOD levels are spaced between the end of LOD 0 and Distance. Linear: equal remaining range. Doubling: each remaining band is twice the previous. Logarithmic: log-spaced from LOD 0 to Distance."
+        >
+          <div class="control-head">
+            <label for="id_lod_spacing_mode">LOD curve</label>
+          </div>
+          <select id="id_lod_spacing_mode" name="lodSpacingMode" autocomplete="off"></select>
+        </div>
+        <div
+          class="control"
+          data-tip="How far full-resolution LOD 0 lasts, in meters. Coarser levels start here and follow the LOD curve out to Distance. Always at most 10% of Distance."
+        >
+          <div class="control-head">
+            <label for="id_lod_spacing">LOD 0</label>
+            <span class="control-value" data-for="id_lod_spacing"></span>
+          </div>
+          <input id="id_lod_spacing" type="range" autocomplete="off" />
         </div>
         <div class="control" data-tip="Horizontal field of view in degrees.">
           <div class="control-head">
@@ -254,7 +287,31 @@
       </section>
 
       <section class="hud-section">
-        <h2 class="hud-section-title"><span>04</span> Debug</h2>
+        <h2 class="hud-section-title"><span>04</span> LOD0 refine</h2>
+        <div class="flag-grid">
+          <label
+            class="check"
+            for="id_lod0_refine"
+            data-tip="LOD 0 refinement, height interpolation, and color filtering. Five mips (16, 8, 4, 2, then 1 virtual voxel per meter) follow this section's Curve."
+          >
+            <input id="id_lod0_refine" name="lod0refine" type="checkbox" autocomplete="off" />
+            <span class="check-box" aria-hidden="true"></span>
+            Enable
+          </label>
+        </div>
+        <div
+          class="control"
+          data-tip="How the five LOD0 refine mips are spaced from the camera out to the LOD 0 distance. Linear: equal bands. Doubling: each band is twice the previous. Logarithmic: log-spaced. Independent of the View LOD curve."
+        >
+          <div class="control-head">
+            <label for="id_lod0_refine_curve">Curve</label>
+          </div>
+          <select id="id_lod0_refine_curve" name="lod0RefineCurve" autocomplete="off"></select>
+        </div>
+      </section>
+
+      <section class="hud-section">
+        <h2 class="hud-section-title"><span>05</span> Debug</h2>
         <div
           class="control"
           data-tip="Color is the production picture. Height / Depth / Iterations recolor the camera view and the env atlas. A floating key next to the radar explains the scale."
@@ -286,7 +343,7 @@
       </section>
 
       <section class="hud-section">
-        <h2 class="hud-section-title"><span>05</span> Flags</h2>
+        <h2 class="hud-section-title"><span>06</span> Flags</h2>
         <div class="flag-grid">
           <label class="check" for="id_apply_fog" data-tip="Fade distant terrain into the sky. Start and end distances come from Fog range.">
             <input
@@ -303,29 +360,6 @@
             <input id="id_repeat" name="repeat" type="checkbox" autocomplete="off" aria-keyshortcuts="P" />
             <span class="check-box" aria-hidden="true"></span>
             Repeat
-          </label>
-          <label
-            class="check"
-            for="id_interpolate_height"
-            data-tip="Bilinear height sampling. Off uses nearest texels."
-          >
-            <input
-              id="id_interpolate_height"
-              name="interpolateheight"
-              type="checkbox"
-              autocomplete="off"
-            />
-            <span class="check-box" aria-hidden="true"></span>
-            Height interp
-          </label>
-          <label
-            class="check"
-            for="id_filter_color"
-            data-tip="World-space bilinear blend on the color map. Same 4 samples as the old box filter, but interpolates by position so texel edges fade instead of jumping."
-          >
-            <input id="id_filter_color" name="filtercolor" type="checkbox" autocomplete="off" />
-            <span class="check-box" aria-hidden="true"></span>
-            Color filter
           </label>
           <label
             class="check"
@@ -346,7 +380,7 @@
       </section>
 
       <section class="hud-section hud-section--keys">
-        <h2 class="hud-section-title"><span>06</span> Input</h2>
+        <h2 class="hud-section-title"><span>07</span> Input</h2>
         <dl class="key-legend">
           <div><dt>WASD</dt><dd>Move / strafe</dd></div>
           <div><dt>Shift</dt><dd>Faster</dd></div>
@@ -361,10 +395,10 @@
           <div><dt>1-5</dt><dd>Quality</dd></div>
           <div><dt>C</dt><dd>Cycle camera</dd></div>
           <div><dt>I Shift+I</dt><dd>Distance</dd></div>
-          <div><dt>Z Shift+Z</dt><dd>Delta Z</dd></div>
+          <div><dt>Z Shift+Z</dt><dd>Step</dd></div>
           <div><dt>O Shift+O</dt><dd>FOV</dd></div>
           <div><dt>V</dt><dd>Cycle debug view</dd></div>
-          <div class="pano-only"><dt>N</dt><dd>Toggle env atlas</dd></div>
+          <div class="env-only"><dt>N</dt><dd>Toggle env atlas</dd></div>
           <div><dt>G</dt><dd>Toggle fog</dd></div>
           <div><dt>P</dt><dd>Toggle repeat</dd></div>
           <div><dt>T</dt><dd>Toggle threads</dd></div>
@@ -375,7 +409,7 @@
       </section>
 
       <section class="hud-section hud-section--touch">
-        <h2 class="hud-section-title"><span>06</span> Touch</h2>
+        <h2 class="hud-section-title"><span>07</span> Touch</h2>
         <dl class="key-legend">
           <div class="fly-only"><dt>L Stick</dt><dd>Move / strafe</dd></div>
           <div class="orbit-only"><dt>L Stick</dt><dd>Zoom</dd></div>
@@ -389,7 +423,7 @@
       </section>
 
       <section class="hud-section hud-section--link">
-        <h2 class="hud-section-title"><span>07</span> Link</h2>
+        <h2 class="hud-section-title"><span>08</span> Link</h2>
         <a class="hud-link" href="https://github.com/varganorbert222/VoxelSpace"
           >Github project</a
         >
@@ -436,6 +470,44 @@
           online.
         </p>
         <p class="offline-pulse" id="id_offline_status">Reconnecting…</p>
+      </div>
+    </div>
+    <div id="id_system" class="system-screen" hidden role="status" aria-live="polite">
+      <div class="system-card">
+        <span id="id_system_spinner" class="system-spinner" aria-hidden="true"></span>
+        <div>
+          <p class="system-kicker">System</p>
+          <p id="id_system_message" class="system-message"></p>
+          <p id="id_system_detail" class="system-detail"></p>
+        </div>
+      </div>
+    </div>
+    <div
+      id="id_performance_alert"
+      class="performance-alert"
+      hidden
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="id_performance_alert_title"
+      aria-describedby="id_performance_alert_copy"
+    >
+      <div class="performance-alert-card">
+        <p class="performance-alert-kicker">Performance warning</p>
+        <h2 id="id_performance_alert_title" class="performance-alert-title">Low performance detected</h2>
+        <p id="id_performance_alert_copy" class="performance-alert-copy">
+          Rendering is below 5 FPS. Lower the quality or continue without changing it.
+        </p>
+        <div class="performance-alert-actions">
+          <button type="button" id="id_performance_continue" class="performance-alert-btn performance-alert-btn--primary">
+            Lower quality
+          </button>
+          <button type="button" id="id_performance_keep_quality" class="performance-alert-btn">
+            Continue at this quality
+          </button>
+          <button type="button" id="id_performance_fallback" class="performance-alert-btn">
+            Use CPU / Classic
+          </button>
+        </div>
       </div>
     </div>
     <script>

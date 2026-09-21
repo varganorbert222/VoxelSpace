@@ -47,11 +47,13 @@ $exports = @(
     "set_fog_range",
     "set_map_info",
   "set_map_level",
+    "set_mip_switch",
   "set_luts",
   "classic_columns",
   "frustum_space_columns",
   "pano_columns",
-  "pano_view_columns"
+  "pano_view_columns",
+  "voxel_texels"
 )
 $exportFlags = $exports | ForEach-Object { "-Wl,--export=$_" }
 

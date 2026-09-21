@@ -6,7 +6,10 @@ import {
   usesCanvas2d,
   usesWorkers,
 } from "../constants/backend.js";
-import { ALGORITHM_CLASSIC } from "../constants/algorithm.js";
+import {
+  ALGORITHM_CLASSIC,
+  isAlgorithmAllowed,
+} from "../constants/algorithm.js";
 import { DEBUG_VIEW_COLOR } from "../constants/debugView.js";
 import {
   FILTER_DISTANCE_DEFAULT,
@@ -14,6 +17,18 @@ import {
 } from "../constants/sampling.js";
 import { DEFAULT_MULTITHREAD } from "../constants/threading.js";
 import { DEFAULT_FAR_CLIP } from "../constants/camera.js";
+import {
+  TERRAIN_MIP_DEFAULT_COUNT,
+  LOD_SPACING_DEFAULT_MODE,
+  LOD_SPACING_DEFAULT_METERS,
+  clampMipCount,
+  clampMipCountForMap,
+  clampLodSpacingMeters,
+  lod0MaxMeters,
+  clampStepDivisor,
+  STEP_DIVISOR_DEFAULT,
+  normalizeLodSpacingMode,
+} from "../constants/mip.js";
 import {
   FOG_RANGE_DEFAULT_START,
   FOG_RANGE_MIN,
@@ -40,6 +55,9 @@ class Renderer {
     this._repeat = true;
     this._interpolateHeight = true;
     this._filterColor = true;
+    this._lod0Refine = false;
+    this._lod0RefineCurve = LOD_SPACING_DEFAULT_MODE;
+    this._stepDivisor = STEP_DIVISOR_DEFAULT;
     this._filterDistance = FILTER_DISTANCE_DEFAULT;
     this._debugView = DEBUG_VIEW_COLOR;
     this._debugOverlay = false;
@@ -48,6 +66,9 @@ class Renderer {
     this._multithreadWanted = DEFAULT_MULTITHREAD;
     this._backendId = BACKEND_JS;
     this._backend = null;
+    this._mipCount = TERRAIN_MIP_DEFAULT_COUNT;
+    this._lodSpacingMode = LOD_SPACING_DEFAULT_MODE;
+    this._lodSpacing = LOD_SPACING_DEFAULT_METERS;
     this._opQueue = Promise.resolve();
   }
 
@@ -106,6 +127,18 @@ class Renderer {
     return this._filterColor;
   }
 
+  get lod0Refine() {
+    return this._lod0Refine;
+  }
+
+  get lod0RefineCurve() {
+    return this._lod0RefineCurve;
+  }
+
+  get stepDivisor() {
+    return this._stepDivisor;
+  }
+
   get filterDistance() {
     return this._filterDistance;
   }
@@ -134,7 +167,50 @@ class Renderer {
     return BACKEND_CHIP[this._backendId] || this._backendId;
   }
 
+  get mipCount() {
+    return this._mipCount;
+  }
+
+  get lodSpacingMode() {
+    return this._lodSpacingMode;
+  }
+
+  get lodSpacing() {
+    return this._clampedLodSpacing();
+  }
+
+  _lodSpacingHi() {
+    const far = this._camera ? this._camera.farClip : this._lodSpacing;
+    return lod0MaxMeters(far, 1);
+  }
+
+  _clampedLodSpacing() {
+    return clampLodSpacingMeters(this._lodSpacing, 1, this._lodSpacingHi());
+  }
+
+  clampLodSpacingToFarClip() {
+    const next = this._clampedLodSpacing();
+    if (next !== this._lodSpacing) {
+      this._lodSpacing = next;
+      this.cancelJobs();
+      this.invalidatePanorama();
+    }
+    return this._lodSpacing;
+  }
+
+  clampMipCountToMap(width, height, builtCount) {
+    const next = clampMipCountForMap(this._mipCount, width, height, builtCount);
+    if (next !== this._mipCount) {
+      this._mipCount = next;
+      this.invalidatePanorama();
+    }
+    return this._mipCount;
+  }
+
   set algorithm(value) {
+    if (!isAlgorithmAllowed(value, this._backendId)) {
+      value = ALGORITHM_CLASSIC;
+    }
     if (this._algorithm !== value) {
       this.cancelJobs();
       this.invalidatePanorama();
@@ -163,12 +239,18 @@ class Renderer {
       repeat: this._repeat,
       interpolateHeight: this._interpolateHeight,
       filterColor: this._filterColor,
+      lod0Refine: this._lod0Refine,
+      lod0RefineCurve: this._lod0RefineCurve,
+      stepDivisor: this._stepDivisor,
       filterDistance: this._filterDistance,
       algorithm: this._algorithm,
       multithread: this._multithreadWanted,
       backend: this._backendId,
       debugView: this._debugView,
       debugOverlay: this._debugOverlay,
+      mipCount: this._mipCount,
+      lodSpacingMode: this._lodSpacingMode,
+      lodSpacing: this._clampedLodSpacing(),
     };
   }
 
@@ -204,6 +286,30 @@ class Renderer {
         this.invalidatePanorama();
       }
     }
+    if (options.lod0Refine !== undefined) {
+      const next = !!options.lod0Refine;
+      if (next !== this._lod0Refine) {
+        this._lod0Refine = next;
+        this.cancelJobs();
+        this.invalidatePanorama();
+      }
+    }
+    if (options.lod0RefineCurve !== undefined) {
+      const next = normalizeLodSpacingMode(options.lod0RefineCurve);
+      if (next !== this._lod0RefineCurve) {
+        this._lod0RefineCurve = next;
+        this.cancelJobs();
+        this.invalidatePanorama();
+      }
+    }
+    if (options.stepDivisor !== undefined) {
+      const next = clampStepDivisor(options.stepDivisor);
+      if (next !== this._stepDivisor) {
+        this._stepDivisor = next;
+        this.cancelJobs();
+        this.invalidatePanorama();
+      }
+    }
     if (options.filterDistance !== undefined) {
       const next = clampFilterDistance(options.filterDistance);
       if (next !== this._filterDistance) {
@@ -217,14 +323,42 @@ class Renderer {
     if (options.debugOverlay !== undefined) {
       this._debugOverlay = !!options.debugOverlay;
     }
-    if (options.algorithm !== undefined) {
-      this.algorithm = options.algorithm;
-    }
     if (options.multithread !== undefined) {
       this.multithread = options.multithread;
     }
     if (options.backend !== undefined && !this._backend) {
       this._backendId = options.backend;
+    }
+    if (options.algorithm !== undefined) {
+      this.algorithm = options.algorithm;
+    }
+    if (options.mipCount !== undefined) {
+      const next = clampMipCount(options.mipCount);
+      if (next !== this._mipCount) {
+        this._mipCount = next;
+        this.cancelJobs();
+        this.invalidatePanorama();
+      }
+    }
+    if (options.lodSpacingMode !== undefined) {
+      const next = normalizeLodSpacingMode(options.lodSpacingMode);
+      if (next !== this._lodSpacingMode) {
+        this._lodSpacingMode = next;
+        this.cancelJobs();
+        this.invalidatePanorama();
+      }
+    }
+    if (options.lodSpacing !== undefined) {
+      const next = clampLodSpacingMeters(
+        options.lodSpacing,
+        1,
+        this._lodSpacingHi()
+      );
+      if (next !== this._lodSpacing) {
+        this._lodSpacing = next;
+        this.cancelJobs();
+        this.invalidatePanorama();
+      }
     }
   }
 
@@ -338,6 +472,7 @@ class Renderer {
         camera: this._camera,
         frameBuffer: this._frameBuffer,
         surface: this._surface,
+        onStatus: this._statusHandler,
         onDeviceLost: () => {
           this.setBackend(BACKEND_JS);
         },
@@ -350,6 +485,9 @@ class Renderer {
       if (nextPresent === "webgpu") {
         this._surface.restoreForSoftware();
       }
+      if (this._statusHandler) {
+        this._statusHandler("WebGPU initialization failed", err && err.message ? err.message : String(err), true);
+      }
       if (id !== BACKEND_JS) {
         return this._swapBackend(BACKEND_JS);
       }
@@ -359,6 +497,9 @@ class Renderer {
     const prev = this._backend;
     this._backend = created;
     this._backendId = id;
+    if (!isAlgorithmAllowed(this._algorithm, id)) {
+      this.algorithm = ALGORITHM_CLASSIC;
+    }
     this._syncWorkerFlag();
     if (prev && prev.dispose) {
       try {
@@ -372,6 +513,10 @@ class Renderer {
       await this._backend.resize(this._surface);
     }
     return true;
+  }
+
+  setStatusHandler(handler) {
+    this._statusHandler = handler;
   }
 
   async render(terrain) {

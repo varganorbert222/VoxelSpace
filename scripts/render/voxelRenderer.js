@@ -1,24 +1,20 @@
 "use strict";
 
-import { renderClassicColumns } from "./classicmarch.js";
+import { renderVoxelTexels } from "./voxelmarch.js";
 import { Color } from "../math/color.js";
 import { isDebugColor } from "../constants/debugView.js";
-import { canShareBuffers, ensureU32 } from "./sharedBuffers.js";
 
-function classicKernel(renderer) {
+function voxelKernel(renderer) {
   return (
-    (renderer.kernels && renderer.kernels.renderClassicColumns) ||
-    renderClassicColumns
+    (renderer.kernels && renderer.kernels.renderVoxelTexels) ||
+    renderVoxelTexels
   );
 }
 
-function classicParams(renderer, maps) {
+function voxelParams(renderer, maps) {
   const camera = renderer.camera;
   const frameBuffer = renderer.frameBuffer;
   const fov = camera.calculateFov();
-  const dstToProjPlane = camera.calculateProjPlane();
-  const screenHorizon = camera.calculateHorizon(dstToProjPlane);
-  const cameraAngle = camera.angle;
   return {
     heightMap: maps.heightMap,
     colorMap: maps.colorMap,
@@ -34,34 +30,43 @@ function classicParams(renderer, maps) {
     camX: camera.posX,
     camY: camera.posY,
     camZ: camera.posZ,
-    sinAngle: Math.sin(cameraAngle),
-    cosAngle: Math.cos(cameraAngle),
-    tanHalfFovX: fov.tanHalfX,
-    dstToProjPlane: dstToProjPlane,
-    screenHorizon: screenHorizon,
+    rightX: camera.rightX,
+    rightY: camera.rightY,
+    rightZ: camera.rightZ,
+    upX: camera.upX,
+    upY: camera.upY,
+    upZ: camera.upZ,
+    fwdX: camera.fwdX,
+    fwdY: camera.fwdY,
+    fwdZ: camera.fwdZ,
+    fovY: camera.fov,
+    dstToProjPlane: camera.calculateProjPlane(),
     nearClip: camera.nearClip,
     farClip: renderer.effectiveFarClip,
     quality: camera.quality,
     applyFog: renderer.applyFog,
     fogStart: renderer.fogStart,
+    fogEnd: renderer.fogEnd,
     debugView: renderer.debugView,
     repeat: renderer.repeat,
     interpolateHeight: renderer.interpolateHeight ? 1 : 0,
     filterColor: renderer.filterColor ? 1 : 0,
+    filterDistance: renderer.filterDistance,
     lod0Refine: renderer.lod0Refine ? 1 : 0,
     lod0RefineCurve: renderer.lod0RefineCurve,
     stepDivisor: renderer.stepDivisor,
-    filterDistance: renderer.filterDistance,
-    panoMips: maps.panoMips,
-    terrainMips: maps.terrainMips || maps.panoMips,
     mipCount: renderer.mipCount,
     lodSpacingMode: renderer.lodSpacingMode,
     lodSpacing: renderer.lodSpacing,
+    skyColor: maps.skyColor,
+    horizonColor: camera.bottomColor,
+    panoMips: maps.panoMips,
+    terrainMips: maps.terrainMips || maps.panoMips,
     mapsGeneration: maps.generation,
   };
 }
 
-function isClassicTokenStale(token, renderer) {
+function isVoxelTokenStale(token, renderer) {
   const camera = renderer.camera;
   const frameBuffer = renderer.frameBuffer;
   return (
@@ -73,57 +78,49 @@ function isClassicTokenStale(token, renderer) {
     renderer.effectiveFarClip !== token.farClip ||
     renderer.applyFog !== token.applyFog ||
     renderer.fogStart !== token.fogStart ||
+    renderer.fogEnd !== token.fogEnd ||
     renderer.debugView !== token.debugView ||
     renderer.repeat !== token.repeat ||
     renderer.interpolateHeight !== token.interpolateHeight ||
     renderer.filterColor !== token.filterColor ||
+    renderer.filterDistance !== token.filterDistance ||
     renderer.lod0Refine !== token.lod0Refine ||
     renderer.lod0RefineCurve !== token.lod0RefineCurve ||
     renderer.stepDivisor !== token.stepDivisor ||
-    renderer.filterDistance !== token.filterDistance ||
     renderer.mipCount !== token.mipCount ||
     renderer.lodSpacingMode !== token.lodSpacingMode ||
     renderer.lodSpacing !== token.lodSpacing ||
     camera.posX !== token.camX ||
     camera.posY !== token.camY ||
-    camera.posZ !== token.camZ
+    camera.posZ !== token.camZ ||
+    camera.rightX !== token.rightX ||
+    camera.rightY !== token.rightY ||
+    camera.rightZ !== token.rightZ ||
+    camera.upX !== token.upX ||
+    camera.upY !== token.upY ||
+    camera.upZ !== token.upZ ||
+    camera.fwdX !== token.fwdX ||
+    camera.fwdY !== token.fwdY ||
+    camera.fwdZ !== token.fwdZ ||
+    camera.fov !== token.fovY
   );
 }
 
-class ClassicRenderer {
+class VoxelRenderer {
   constructor(renderer) {
     this._renderer = renderer;
-    this._rowColors = new Uint32Array(1);
-  }
-
-  _fillBackground() {
-    const renderer = this._renderer;
-    renderer.drawBackground();
-    if (!isDebugColor(renderer.debugView)) {
-      renderer.frameBuffer.fill(Color.BLACK);
-    }
   }
 
   renderLocal(terrain) {
     const maps = terrain.exportMaps();
-    const params = classicParams(this._renderer, maps);
+    const params = voxelParams(this._renderer, maps);
+    params.skyColor = terrain.skyColor;
     const frameBuffer = this._renderer.frameBuffer;
-    const extras = {
+    voxelKernel(this._renderer)({
+      ...params,
       pixels: frameBuffer.buffer32bit,
       pixelWidth: frameBuffer.width,
       fillUnfilled: 0,
-    };
-    if (this._renderer.kernels) {
-      const height = frameBuffer.height | 0;
-      if ((this._rowColors.length < height) | 0) {
-        this._rowColors = ensureU32(this._rowColors, height, canShareBuffers());
-      }
-      frameBuffer.copySkyRowColors(this._rowColors);
-      extras.rowColors = this._rowColors;
-    }
-    classicKernel(this._renderer)({
-      ...params,
-      ...extras,
     });
   }
 
@@ -132,18 +129,8 @@ class ClassicRenderer {
     const maps = terrain.exportMaps();
     const pool = renderer.ensurePool();
     pool.initMaps(maps);
-    this._fillBackground();
-    const height = renderer.frameBuffer.height | 0;
-    if ((this._rowColors.length < height) | 0) {
-      this._rowColors = ensureU32(this._rowColors, height, canShareBuffers());
-    }
-    const rowColors = renderer.frameBuffer.copySkyRowColors(this._rowColors);
-    if (!isDebugColor(renderer.debugView)) {
-      renderer.frameBuffer.fill(Color.BLACK);
-      rowColors.fill(Color.BLACK);
-    }
-    const params = classicParams(renderer, maps);
-    params.rowColors = rowColors;
+    const params = voxelParams(renderer, maps);
+    params.skyColor = terrain.skyColor;
     const camera = renderer.camera;
     const token = {
       algorithm: renderer.algorithm,
@@ -154,26 +141,37 @@ class ClassicRenderer {
       farClip: renderer.effectiveFarClip,
       applyFog: renderer.applyFog,
       fogStart: renderer.fogStart,
+      fogEnd: renderer.fogEnd,
       debugView: renderer.debugView,
       repeat: renderer.repeat,
       interpolateHeight: renderer.interpolateHeight,
       filterColor: renderer.filterColor,
+      filterDistance: renderer.filterDistance,
       lod0Refine: renderer.lod0Refine,
       lod0RefineCurve: renderer.lod0RefineCurve,
       stepDivisor: renderer.stepDivisor,
-      filterDistance: renderer.filterDistance,
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
       lodSpacing: renderer.lodSpacing,
       camX: camera.posX,
       camY: camera.posY,
       camZ: camera.posZ,
+      rightX: camera.rightX,
+      rightY: camera.rightY,
+      rightZ: camera.rightZ,
+      upX: camera.upX,
+      upY: camera.upY,
+      upZ: camera.upZ,
+      fwdX: camera.fwdX,
+      fwdY: camera.fwdY,
+      fwdZ: camera.fwdZ,
+      fovY: camera.fov,
     };
-    const slices = await pool.renderClassic(params);
+    const slices = await pool.renderVoxel(params);
     if (!slices) {
       return false;
     }
-    if (isClassicTokenStale(token, renderer)) {
+    if (isVoxelTokenStale(token, renderer)) {
       return false;
     }
     for (let i = 0; (i < slices.length) | 0; i = (i + 1) | 0) {
@@ -199,10 +197,12 @@ class ClassicRenderer {
         return;
       }
     }
-    this._fillBackground();
+    if (!isDebugColor(renderer.debugView)) {
+      renderer.frameBuffer.fill(Color.BLACK);
+    }
     this.renderLocal(terrain);
     renderer.writeToContext();
   }
 }
 
-export default ClassicRenderer;
+export default VoxelRenderer;

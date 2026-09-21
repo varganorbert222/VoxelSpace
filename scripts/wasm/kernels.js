@@ -16,15 +16,9 @@ import {
   UNFILLED_PIXEL,
   skyPaletteT,
 } from "../constants/framebuffer.js";
-import {
-  LOD_DISTANCE_FRACTIONS,
-  LOD_FAR_DELTAS,
-  NON_REPEAT_GROUND_OFFSET,
-  PIXEL_OFFSETS,
-} from "../constants/classic.js";
+import { NON_REPEAT_GROUND_OFFSET } from "../constants/classic.js";
 import {
   FOG_SATURATED,
-  INITIAL_STEP_SCALE_BY_QUALITY,
   MIN_SAMPLE_DISTANCE,
   PANO_HEIGHT,
   STEP_GROWTH_BY_QUALITY,
@@ -32,13 +26,17 @@ import {
 } from "../constants/quality.js";
 import {
   FAR_PLANE_T_SCALE,
-  PANO_MIP_COUNT,
-  PANO_MIP_INV_SCALE,
-  PANO_MIP_STEP_MAX_BY_QUALITY,
-  PANO_MIP_STEP_SCALE,
-  PANO_MIP_T_FRACTIONS_BY_QUALITY,
   PANO_YHIT_LUT_SIZE,
 } from "../constants/panorama.js";
+import {
+  TERRAIN_MIP_MAX_COUNT,
+  classicLodDeltas,
+  firstMarchT,
+  marchStep,
+  mipSwitchDistances,
+  lod0RefineSwitchDistances,
+} from "../constants/mip.js";
+import { resolveTerrainMips } from "../terrain/mipChain.js";
 import {
   PIXEL_CENTER,
   NDC_SCALE,
@@ -115,7 +113,7 @@ export function createWasmKernels(instance) {
   let lutKey = "";
   let panoKey = "";
   let atanPtr = 0;
-  const lut = { tanPtr: 0, yPtr: 0, ysPtr: 0, skyPtr: 0 };
+  const lut = { tanPtr: 0, yPtr: 0, ysPtr: 0, skyPtr: 0, skyCap: 0 };
   const panoSlot = {
     ptr: 0,
     depthPtr: 0,
@@ -124,6 +122,10 @@ export function createWasmKernels(instance) {
     cap: 0,
     fresh: 0,
   };
+  let classicKey = "";
+  let switchKey = "";
+  const classicSlot = { offPtr: 0, delPtr: 0, fracPtr: 0 };
+  const switchSlot = { ptr: 0 };
   const atanLut = buildAtanLut();
 
   function mustAlloc(bytes) {
@@ -143,12 +145,19 @@ export function createWasmKernels(instance) {
     lut.yPtr = 0;
     lut.ysPtr = 0;
     lut.skyPtr = 0;
+    lut.skyCap = 0;
     panoSlot.ptr = 0;
     panoSlot.depthPtr = 0;
     panoSlot.heightPtr = 0;
     panoSlot.iterPtr = 0;
     panoSlot.cap = 0;
     panoSlot.fresh = 0;
+    classicKey = "";
+    switchKey = "";
+    classicSlot.offPtr = 0;
+    classicSlot.delPtr = 0;
+    classicSlot.fracPtr = 0;
+    switchSlot.ptr = 0;
   }
 
   function ensureTables() {
@@ -164,7 +173,7 @@ export function createWasmKernels(instance) {
       MIN_SAMPLE_DISTANCE,
       FOG_SATURATED,
       NON_REPEAT_GROUND_OFFSET,
-      PANO_MIP_STEP_SCALE,
+      2,
       PANO_YHIT_LUT_SIZE * HALF,
       PIXEL_CENTER,
       NDC_SCALE,
@@ -179,25 +188,101 @@ export function createWasmKernels(instance) {
       (PANO_YHIT_LUT_SIZE - 1) | 0,
       (PANO_VIEW_ATAN_LUT_SIZE - 1) | 0
     );
-    const offsets = Int32Array.from(PIXEL_OFFSETS);
-    const deltas = Float64Array.from(LOD_FAR_DELTAS);
-    const fracs = Float64Array.from(LOD_DISTANCE_FRACTIONS);
-    const offPtr = allocCopy(ex, memory, offsets);
-    const delPtr = allocCopy(ex, memory, deltas);
-    const fracPtr = allocCopy(ex, memory, fracs);
+    classicSlot.offPtr = mustAlloc(TERRAIN_MIP_MAX_COUNT * 4);
+    classicSlot.delPtr = mustAlloc(TERRAIN_MIP_MAX_COUNT * 8);
+    classicSlot.fracPtr = mustAlloc(TERRAIN_MIP_MAX_COUNT * 8);
+    switchSlot.ptr = mustAlloc(TERRAIN_MIP_MAX_COUNT * 8);
     const atanCopied = allocCopy(ex, memory, atanLut);
     atanPtr = atanCopied;
-    ex.set_classic_tables(
-      offPtr,
-      offsets.length,
-      delPtr,
-      deltas.length,
-      fracPtr,
-      fracs.length
-    );
     ex.set_luts(0, 0, 0, 0, 0, atanPtr, atanLut.length, 0, 0);
     ex.commit_perm();
+    classicKey = "";
+    switchKey = "";
     tablesReady = 1;
+  }
+
+  function syncClassicTables(params) {
+    ensureTables();
+    const mips = resolveTerrainMips(
+      params.terrainMips || params.panoMips,
+      params.heightMap,
+      params.colorMap,
+      params.mapW,
+      params.mapH,
+      params.mapShift,
+      params.mipCount
+    );
+    const q = qualityIndex(params.quality);
+    const bandCount = mips.count;
+    const key =
+      q +
+      ":" +
+      bandCount +
+      ":" +
+      (params.stepDivisor | 0) +
+      ":" +
+      params.lodSpacingMode +
+      ":" +
+      params.lodSpacing +
+      ":" +
+      params.farClip +
+      ":" +
+      (params.lod0Refine | 0);
+    if (classicKey === key) {
+      return bandCount;
+    }
+    const offsets = new Int32Array(bandCount);
+    offsets.fill(1);
+    const deltasAll = classicLodDeltas(bandCount, params.stepDivisor);
+    const farDeltas = deltasAll.subarray(1);
+    const switches = mipSwitchDistances(
+      bandCount,
+      params.farClip,
+      null,
+      params.lodSpacingMode,
+      params.lodSpacing
+    );
+    copyBytes(memory, classicSlot.offPtr, offsets);
+    copyBytes(memory, classicSlot.delPtr, farDeltas);
+    copyBytes(memory, classicSlot.fracPtr, switches);
+    ex.set_classic_tables(
+      classicSlot.offPtr,
+      bandCount,
+      classicSlot.delPtr,
+      farDeltas.length,
+      classicSlot.fracPtr,
+      switches.length
+    );
+    classicKey = key;
+    return bandCount;
+  }
+
+  function syncMipSwitch(params, mipCount) {
+    ensureTables();
+    const q = qualityIndex(params.quality);
+    const key =
+      q +
+      ":" +
+      mipCount +
+      ":" +
+      params.farClip +
+      ":" +
+      params.lodSpacingMode +
+      ":" +
+      params.lodSpacing;
+    if (switchKey === key) {
+      return;
+    }
+    const dist = mipSwitchDistances(
+      mipCount,
+      params.farClip,
+      null,
+      params.lodSpacingMode,
+      params.lodSpacing
+    );
+    copyBytes(memory, switchSlot.ptr, dist);
+    ex.set_mip_switch(switchSlot.ptr, dist.length);
+    switchKey = key;
   }
 
   function syncFogRange(params) {
@@ -209,12 +294,22 @@ export function createWasmKernels(instance) {
     const dist = Number(params.filterDistance);
     const fwdX = Number(params.fwdX);
     const fwdY = Number(params.fwdY);
+    const refineSw = lod0RefineSwitchDistances(
+      params.lodSpacing,
+      params.lod0RefineCurve
+    );
     ex.set_sample_flags(
       params.interpolateHeight | 0,
       params.filterColor | 0,
       Number.isFinite(dist) ? dist : FILTER_DISTANCE_DEFAULT,
       Number.isFinite(fwdX) ? fwdX : 0,
-      Number.isFinite(fwdY) ? fwdY : -1
+      Number.isFinite(fwdY) ? fwdY : -1,
+      params.lod0Refine | 0,
+      params.stepDivisor | 0,
+      Number(refineSw[0]) || 0,
+      Number(refineSw[1]) || 0,
+      Number(refineSw[2]) || 0,
+      Number(refineSw[3]) || 0
     );
   }
 
@@ -229,15 +324,21 @@ export function createWasmKernels(instance) {
       params.mapsGeneration != null
         ? params.mapsGeneration
         : heightMap;
-    const mips = params.panoMips;
-    const heightMaps = mips && mips.heightMaps ? mips.heightMaps : [heightMap];
-    const colorMaps = mips && mips.colorMaps ? mips.colorMaps : [colorMap];
-    const widths = mips && mips.widths ? mips.widths : [mapW];
-    const heights = mips && mips.heights ? mips.heights : [mapH];
-    const shifts = mips && mips.shifts ? mips.shifts : [mapShift];
-    let mipCount = mips && mips.count ? mips.count | 0 : heightMaps.length;
-    if ((mipCount < 1) | 0) mipCount = 1;
-    if ((mipCount > PANO_MIP_COUNT) | 0) mipCount = PANO_MIP_COUNT;
+    const mips = resolveTerrainMips(
+      params.terrainMips || params.panoMips,
+      heightMap,
+      colorMap,
+      mapW,
+      mapH,
+      mapShift,
+      params.mipCount
+    );
+    const heightMaps = mips.heightMaps;
+    const colorMaps = mips.colorMaps;
+    const widths = mips.widths;
+    const heights = mips.heights;
+    const shifts = mips.shifts;
+    const mipCount = mips.count;
     const mapsKey = generation + ":" + mipCount;
     if (mapsGeneration === mapsKey) {
       return;
@@ -279,6 +380,12 @@ export function createWasmKernels(instance) {
       lut.yPtr = mustAlloc(PANO_YHIT_LUT_SIZE * 2);
       lut.ysPtr = mustAlloc(PANO_YHIT_LUT_SIZE * 2);
       lut.skyPtr = mustAlloc(PANO_HEIGHT * 4);
+      lut.skyCap = PANO_HEIGHT;
+      ex.commit_perm();
+    }
+    if ((height > lut.skyCap) | 0) {
+      lut.skyPtr = mustAlloc(height * 4);
+      lut.skyCap = height;
       ex.commit_perm();
     }
     const tanMin = buildTanMinLut(height);
@@ -372,11 +479,11 @@ export function createWasmKernels(instance) {
 
   function renderClassicColumns(params) {
     ensureMaps(params);
+    syncClassicTables(params);
     syncSampleFlags(params);
     syncFogRange(params);
     const localWidth = (params.endColumn - params.startColumn) | 0;
     const n = (localWidth * params.screenHeight) | 0;
-    const q = qualityIndex(params.quality);
     const rowColors = params.rowColors;
     const rowBytes =
       rowColors && rowColors.length ? (params.screenHeight | 0) * 4 : 0;
@@ -405,9 +512,9 @@ export function createWasmKernels(instance) {
       params.screenHorizon,
       params.nearClip,
       params.farClip,
-      params.minDeltaZ,
-      STEP_GROWTH_BY_QUALITY[q],
-      INITIAL_STEP_SCALE_BY_QUALITY[q],
+      0,
+      STEP_GROWTH_BY_QUALITY[qualityIndex(params.quality)],
+      0,
       params.applyFog | 0,
       params.repeat | 0,
       params.fillUnfilled | 0,
@@ -485,20 +592,25 @@ export function createWasmKernels(instance) {
   function renderPanoramaColumns(params) {
     ensureMaps(params);
     syncSampleFlags(params);
+    const mips = resolveTerrainMips(
+      params.terrainMips || params.panoMips,
+      params.heightMap,
+      params.colorMap,
+      params.mapW,
+      params.mapH,
+      params.mapShift,
+      params.mipCount
+    );
+    syncMipSwitch(params, mips.count);
     const height = params.height | 0;
     const width = params.width | 0;
     const localWidth = (params.endPx - params.startPx) | 0;
-    const q = qualityIndex(params.quality);
-    const stepGrowth = STEP_GROWTH_BY_QUALITY[q];
-    const mipStepMax = PANO_MIP_STEP_MAX_BY_QUALITY[q];
-    const mipTFractions = PANO_MIP_T_FRACTIONS_BY_QUALITY[q];
-    let step0 = params.initialStep * INITIAL_STEP_SCALE_BY_QUALITY[q];
-    if ((step0 <= 0) | 0) step0 = MIN_SAMPLE_DISTANCE;
     const tanMin = params.tanMin || buildTanMinLut(height);
     const lastRow = (height - 1) | 0;
     const tanLast = tanMin[lastRow];
     const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
-    let t0 = Math.max(params.nearClip, step0, MIN_SAMPLE_DISTANCE);
+    const refineOn = !!params.lod0Refine;
+    let t0 = firstMarchT(params.nearClip, refineOn, params.stepDivisor);
     if ((params.camZ > clipZ) & (tanLast < 0)) {
       const tGroundPole = (clipZ - params.camZ) / tanLast;
       if ((tGroundPole > 0) & (tGroundPole < t0)) {
@@ -509,11 +621,6 @@ export function createWasmKernels(instance) {
     if (!(tStop > 0)) {
       tStop = params.farClip * FAR_PLANE_T_SCALE;
     }
-    const stepCap0 = mipStepMax[0] < step0 ? step0 : mipStepMax[0];
-    const stepCap1 = mipStepMax[1] < step0 ? step0 : mipStepMax[1];
-    const stepCap2 = mipStepMax[2] < step0 ? step0 : mipStepMax[2];
-    const switchT0 = params.farClip * mipTFractions[0];
-    const switchT1 = params.farClip * mipTFractions[1];
     const dTheta = TWO_PI / width;
     const rotC = Math.cos(dTheta);
     const rotS = Math.sin(dTheta);
@@ -559,8 +666,8 @@ export function createWasmKernels(instance) {
       params.camY,
       params.camZ,
       t0,
-      step0,
-      stepGrowth,
+      marchStep(0, refineOn, 0, params.stepDivisor),
+      STEP_GROWTH_BY_QUALITY[qualityIndex(params.quality)],
       tStop,
       dirX,
       dirY,
@@ -572,14 +679,14 @@ export function createWasmKernels(instance) {
       pixelsPtr,
       horizonPtr,
       depthPtr,
-      switchT0,
-      switchT1,
-      stepCap0,
-      stepCap1,
-      stepCap2,
-      PANO_MIP_INV_SCALE[0],
-      PANO_MIP_INV_SCALE[1],
-      PANO_MIP_INV_SCALE[2],
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0.5,
+      0.25,
       heightPtr,
       iterPtr,
       params.interpolateHeight | 0,
@@ -701,11 +808,77 @@ export function createWasmKernels(instance) {
     });
   }
 
+  function renderVoxelTexels(params) {
+    ensureMaps(params);
+    syncSampleFlags(params);
+    syncFogRange(params);
+    const mips = resolveTerrainMips(
+      params.terrainMips || params.panoMips,
+      params.heightMap,
+      params.colorMap,
+      params.mapW,
+      params.mapH,
+      params.mapShift,
+      params.mipCount
+    );
+    syncMipSwitch(params, mips.count);
+    const localWidth = (params.endColumn - params.startColumn) | 0;
+    const n = (localWidth * params.screenHeight) | 0;
+    let tanHalfY = Math.tan(params.fovY * DEG_TO_RAD * HALF);
+    if (!(tanHalfY > 0) && params.dstToProjPlane > 0) {
+      tanHalfY = (params.screenHeight * HALF) / params.dstToProjPlane;
+    }
+    const fogStop = Number.isFinite(params.fogEnd) ? params.fogEnd : params.farClip;
+    const fogFar = params.applyFog ? fogStop : params.farClip;
+    writeLuts(
+      params.screenHeight | 0,
+      params.skyColor,
+      params.horizonColor ?? Color.WHITE
+    );
+    ex.reset_scratch();
+    const pixelsPtr = mustAlloc(n * 4);
+    if (!(params.fillUnfilled | 0)) {
+      copyBytes(memory, pixelsPtr, params.pixels);
+    }
+    ex.voxel_texels(
+      params.startColumn | 0,
+      params.endColumn | 0,
+      params.screenWidth | 0,
+      params.screenHeight | 0,
+      params.camX,
+      params.camY,
+      params.camZ,
+      params.rightX,
+      params.rightY,
+      params.rightZ,
+      params.upX,
+      params.upY,
+      params.upZ,
+      params.fwdX,
+      params.fwdY,
+      params.fwdZ,
+      params.fovY,
+      params.dstToProjPlane,
+      tanHalfY,
+      params.nearClip,
+      fogFar,
+      params.applyFog | 0,
+      params.repeat | 0,
+      params.filterColor | 0,
+      params.fillUnfilled | 0,
+      pixelsPtr,
+      params.pixelWidth | 0,
+      debugViewId(params.debugView)
+    );
+    copyOutU32(pixelsPtr, params.pixels);
+  }
+
   return {
     renderClassicColumns,
     renderFrustumSpaceColumns,
     renderPanoramaColumns,
     renderPanoramaViewColumns,
     renderPanoramaView,
+    renderVoxelTexels,
   };
 }

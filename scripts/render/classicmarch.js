@@ -18,25 +18,39 @@ import {
   isDebugColor,
 } from "../constants/debugView.js";
 import { encodeHeight, encodeIter, encodeUnit } from "./debugEncode.js";
-import {
-  LOD_BAND_COUNT,
-  LOD_DISTANCE_FRACTIONS,
-  LOD_FAR_DELTAS,
-  NON_REPEAT_GROUND_OFFSET,
-  PIXEL_OFFSETS,
-} from "../constants/classic.js";
+import { NON_REPEAT_GROUND_OFFSET } from "../constants/classic.js";
 import {
   FOG_SATURATED,
-  INITIAL_STEP_SCALE_BY_QUALITY,
-  MIN_SAMPLE_DISTANCE,
   STEP_GROWTH_BY_QUALITY,
   qualityIndex,
 } from "../constants/quality.js";
+import {
+  TERRAIN_MIP_MAX_COUNT,
+  fillClassicLodDistances,
+  firstMarchT,
+  growMarchStep,
+  lod0RefineAt,
+  lod0RefineMipAt,
+  lod0RefineSwitchDistances,
+  LOD0_REFINE_SWITCH_COUNT,
+  lod0SamplePos,
+  applyLod0RefineHeight,
+  easeLodSample,
+  mixNearestBilinear,
+  mipInvScale,
+  mipSpanFarT,
+  mipSwitchDistances,
+  projectSdfYSpan,
+  syncBandStep,
+} from "../constants/mip.js";
+import { resolveTerrainMips } from "../terrain/mipChain.js";
 
 let hiddenYScratch = new Int32Array(1);
 let sampleNScratch = new Int32Array(1);
-const deltasScratch = new Float64Array(LOD_BAND_COUNT);
-const lodDistancesScratch = new Float64Array(LOD_BAND_COUNT + 1);
+const lodDistancesScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT + 1);
+const lod0RefineSwitchScratch = new Float64Array(LOD0_REFINE_SWITCH_COUNT);
+const mipWMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
+const mipHMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
 let hiddenYCapacity = 1;
 
 function hiddenYBuffer(width) {
@@ -46,6 +60,64 @@ function hiddenYBuffer(width) {
     sampleNScratch = new Int32Array(width);
   }
   return hiddenYScratch;
+}
+
+function classicProjectedY(sdf, dst, z, step, plx, ply, col, kLeftX, kLeftY, kDx, kDy, mip, horizon, refine, refineMip) {
+  return projectSdfYSpan(
+    sdf,
+    dst,
+    z,
+    mipSpanFarT(z, step, plx, ply, kLeftX + kDx * col, kLeftY + kDy * col, mip, refine, refineMip),
+    horizon
+  );
+}
+
+function setupClassicLod(params) {
+  const mips = resolveTerrainMips(
+    params.terrainMips || params.panoMips,
+    params.heightMap,
+    params.colorMap,
+    params.mapW,
+    params.mapH,
+    params.mapShift,
+    params.mipCount
+  );
+  const bandCount = mips.count;
+  const refine = !!params.lod0Refine;
+  const stepDivisor = params.stepDivisor;
+  const zStart = firstMarchT(params.nearClip, refine, stepDivisor);
+  const switches = mipSwitchDistances(
+    bandCount,
+    params.farClip,
+    null,
+    params.lodSpacingMode,
+    params.lodSpacing
+  );
+  const refineSwitches = lod0RefineSwitchDistances(
+    params.lodSpacing,
+    params.lod0RefineCurve,
+    lod0RefineSwitchScratch
+  );
+  fillClassicLodDistances(
+    lodDistancesScratch,
+    zStart,
+    params.farClip,
+    switches,
+    bandCount
+  );
+  for (let m = 0; (m < bandCount) | 0; m = (m + 1) | 0) {
+    mipWMaskScratch[m] = (mips.widths[m] - 1) | 0;
+    mipHMaskScratch[m] = (mips.heights[m] - 1) | 0;
+  }
+  return {
+    mips: mips,
+    bandCount: bandCount,
+    refine: refine,
+    stepDivisor: stepDivisor,
+    lodSpacing: params.lodSpacing,
+    refineSwitches: refineSwitches,
+    mipSwitches: switches,
+  };
 }
 
 function wrapSampleCoord(v, mask, wrap) {
@@ -163,34 +235,17 @@ function heightByteFromFine(hFine) {
   return b;
 }
 
-function drawVerticalLine(pixels, stride, x, ytop, ybottom, col, width, xEnd) {
+function drawVerticalLine(pixels, stride, x, ytop, ybottom, col) {
   x = x | 0;
   ytop = ytop | 0;
   ybottom = ybottom | 0;
   col = col | 0;
   if ((ytop < 0) | 0) ytop = 0;
   if ((ytop > ybottom) | 0) return;
-
-  if (((width === 1) | 0) & ((x < xEnd) | 0)) {
-    let offset = (ytop * stride + x) | 0;
-    for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
-      pixels[offset] = col;
-      offset = (offset + stride) | 0;
-    }
-    return;
-  }
-
-  let offset = 0;
-  for (
-    let j = 0;
-    ((j < width) | 0) & ((x + j < xEnd) | 0);
-    j = (j + 1) | 0
-  ) {
-    offset = (ytop * stride + x + j) | 0;
-    for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
-      pixels[offset] = col;
-      offset = (offset + stride) | 0;
-    }
+  let offset = (ytop * stride + x) | 0;
+  for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
+    pixels[offset] = col;
+    offset = (offset + stride) | 0;
   }
 }
 
@@ -216,7 +271,6 @@ function renderClassicColumnsSampled({
   screenHorizon,
   nearClip,
   farClip,
-  minDeltaZ,
   quality,
   applyFog,
   fogStart = 0,
@@ -224,10 +278,18 @@ function renderClassicColumnsSampled({
   repeat,
   interpolateHeight,
   filterColor,
+  lod0Refine,
+  lod0RefineCurve,
+  stepDivisor,
   filterDistance = FILTER_DISTANCE_DEFAULT,
   pixels,
   pixelWidth,
   fillUnfilled,
+  terrainMips,
+  panoMips,
+  mipCount,
+  lodSpacingMode,
+  lodSpacing,
 }) {
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;
@@ -250,47 +312,53 @@ function renderClassicColumnsSampled({
     pixels.fill(UNFILLED_PIXEL, 0, (localWidth * screenHeight) | 0);
   }
 
-  const q = qualityIndex(quality);
-  const stepGrowth = STEP_GROWTH_BY_QUALITY[q];
-  const stepScale = INITIAL_STEP_SCALE_BY_QUALITY[q];
-
-  const deltas = deltasScratch;
-  deltas[0] = minDeltaZ * stepScale;
-  for (let i = 0; (i < LOD_FAR_DELTAS.length) | 0; i = (i + 1) | 0) {
-    deltas[i + 1] = LOD_FAR_DELTAS[i];
-  }
-
-  const zStart = Math.max(nearClip, deltas[0], MIN_SAMPLE_DISTANCE);
+  const lodState = setupClassicLod({
+    terrainMips: terrainMips,
+    panoMips: panoMips,
+    heightMap: heightMap,
+    colorMap: colorMap,
+    mapW: mapW,
+    mapH: mapH,
+    mapShift: mapShift,
+    nearClip: nearClip,
+    farClip: farClip,
+    mipCount: mipCount,
+    lodSpacingMode: lodSpacingMode,
+    lodSpacing: lodSpacing,
+    lod0Refine: lod0Refine,
+    lod0RefineCurve: lod0RefineCurve,
+    stepDivisor: stepDivisor,
+  });
+  const mips = lodState.mips;
+  const bandCount = lodState.bandCount;
+  const refine = lodState.refine;
+  const stepDiv = lodState.stepDivisor;
+  const refineSwitches = lodState.refineSwitches;
+  const mipSwitches = lodState.mipSwitches;
+  const lod0Far = lodState.lodSpacing;
   const lodDistances = lodDistancesScratch;
-  lodDistances[0] = zStart;
-  for (let i = 0; (i < LOD_DISTANCE_FRACTIONS.length) | 0; i = (i + 1) | 0) {
-    lodDistances[i + 1] = LOD_DISTANCE_FRACTIONS[i] * farClip;
-  }
-  lodDistances[LOD_BAND_COUNT] = farClip;
-  for (let i = 1; (i < LOD_BAND_COUNT) | 0; i = (i + 1) | 0) {
-    if ((lodDistances[i] < lodDistances[i - 1]) | 0) {
-      lodDistances[i] = lodDistances[i - 1];
-    }
-  }
 
   const screenWidthScaler = 1 / screenWidth;
-  const mapWMask = (mapW - 1) | 0;
-  const mapHMask = (mapH - 1) | 0;
   const lerpH = interpolateHeight | 0;
   const filterC = filterColor | 0;
-  const filterDist = filterDistance;
   const kRightX = cosAngle * tanHalfFovX;
   const kRightY = -sinAngle * tanHalfFovX;
   const kLeftX = -sinAngle - kRightX;
   const kLeftY = -cosAngle - kRightY;
   const kDx = (kRightX + kRightX) * screenWidthScaler;
   const kDy = (kRightY + kRightY) * screenWidthScaler;
+  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
 
-  for (let lod = LOD_BAND_COUNT; (lod > 0) | 0; lod = (lod - 1) | 0) {
+  for (let lod = bandCount; (lod > 0) | 0; lod = (lod - 1) | 0) {
     const startIndex = lodDistances[lod - 1];
     const endIndex = lodDistances[lod];
-    const pxOffset = PIXEL_OFFSETS[lod - 1];
-    let step = deltas[lod - 1];
+    const mip = (lod - 1) | 0;
+    const mipHeight = mips.heightMaps[mip];
+    const mipColor = mips.colorMaps[mip];
+    const mipShift = mips.shifts[mip];
+    const mapWMask = mipWMaskScratch[mip];
+    const mapHMask = mipHMaskScratch[mip];
+    const inv = mipInvScale(mip);
 
     if ((startIndex >= farClip) | 0) {
       continue;
@@ -300,11 +368,18 @@ function renderClassicColumnsSampled({
       hiddenY[i] = screenHeight;
     }
 
+    let step = 0;
+    let bandKey = -1;
     for (
       let z = startIndex;
       ((z < endIndex) | 0) & ((z < farClip) | 0);
-      z = z + step
+
     ) {
+      const refineHere = lod0RefineAt(refine, mip);
+      const refineMip = refineHere ? lod0RefineMipAt(z, refineSwitches) : 0;
+      const synced = syncBandStep(step, bandKey, mip, refineHere, refineMip, stepDiv);
+      step = synced.step;
+      bandKey = synced.key;
       const zScale = dstToProjPlane / z;
       const ceilingOnScreen = (ceilingSdf * zScale + screenHorizon) | 0;
       const groundOnScreen = (yGround * zScale + screenHorizon) | 0;
@@ -326,13 +401,13 @@ function renderClassicColumnsSampled({
       for (
         let i = startColumn;
         (i < endColumn) | 0;
-        i = (i + pxOffset) | 0
+        i = (i + 1) | 0
       ) {
         const localI = (i - startColumn) | 0;
         const colHidden = hiddenY[localI];
         if (colHidden === 0) {
-          plx += dx * pxOffset;
-          ply += dy * pxOffset;
+          plx += dx;
+          ply += dy;
           continue;
         }
 
@@ -345,34 +420,90 @@ function renderClassicColumnsSampled({
 
         if (isOk) {
           if ((ceilingOnScreen >= colHidden) | 0) {
-            plx += dx * pxOffset;
-            ply += dy * pxOffset;
+            plx += dx;
+            ply += dy;
             continue;
           }
 
+          const dirX = kLeftX + kDx * i;
+          const dirY = kLeftY + kDy * i;
+          const ease = easeLodSample(
+            z,
+            plx,
+            ply,
+            mip,
+            refineHere,
+            refineMip,
+            refineSwitches,
+            lod0Far,
+            bandCount,
+            mipSwitches
+          );
+          const useMip = ease.sampleMip;
+          const useRefine = ease.sampleRefineOn;
+          const useRm = ease.sampleRefineMip;
+          const useHeight = mips.heightMaps[useMip];
+          const useColor = mips.colorMaps[useMip];
+          const useShift = mips.shifts[useMip];
+          const useWMask = mipWMaskScratch[useMip];
+          const useHMask = mipHMaskScratch[useMip];
+          const useInv = mipInvScale(useMip);
+          const sample = lod0SamplePos(plx, ply, dirX, dirY, useRefine, useRm);
+          const sx = useRefine ? sample.x : plx * useInv;
+          const sy = useRefine ? sample.y : ply * useInv;
           const offset =
-            ((((ply | 0) & mapWMask) << mapShift) +
-              ((plx | 0) & mapHMask)) |
+            ((((sy | 0) & useWMask) << useShift) +
+              ((sx | 0) & useHMask)) |
             0;
-          const useFine = (z <= filterDist) | 0;
-          const doLerp = lerpH & useFine;
-          const doFilter = filterC & useFine;
-          const nearestH = heightMap[offset];
-          const hFine = doLerp
-            ? sampleHeightBilinear(
-                heightMap,
-                plx,
-                ply,
-                mapShift,
-                mapWMask,
-                mapHMask,
-                repeat | 0
+          const doLerp = lerpH & ((useMip | 0) === 0);
+          const doFilter =
+            filterC & ((useMip | 0) === 0) & (ease.filterFade > 0);
+          const nearestH = useHeight[offset];
+          const hSample = doLerp
+            ? mixNearestBilinear(
+                nearestH,
+                sampleHeightBilinear(
+                  useHeight,
+                  sx,
+                  sy,
+                  useShift,
+                  useWMask,
+                  useHMask,
+                  repeat | 0
+                ),
+                ease.filterFade
               )
             : nearestH;
-          const hByte = doLerp ? heightByteFromFine(hFine) : nearestH;
+          const hFine = applyLod0RefineHeight(
+            hSample,
+            plx,
+            ply,
+            dirX,
+            dirY,
+            useRefine,
+            useRm,
+            ease.noiseAmp
+          );
+          const hByte = heightByteFromFine(hFine);
           const terrainHeight = hFine * altScale;
           const terrainSDF = camZ - terrainHeight;
-          const heightOnScreen = (terrainSDF * zScale + screenHorizon) | 0;
+          const heightOnScreen = classicProjectedY(
+            terrainSDF,
+            dstToProjPlane,
+            z,
+            step,
+            plx,
+            ply,
+            i,
+            kLeftX,
+            kLeftY,
+            kDx,
+            kDy,
+            useMip,
+            screenHorizon,
+            useRefine,
+            useRm
+          );
 
           let heightOnScreenBottom = colHidden;
           if (!repeat) {
@@ -395,16 +526,30 @@ function renderClassicColumnsSampled({
             }
           } else if (!fogWhite) {
             plotColor = doFilter
-              ? sampleColorFiltered(
-                  colorMap,
-                  plx,
-                  ply,
-                  mapShift,
-                  mapWMask,
-                  mapHMask,
-                  repeat | 0
-                )
-              : colorMap[offset];
+              ? ease.filterFade >= 1
+                ? sampleColorFiltered(
+                    useColor,
+                    sx,
+                    sy,
+                    useShift,
+                    useWMask,
+                    useHMask,
+                    repeat | 0
+                  )
+                : lerpPacked(
+                    useColor[offset],
+                    sampleColorFiltered(
+                      useColor,
+                      sx,
+                      sy,
+                      useShift,
+                      useWMask,
+                      useHMask,
+                      repeat | 0
+                    ),
+                    (ease.filterFade * 256) | 0
+                  )
+              : useColor[offset];
             if (applyFogT) {
               const a = (plotColor >>> SHIFT_ALPHA) & CHANNEL_MASK;
               const r = (plotColor >>> SHIFT_RED) & CHANNEL_MASK;
@@ -419,36 +564,24 @@ function renderClassicColumnsSampled({
           }
 
           if ((heightOnScreen < colHidden) | 0) {
-            let drawWidth = pxOffset;
-            if ((i + drawWidth > endColumn) | 0) {
-              drawWidth = (endColumn - i) | 0;
-            }
             drawVerticalLine(
               pixels,
               stride,
               localI,
               heightOnScreen,
               heightOnScreenBottom,
-              plotColor,
-              drawWidth,
-              localWidth
+              plotColor
             );
-
-            for (
-              let j = localI;
-              ((j < localI + drawWidth) | 0) & ((j < localWidth) | 0);
-              j = (j + 1) | 0
-            ) {
-              hiddenY[j] = heightOnScreen;
-            }
+            hiddenY[localI] = heightOnScreen;
           }
         }
 
-        plx += dx * pxOffset;
-        ply += dy * pxOffset;
+        plx += dx;
+        ply += dy;
       }
 
-      step += stepGrowth;
+      z = z + step;
+      step = growMarchStep(step, stepGrowth, mip, refineHere, refineMip, stepDiv);
     }
   }
 }
@@ -475,7 +608,6 @@ function renderClassicColumnsNearest({
   screenHorizon,
   nearClip,
   farClip,
-  minDeltaZ,
   quality,
   applyFog,
   fogStart = 0,
@@ -484,6 +616,14 @@ function renderClassicColumnsNearest({
   pixels,
   pixelWidth,
   fillUnfilled,
+  terrainMips,
+  panoMips,
+  mipCount,
+  lodSpacingMode,
+  lodSpacing,
+  lod0Refine,
+  lod0RefineCurve,
+  stepDivisor,
 }) {
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;
@@ -506,44 +646,51 @@ function renderClassicColumnsNearest({
     pixels.fill(UNFILLED_PIXEL, 0, (localWidth * screenHeight) | 0);
   }
 
-  const q = qualityIndex(quality);
-  const stepGrowth = STEP_GROWTH_BY_QUALITY[q];
-  const stepScale = INITIAL_STEP_SCALE_BY_QUALITY[q];
-
-  const deltas = deltasScratch;
-  deltas[0] = minDeltaZ * stepScale;
-  for (let i = 0; (i < LOD_FAR_DELTAS.length) | 0; i = (i + 1) | 0) {
-    deltas[i + 1] = LOD_FAR_DELTAS[i];
-  }
-
-  const zStart = Math.max(nearClip, deltas[0], MIN_SAMPLE_DISTANCE);
+  const lodState = setupClassicLod({
+    terrainMips: terrainMips,
+    panoMips: panoMips,
+    heightMap: heightMap,
+    colorMap: colorMap,
+    mapW: mapW,
+    mapH: mapH,
+    mapShift: mapShift,
+    nearClip: nearClip,
+    farClip: farClip,
+    mipCount: mipCount,
+    lodSpacingMode: lodSpacingMode,
+    lodSpacing: lodSpacing,
+    lod0Refine: lod0Refine,
+    lod0RefineCurve: lod0RefineCurve,
+    stepDivisor: stepDivisor,
+  });
+  const mips = lodState.mips;
+  const bandCount = lodState.bandCount;
+  const refine = lodState.refine;
+  const stepDiv = lodState.stepDivisor;
+  const refineSwitches = lodState.refineSwitches;
+  const mipSwitches = lodState.mipSwitches;
+  const lod0Far = lodState.lodSpacing;
   const lodDistances = lodDistancesScratch;
-  lodDistances[0] = zStart;
-  for (let i = 0; (i < LOD_DISTANCE_FRACTIONS.length) | 0; i = (i + 1) | 0) {
-    lodDistances[i + 1] = LOD_DISTANCE_FRACTIONS[i] * farClip;
-  }
-  lodDistances[LOD_BAND_COUNT] = farClip;
-  for (let i = 1; (i < LOD_BAND_COUNT) | 0; i = (i + 1) | 0) {
-    if ((lodDistances[i] < lodDistances[i - 1]) | 0) {
-      lodDistances[i] = lodDistances[i - 1];
-    }
-  }
 
   const screenWidthScaler = 1 / screenWidth;
-  const mapWMask = (mapW - 1) | 0;
-  const mapHMask = (mapH - 1) | 0;
   const kRightX = cosAngle * tanHalfFovX;
   const kRightY = -sinAngle * tanHalfFovX;
   const kLeftX = -sinAngle - kRightX;
   const kLeftY = -cosAngle - kRightY;
   const kDx = (kRightX + kRightX) * screenWidthScaler;
   const kDy = (kRightY + kRightY) * screenWidthScaler;
+  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
 
-  for (let lod = LOD_BAND_COUNT; (lod > 0) | 0; lod = (lod - 1) | 0) {
+  for (let lod = bandCount; (lod > 0) | 0; lod = (lod - 1) | 0) {
     const startIndex = lodDistances[lod - 1];
     const endIndex = lodDistances[lod];
-    const pxOffset = PIXEL_OFFSETS[lod - 1];
-    let step = deltas[lod - 1];
+    const mip = (lod - 1) | 0;
+    const mipHeight = mips.heightMaps[mip];
+    const mipColor = mips.colorMaps[mip];
+    const mipShift = mips.shifts[mip];
+    const mapWMask = mipWMaskScratch[mip];
+    const mapHMask = mipHMaskScratch[mip];
+    const inv = mipInvScale(mip);
 
     if ((startIndex >= farClip) | 0) {
       continue;
@@ -553,11 +700,18 @@ function renderClassicColumnsNearest({
       hiddenY[i] = screenHeight;
     }
 
+    let step = 0;
+    let bandKey = -1;
     for (
       let z = startIndex;
       ((z < endIndex) | 0) & ((z < farClip) | 0);
-      z = z + step
+
     ) {
+      const refineHere = lod0RefineAt(refine, mip);
+      const refineMip = refineHere ? lod0RefineMipAt(z, refineSwitches) : 0;
+      const synced = syncBandStep(step, bandKey, mip, refineHere, refineMip, stepDiv);
+      step = synced.step;
+      bandKey = synced.key;
       const zScale = dstToProjPlane / z;
       const ceilingOnScreen = (ceilingSdf * zScale + screenHorizon) | 0;
       const groundOnScreen = (yGround * zScale + screenHorizon) | 0;
@@ -579,13 +733,13 @@ function renderClassicColumnsNearest({
       for (
         let i = startColumn;
         (i < endColumn) | 0;
-        i = (i + pxOffset) | 0
+        i = (i + 1) | 0
       ) {
         const localI = (i - startColumn) | 0;
         const colHidden = hiddenY[localI];
         if (colHidden === 0) {
-          plx += dx * pxOffset;
-          ply += dy * pxOffset;
+          plx += dx;
+          ply += dy;
           continue;
         }
 
@@ -598,18 +752,55 @@ function renderClassicColumnsNearest({
 
         if (isOk) {
           if ((ceilingOnScreen >= colHidden) | 0) {
-            plx += dx * pxOffset;
-            ply += dy * pxOffset;
+            plx += dx;
+            ply += dy;
             continue;
           }
 
+          const ease = easeLodSample(
+            z,
+            plx,
+            ply,
+            mip,
+            refineHere,
+            refineMip,
+            refineSwitches,
+            lod0Far,
+            bandCount,
+            mipSwitches
+          );
+          const useMip = ease.sampleMip;
+          const useHeight = mips.heightMaps[useMip];
+          const useColor = mips.colorMaps[useMip];
+          const useShift = mips.shifts[useMip];
+          const useWMask = mipWMaskScratch[useMip];
+          const useHMask = mipHMaskScratch[useMip];
+          const useInv = mipInvScale(useMip);
+          const sx = plx * useInv;
+          const sy = ply * useInv;
           const offset =
-            ((((ply | 0) & mapWMask) << mapShift) +
-              ((plx | 0) & mapHMask)) |
+            ((((sy | 0) & useWMask) << useShift) +
+              ((sx | 0) & useHMask)) |
             0;
-          const terrainHeight = heightMap[offset] * altScale;
+          const terrainHeight = useHeight[offset] * altScale;
           const terrainSDF = camZ - terrainHeight;
-          const heightOnScreen = (terrainSDF * zScale + screenHorizon) | 0;
+          const heightOnScreen = classicProjectedY(
+            terrainSDF,
+            dstToProjPlane,
+            z,
+            step,
+            plx,
+            ply,
+            i,
+            kLeftX,
+            kLeftY,
+            kDx,
+            kDy,
+            useMip,
+            screenHorizon,
+            refineHere,
+            refineMip
+          );
 
           let heightOnScreenBottom = colHidden;
           if (!repeat) {
@@ -624,14 +815,14 @@ function renderClassicColumnsNearest({
               sampleN[localI] = (sampleN[localI] + 1) | 0;
             }
             if (debugView === DEBUG_VIEW_HEIGHT) {
-              plotColor = encodeHeight(heightMap[offset]);
+              plotColor = encodeHeight(useHeight[offset]);
             } else if (debugView === DEBUG_VIEW_DEPTH) {
               plotColor = encodeUnit(farClip > 0 ? z / farClip : 0);
             } else if (countIter) {
               plotColor = encodeIter(sampleN[localI]);
             }
           } else if (!fogWhite) {
-            plotColor = colorMap[offset];
+            plotColor = useColor[offset];
             if (applyFogT) {
               const a = (plotColor >>> SHIFT_ALPHA) & CHANNEL_MASK;
               const r = (plotColor >>> SHIFT_RED) & CHANNEL_MASK;
@@ -646,42 +837,34 @@ function renderClassicColumnsNearest({
           }
 
           if ((heightOnScreen < colHidden) | 0) {
-            let drawWidth = pxOffset;
-            if ((i + drawWidth > endColumn) | 0) {
-              drawWidth = (endColumn - i) | 0;
-            }
             drawVerticalLine(
               pixels,
               stride,
               localI,
               heightOnScreen,
               heightOnScreenBottom,
-              plotColor,
-              drawWidth,
-              localWidth
+              plotColor
             );
-
-            for (
-              let j = localI;
-              ((j < localI + drawWidth) | 0) & ((j < localWidth) | 0);
-              j = (j + 1) | 0
-            ) {
-              hiddenY[j] = heightOnScreen;
-            }
+            hiddenY[localI] = heightOnScreen;
           }
         }
 
-        plx += dx * pxOffset;
-        ply += dy * pxOffset;
+        plx += dx;
+        ply += dy;
       }
 
-      step += stepGrowth;
+      z = z + step;
+      step = growMarchStep(step, stepGrowth, mip, refineHere, refineMip, stepDiv);
     }
   }
 }
 
 export function renderClassicColumns(params) {
-  if ((params.interpolateHeight | 0) | (params.filterColor | 0)) {
+  if (
+    (params.interpolateHeight | 0) |
+    (params.filterColor | 0) |
+    (params.lod0Refine | 0)
+  ) {
     return renderClassicColumnsSampled(params);
   }
   return renderClassicColumnsNearest(params);

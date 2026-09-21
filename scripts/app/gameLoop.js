@@ -5,6 +5,7 @@ import maps from "../../data/maps.json" with { type: "json" };
 import config from "../../data/config.json" with { type: "json" };
 import { cycleAvailableBackend } from "../backends/contract.js";
 import { usesWorkers } from "../constants/backend.js";
+import { algorithmsForBackend } from "../constants/algorithm.js";
 import { envOverlayAllowed } from "../constants/debugView.js";
 import VMath from "../math/vmath.js";
 
@@ -30,7 +31,13 @@ function applySettingsHotkeys(app) {
     : null;
   if (app.input.consumeToggleRenderAlgorithm) {
     app.setRenderAlgorithm(
-      cycleValue(config.settings.renderAlgorithms.values, app.renderer.algorithm)
+      cycleValue(
+        algorithmsForBackend(
+          config.settings.renderAlgorithms.values,
+          app.renderer.backend
+        ),
+        app.renderer.algorithm
+      )
     );
   }
   if (app.input.consumeToggleDebugView) {
@@ -89,15 +96,16 @@ function applySettingsHotkeys(app) {
     );
     app.camera.set({ farClip: nextFar });
     app.renderer.syncFogToFarClip(prevFar, nextFar);
+    app.renderer.clampLodSpacingToFarClip();
     app.persistAndSync();
   }
-  const nudgeDeltaZ = app.input.consumeNudgeDeltaZ;
-  if (nudgeDeltaZ) {
-    app.camera.set({
-      minDeltaZ: nudgeRange(
-        app.camera.minDeltaZ,
-        nudgeDeltaZ,
-        config.settings.deltaZ
+  const nudgeStep = app.input.consumeNudgeStepDivisor;
+  if (nudgeStep) {
+    app.renderer.setOptions({
+      stepDivisor: nudgeRange(
+        app.renderer.stepDivisor,
+        nudgeStep,
+        config.settings.stepDivisor
       ),
     });
     app.persistAndSync();
@@ -131,6 +139,13 @@ export function startGameLoop(app) {
       })
       .catch((err) => {
         console.error("render", err);
+        if (app._setSystemStatus) {
+          app._setSystemStatus(
+            "Render error",
+            err && err.message ? err.message : String(err),
+            true
+          );
+        }
       })
       .then(() => {
         window.requestAnimationFrame(run);
