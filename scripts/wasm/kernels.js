@@ -1,6 +1,7 @@
 "use strict";
 
 import { Color } from "../math/color.js";
+import { renderRetailColumns } from "../render/retail/scanline.js";
 import ColorPalette from "../math/colorPalette.js";
 import {
   CHANNEL_MASK,
@@ -106,8 +107,8 @@ function buildAtanLut() {
 export function createWasmKernels(instance) {
   const ex = instance.exports;
   const memory = ex.memory;
-  if (typeof ex.frustum_space_columns !== "function") {
-    throw new Error("WASM module missing frustum_space_columns");
+  if (typeof ex.frustum_scanline_columns !== "function") {
+    throw new Error("WASM module missing frustum_scanline_columns");
   }
   let mapsGeneration = null;
   let tablesReady = 0;
@@ -533,78 +534,10 @@ export function createWasmKernels(instance) {
     copyOutU32(pixelsPtr, params.pixels);
   }
 
-  function renderFrustumSpaceColumns(params) {
-    ensureMaps(params);
-    syncSampleFlags(params);
-    syncFogRange(params);
-    const mips = resolveTerrainMips(
-      params.terrainMips || params.panoMips,
-      params.heightMap,
-      params.colorMap,
-      params.mapW,
-      params.mapH,
-      params.mapShift,
-      params.mipCount
-    );
-    syncClassicTables(params);
-    const localWidth = (params.endColumn - params.startColumn) | 0;
-    const n = (localWidth * params.screenHeight) | 0;
-    const q = qualityIndex(params.quality);
-    const rowColors = params.rowColors;
-    const rowBytes =
-      rowColors && rowColors.length ? (params.screenHeight | 0) * 4 : 0;
-    ex.reset_scratch();
-    const pixelsPtr = mustAlloc(n * 4);
-    const hiddenPtr = mustAlloc(localWidth * 4);
-    const coverPtr = mustAlloc(n);
-    let rowPtr = 0;
-    if (rowBytes) {
-      rowPtr = mustAlloc(rowBytes);
-      copyBytes(memory, rowPtr, rowColors.subarray(0, params.screenHeight | 0));
-    } else if (!(params.fillUnfilled | 0)) {
-      copyBytes(memory, pixelsPtr, params.pixels);
-    }
-    ex.frustum_space_columns(
-      params.startColumn | 0,
-      params.endColumn | 0,
-      params.screenWidth | 0,
-      params.screenHeight | 0,
-      params.camX,
-      params.camY,
-      params.camZ,
-      params.rightX,
-      params.rightY,
-      params.rightZ,
-      params.upX,
-      params.upY,
-      params.upZ,
-      params.fwdX,
-      params.fwdY,
-      params.fwdZ,
-      params.tanHalfFovX,
-      params.dstToProjPlane,
-      params.nearClip,
-      params.farClip,
-      Number.isFinite(params.minDeltaZ)
-        ? params.minDeltaZ
-        : 1 /
-          (INITIAL_STEP_SCALE_BY_QUALITY[q] *
-            Math.max(1, params.stepDivisor | 0)),
-      STEP_GROWTH_BY_QUALITY[q],
-      INITIAL_STEP_SCALE_BY_QUALITY[q],
-      params.applyFog | 0,
-      params.repeat | 0,
-      params.fillUnfilled | 0,
-      pixelsPtr,
-      params.pixelWidth | 0,
-      hiddenPtr,
-      coverPtr,
-      rowPtr,
-      debugViewId(params.debugView),
-      params.interpolateHeight | 0,
-      params.filterColor | 0
-    );
-    copyOutU32(pixelsPtr, params.pixels);
+  function renderFrustumScanlineColumns(params) {
+    // The retail scanline is shared with the JS oracle. The old view-Z march
+    // export is not the frustum-scanline algorithm anymore.
+    renderRetailColumns(params);
   }
 
   function renderPanoramaColumns(params) {
@@ -893,7 +826,7 @@ export function createWasmKernels(instance) {
 
   return {
     renderClassicColumns,
-    renderFrustumSpaceColumns,
+    renderFrustumScanlineColumns,
     renderPanoramaColumns,
     renderPanoramaViewColumns,
     renderPanoramaView,

@@ -1,7 +1,7 @@
 "use strict";
 
 import { renderClassicColumns as renderClassicColumnsJs } from "./classicmarch.js";
-import { renderFrustumSpaceColumns as renderFrustumSpaceColumnsJs } from "./frustumspacemarch.js";
+import { renderFrustumScanlineColumns as renderFrustumScanlineColumnsJs } from "./frustumscanline.js";
 import { renderPanoramaColumns as renderPanoramaColumnsJs } from "./panoramamarch.js";
 import { renderPanoramaViewColumns as renderPanoramaViewColumnsJs } from "./panoramaViewer.js";
 import { renderCubemapViewColumns as renderCubemapViewColumnsJs } from "./cubemapViewer.js";
@@ -17,14 +17,14 @@ import {
   MSG_INIT_KERNEL,
   MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
-  MSG_RENDER_FRUSTUM_SPACE,
+  MSG_RENDER_FRUSTUM_SCANLINE,
   MSG_RENDER_PANORAMA,
   MSG_RENDER_PANO_VIEW,
   MSG_RENDER_CUBE_VIEW,
   MSG_RENDER_CUBE_GENERATE,
   MSG_RENDER_VOXEL,
   MSG_RESULT_CLASSIC,
-  MSG_RESULT_FRUSTUM_SPACE,
+  MSG_RESULT_FRUSTUM_SCANLINE,
   MSG_RESULT_PANORAMA,
   MSG_RESULT_PANO_VIEW,
   MSG_RESULT_CUBE_VIEW,
@@ -64,7 +64,7 @@ const workerState = {
 };
 
 let renderClassicColumns = renderClassicColumnsJs;
-let renderFrustumSpaceColumns = renderFrustumSpaceColumnsJs;
+let renderFrustumScanlineColumns = renderFrustumScanlineColumnsJs;
 let renderPanoramaColumns = renderPanoramaColumnsJs;
 let renderPanoramaViewColumns = renderPanoramaViewColumnsJs;
 let renderVoxelTexels = renderVoxelTexelsJs;
@@ -76,14 +76,14 @@ async function setKernelBackend(backend) {
     const instance = await instantiateMarch();
     const kernels = createWasmKernels(instance);
     renderClassicColumns = kernels.renderClassicColumns;
-    renderFrustumSpaceColumns = kernels.renderFrustumSpaceColumns;
+    renderFrustumScanlineColumns = kernels.renderFrustumScanlineColumns;
     renderPanoramaColumns = kernels.renderPanoramaColumns;
     renderPanoramaViewColumns = kernels.renderPanoramaViewColumns;
     renderVoxelTexels = kernels.renderVoxelTexels;
     return;
   }
   renderClassicColumns = renderClassicColumnsJs;
-  renderFrustumSpaceColumns = renderFrustumSpaceColumnsJs;
+  renderFrustumScanlineColumns = renderFrustumScanlineColumnsJs;
   renderPanoramaColumns = renderPanoramaColumnsJs;
   renderPanoramaViewColumns = renderPanoramaViewColumnsJs;
   renderVoxelTexels = renderVoxelTexelsJs;
@@ -237,7 +237,7 @@ function renderClassic(msg) {
   );
 }
 
-function renderFrustumSpace(msg) {
+function renderFrustumScanline(msg) {
   const localWidth = (msg.endColumn - msg.startColumn) | 0;
   const pixels = new Uint32Array((localWidth * msg.screenHeight) | 0);
   const rowColors = msg.rowColors;
@@ -247,7 +247,7 @@ function renderFrustumSpace(msg) {
       pixels.fill(rowColors[y], row, row + localWidth);
     }
   }
-  renderFrustumSpaceColumns({
+  renderFrustumScanlineColumns({
     heightMap: workerState.heightMap,
     colorMap: workerState.colorMap,
     mapW: workerState.mapW,
@@ -258,6 +258,11 @@ function renderFrustumSpace(msg) {
     maxSlope: workerState.maxSlope,
     terrainMips: workerState.terrainMips || workerState.panoMips,
     mapsGeneration: workerState.mapsGeneration,
+    skyColor: msg.skyColor,
+    fovDegrees: msg.fovDegrees,
+    yawRadians: msg.yawRadians,
+    pitchDegrees: msg.pitchDegrees,
+    frameCounter: msg.frameCounter,
     panoMips: workerState.panoMips,
     startColumn: msg.startColumn,
     endColumn: msg.endColumn,
@@ -299,7 +304,7 @@ function renderFrustumSpace(msg) {
   });
   self.postMessage(
     {
-      type: MSG_RESULT_FRUSTUM_SPACE,
+      type: MSG_RESULT_FRUSTUM_SCANLINE,
       jobId: msg.jobId,
       startColumn: msg.startColumn,
       endColumn: msg.endColumn,
@@ -687,8 +692,8 @@ async function handleMessage(msg) {
     renderClassic(msg);
     return;
   }
-  if (msg.type === MSG_RENDER_FRUSTUM_SPACE) {
-    renderFrustumSpace(msg);
+  if (msg.type === MSG_RENDER_FRUSTUM_SCANLINE) {
+    renderFrustumScanline(msg);
     return;
   }
   if (msg.type === MSG_RENDER_PANORAMA) {

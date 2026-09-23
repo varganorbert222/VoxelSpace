@@ -122,12 +122,20 @@ export function createScreenTarget(device, width, height) {
   return createStorageTarget(device, width, height, "r32uint");
 }
 
+export function createRetailScreenTarget(device, width, height) {
+  return createStorageTarget(device, width, height, "rgba8unorm");
+}
+
 export function createPanoColorTarget(device, width, height) {
   return createStorageTarget(device, width, height, "r32uint");
 }
 
 export function createPanoDepthTarget(device, width, height) {
   return createStorageTarget(device, width, height, "r32float");
+}
+
+export function uploadTexels(device, texture, data, width, height, bytesPerTexel, mipLevel) {
+  writeTexels(device, texture, data, width, height, bytesPerTexel, mipLevel);
 }
 
 export function uploadHeight(device, texture, heightMap, width, height, mipLevel) {

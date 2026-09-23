@@ -22,7 +22,7 @@ exports=(
   set_map_level
   set_luts
   classic_columns
-  frustum_space_columns
+  frustum_scanline_columns
   pano_columns
   pano_view_columns
   voxel_texels

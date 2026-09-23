@@ -20,6 +20,13 @@ async function loadCompute(device, label, file, onStatus) {
   return compileShader(device, label, common + "\n" + body);
 }
 
+async function loadStandalone(device, label, file, onStatus) {
+  if (onStatus) {
+    onStatus("Compiling shader", label);
+  }
+  return compileShader(device, label, await loadText("./shaders/" + file));
+}
+
 async function loadBlit(device, onStatus) {
   if (onStatus) {
     onStatus("Compiling shader", "blit");
@@ -29,17 +36,23 @@ async function loadBlit(device, onStatus) {
 
 export async function createPipelines(device, canvasFormat, onStatus) {
   const classicMod = await loadCompute(device, "classicMarch", "classicMarch.wgsl", onStatus);
-  let frustumSpaceMod = classicMod;
+  let frustumScanlineMod = classicMod;
   try {
-    frustumSpaceMod = await loadCompute(
+    frustumScanlineMod = await loadCompute(
       device,
-      "frustumSpaceMarch",
-      "frustumSpaceMarch.wgsl",
+      "frustumScanline",
+      "frustumScanline.wgsl",
       onStatus
     );
   } catch (err) {
-    console.warn("frustumSpaceMarch compile failed:", err);
+    console.warn("frustumScanline compile failed:", err);
   }
+  const retailFrustumScanlineMod = await loadStandalone(
+    device,
+    "retailFrustumScanline",
+    "retailFrustumScanline.wgsl",
+    onStatus
+  );
   const genMod = await loadCompute(device, "panoGenerate", "panoramaGenerate.wgsl", onStatus);
   const viewMod = await loadCompute(device, "panoView", "panoramaView.wgsl", onStatus);
   const cubeGenMod = await loadCompute(device, "cubeGenerate", "cubemapGenerate.wgsl", onStatus);
@@ -217,19 +230,72 @@ export async function createPipelines(device, canvasFormat, onStatus) {
     compute: { module: classicMod, entryPoint: "main" },
   });
 
-  let frustumSpacePipe = classicPipe;
+  const retailUint = (binding) => ({
+    binding,
+    visibility: GPUShaderStage.COMPUTE,
+    texture: { sampleType: "uint" },
+  });
+  const retailStorage = (binding, format) => ({
+    binding,
+    visibility: GPUShaderStage.COMPUTE,
+    storageTexture: { access: "write-only", format, viewDimension: "2d" },
+  });
+  const retailScanlineLayout = device.createBindGroupLayout({
+    label: "retailFrustumScanline",
+    entries: [
+      { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+      retailUint(1),
+      retailUint(2),
+      retailUint(3),
+      retailUint(4),
+      retailUint(5),
+      retailUint(6),
+      retailUint(7),
+      retailUint(8),
+      { binding: 9, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "unfilterable-float" } },
+      retailStorage(10, "r32uint"),
+      { binding: 11, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+      retailStorage(12, "r32uint"),
+      retailUint(13),
+      { binding: 14, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
+      { binding: 15, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
+      retailStorage(16, "r32uint"),
+      { binding: 17, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+    ],
+  });
+  const retailScanlineLayoutPipeline = device.createPipelineLayout({
+    bindGroupLayouts: [retailScanlineLayout],
+  });
+  const retailScanlineInit = device.createComputePipeline({
+    label: "retailFrustumScanlineInit",
+    layout: retailScanlineLayoutPipeline,
+    compute: { module: retailFrustumScanlineMod, entryPoint: "initFrame" },
+  });
+  const retailScanlinePasses = Array.from({ length: 11 }, (_, passId) =>
+    device.createComputePipeline({
+      label: `retailFrustumScanlinePass${passId}`,
+      layout: retailScanlineLayoutPipeline,
+      compute: {
+        module: retailFrustumScanlineMod,
+        entryPoint: "terrainPass",
+        constants: { PASS_ID: passId },
+      },
+    })
+  );
+
+  let frustumScanlinePipe = classicPipe;
   try {
     device.pushErrorScope("validation");
     const pipe = device.createComputePipeline({
-      label: "frustumSpace",
+      label: "frustumScanline",
       layout: classicLayout,
-      compute: { module: frustumSpaceMod, entryPoint: "main" },
+      compute: { module: frustumScanlineMod, entryPoint: "main" },
     });
     const pipeErr = await device.popErrorScope();
     if (pipeErr) {
-      console.warn("frustumSpace pipeline failed:", pipeErr.message);
+      console.warn("frustumScanline pipeline failed:", pipeErr.message);
     } else {
-      frustumSpacePipe = pipe;
+      frustumScanlinePipe = pipe;
     }
   } catch (err) {
     try {
@@ -237,7 +303,7 @@ export async function createPipelines(device, canvasFormat, onStatus) {
     } catch {
       void 0;
     }
-    console.warn("frustumSpace pipeline failed:", err);
+    console.warn("frustumScanline pipeline failed:", err);
   }
 
   const genPipe = device.createComputePipeline({
@@ -336,7 +402,9 @@ export async function createPipelines(device, canvasFormat, onStatus) {
 
   return {
     classic: classicPipe,
-    frustumSpace: frustumSpacePipe,
+    frustumScanline: frustumScanlinePipe,
+    retailFrustumScanlineInit: retailScanlineInit,
+    retailFrustumScanlinePasses: retailScanlinePasses,
     generate: genPipe,
     view: viewPipe,
     cubeGenerate: cubeGenPipe,
@@ -350,6 +418,7 @@ export async function createPipelines(device, canvasFormat, onStatus) {
     blit: blitPipe,
     layouts: {
       frame: frameLayout,
+      retailFrustumScanline: retailScanlineLayout,
       classicTables: classicTablesLayout,
       maps: mapsLayout,
       classicOut: classicOutLayout,

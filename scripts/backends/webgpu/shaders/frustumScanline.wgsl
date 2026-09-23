@@ -106,7 +106,7 @@ fn frustumShade(
 }
 
 // One thread per column: view-Z slices front-to-back with a persistent
-// horizon. See scripts/render/frustumspacemarch.js for the derivation.
+// horizon. See scripts/render/frustumscanline.js for the derivation.
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) gid: vec3u) {
   let screenW = i32(frame.screenPano.x);

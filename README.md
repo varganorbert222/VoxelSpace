@@ -25,7 +25,7 @@ Voxel space is the technique behind *Comanche*: a height map plus a color map, m
 | You get | What it means |
 | --- | --- |
 | **Classic columns** | The original voxel-space picture, every frame |
-| **Frustum-space** | View-Z slices with real pitch, live every frame |
+| **Frustum-Scanline** | View-Z slices with real pitch, live every frame |
 | **360° panorama** | Equirectangular environment, cached, then sampled as you look |
 | **Cubemap** | Six-face skybox, cached like panorama, sampled as you look |
 | **Voxel raycast** | Per-pixel 3D rays through height columns, max-mip empty skip |
@@ -49,7 +49,7 @@ Works in a current desktop or mobile browser. WebGPU is optional (Chrome / Edge 
 
 ## How it works
 
-Height and color maps are 1024×1024 raster pairs. Classic marches world-vertical columns. Frustum-space samples the same height field along camera rays at discrete view-Z planes so pitch is real, not a horizon shift. Panorama and cubemap cache an environment atlas, then sample it as you look. Distant samples use mipmaps and growing step size so the far clip stays cheap.
+Height and color maps are 1024×1024 raster pairs. Classic marches world-vertical columns. Frustum-Scanline samples the same height field along camera rays at discrete view-Z planes so pitch is real, not a horizon shift. Panorama and cubemap cache an environment atlas, then sample it as you look. Distant samples use mipmaps and growing step size so the far clip stays cheap.
 Height and color maps are 1024×1024 raster pairs. Each camera ray steps across the height field, samples color, and writes a column (or an environment texel).
 
 A mip chain sits on the maps. Classic, panorama, cubemap, and voxel drop to coarser LODs farther from the camera. How many levels and where they switch is a View control. On LOD 0, optional bilinear height and color sampling smooths the nearest voxels; LOD0 refine snaps those samples onto the inner 1/16…1 m cell grid, then adds height noise. Higher LODs stay nearest-texel so coarse blocks stay flat. Voxel occupancy at a cell is that same mipmap sample (bilinear + refine at LOD 0, nearest on coarser mips). Voxel step size is the mip / refine cell at that distance, so empty-space skip naturally lengthens with LOD.
@@ -192,7 +192,7 @@ The top bar is always-on chrome: map, algorithm, runtime, camera, quality, debug
 | --- | --- |
 | **01 Mission** | Pick one of 86 Comanche maps (color + height + sky + altitude). |
 | **02 Engine** | Algorithm, runtime, quality, camera mode. |
-| **03 View** | Distance, fog range, delta Z, LOD, LOD curve, LOD step, FOV. Scale is derived from quality. |
+| **03 View** | Distance, fog range, delta Z, LOD, LOD curve, LOD step, FOV, retro resolution. |
 | **04 Debug** | Recolor the picture; optional unwrapped env atlas. Height / Depth / Iterations show a color key next to the radar. |
 | **05 Flags** | Fog, world wrap, height interp, color filter, worker threads. |
 | **06 Input / Touch** | Built-in legend for the current device. |
@@ -213,7 +213,7 @@ A 256×256 top-down of the current map, with heading, FOV wedge, and craft mark.
 | Algorithm | Picture | Look | Cache |
 | --- | --- | --- | --- |
 | **classic** | Column voxel space | Yaw + limited pitch | None — every frame |
-| **frustum-space** | View-Z slices, per-pixel first hit | Yaw + real pitch (±80°), no roll | None — every frame |
+| **frustum-scanline** | View-Z slices, per-pixel first hit | Yaw + real pitch (±80°), no roll | None — every frame |
 | **panorama** | 360° equirect | Full Euler + roll | Rebuild on move / march change |
 | **cubemap** | 6-face environment | Full Euler + roll | Same as panorama |
 | **voxel** | Per-pixel 3D column raycast | Full Euler + roll | None — every frame |
@@ -229,7 +229,7 @@ Switching camera respawns over the map center, above terrain.
 
 ### Quality
 
-Internal resolution and march density follow quality. Scale is automatic.
+Quality controls march density and the panorama / cubemap cache. It does not change the framebuffer size.
 
 | Key | Label | Panorama | Cube face | Who |
 | --- | --- | --- | --- | --- |
@@ -250,7 +250,7 @@ Internal resolution and march density follow quality. Scale is automatic.
 | **LOD curve** | Linear / Doubling / Logarithmic | How switch distances fill 0…Distance. Linear: equal range per level. Doubling: each switch is twice as far as the previous. Logarithmic: log-spaced from the first switch to Distance. |
 | **LOD step** | 10 m – Distance | Meters to the first LOD switch. Editable on Logarithmic; Linear and Doubling fill 0…Distance on their own and show the first switch here. |
 | **FOV** | 10° – 90° | Horizontal field of view |
-| **Scale** | auto | Internal resolution from quality × viewport |
+| **Resolution** | 320×240 – 1280×1024 | Delta Force framebuffer modes. The chosen box is fitted to the current screen aspect, including portrait. The live size is shown beside the control. Every algorithm renders into this buffer. |
 
 ### Debug views
 
@@ -261,11 +261,11 @@ Internal resolution and march density follow quality. Scale is automatic.
 | **Depth** | Distance along the ray |
 | **Iterations** | How hard the march worked |
 
-**Env atlas** (`N`) overlays the unwrapped panorama strip or cubemap net. Hidden on classic and frustum-space. The overlay uses the same debug view as the 3D picture.
+**Env atlas** (`N`) overlays the unwrapped panorama strip or cubemap net. Hidden on classic and frustum-scanline. The overlay uses the same debug view as the 3D picture.
 Height / Depth / Iterations show a floating color key next to the radar (grayscale for Height and Depth; red → magenta for Iterations). Sky / miss stays off the ramp.
 
 **Env atlas** (`N`) overlays the unwrapped panorama strip or cubemap net. Hidden on classic and voxel. The overlay uses the same debug view as the 3D picture.
-It is hidden on classic, frustum-space, and voxel.
+It is hidden on classic, frustum-scanline, and voxel.
 
 ### Flags
 
@@ -296,7 +296,7 @@ The extractor lineage is the C program from [sioux](https://github.com/hanatos/s
 | `index.html` | HUD shell, command panel, canvas, radar, touch pad |
 | `styles/` | Cockpit chrome |
 | `scripts/app/` | Boot, game loop, HUD, settings, radar, map load |
-| `scripts/render/` | Classic / frustum-space / panorama / cubemap / voxel, workers, overlay |
+| `scripts/render/` | Classic / frustum-scanline / panorama / cubemap / voxel, workers, overlay |
 | `scripts/backends/` | JS, WASM, WebGPU (+ WGSL) |
 | `scripts/camera/` | Fly, orbit, projection, collision |
 | `scripts/terrain/` | Height/color, mip chain, wrap, LOD-0 sampling |
@@ -321,7 +321,7 @@ The committed artifact is `scripts/wasm/march.bytes.js`. Do not `fetch("*.wasm")
 
 ### Persistence
 
-Key `voxelspace.settings` in `localStorage`: map, algorithm, backend, quality, camera, view knobs (including LOD), flags (including height interp and color filter), debug view, HUD chrome, radar. Invalid values fall back to `data/config.json`.
+Key `voxelspace.settings` in `localStorage`: map, algorithm, backend, quality, resolution, camera, view knobs (including LOD), flags (including height interp and color filter), debug view, HUD chrome, radar. Invalid values fall back to `data/config.json`.
 
 ---
 

@@ -46,7 +46,7 @@ export function allocF32(length, shared) {
 }
 
 export function ensureU32(view, length, shared) {
-  if (view && view.length >= length && isShared(view) === !!shared) {
+  if (view && view.length === length && isShared(view) === !!shared) {
     return view;
   }
   return allocU32(length, shared);

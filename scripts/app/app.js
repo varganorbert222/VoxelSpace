@@ -24,7 +24,7 @@ import { Color } from "../math/color.js";
 import {
   ALGORITHM_CLASSIC,
   ALGORITHM_CUBEMAP,
-  ALGORITHM_FRUSTUM_SPACE,
+  ALGORITHM_FRUSTUM_SCANLINE,
   ALGORITHM_PANORAMA,
   ALGORITHM_VOXEL,
   isAlgorithmAllowed,
@@ -36,9 +36,9 @@ import { detectBackends } from "../backends/contract.js";
 import {
   QUALITY_LABEL,
   QUALITY_LOW,
-  renderScaleForQuality,
   clampQualityForContext,
 } from "../constants/quality.js";
+import { resolutionIndex } from "../constants/resolution.js";
 import { DEBUG_VIEW_COLOR } from "../constants/debugView.js";
 import { DEFAULT_MULTITHREAD } from "../constants/threading.js";
 import {
@@ -197,7 +197,18 @@ class App {
       this._performanceAlertQuality = null;
     }
     this.camera.set({ quality: q });
-    this.resize();
+    this.persistAndSync();
+  }
+
+  setResolution(resolution) {
+    if (!this.camera) {
+      return;
+    }
+    const index = resolutionIndex(resolution);
+    if (index !== this.camera.resolution) {
+      this.camera.set({ resolution: index });
+      this.resize();
+    }
     this.persistAndSync();
   }
 
@@ -211,13 +222,13 @@ class App {
     this.camera.setFrustumLook(usesFrustumLook(algorithm));
     if (algorithm === ALGORITHM_CLASSIC) {
       this.camera.clampPitchForClassic();
-    } else if (algorithm === ALGORITHM_FRUSTUM_SPACE) {
-      this.camera.clampPitchForFrustumSpace();
+    } else if (algorithm === ALGORITHM_FRUSTUM_SCANLINE) {
+      this.camera.clampPitchForFrustumScanline();
     }
     document.body.classList.toggle("classic", algorithm === ALGORITHM_CLASSIC);
     document.body.classList.toggle(
-      "frustum-space",
-      algorithm === ALGORITHM_FRUSTUM_SPACE
+      "frustum-scanline",
+      algorithm === ALGORITHM_FRUSTUM_SCANLINE
     );
     document.body.classList.toggle("panorama", algorithm === ALGORITHM_PANORAMA);
     document.body.classList.toggle("cubemap", algorithm === ALGORITHM_CUBEMAP);
@@ -225,7 +236,7 @@ class App {
     if (prev !== algorithm) {
       this.resize();
     } else {
-      this.settingsForm.syncRenderScale();
+      this.settingsForm.syncResolution();
     }
     this.persistAndSync();
   }
@@ -430,15 +441,6 @@ class App {
 
   resize() {
     const view = this._viewportSize();
-    const next = renderScaleForQuality(
-      this.camera.quality,
-      view.w,
-      view.h
-    );
-    if (next !== this.camera.renderScale) {
-      this.camera.set({ renderScale: next });
-    }
-    this.settingsForm.syncRenderScale();
     this.camera.resize(
       this.surface ? this.surface.getCanvas() : document.getElementById(CANVAS_ID),
       view.w,
@@ -448,6 +450,7 @@ class App {
       topColor: this.terrain.skyColor,
       bottomColor: Color.WHITE,
     });
+    this.settingsForm.syncResolution();
   }
 
   _viewportSize() {
@@ -477,6 +480,7 @@ class App {
         farClip: this.camera.farClip,
         fov: this.camera.fov,
         quality: this.camera.quality,
+        resolution: this.camera.resolution,
         mode: this.camera.mode,
         applyFog: options.applyFog,
         fogStart: options.fogStart,
@@ -531,6 +535,7 @@ class App {
       farClip: sanitized.farClip,
       fov: sanitized.fov,
       quality: clampQualityForContext(sanitized.quality, sanitized.backend),
+      resolution: sanitized.resolution,
       mode: sanitized.mode,
     });
     this.renderer.setOptions({
