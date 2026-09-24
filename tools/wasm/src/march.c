@@ -1412,7 +1412,7 @@ static u32 fs_terrain_color(
   return plot;
 }
 
-WASM_EXPORT void frustum_scanline_columns(
+WASM_EXPORT void frustum_space_columns(
     i32 start_column,
     i32 end_column,
     i32 screen_width,

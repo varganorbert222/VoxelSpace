@@ -3,7 +3,7 @@
 import { BACKEND_WEBGPU } from "../../constants/backend.js";
 import {
   ALGORITHM_CUBEMAP,
-  ALGORITHM_FRUSTUM_SCANLINE,
+  ALGORITHM_FRUSTUM_SPACE,
   ALGORITHM_PANORAMA,
   ALGORITHM_VOXEL,
 } from "../../constants/algorithm.js";
@@ -62,7 +62,6 @@ import {
   createHeightTexture,
   createColorTexture,
   createScreenTarget,
-  createRetailScreenTarget,
   createPanoDepthTarget,
   copyTargetToLayer,
   createCubeArray,
@@ -75,13 +74,6 @@ import {
   destroyBuf,
 } from "./resources.js";
 import { createFramePacker, packFrame, FRAME_BYTES } from "./uniforms.js";
-import {
-  createRetailScanlineUniforms,
-  packRetailScanlineUniforms,
-} from "./retailUniforms.js";
-import { createRetailGpu, destroyRetailGpu, ensureRetailSkyRows } from "./retailGpu.js";
-import { buildRetailResources } from "../../render/retail/resources.js";
-import { advanceRetailGameClock, buildRetailFrame } from "../../render/retail/frame.js";
 import { cpuU32ToPackedRgba } from "./color.js";
 import { WEBGPU_WORKGROUP_1D, WEBGPU_WORKGROUP_2D } from "../../constants/webgpu.js";
 
@@ -244,14 +236,6 @@ class WebGpuBackend {
     this._cubeFaceStride = 0;
     this._cubeFaceUniform = null;
     this._cubeFaceBinds = null;
-    this._retailUniforms = createRetailScanlineUniforms();
-    this._retailUniformBuf = null;
-    this._retailStateBuf = null;
-    this._retailScreenTex = null;
-    this._retailBind = null;
-    this._retailGpu = null;
-    this._retailKey = "";
-    this._retailDepthKey = "";
   }
 
   get debugView() {
@@ -297,7 +281,6 @@ class WebGpuBackend {
       }
     );
     this._uniformBuf = createUniformBuffer(this._device, this._framePacker.buffer.byteLength);
-    this._retailUniformBuf = createUniformBuffer(this._device, this._retailUniforms.buffer.byteLength);
     this._initCubeFaceUniforms();
     this._offsetBuf = createStorageBuffer(this._device, TERRAIN_MIP_MAX_COUNT * 4);
     this._deltaBuf = createStorageBuffer(this._device, TERRAIN_MIP_MAX_COUNT * 4);
@@ -371,16 +354,13 @@ class WebGpuBackend {
       );
     }
     this._dropBinds(["maps", "cubeMips", "classicMaps"]);
-    this._retailBind = null;
   }
 
   _ensureScreen(width, height) {
     if (
       this._screenTex &&
       this._screenTex.width === width &&
-      this._screenTex.height === height &&
-      this._retailScreenTex &&
-      this._retailStateBuf
+      this._screenTex.height === height
     ) {
       return;
     }
@@ -388,14 +368,6 @@ class WebGpuBackend {
     destroyTex(this._screenSample);
     this._screenSample = null;
     this._screenTex = createScreenTarget(this._device, width, height);
-    destroyTex(this._retailScreenTex);
-    this._retailScreenTex = createRetailScreenTarget(this._device, width, height);
-    destroyBuf(this._retailStateBuf);
-    this._retailStateBuf = createStorageBuffer(
-      this._device,
-      Math.max(48, Math.ceil(width / 2) * 48)
-    );
-    this._retailBind = null;
     this._dropBinds(["viewOut", "classicOut", "blit"]);
   }
 
@@ -504,11 +476,10 @@ class WebGpuBackend {
   }
 
   _writeSkyRows(packed) {
-    const bytes = packed.byteLength | 0;
-    if (!this._skyRowBuf || this._skyRowCap !== bytes) {
+    if (!this._skyRowBuf || this._skyRowCap < packed.byteLength) {
       destroyBuf(this._skyRowBuf);
-      this._skyRowBuf = createStorageBuffer(this._device, bytes);
-      this._skyRowCap = bytes;
+      this._skyRowBuf = createStorageBuffer(this._device, packed.byteLength);
+      this._skyRowCap = packed.byteLength;
       this._dropBinds(["classicOut", "cubeSky"]);
     }
     writeBuffer(this._device, this._skyRowBuf, packed);
@@ -898,7 +869,7 @@ class WebGpuBackend {
     pass.end();
   }
 
-  _dispatchFrustumScanline(encoder, screenW, screenH) {
+  _dispatchFrustumSpace(encoder, screenW, screenH) {
     const tables = this._cachedBind("classicTables", () =>
       this._device.createBindGroup({
         layout: this._pipes.layouts.classicTables,
@@ -928,115 +899,13 @@ class WebGpuBackend {
       })
     );
     const pass = encoder.beginComputePass();
-    pass.setPipeline(this._pipes.frustumScanline);
+    pass.setPipeline(this._pipes.frustumSpace);
     pass.setBindGroup(0, this._frameBind());
     pass.setBindGroup(1, tables);
     pass.setBindGroup(2, maps);
     pass.setBindGroup(3, out);
     pass.dispatchWorkgroups(Math.ceil(screenW / WEBGPU_WORKGROUP_1D));
     pass.end();
-  }
-
-  _ensureRetailGpu(skyColor, applyFog) {
-    const maps = this._maps;
-    const key = (maps.generation | 0) + "|" + (skyColor >>> 0) + "|" + (applyFog ? 1 : 0) + "|" + (maps.width | 0);
-    if (this._retailGpu && this._retailKey === key) {
-      return this._retailGpu;
-    }
-    destroyRetailGpu(this._retailGpu);
-    const resources = buildRetailResources({
-      heightMap: maps.heightMap,
-      colorMap: maps.colorMap,
-      width: maps.width,
-      height: maps.height,
-      generation: maps.generation | 0,
-      skyColor: skyColor >>> 0,
-      applyFog,
-    });
-    this._retailGpu = createRetailGpu(this._device, resources);
-    this._retailKey = key;
-    this._retailBind = null;
-    this._retailDepthKey = "";
-    return this._retailGpu;
-  }
-
-  _packRetailScanline(camera, terrain, width, height, applyFog, repeat) {
-    const gpu = this._ensureRetailGpu(terrain.skyColor, applyFog);
-    const frameCounter = advanceRetailGameClock(performance.now());
-    const frame = buildRetailFrame({
-      width,
-      height,
-      focalWidth: width,
-      fovDegrees: camera.fov,
-      quality: camera.quality,
-      yawRadians: camera.angle,
-      pitchDegrees: camera.pitch,
-      cameraX: camera.posX,
-      cameraY: camera.posY,
-      cameraZ: camera.posZ,
-      altitude: terrain.altitude || 1,
-      frameCounter,
-      repeat,
-      mapSize: gpu.resources.width,
-      environment: gpu.resources.environment,
-      detailLight: gpu.resources.detailLight,
-    });
-    packRetailScanlineUniforms(this._retailUniforms, frame);
-    writeBuffer(this._device, this._retailUniformBuf, this._retailUniforms.f32);
-    if (ensureRetailSkyRows(this._device, gpu, frame.skyRows.byteLength)) {
-      this._retailBind = null;
-    }
-    writeBuffer(this._device, gpu.skyRows, frame.skyRows);
-    const depthKey = frame.focal + "|" + frame.quality + "|" + frame.lodBias;
-    if (depthKey !== this._retailDepthKey) {
-      writeBuffer(this._device, gpu.depthLut, frame.depthLut);
-      this._retailDepthKey = depthKey;
-    }
-    return gpu;
-  }
-
-  _dispatchRetailFrustumScanline(encoder, width, gpu) {
-    if (!this._retailBind) {
-      this._retailBind = this._device.createBindGroup({
-        label: "retailFrustumScanline",
-        layout: this._pipes.layouts.retailFrustumScanline,
-        entries: [
-          { binding: 0, resource: { buffer: this._retailUniformBuf } },
-          { binding: 1, resource: gpu.height.createView() },
-          { binding: 2, resource: gpu.color.createView() },
-          { binding: 3, resource: gpu.detailMap.createView() },
-          { binding: 4, resource: gpu.detailPacked.createView() },
-          { binding: 5, resource: gpu.nearPalette.createView() },
-          { binding: 6, resource: gpu.detailPalette.createView() },
-          { binding: 7, resource: gpu.voxPal.createView() },
-          { binding: 8, resource: gpu.cloud.createView() },
-          { binding: 9, resource: gpu.skyTable.createView() },
-          { binding: 10, resource: this._screenTex.createView() },
-          { binding: 11, resource: { buffer: gpu.skyRows } },
-          { binding: 12, resource: gpu.owner.createView() },
-          { binding: 13, resource: gpu.vmax.createView() },
-          { binding: 14, resource: { buffer: gpu.stats } },
-          { binding: 15, resource: { buffer: this._retailStateBuf } },
-          { binding: 16, resource: gpu.waterDepth.createView() },
-          { binding: 17, resource: { buffer: gpu.depthLut } },
-        ],
-      });
-    }
-    const pairs = (width + 1) >> 1;
-    const groups = Math.ceil(pairs / 64);
-    encoder.clearBuffer(gpu.stats);
-    let pass = encoder.beginComputePass();
-    pass.setPipeline(this._pipes.retailFrustumScanlineInit);
-    pass.setBindGroup(0, this._retailBind);
-    pass.dispatchWorkgroups(groups);
-    pass.end();
-    for (const pipeline of this._pipes.retailFrustumScanlinePasses) {
-      pass = encoder.beginComputePass();
-      pass.setPipeline(pipeline);
-      pass.setBindGroup(0, this._retailBind);
-      pass.dispatchWorkgroups(groups);
-      pass.end();
-    }
   }
 
   _dispatchVoxel(encoder, screenW, screenH) {
@@ -1325,26 +1194,6 @@ class WebGpuBackend {
     this._blit(encoder);
   }
 
-  _presentRetail(encoder) {
-    const view = this._context.getCurrentTexture().createView();
-    const bind = this._device.createBindGroup({
-      layout: this._pipes.layouts.blit,
-      entries: [{ binding: 0, resource: this._retailScreenTex.createView() }],
-    });
-    const pass = encoder.beginRenderPass({
-      colorAttachments: [{
-        view,
-        loadOp: "clear",
-        storeOp: "store",
-        clearValue: { r: 0, g: 0, b: 0, a: 1 },
-      }],
-    });
-    pass.setPipeline(this._pipes.blit);
-    pass.setBindGroup(0, bind);
-    pass.draw(3);
-    pass.end();
-  }
-
   _blit(encoder) {
     const view = this._context.getCurrentTexture().createView();
     const bg = this._cachedBind("blit", () =>
@@ -1411,22 +1260,6 @@ class WebGpuBackend {
       return;
     }
 
-    if (frame.algorithm === ALGORITHM_FRUSTUM_SCANLINE) {
-      const gpu = this._packRetailScanline(
-        camera,
-        terrain,
-        screenW,
-        screenH,
-        frame.applyFog,
-        frame.repeat
-      );
-      const encoder = this._device.createCommandEncoder();
-      this._dispatchRetailFrustumScanline(encoder, screenW, gpu);
-      this._present(encoder);
-      this._device.queue.submit([encoder.finish()]);
-      return;
-    }
-
     const size = panoSize(camera.quality);
     this._ensurePano(size.width, size.height);
     this._uploadPanoLuts(
@@ -1445,6 +1278,14 @@ class WebGpuBackend {
       }
       this._dispatchView(encoder, screenW, screenH);
       this._dispatchOverlay(encoder, screenW, screenH, false);
+    } else if (frame.algorithm === ALGORITHM_FRUSTUM_SPACE) {
+      const dst = camera.calculateProjPlane();
+      const horizon = camera.calculateHorizon(dst);
+      this._writeSkyRows(
+        classicSkyRows(screenH, horizon, camera.topColor, camera.bottomColor)
+      );
+      this._writeClassicTables(camera);
+      this._dispatchFrustumSpace(encoder, screenW, screenH);
     } else {
       const dst = camera.calculateProjPlane();
       const horizon = camera.calculateHorizon(dst);
@@ -1490,12 +1331,7 @@ class WebGpuBackend {
     destroyTex(this._cubeIterArray);
     destroyTex(this._heightTex);
     destroyTex(this._colorTex);
-    destroyTex(this._retailScreenTex);
-    destroyRetailGpu(this._retailGpu);
-    this._retailGpu = null;
     destroyBuf(this._uniformBuf);
-    destroyBuf(this._retailUniformBuf);
-    destroyBuf(this._retailStateBuf);
     destroyBuf(this._cubeFaceUniform);
     destroyBuf(this._offsetBuf);
     destroyBuf(this._deltaBuf);

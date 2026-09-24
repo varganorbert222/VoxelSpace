@@ -1,25 +1,20 @@
 "use strict";
 
-import { renderFrustumScanlineColumns } from "./frustumscanline.js";
-import {
-  renderFrustumScanlineCpu,
-  renderFrustumScanlineFrame,
-} from "./frustumScanlineCore.js";
+import { renderFrustumSpaceColumns } from "./frustumspacemarch.js";
 import { Color } from "../math/color.js";
-import { advanceRetailGameClock } from "./retail/frame.js";
 import { isDebugColor } from "../constants/debugView.js";
 import { canShareBuffers, ensureU32 } from "./sharedBuffers.js";
 
-function frustumScanlineKernel(renderer) {
+function frustumSpaceKernel(renderer) {
   return (
-    (!renderer.useJsFrustumScanline &&
+    (!renderer.useJsFrustumSpace &&
       renderer.kernels &&
-      renderer.kernels.renderFrustumScanlineColumns) ||
-    renderFrustumScanlineColumns
+      renderer.kernels.renderFrustumSpaceColumns) ||
+    renderFrustumSpaceColumns
   );
 }
 
-function frustumScanlineParams(renderer, maps) {
+function frustumSpaceParams(renderer, maps) {
   const camera = renderer.camera;
   const frameBuffer = renderer.frameBuffer;
   const fov = camera.calculateFov();
@@ -71,96 +66,14 @@ function frustumScanlineParams(renderer, maps) {
     lodSpacing: renderer.lodSpacing,
     panoMips: maps.panoMips,
     mapsGeneration: maps.generation,
-    skyColor: maps.skyColor != null ? maps.skyColor : renderer._terrainSky,
-    fovDegrees: camera.fov,
-    yawRadians: camera.angle,
-    pitchDegrees: camera.pitch,
-    angle: camera.angle,
-    pitch: camera.pitch,
-    fov: camera.fov,
-    frameCounter: renderer._frustumFrameCounter | 0,
   };
 }
 
-function makeFrustumScanlineScene(maps, params, output) {
-  return {
-    terrain: {
-      heightMap: maps.heightMap,
-      colorMap: maps.colorMap,
-      mapW: maps.width,
-      mapH: maps.height,
-      mapShift: maps.mapShift,
-      altitude: maps.altitude,
-      maxHeight: maps.maxHeight,
-      maxSlope: maps.maxSlope,
-      terrainMips: maps.terrainMips || maps.panoMips,
-      panoMips: maps.panoMips,
-      mapsGeneration: maps.generation,
-      skyColor: params.skyColor,
-    },
-    camera: {
-      camX: params.camX,
-      camY: params.camY,
-      camZ: params.camZ,
-      rightX: params.rightX,
-      rightY: params.rightY,
-      rightZ: params.rightZ,
-      upX: params.upX,
-      upY: params.upY,
-      upZ: params.upZ,
-      fwdX: params.fwdX,
-      fwdY: params.fwdY,
-      fwdZ: params.fwdZ,
-      tanHalfFovX: params.tanHalfFovX,
-      dstToProjPlane: params.dstToProjPlane,
-      focal: params.dstToProjPlane,
-      nearClip: params.nearClip,
-      fovDegrees: params.fovDegrees,
-      fov: params.fov,
-      yawRadians: params.yawRadians,
-      pitchDegrees: params.pitchDegrees,
-      angle: params.angle,
-      pitch: params.pitch,
-    },
-    render: {
-      altitude: maps.altitude,
-      farClip: params.farClip,
-      minDeltaZ: params.minDeltaZ,
-      quality: params.quality,
-      applyFog: params.applyFog,
-      fogStart: params.fogStart,
-      debugView: params.debugView,
-      repeat: params.repeat,
-      interpolateHeight: params.interpolateHeight,
-      filterColor: params.filterColor,
-      filterDistance: params.filterDistance,
-      mipCount: params.mipCount,
-      stepDivisor: params.stepDivisor,
-      lodSpacingMode: params.lodSpacingMode,
-      lodSpacing: params.lodSpacing,
-      screenHorizon: params.screenHorizon,
-      frameCounter: params.frameCounter,
-      skyColor: params.skyColor,
-    },
-    output: {
-      pixels: output.pixels,
-      pixelWidth: output.pixelWidth,
-      screenWidth: output.screenWidth,
-      screenHeight: output.screenHeight,
-      startColumn: output.startColumn,
-      endColumn: output.endColumn,
-      fillUnfilled: output.fillUnfilled,
-      rowColors: output.rowColors,
-    },
-  };
-}
-
-function isFrustumScanlineTokenStale(token, renderer, mapsGeneration) {
+function isFrustumSpaceTokenStale(token, renderer) {
   const camera = renderer.camera;
   const frameBuffer = renderer.frameBuffer;
   return (
     renderer.algorithm !== token.algorithm ||
-    mapsGeneration !== token.mapsGeneration ||
     frameBuffer.width !== token.width ||
     frameBuffer.height !== token.height ||
     camera.quality !== token.quality ||
@@ -196,7 +109,7 @@ function isFrustumScanlineTokenStale(token, renderer, mapsGeneration) {
   );
 }
 
-class FrustumScanlineRenderer {
+class FrustumSpaceRenderer {
   constructor(renderer) {
     this._renderer = renderer;
     this._rowColors = new Uint32Array(1);
@@ -211,9 +124,8 @@ class FrustumScanlineRenderer {
   }
 
   renderLocal(terrain) {
-    const renderer = this._renderer;
     const maps = terrain.exportMaps();
-    const params = frustumScanlineParams(renderer, maps);
+    const params = frustumSpaceParams(this._renderer, maps);
     const frameBuffer = this._renderer.frameBuffer;
     const extras = {
       pixels: frameBuffer.buffer32bit,
@@ -228,19 +140,10 @@ class FrustumScanlineRenderer {
       frameBuffer.copySkyRowColors(this._rowColors);
       extras.rowColors = this._rowColors;
     }
-    const output = {
+    frustumSpaceKernel(this._renderer)({
+      ...params,
       ...extras,
-      screenWidth: frameBuffer.width,
-      screenHeight: frameBuffer.height,
-      startColumn: 0,
-      endColumn: frameBuffer.width,
-    };
-    const scene = makeFrustumScanlineScene(maps, params, output);
-    if (renderer.kernels) {
-      renderFrustumScanlineFrame(scene, output, frustumScanlineKernel(renderer));
-    } else {
-      renderFrustumScanlineCpu(scene, output);
-    }
+    });
   }
 
   async renderMulti(terrain) {
@@ -258,12 +161,11 @@ class FrustumScanlineRenderer {
       renderer.frameBuffer.fill(Color.BLACK);
       rowColors.fill(Color.BLACK);
     }
-    const params = frustumScanlineParams(renderer, maps);
+    const params = frustumSpaceParams(renderer, maps);
     params.rowColors = rowColors;
     const camera = renderer.camera;
     const token = {
       algorithm: renderer.algorithm,
-      mapsGeneration: maps.generation,
       width: renderer.frameBuffer.width,
       height: renderer.frameBuffer.height,
       quality: camera.quality,
@@ -297,17 +199,11 @@ class FrustumScanlineRenderer {
       fwdY: camera.fwdY,
       fwdZ: camera.fwdZ,
     };
-    const slices = await pool.renderFrustumScanline(params);
+    const slices = await pool.renderFrustumSpace(params);
     if (!slices) {
       return false;
     }
-    if (
-      isFrustumScanlineTokenStale(
-        token,
-        renderer,
-        terrain.exportMaps().generation
-      )
-    ) {
+    if (isFrustumSpaceTokenStale(token, renderer)) {
       return false;
     }
     for (let i = 0; (i < slices.length) | 0; i = (i + 1) | 0) {
@@ -326,11 +222,7 @@ class FrustumScanlineRenderer {
 
   async render(terrain) {
     const renderer = this._renderer;
-    renderer._frustumFrameCounter = advanceRetailGameClock(
-      typeof performance !== "undefined" ? performance.now() : Date.now()
-    );
-    renderer._terrainSky = terrain.skyColor;
-    if (renderer.useWorkers() && !renderer.useJsFrustumScanline) {
+    if (renderer.useWorkers() && !renderer.useJsFrustumSpace) {
       const ok = await this.renderMulti(terrain);
       if (ok) {
         renderer.writeToContext();
@@ -343,4 +235,4 @@ class FrustumScanlineRenderer {
   }
 }
 
-export default FrustumScanlineRenderer;
+export default FrustumSpaceRenderer;

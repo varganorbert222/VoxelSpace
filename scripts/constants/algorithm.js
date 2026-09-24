@@ -3,7 +3,7 @@
 import { BACKEND_WEBGPU } from "./backend.js";
 
 export const ALGORITHM_CLASSIC = "classic";
-export const ALGORITHM_FRUSTUM_SCANLINE = "frustum-scanline";
+export const ALGORITHM_FRUSTUM_SPACE = "frustum-space";
 export const ALGORITHM_PANORAMA = "panorama";
 export const ALGORITHM_CUBEMAP = "cubemap";
 export const ALGORITHM_VOXEL = "voxel";
@@ -31,5 +31,5 @@ export function usesHorizonHack(algorithm) {
 }
 
 export function usesFrustumLook(algorithm) {
-  return algorithm === ALGORITHM_FRUSTUM_SCANLINE;
+  return algorithm === ALGORITHM_FRUSTUM_SPACE;
 }

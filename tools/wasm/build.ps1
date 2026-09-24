@@ -50,7 +50,7 @@ $exports = @(
     "set_mip_switch",
   "set_luts",
   "classic_columns",
-  "frustum_scanline_columns",
+  "frustum_space_columns",
   "pano_columns",
   "pano_view_columns",
   "voxel_texels"

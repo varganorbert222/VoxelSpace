@@ -7,7 +7,7 @@ import {
   ORBIT_RADIUS_MIN,
   ORBIT_RADIUS_MAX,
   ORBIT_THETA_MIN_CLASSIC,
-  ORBIT_THETA_MIN_FRUSTUM_SCANLINE,
+  ORBIT_THETA_MIN_FRUSTUM_SPACE,
   ORBIT_THETA_MIN_PANORAMA,
   ORBIT_PITCH_SCALE,
   MOVE_DT_SCALE,
@@ -40,7 +40,7 @@ export function applyOrbit(dt, input, camera, terrain) {
     let theta = Math.acos(VMath.clamp(-1, 1, camera.posZ / currentR));
     let phi = Math.atan2(dy, dx);
     theta = VMath.clamp(
-      frustum ? ORBIT_THETA_MIN_FRUSTUM_SCANLINE : ORBIT_THETA_MIN_PANORAMA,
+      frustum ? ORBIT_THETA_MIN_FRUSTUM_SPACE : ORBIT_THETA_MIN_PANORAMA,
       Math.PI / 2,
       theta - deltaTheta
     );

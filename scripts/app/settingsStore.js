@@ -5,7 +5,6 @@ import {
   SETTINGS_STORAGE_VERSION,
 } from "../constants/main.js";
 import { BACKEND_JS } from "../constants/backend.js";
-import { resolutionIndex } from "../constants/resolution.js";
 import { clampFogRange } from "../constants/fog.js";
 import { clampStepDivisor, lod0MaxMeters } from "../constants/mip.js";
 import VMath from "../math/vmath.js";
@@ -26,9 +25,6 @@ function pickAllowed(value, allowed, fallback) {
 function migratePersisted(data) {
   if (!data || typeof data !== "object") {
     return null;
-  }
-  if (data.algorithm === "frustum-space") {
-    data = { ...data, algorithm: "frustum-scanline" };
   }
   if (data.version === 1) {
     data = { ...data, version: 2, backend: BACKEND_JS };
@@ -73,7 +69,6 @@ export function collectSettings(app) {
     farClip: app.camera.farClip,
     fov: app.camera.fov,
     quality: app.camera.quality,
-    resolution: app.camera.resolution,
     applyFog: options.applyFog,
     fogStart: options.fogStart,
     fogEnd: options.fogEnd,
@@ -131,9 +126,6 @@ export function sanitizeSettings(data, defaults, bounds) {
       finiteOr(data.fov, defaults.fov)
     ),
     quality: pickAllowed(Number(data.quality), bounds.qualities, defaults.quality),
-    resolution: resolutionIndex(
-      data.resolution == null ? defaults.resolution : data.resolution
-    ),
     mode: pickAllowed(data.mode, bounds.modes, defaults.mode),
     applyFog: boolOr(data.applyFog, defaults.applyFog),
     fogStart: fog.fogStart,

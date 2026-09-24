@@ -1,14 +1,14 @@
 "use strict";
 
 import ClassicRenderer from "../../render/classicRenderer.js";
-import FrustumScanlineRenderer from "../../render/frustumScanlineRenderer.js";
+import FrustumSpaceRenderer from "../../render/frustumSpaceRenderer.js";
 import PanoramaRenderer from "../../render/panoramaRenderer.js";
 import CubemapRenderer from "../../render/cubemapRenderer.js";
 import VoxelRenderer from "../../render/voxelRenderer.js";
 import WorkerPool from "../../render/workerPool.js";
 import {
   ALGORITHM_CUBEMAP,
-  ALGORITHM_FRUSTUM_SCANLINE,
+  ALGORITHM_FRUSTUM_SPACE,
   ALGORITHM_PANORAMA,
   ALGORITHM_VOXEL,
 } from "../../constants/algorithm.js";
@@ -40,7 +40,7 @@ class WasmBackend {
   constructor() {
     this._host = null;
     this._classic = null;
-    this._frustumScanline = null;
+    this._frustumSpace = null;
     this._panorama = null;
     this._cubemap = null;
     this._voxel = null;
@@ -53,7 +53,7 @@ class WasmBackend {
     return this._kernels;
   }
 
-  get useJsFrustumScanline() {
+  get useJsFrustumSpace() {
     return false;
   }
 
@@ -62,7 +62,7 @@ class WasmBackend {
     this._kernels = createWasmKernels(instance);
     this._host = ctx.renderer;
     this._classic = new ClassicRenderer(this);
-    this._frustumScanline = new FrustumScanlineRenderer(this);
+    this._frustumSpace = new FrustumSpaceRenderer(this);
     this._panorama = new PanoramaRenderer(this);
     this._cubemap = new CubemapRenderer(this);
     this._voxel = new VoxelRenderer(this);
@@ -209,8 +209,8 @@ class WasmBackend {
       await this._cubemap.render(frame.terrain);
       return;
     }
-    if (frame.algorithm === ALGORITHM_FRUSTUM_SCANLINE) {
-      await this._frustumScanline.render(frame.terrain);
+    if (frame.algorithm === ALGORITHM_FRUSTUM_SPACE) {
+      await this._frustumSpace.render(frame.terrain);
   return;
     }
     if (frame.algorithm === ALGORITHM_VOXEL) {
@@ -227,7 +227,7 @@ class WasmBackend {
       this._pool = null;
     }
     this._classic = null;
-    this._frustumScanline = null;
+    this._frustumSpace = null;
     this._panorama = null;
     this._cubemap = null;
     this._voxel = null;

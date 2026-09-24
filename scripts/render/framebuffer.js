@@ -115,8 +115,8 @@ class FrameBuffer {
     ) {
       return;
     }
-    const width = bufferData.width | 0;
-    const height = bufferData.height | 0;
+    const width = (bufferData.width * bufferData.renderScale) | 0;
+    const height = (bufferData.height * bufferData.renderScale) | 0;
     if (
       this._canvas === bufferData.canvas &&
       this._width === width &&

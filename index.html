@@ -124,7 +124,7 @@
       <section class="hud-section">
         <h2 class="hud-section-title"><span>02</span> Engine</h2>
         <div class="control-grid">
-          <div class="control" data-tip="Classic: column voxel space. Frustum-Scanline: view-Z slices with real pitch. Panorama: 360° equirect. Cubemap: 6-face environment, cached like panorama. Voxel: per-pixel 3D column raycast, max-mip empty skip, no cache.">
+          <div class="control" data-tip="Classic: column voxel space. Frustum-space: view-Z slices with real pitch. Panorama: 360° equirect. Cubemap: 6-face environment, cached like panorama. Voxel: per-pixel 3D column raycast, max-mip empty skip, no cache.">
             <div class="control-head">
               <label for="id_algorithmselector">Algorithm</label>
             </div>
@@ -154,7 +154,7 @@
               <option value="">Please select runtime</option>
             </select>
           </div>
-          <div class="control" data-tip="March density and environment-map detail. Does not change the framebuffer size. Ultra is desktop WebGPU only.">
+          <div class="control" data-tip="Low to Very-high on any engine. Ultra is desktop WebGPU only: finer march and a larger panorama.">
             <div class="control-head">
               <label for="id_quality">Quality</label>
             </div>
@@ -277,15 +277,12 @@
           </div>
           <input id="id_fov" type="range" autocomplete="off" aria-keyshortcuts="O Shift+O" />
         </div>
-        <div
-          class="control"
-          data-tip="Internal framebuffer. Each Delta Force mode is fitted to the current screen aspect. 1280×1024 is the largest box and 320×240 the smallest, in landscape or portrait. Quality does not change this."
-        >
+        <div class="control" data-tip="Internal resolution. Set automatically by quality.">
           <div class="control-head">
-            <label for="id_resolution">Resolution</label>
-            <span class="control-value" data-for="id_resolution"></span>
+            <label for="id_render_scale">Scale</label>
+            <span class="control-value" data-for="id_render_scale"></span>
           </div>
-          <select id="id_resolution" name="resolution" autocomplete="off"></select>
+          <input id="id_render_scale" type="range" disabled autocomplete="off" />
         </div>
       </section>
 
@@ -330,7 +327,7 @@
           <label
             class="check"
             for="id_debug_overlay"
-            data-tip="Unwrapped panorama or cubemap atlas. Uses the same debug view as the 3D picture. Hidden on classic and frustum-scanline."
+            data-tip="Unwrapped panorama or cubemap atlas. Uses the same debug view as the 3D picture. Hidden on classic and frustum-space."
           >
             <input
               id="id_debug_overlay"

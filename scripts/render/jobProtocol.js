@@ -6,14 +6,14 @@ import {
   MSG_INIT_KERNEL,
   MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
-  MSG_RENDER_FRUSTUM_SCANLINE,
+  MSG_RENDER_FRUSTUM_SPACE,
   MSG_RENDER_PANORAMA,
   MSG_RENDER_PANO_VIEW,
   MSG_RENDER_CUBE_VIEW,
   MSG_RENDER_CUBE_GENERATE,
   MSG_RENDER_VOXEL,
   MSG_RESULT_CLASSIC,
-  MSG_RESULT_FRUSTUM_SCANLINE,
+  MSG_RESULT_FRUSTUM_SPACE,
   MSG_RESULT_PANORAMA,
   MSG_RESULT_PANO_VIEW,
   MSG_RESULT_CUBE_VIEW,
@@ -29,14 +29,14 @@ export {
   MSG_INIT_KERNEL,
   MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
-  MSG_RENDER_FRUSTUM_SCANLINE,
+  MSG_RENDER_FRUSTUM_SPACE,
   MSG_RENDER_PANORAMA,
   MSG_RENDER_PANO_VIEW,
   MSG_RENDER_CUBE_VIEW,
   MSG_RENDER_CUBE_GENERATE,
   MSG_RENDER_VOXEL,
   MSG_RESULT_CLASSIC,
-  MSG_RESULT_FRUSTUM_SCANLINE,
+  MSG_RESULT_FRUSTUM_SPACE,
   MSG_RESULT_PANORAMA,
   MSG_RESULT_PANO_VIEW,
   MSG_RESULT_CUBE_VIEW,
@@ -84,11 +84,10 @@ export function classicRenderPayload(jobId, range, params) {
   };
 }
 
-export function frustumScanlineRenderPayload(jobId, range, params) {
+export function frustumSpaceRenderPayload(jobId, range, params) {
   return {
-    type: MSG_RENDER_FRUSTUM_SCANLINE,
+    type: MSG_RENDER_FRUSTUM_SPACE,
     jobId: jobId,
-    mapsGeneration: params.mapsGeneration,
     startColumn: range.start,
     endColumn: range.end,
     screenWidth: params.screenWidth,
@@ -123,11 +122,6 @@ export function frustumScanlineRenderPayload(jobId, range, params) {
     lodSpacingMode: params.lodSpacingMode,
     lodSpacing: params.lodSpacing,
     rowColors: params.rowColors,
-    fovDegrees: params.fovDegrees,
-    yawRadians: params.yawRadians,
-    pitchDegrees: params.pitchDegrees,
-    frameCounter: params.frameCounter,
-    skyColor: params.skyColor,
   };
 }
 

@@ -17,10 +17,6 @@ import {
   isUltraQualityAllowed,
 } from "../constants/quality.js";
 import {
-  RESOLUTION_LABEL,
-  RESOLUTION_VALUES,
-} from "../constants/resolution.js";
-import {
   ALGORITHM_VOXEL,
   isAlgorithmAllowed,
 } from "../constants/algorithm.js";
@@ -66,8 +62,8 @@ function formatRangeValue(id, value) {
   if (id === "id_fov") {
     return Math.round(n) + "°";
   }
-  if (id === "id_resolution") {
-    return String(value);
+  if (id === "id_render_scale") {
+    return n.toFixed(1);
   }
   return String(value);
 }
@@ -307,14 +303,12 @@ class SettingsForm {
         },
         persist
       ),
-      resolution: initOptionElement(
-        "id_resolution",
-        { values: RESOLUTION_VALUES },
-        camera.resolution,
-        (e) => {
-          app.setResolution(e.target.value);
-        },
-        RESOLUTION_LABEL
+      renderScale: initRangeElement(
+        "id_render_scale",
+        config.settings.renderScale,
+        camera.renderScale,
+        () => {},
+        () => {}
       ),
       fov: initRangeElement(
         "id_fov",
@@ -498,6 +492,11 @@ class SettingsForm {
         }
       ),
     };
+    setDisabled(
+      this._elements.renderScale,
+      true,
+      "Render scale is controlled by quality."
+    );
     this.sync();
   }
 
@@ -510,7 +509,7 @@ class SettingsForm {
     const {
       renderDistance,
       fogRange,
-      resolution,
+      renderScale,
       fov,
       stepDivisor,
       mipCount,
@@ -541,11 +540,9 @@ class SettingsForm {
       Number.isFinite(options.fogStart) ? options.fogStart : 0,
       Number.isFinite(options.fogEnd) ? options.fogEnd : camera.farClip
     );
-    resolution.value = String(camera.resolution);
-    updateBoundValue(
-      "id_resolution",
-      camera.width + "×" + camera.height
-    );
+    setDisabled(renderScale, true, "Render scale is controlled by quality.");
+    renderScale.value = camera.renderScale;
+    updateBoundValue("id_render_scale", camera.renderScale);
     fov.value = camera.fov;
     updateBoundValue("id_fov", camera.fov);
     stepDivisor.min = config.settings.stepDivisor.min;
@@ -625,13 +622,17 @@ class SettingsForm {
     syncDebugLegend(debugViewName);
   }
 
-  syncResolution() {
-    if (!this._elements || !this._elements.resolution || !this._app.camera) {
+  syncRenderScale() {
+    if (!this._elements || !this._elements.renderScale) {
       return;
     }
-    const camera = this._app.camera;
-    this._elements.resolution.value = String(camera.resolution);
-    updateBoundValue("id_resolution", camera.width + "×" + camera.height);
+    setDisabled(
+      this._elements.renderScale,
+      true,
+      "Render scale is controlled by quality."
+    );
+    this._elements.renderScale.value = this._app.camera.renderScale;
+    updateBoundValue("id_render_scale", this._app.camera.renderScale);
   }
 }
 

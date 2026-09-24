@@ -17,21 +17,17 @@ import {
   DEFAULT_POS_X,
   DEFAULT_POS_Y,
   DEFAULT_POS_Z,
+  DEFAULT_RENDER_SCALE,
   DEFAULT_QUALITY,
   DEFAULT_FOV,
   DEFAULT_ORBIT_RADIUS,
   CLASSIC_PITCH_MIN,
   CLASSIC_PITCH_MAX,
-  FRUSTUM_SCANLINE_PITCH_MIN,
-  FRUSTUM_SCANLINE_PITCH_MAX,
+  FRUSTUM_SPACE_PITCH_MIN,
+  FRUSTUM_SPACE_PITCH_MAX,
   COLLISION_CLEARANCE,
 } from "../constants/camera.js";
 import { HALF } from "../constants/vmath.js";
-import {
-  DEFAULT_RESOLUTION,
-  fitRetroResolution,
-  resolutionIndex,
-} from "../constants/resolution.js";
 
 class Camera {
   get nearClip() {
@@ -78,8 +74,8 @@ class Camera {
     return this._bottomColor;
   }
 
-  get resolution() {
-    return this._resolution;
+  get renderScale() {
+    return this._renderScale;
   }
 
   get width() {
@@ -150,7 +146,7 @@ class Camera {
     this._posZ = settings.posZ ?? DEFAULT_POS_Z;
     this._angle = settings.angle ?? 0;
     this._pitch = settings.pitch ?? 0;
-    this._resolution = resolutionIndex(settings.resolution ?? DEFAULT_RESOLUTION);
+    this._renderScale = settings.renderScale ?? DEFAULT_RENDER_SCALE;
     this._quality = settings.quality ?? DEFAULT_QUALITY;
     this._fov = settings.fov ?? DEFAULT_FOV;
     this._width = 0;
@@ -195,8 +191,8 @@ class Camera {
   setFrustumLook(enabled) {
     this._frustumLook = !!enabled;
     if (this._frustumLook) {
-      this._pitchMin = FRUSTUM_SCANLINE_PITCH_MIN;
-      this._pitchMax = FRUSTUM_SCANLINE_PITCH_MAX;
+      this._pitchMin = FRUSTUM_SPACE_PITCH_MIN;
+      this._pitchMax = FRUSTUM_SPACE_PITCH_MAX;
     } else {
       this._pitchMin = CLASSIC_PITCH_MIN;
       this._pitchMax = CLASSIC_PITCH_MAX;
@@ -256,9 +252,7 @@ class Camera {
   set(settings) {
     this._quality = settings.quality ?? this._quality;
     this._farClip = settings.farClip ?? this._farClip;
-    this._resolution = settings.resolution == null
-      ? this._resolution
-      : resolutionIndex(settings.resolution);
+    this._renderScale = settings.renderScale ?? this._renderScale;
     this._fov = settings.fov ?? this._fov;
     this._topColor = settings.topColor ?? this._topColor;
     this._bottomColor = settings.bottomColor ?? this._bottomColor;
@@ -273,9 +267,8 @@ class Camera {
   }
 
   resize(canvas, width, height) {
-    const fitted = fitRetroResolution(this._resolution, width, height);
-    const nextWidth = fitted.width | 0;
-    const nextHeight = fitted.height | 0;
+    const nextWidth = (width * this._renderScale) | 0;
+    const nextHeight = (height * this._renderScale) | 0;
     const gpu = canvas && canvas.dataset && canvas.dataset.present === "webgpu";
     const sameSize =
       ((this._width === nextWidth) | 0) &
@@ -296,8 +289,9 @@ class Camera {
     } else {
       this._frameBuffer.set({
         canvas: canvas,
-        width: nextWidth,
-        height: nextHeight,
+        width: width,
+        height: height,
+        renderScale: this._renderScale,
       });
     }
     if (this._onResized) {
@@ -317,16 +311,16 @@ class Camera {
     this._horizonDirty = true;
   }
 
-  clampPitchForFrustumScanline() {
+  clampPitchForFrustumSpace() {
     this._pitch = VMath.clamp(
-      FRUSTUM_SCANLINE_PITCH_MIN,
-      FRUSTUM_SCANLINE_PITCH_MAX,
+      FRUSTUM_SPACE_PITCH_MIN,
+      FRUSTUM_SPACE_PITCH_MAX,
       this._pitch
     );
     this._roll = 0;
     this._frustumLook = true;
-    this._pitchMin = FRUSTUM_SCANLINE_PITCH_MIN;
-    this._pitchMax = FRUSTUM_SCANLINE_PITCH_MAX;
+    this._pitchMin = FRUSTUM_SPACE_PITCH_MIN;
+    this._pitchMax = FRUSTUM_SPACE_PITCH_MAX;
     rebuildBasisFromEuler(this);
     this._horizonDirty = true;
   }

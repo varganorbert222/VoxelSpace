@@ -8,20 +8,20 @@ import {
   MSG_INIT_KERNEL,
   MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
-  MSG_RENDER_FRUSTUM_SCANLINE,
+  MSG_RENDER_FRUSTUM_SPACE,
   MSG_RENDER_PANORAMA,
   MSG_RENDER_PANO_VIEW,
   MSG_RENDER_CUBE_VIEW,
   MSG_RENDER_CUBE_GENERATE,
   MSG_RESULT_CLASSIC,
-  MSG_RESULT_FRUSTUM_SCANLINE,
+  MSG_RESULT_FRUSTUM_SPACE,
   MSG_RESULT_PANORAMA,
   MSG_RESULT_PANO_VIEW,
   MSG_RESULT_CUBE_VIEW,
   MSG_RESULT_CUBE_GENERATE,
   MSG_WORKER_ERROR,
   classicRenderPayload,
-  frustumScanlineRenderPayload,
+  frustumSpaceRenderPayload,
   panoramaViewPayload,
   panoramaGeneratePayload,
   cubemapViewPayload,
@@ -401,10 +401,10 @@ class WorkerPool {
     );
   }
 
-  renderFrustumScanline(params) {
+  renderFrustumSpace(params) {
     return this._whenReady().then(() =>
       this._runJob(
-        MSG_RENDER_FRUSTUM_SCANLINE,
+        MSG_RENDER_FRUSTUM_SPACE,
         params,
         params.screenWidth,
         1,
@@ -598,8 +598,8 @@ class WorkerPool {
 
         if (msgType === MSG_RENDER_CLASSIC) {
           slot.worker.postMessage(classicRenderPayload(jobId, range, params));
-        } else if (msgType === MSG_RENDER_FRUSTUM_SCANLINE) {
-          slot.worker.postMessage(frustumScanlineRenderPayload(jobId, range, params));
+        } else if (msgType === MSG_RENDER_FRUSTUM_SPACE) {
+          slot.worker.postMessage(frustumSpaceRenderPayload(jobId, range, params));
         } else if (msgType === MSG_RENDER_PANO_VIEW) {
           slot.worker.postMessage(panoramaViewPayload(jobId, range, params));
         } else if (msgType === MSG_RENDER_CUBE_VIEW) {
@@ -663,7 +663,7 @@ class WorkerPool {
     }
 
     const index = slot.chunkIndex;
-    if (data.type === MSG_RESULT_CLASSIC || data.type === MSG_RESULT_FRUSTUM_SCANLINE) {
+    if (data.type === MSG_RESULT_CLASSIC || data.type === MSG_RESULT_FRUSTUM_SPACE) {
       active.onChunk(index, {
         startColumn: data.startColumn,
         endColumn: data.endColumn,
