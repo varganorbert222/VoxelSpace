@@ -43,3 +43,24 @@ export function foldersForRole(key) {
   const role = ASSET_ROLES.find((item) => item.key === key);
   return role ? role.folders : [];
 }
+
+// Detail images are atlases of 16×16 textures. Dividing each side by
+// this size gives the index grid: index = y * cols + x.
+// A mission whose name ends in N is the night variant. NovaLogic tints the
+// whole view with this filter; 128 is neutral, so night green is 80, 160, 30.
+export const NIGHT_FILTER = [80, 160, 30];
+
+export function isNightMap(name) {
+  return typeof name === "string" && /N$/i.test(name);
+}
+
+export const DETAIL_TILE = 16;
+
+export function detailAtlasGrid(width, height) {
+  const cols = Math.floor(Number(width) / DETAIL_TILE);
+  const rows = Math.floor(Number(height) / DETAIL_TILE);
+  if (cols < 1 || rows < 1) {
+    return null;
+  }
+  return { cols, rows, count: cols * rows };
+}

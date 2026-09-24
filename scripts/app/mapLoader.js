@@ -3,7 +3,7 @@
 import { assetSrc, getMap, resolveMapId } from "./mapCatalog.js";
 import { loadImagesAsync } from "../assets/imageLoader.js";
 import { readColorFromImage } from "../assets/image.js";
-import { altitudeFromTerrainScale } from "../constants/mapLayout.js";
+import { altitudeFromTerrainScale, isNightMap, NIGHT_FILTER } from "../constants/mapLayout.js";
 import { Color } from "../math/color.js";
 
 const DEFAULT_ALTITUDE = altitudeFromTerrainScale(20);
@@ -64,6 +64,32 @@ export function loadMap(app, mapName) {
       topColor: app.terrain.skyColor,
       bottomColor: sky ? sky.bottom : Color.WHITE,
     });
+    if (app.currentMapName === selectedMap.id) {
+      presentNight(selectedMap);
+    }
     app.persistAndSync();
   });
+}
+
+function presentNight(map) {
+  const viewport = document.getElementById("id_viewport");
+  const matrix = document.getElementById("id_night_matrix");
+  const night = isNightMap(map.name);
+  if (viewport) {
+    viewport.classList.toggle("is-night", night);
+  }
+  if (!night || !matrix) {
+    return;
+  }
+  const rgb = Array.isArray(map.filter) ? map.filter : NIGHT_FILTER;
+  const scale = rgb.map((channel) => Number(channel) / 128);
+  matrix.setAttribute(
+    "values",
+    scale[0] +
+      " 0 0 0 0  0 " +
+      scale[1] +
+      " 0 0 0  0 0 " +
+      scale[2] +
+      " 0 0  0 0 0 1 0"
+  );
 }

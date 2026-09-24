@@ -1,5 +1,6 @@
 "use strict";
 
+import { DETAIL_TILE, detailAtlasGrid, isNightMap } from "../constants/mapLayout.js";
 import {
   collectionById,
   collections,
@@ -28,15 +29,15 @@ const ASSET_META = {
   },
   detailColor: {
     label: "Detail color",
-    description: "Close-range color texture.",
+    description: "Color atlas. Each index is a 16×16 tile.",
   },
   detailElevation: {
     label: "Detail elevation",
-    description: "Close-range elevation texture.",
+    description: "Elevation atlas. Each index is a 16×16 tile.",
   },
   detailShade: {
     label: "Detail shade",
-    description: "Close-range shading texture.",
+    description: "Shading atlas. Each index is a 16×16 tile.",
   },
   sky: {
     label: "Sky",
@@ -58,6 +59,7 @@ const ASSET_META = {
 
 const FACT_LABEL = {
   terrain: "Terrain",
+  mission: "Mission",
   creator: "Creator",
   owner: "Owner",
   source: "Source",
@@ -104,7 +106,7 @@ const GROUPS = [
   {
     id: "detail",
     label: "Detail",
-    blurb: "Textures used up close.",
+    blurb: "Atlas of 16×16 textures. Identical tiles are shown once, with every index that uses them.",
     assets: ["detailColor", "detailElevation", "detailShade"],
     facts: [],
   },
@@ -129,6 +131,7 @@ const GROUPS = [
     assets: [],
     facts: [
       "terrain",
+      "mission",
       "creator",
       "owner",
       "source",
@@ -401,6 +404,13 @@ export function initMapPicker(app) {
       card.append(summary);
     }
 
+    if (isNightMap(map.name)) {
+      const night = document.createElement("span");
+      night.className = "map-card-night";
+      night.textContent = "Night";
+      card.append(night);
+    }
+
     if (map.id === app.currentMapName) {
       const live = document.createElement("span");
       live.className = "map-card-live";
@@ -434,6 +444,12 @@ export function initMapPicker(app) {
       summary.className = "map-detail-summary";
       summary.textContent = map.summary;
       head.append(summary);
+    }
+    if (isNightMap(map.name)) {
+      const night = document.createElement("p");
+      night.className = "map-detail-summary";
+      night.textContent = "Night. Green screen filter and night sky.";
+      head.append(night);
     }
     detail.append(head);
 
@@ -475,6 +491,10 @@ export function initMapPicker(app) {
       section.append(grid);
     }
 
+    if (group.id === "detail") {
+      section.append(renderDetailAtlas(assetRows));
+    }
+
     if (factKeys.length) {
       const list = document.createElement("dl");
       list.className = "map-facts";
@@ -505,7 +525,7 @@ export function initMapPicker(app) {
     if (!src) {
       row.classList.add("map-asset--missing");
     }
-    row.append(thumb(src, meta.label));
+    row.append(groupAtlas(key) ? atlasMark(src) : thumb(src, meta.label));
 
     const body = document.createElement("div");
     body.className = "map-asset-body";
@@ -555,6 +575,201 @@ export function initMapPicker(app) {
       });
     }
     return row;
+  }
+
+  function groupAtlas(key) {
+    return key === "detailColor" || key === "detailElevation" || key === "detailShade";
+  }
+
+  function atlasMark(src) {
+    const frame = document.createElement("div");
+    frame.className = "map-asset-thumb";
+    const mark = document.createElement("span");
+    mark.textContent = src ? "16" : "—";
+    frame.append(mark);
+    return frame;
+  }
+
+  function renderDetailAtlas(assetRows) {
+    const available = assetRows.filter((row) => row.asset && row.asset.src);
+    const wrap = document.createElement("div");
+    wrap.className = "map-atlas-wrap";
+    if (!available.length) {
+      return wrap;
+    }
+
+    const channels = document.createElement("div");
+    channels.className = "map-atlas-channels";
+    channels.setAttribute("role", "tablist");
+    channels.setAttribute("aria-label", "Detail atlas");
+    const stage = document.createElement("div");
+    stage.className = "map-atlas-stage";
+
+    const show = (key) => {
+      for (const btn of channels.children) {
+        const on = btn.dataset.asset === key;
+        btn.classList.toggle("is-on", on);
+        btn.setAttribute("aria-selected", on ? "true" : "false");
+      }
+      const row = available.find((item) => item.key === key);
+      mountAtlas(stage, row.asset.src, ASSET_META[key].label);
+    };
+
+    for (const row of available) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "map-atlas-channel";
+      btn.dataset.asset = row.key;
+      btn.textContent = ASSET_META[row.key].label;
+      btn.setAttribute("role", "tab");
+      btn.addEventListener("click", () => show(row.key));
+      channels.append(btn);
+    }
+
+    wrap.append(channels, stage);
+    show(available[0].key);
+    return wrap;
+  }
+
+  function mountAtlas(stage, src, label) {
+    const token = {};
+    stage._atlasToken = token;
+    stage.replaceChildren();
+    const pending = document.createElement("p");
+    pending.className = "map-atlas-status";
+    pending.textContent = "Reading atlas";
+    stage.append(pending);
+
+    const image = new Image();
+    image.onload = () => {
+      if (stage._atlasToken !== token || !stage.isConnected) {
+        return;
+      }
+      const grid = detailAtlasGrid(image.naturalWidth, image.naturalHeight);
+      stage.replaceChildren();
+      if (!grid) {
+        stage.append(atlasStatus("No 16×16 tiles in this image."));
+        return;
+      }
+      const display = DETAIL_TILE * 2;
+      const groups = distinctTiles(image, grid);
+      const repeated = grid.count - groups.length;
+      const status = atlasStatus(
+        groups.length +
+          " textures · " +
+          grid.count +
+          " indices" +
+          (repeated ? " · " + repeated + " repeated" : "")
+      );
+      const tiles = document.createElement("div");
+      tiles.className = "map-atlas";
+      tiles.setAttribute("aria-label", label + " atlas");
+      const size =
+        image.naturalWidth * 2 + "px " + image.naturalHeight * 2 + "px";
+      for (const group of groups) {
+        const captionText = formatIndexList(group.indices);
+        const tile = document.createElement("figure");
+        tile.className = "map-atlas-tile";
+        tile.title = "Index " + captionText;
+        const swatch = document.createElement("span");
+        swatch.className = "map-atlas-swatch";
+        swatch.style.backgroundImage = 'url("' + src + '")';
+        swatch.style.backgroundSize = size;
+        swatch.style.backgroundPosition =
+          -group.x * display + "px " + -group.y * display + "px";
+        const caption = document.createElement("figcaption");
+        caption.textContent = captionText;
+        tile.append(swatch, caption);
+        tiles.append(tile);
+      }
+      stage.append(status, tiles);
+    };
+    image.onerror = () => {
+      if (stage._atlasToken !== token || !stage.isConnected) {
+        return;
+      }
+      stage.replaceChildren(atlasStatus("File not in the library"));
+    };
+    image.src = src;
+  }
+
+  function distinctTiles(image, grid) {
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    context.drawImage(image, 0, 0);
+    const buckets = new Map();
+    const groups = [];
+    for (let y = 0; y < grid.rows; y++) {
+      for (let x = 0; x < grid.cols; x++) {
+        const sample = context.getImageData(
+          x * DETAIL_TILE,
+          y * DETAIL_TILE,
+          DETAIL_TILE,
+          DETAIL_TILE
+        ).data;
+        const hash = pixelKey(sample);
+        const bucket = buckets.get(hash) || [];
+        let group = null;
+        for (const item of bucket) {
+          if (samePixels(item.sample, sample)) {
+            group = item;
+            break;
+          }
+        }
+        if (!group) {
+          group = { sample, x, y, indices: [] };
+          bucket.push(group);
+          buckets.set(hash, bucket);
+          groups.push(group);
+        }
+        group.indices.push(y * grid.cols + x);
+      }
+    }
+    return groups;
+  }
+
+  function pixelKey(data) {
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < data.length; i++) {
+      hash ^= data[i];
+      hash = Math.imul(hash, 0x01000193);
+    }
+    return hash >>> 0;
+  }
+
+  function samePixels(a, b) {
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function formatIndexList(indices) {
+    const parts = [];
+    let start = indices[0];
+    let prev = indices[0];
+    for (let i = 1; i <= indices.length; i++) {
+      const value = indices[i];
+      if (value === prev + 1) {
+        prev = value;
+        continue;
+      }
+      parts.push(start === prev ? String(start) : start + "–" + prev);
+      start = value;
+      prev = value;
+    }
+    return parts.join(", ");
+  }
+
+  function atlasStatus(text) {
+    const status = document.createElement("p");
+    status.className = "map-atlas-status";
+    status.textContent = text;
+    return status;
   }
 
   function thumb(src, label) {

@@ -7,6 +7,7 @@ import {
   MAP_COLLECTIONS,
   altitudeFromTerrainScale,
   foldersForRole,
+  isNightMap,
 } from "../scripts/constants/mapLayout.js";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
@@ -67,6 +68,17 @@ function titleCase(value) {
     return "";
   }
   return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+}
+
+function filterColor(row) {
+  if (!Array.isArray(row.filter) || row.filter.length < 3) {
+    return null;
+  }
+  const rgb = [Number(row.filter[0]), Number(row.filter[1]), Number(row.filter[2])];
+  if (rgb.some((channel) => !Number.isFinite(channel))) {
+    return null;
+  }
+  return rgb;
 }
 
 function meters(value) {
@@ -203,9 +215,13 @@ function pushFact(facts, key, value) {
   }
 }
 
-function comancheFacts(row) {
+function comancheFacts(row, fileName) {
   const facts = [];
   const altitude = altitudeFromTerrainScale(row.terrain_scale);
+  const missionLabel = row.mission ? String(row.mission).trim() : "";
+  if (missionLabel && missionLabel.toUpperCase() !== fileName.toUpperCase()) {
+    pushFact(facts, "mission", missionLabel);
+  }
   pushFact(facts, "owner", row.owner);
   pushFact(facts, "source", row.source);
   pushFact(facts, "camouflage", titleCase(row.camouflage));
@@ -321,14 +337,15 @@ function missionMaps(collection, pngs) {
     }
     const name = path.basename(file, ".json");
     const comanche = isComancheMission(row);
+    const missionLabel = row.mission ? String(row.mission).trim() : "";
     const title = comanche
-      ? (row.mission && String(row.mission).trim()) || name
+      ? missionLabel || name
       : (row.terrain_name && String(row.terrain_name).trim()) || name;
     const camouflage = titleCase(row.camouflage);
     maps.push({
       id: collection.id + "/" + name,
       collection: collection.id,
-      name: comanche ? title : name,
+      name,
       title,
       summary: comanche ? camouflage : title === name ? camouflage : title,
       creator: comanche
@@ -339,10 +356,12 @@ function missionMaps(collection, pngs) {
           ? String(row.terrain_creator)
           : "",
       playable: !!(assets.color && assets.color.src && assets.elevation && assets.elevation.src),
+      night: isNightMap(name),
+      filter: filterColor(row),
       altitude: comanche ? altitudeFromTerrainScale(row.terrain_scale) : null,
       skyColor: null,
       assets,
-      facts: comanche ? comancheFacts(row) : missionFacts(row),
+      facts: comanche ? comancheFacts(row, name) : missionFacts(row),
     });
   }
   return sortMaps(maps);

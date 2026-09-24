@@ -26,6 +26,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -173,6 +179,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        139,
+        125,
+        105
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -316,6 +328,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -463,6 +481,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -610,6 +634,12 @@
       "summary": "Green",
       "creator": "Dave Merrick",
       "playable": true,
+      "night": false,
+      "filter": [
+        138,
+        118,
+        140
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -757,6 +787,12 @@
       "summary": "Green",
       "creator": "Dave Merrick",
       "playable": true,
+      "night": false,
+      "filter": [
+        40,
+        160,
+        40
+      ],
       "altitude": 58.52160000000001,
       "skyColor": null,
       "assets": {
@@ -904,6 +940,12 @@
       "summary": "Green",
       "creator": "Dave Merrick",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 58.52160000000001,
       "skyColor": null,
       "assets": {
@@ -1047,6 +1089,12 @@
       "summary": "Green",
       "creator": "Dave Merrick",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -1194,6 +1242,12 @@
       "summary": "Desert",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -1332,11 +1386,17 @@
     {
       "id": "comanche3/C1M1",
       "collection": "comanche3",
-      "name": "C1M1!",
+      "name": "C1M1",
       "title": "C1M1!",
       "summary": "Green",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        120,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -1374,6 +1434,10 @@
         }
       },
       "facts": [
+        {
+          "key": "mission",
+          "value": "C1M1!"
+        },
         {
           "key": "owner",
           "value": "Mat Jennings"
@@ -1484,6 +1548,12 @@
       "summary": "Green",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        173,
+        120,
+        97
+      ],
       "altitude": 58.52160000000001,
       "skyColor": null,
       "assets": {
@@ -1626,11 +1696,17 @@
     {
       "id": "comanche3/C1M3",
       "collection": "comanche3",
-      "name": "C1M2",
+      "name": "C1M3",
       "title": "C1M2",
       "summary": "Desert",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        125,
+        126,
+        126
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -1668,6 +1744,10 @@
         }
       },
       "facts": [
+        {
+          "key": "mission",
+          "value": "C1M2"
+        },
         {
           "key": "owner",
           "value": "Keith Butler"
@@ -1778,6 +1858,12 @@
       "summary": "Desert",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        40,
+        160,
+        40
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -1925,6 +2011,12 @@
       "summary": "Snow",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        127,
+        126,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -2065,6 +2157,163 @@
       ]
     },
     {
+      "id": "comanche3/C1M6",
+      "collection": "comanche3",
+      "name": "C1M6",
+      "title": "c4m4",
+      "summary": "Green",
+      "creator": "Mat Jennings",
+      "playable": true,
+      "night": false,
+      "filter": [
+        125,
+        135,
+        125
+      ],
+      "altitude": 117.04320000000001,
+      "skyColor": null,
+      "assets": {
+        "color": {
+          "name": "C4M3_C",
+          "src": "maps/comanche3/color/C4M3_C.png"
+        },
+        "elevation": {
+          "name": "C4M3_D",
+          "src": "maps/comanche3/height/C4M3_D.png"
+        },
+        "character": {
+          "name": "C4M3_M",
+          "src": "maps/comanche3/character/C4M3_M.png"
+        },
+        "detailColor": {
+          "name": "MSR1_C",
+          "src": "maps/comanche3/detail/color/MSR1_C.png"
+        },
+        "detailElevation": {
+          "name": "MSR1_D",
+          "src": "maps/comanche3/detail/height/MSR1_D.png"
+        },
+        "detailShade": {
+          "name": "MSR1_S",
+          "src": "maps/comanche3/detail/shading/MSR1_S.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/comanche3/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRAD2",
+          "src": "maps/comanche3/grads/SKYGRAD2.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "mission",
+          "value": "c4m4"
+        },
+        {
+          "key": "owner",
+          "value": "Mat Jennings"
+        },
+        {
+          "key": "source",
+          "value": "C1M6.MIS"
+        },
+        {
+          "key": "camouflage",
+          "value": "Green"
+        },
+        {
+          "key": "altitude",
+          "value": "117 m"
+        },
+        {
+          "key": "terrainScale",
+          "value": "20"
+        },
+        {
+          "key": "lowestElevation",
+          "value": "150 m"
+        },
+        {
+          "key": "skyHeight",
+          "value": "750 m"
+        },
+        {
+          "key": "idealAltitude",
+          "value": "20 m"
+        },
+        {
+          "key": "sun",
+          "value": "SUN.3DO"
+        },
+        {
+          "key": "sunSlope",
+          "value": "55"
+        },
+        {
+          "key": "filter",
+          "value": "125, 135, 125"
+        },
+        {
+          "key": "gamma",
+          "value": "123"
+        },
+        {
+          "key": "saturation",
+          "value": "120"
+        },
+        {
+          "key": "cannon",
+          "value": "500"
+        },
+        {
+          "key": "rockets",
+          "value": "0"
+        },
+        {
+          "key": "stingers",
+          "value": "4"
+        },
+        {
+          "key": "hellfire",
+          "value": "4"
+        },
+        {
+          "key": "artillery",
+          "value": "0"
+        },
+        {
+          "key": "sidewinders",
+          "value": "0"
+        },
+        {
+          "key": "wingmen",
+          "value": "0"
+        },
+        {
+          "key": "music",
+          "value": "A"
+        },
+        {
+          "key": "missionType",
+          "value": "0"
+        },
+        {
+          "key": "copilot",
+          "value": "0"
+        },
+        {
+          "key": "lineOfSight",
+          "value": "0"
+        },
+        {
+          "key": "showEfams",
+          "value": "0"
+        }
+      ]
+    },
+    {
       "id": "comanche3/C2M0",
       "collection": "comanche3",
       "name": "C2M0",
@@ -2072,6 +2321,12 @@
       "summary": "Desert",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -2219,6 +2474,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -2362,6 +2623,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -2509,6 +2776,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -2651,11 +2924,17 @@
     {
       "id": "comanche3/C2M4",
       "collection": "comanche3",
-      "name": "C2m4",
+      "name": "C2M4",
       "title": "C2m4",
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        150,
+        105,
+        85
+      ],
       "altitude": 58.52160000000001,
       "skyColor": null,
       "assets": {
@@ -2799,6 +3078,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        126,
+        122,
+        150
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -2942,6 +3227,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        40,
+        160,
+        40
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -3089,6 +3380,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        159,
+        110,
+        65
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -3232,6 +3529,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        135,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -3374,11 +3677,17 @@
     {
       "id": "comanche3/C2M9",
       "collection": "comanche3",
-      "name": "C2M8",
+      "name": "C2M9",
       "title": "C2M8",
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -3416,6 +3725,10 @@
         }
       },
       "facts": [
+        {
+          "key": "mission",
+          "value": "C2M8"
+        },
         {
           "key": "owner",
           "value": "Keith Butler"
@@ -3518,6 +3831,12 @@
       "summary": "Desert",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -3658,13 +3977,172 @@
       ]
     },
     {
+      "id": "comanche3/C3M1",
+      "collection": "comanche3",
+      "name": "C3M1",
+      "title": "c3m3",
+      "summary": "Snow",
+      "creator": "Mat Jennings",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": 117.04320000000001,
+      "skyColor": null,
+      "assets": {
+        "color": {
+          "name": "C3M2_C",
+          "src": "maps/comanche3/color/C3M2_C.png"
+        },
+        "elevation": {
+          "name": "C3M2_D",
+          "src": "maps/comanche3/height/C3M2_D.png"
+        },
+        "character": {
+          "name": "C3M2_M",
+          "src": "maps/comanche3/character/C3M2_M.png"
+        },
+        "detailColor": {
+          "name": "MSTR_C",
+          "src": "maps/comanche3/detail/color/MSTR_C.png"
+        },
+        "detailElevation": {
+          "name": "MSTR_D",
+          "src": "maps/comanche3/detail/height/MSTR_D.png"
+        },
+        "detailShade": {
+          "name": "MSTR_S",
+          "src": "maps/comanche3/detail/shading/MSTR_S.png"
+        },
+        "sky": {
+          "name": "CLOUDS06",
+          "src": "maps/comanche3/clouds/CLOUDS06.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRAD3",
+          "src": "maps/comanche3/grads/SKYGRAD3.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "mission",
+          "value": "c3m3"
+        },
+        {
+          "key": "owner",
+          "value": "Mat Jennings"
+        },
+        {
+          "key": "source",
+          "value": "C3M1.MIS"
+        },
+        {
+          "key": "camouflage",
+          "value": "Snow"
+        },
+        {
+          "key": "altitude",
+          "value": "117 m"
+        },
+        {
+          "key": "terrainScale",
+          "value": "20"
+        },
+        {
+          "key": "lowestElevation",
+          "value": "1900 m"
+        },
+        {
+          "key": "skyHeight",
+          "value": "2400 m"
+        },
+        {
+          "key": "idealAltitude",
+          "value": "20 m"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "cannon",
+          "value": "500"
+        },
+        {
+          "key": "rockets",
+          "value": "16"
+        },
+        {
+          "key": "stingers",
+          "value": "4"
+        },
+        {
+          "key": "hellfire",
+          "value": "8"
+        },
+        {
+          "key": "artillery",
+          "value": "4"
+        },
+        {
+          "key": "sidewinders",
+          "value": "0"
+        },
+        {
+          "key": "wingmen",
+          "value": "12"
+        },
+        {
+          "key": "music",
+          "value": "C"
+        },
+        {
+          "key": "missionType",
+          "value": "0"
+        },
+        {
+          "key": "copilot",
+          "value": "0"
+        },
+        {
+          "key": "lineOfSight",
+          "value": "0"
+        },
+        {
+          "key": "showEfams",
+          "value": "1"
+        }
+      ]
+    },
+    {
       "id": "comanche3/C3M2",
       "collection": "comanche3",
-      "name": "c3m2",
+      "name": "C3M2",
       "title": "c3m2",
       "summary": "Snow",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -3805,156 +4283,19 @@
       ]
     },
     {
-      "id": "comanche3/C3M1",
-      "collection": "comanche3",
-      "name": "c3m3",
-      "title": "c3m3",
-      "summary": "Snow",
-      "creator": "Mat Jennings",
-      "playable": true,
-      "altitude": 117.04320000000001,
-      "skyColor": null,
-      "assets": {
-        "color": {
-          "name": "C3M2_C",
-          "src": "maps/comanche3/color/C3M2_C.png"
-        },
-        "elevation": {
-          "name": "C3M2_D",
-          "src": "maps/comanche3/height/C3M2_D.png"
-        },
-        "character": {
-          "name": "C3M2_M",
-          "src": "maps/comanche3/character/C3M2_M.png"
-        },
-        "detailColor": {
-          "name": "MSTR_C",
-          "src": "maps/comanche3/detail/color/MSTR_C.png"
-        },
-        "detailElevation": {
-          "name": "MSTR_D",
-          "src": "maps/comanche3/detail/height/MSTR_D.png"
-        },
-        "detailShade": {
-          "name": "MSTR_S",
-          "src": "maps/comanche3/detail/shading/MSTR_S.png"
-        },
-        "sky": {
-          "name": "CLOUDS06",
-          "src": "maps/comanche3/clouds/CLOUDS06.png"
-        },
-        "skyPalette": {
-          "name": "SKYGRAD3",
-          "src": "maps/comanche3/grads/SKYGRAD3.png"
-        }
-      },
-      "facts": [
-        {
-          "key": "owner",
-          "value": "Mat Jennings"
-        },
-        {
-          "key": "source",
-          "value": "C3M1.MIS"
-        },
-        {
-          "key": "camouflage",
-          "value": "Snow"
-        },
-        {
-          "key": "altitude",
-          "value": "117 m"
-        },
-        {
-          "key": "terrainScale",
-          "value": "20"
-        },
-        {
-          "key": "lowestElevation",
-          "value": "1900 m"
-        },
-        {
-          "key": "skyHeight",
-          "value": "2400 m"
-        },
-        {
-          "key": "idealAltitude",
-          "value": "20 m"
-        },
-        {
-          "key": "sunSlope",
-          "value": "70"
-        },
-        {
-          "key": "filter",
-          "value": "128, 128, 128"
-        },
-        {
-          "key": "gamma",
-          "value": "128"
-        },
-        {
-          "key": "saturation",
-          "value": "128"
-        },
-        {
-          "key": "cannon",
-          "value": "500"
-        },
-        {
-          "key": "rockets",
-          "value": "16"
-        },
-        {
-          "key": "stingers",
-          "value": "4"
-        },
-        {
-          "key": "hellfire",
-          "value": "8"
-        },
-        {
-          "key": "artillery",
-          "value": "4"
-        },
-        {
-          "key": "sidewinders",
-          "value": "0"
-        },
-        {
-          "key": "wingmen",
-          "value": "12"
-        },
-        {
-          "key": "music",
-          "value": "C"
-        },
-        {
-          "key": "missionType",
-          "value": "0"
-        },
-        {
-          "key": "copilot",
-          "value": "0"
-        },
-        {
-          "key": "lineOfSight",
-          "value": "0"
-        },
-        {
-          "key": "showEfams",
-          "value": "1"
-        }
-      ]
-    },
-    {
       "id": "comanche3/C3M3",
       "collection": "comanche3",
-      "name": "c3m4",
+      "name": "C3M3",
       "title": "c3m4",
       "summary": "Snow",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        145,
+        118,
+        140
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -3992,6 +4333,10 @@
         }
       },
       "facts": [
+        {
+          "key": "mission",
+          "value": "c3m4"
+        },
         {
           "key": "owner",
           "value": "Mat Jennings"
@@ -4093,11 +4438,17 @@
     {
       "id": "comanche3/C3M4",
       "collection": "comanche3",
-      "name": "c3m4",
+      "name": "C3M4",
       "title": "c3m4",
       "summary": "Snow",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        120,
+        120,
+        150
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -4236,11 +4587,17 @@
     {
       "id": "comanche3/C3M5",
       "collection": "comanche3",
-      "name": "c3m5",
+      "name": "C3M5",
       "title": "c3m5",
       "summary": "Snow",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        140,
+        87,
+        159
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -4383,11 +4740,17 @@
     {
       "id": "comanche3/C3M6",
       "collection": "comanche3",
-      "name": "c3m6",
+      "name": "C3M6",
       "title": "c3m6",
       "summary": "Snow",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -4530,11 +4893,17 @@
     {
       "id": "comanche3/C3M7",
       "collection": "comanche3",
-      "name": "c3m7",
+      "name": "C3M7",
       "title": "c3m7",
       "summary": "Snow",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        138,
+        118,
+        140
+      ],
       "altitude": 234.08640000000003,
       "skyColor": null,
       "assets": {
@@ -4673,11 +5042,17 @@
     {
       "id": "comanche3/C3M8",
       "collection": "comanche3",
-      "name": "c3m8",
+      "name": "C3M8",
       "title": "c3m8",
       "summary": "Snow",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        127,
+        127,
+        127
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -4820,11 +5195,17 @@
     {
       "id": "comanche3/C4M0",
       "collection": "comanche3",
-      "name": "c4m0",
+      "name": "C4M0",
       "title": "c4m0",
       "summary": "Snow",
       "creator": "Dan Chang",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -4965,27 +5346,33 @@
       ]
     },
     {
-      "id": "comanche3/C4M6",
+      "id": "comanche3/C4M1",
       "collection": "comanche3",
-      "name": "c4m2",
-      "title": "c4m2",
+      "name": "C4M1",
+      "title": "Gitmo",
       "summary": "Green",
-      "creator": "Mat Jennings",
+      "creator": "dk",
       "playable": true,
+      "night": false,
+      "filter": [
+        132,
+        91,
+        119
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
         "color": {
-          "name": "C4M2_C",
-          "src": "maps/comanche3/color/C4M2_C.png"
+          "name": "C4M1_C",
+          "src": "maps/comanche3/color/C4M1_C.png"
         },
         "elevation": {
-          "name": "C4M2_D",
-          "src": "maps/comanche3/height/C4M2_D.png"
+          "name": "C4M1_D",
+          "src": "maps/comanche3/height/C4M1_D.png"
         },
         "character": {
-          "name": "C4M2_M",
-          "src": "maps/comanche3/character/C4M2_M.png"
+          "name": "C4M1_M",
+          "src": "maps/comanche3/character/C4M1_M.png"
         },
         "detailColor": {
           "name": "MSTR_C",
@@ -5000,22 +5387,26 @@
           "src": "maps/comanche3/detail/shading/MSTR_S.png"
         },
         "sky": {
-          "name": "CLOUDS01",
-          "src": "maps/comanche3/clouds/CLOUDS01.png"
+          "name": "CLOUDS05",
+          "src": "maps/comanche3/clouds/CLOUDS05.png"
         },
         "skyPalette": {
-          "name": "SNSGRAD1",
-          "src": "maps/comanche3/grads/SNSGRAD1.png"
+          "name": "SNSGRAD5",
+          "src": "maps/comanche3/grads/SNSGRAD5.png"
         }
       },
       "facts": [
         {
+          "key": "mission",
+          "value": "Gitmo"
+        },
+        {
           "key": "owner",
-          "value": "Mat Jennings"
+          "value": "dk"
         },
         {
           "key": "source",
-          "value": "C4M6.MIS"
+          "value": "C4M1.MIS"
         },
         {
           "key": "camouflage",
@@ -5031,31 +5422,188 @@
         },
         {
           "key": "lowestElevation",
-          "value": "300 m"
+          "value": "0 m"
         },
         {
           "key": "skyHeight",
-          "value": "800 m"
+          "value": "700 m"
+        },
+        {
+          "key": "idealAltitude",
+          "value": "30 m"
+        },
+        {
+          "key": "sunSlope",
+          "value": "80"
+        },
+        {
+          "key": "filter",
+          "value": "132, 91, 119"
+        },
+        {
+          "key": "gamma",
+          "value": "129"
+        },
+        {
+          "key": "saturation",
+          "value": "63"
+        },
+        {
+          "key": "cannon",
+          "value": "500"
+        },
+        {
+          "key": "rockets",
+          "value": "20"
+        },
+        {
+          "key": "stingers",
+          "value": "6"
+        },
+        {
+          "key": "hellfire",
+          "value": "8"
+        },
+        {
+          "key": "artillery",
+          "value": "4"
+        },
+        {
+          "key": "sidewinders",
+          "value": "0"
+        },
+        {
+          "key": "wingmen",
+          "value": "4"
+        },
+        {
+          "key": "music",
+          "value": "A"
+        },
+        {
+          "key": "missionType",
+          "value": "0"
+        },
+        {
+          "key": "copilot",
+          "value": "0"
+        },
+        {
+          "key": "lineOfSight",
+          "value": "1"
+        },
+        {
+          "key": "showEfams",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": "comanche3/C4M2",
+      "collection": "comanche3",
+      "name": "C4M2",
+      "title": "c4m6",
+      "summary": "Green",
+      "creator": "Mat Jennings",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": 117.04320000000001,
+      "skyColor": null,
+      "assets": {
+        "color": {
+          "name": "C4M6_C",
+          "src": "maps/comanche3/color/C4M6_C.png"
+        },
+        "elevation": {
+          "name": "C4M6_D",
+          "src": "maps/comanche3/height/C4M6_D.png"
+        },
+        "character": {
+          "name": "C4M6_M",
+          "src": "maps/comanche3/character/C4M6_M.png"
+        },
+        "detailColor": {
+          "name": "MSTR_C",
+          "src": "maps/comanche3/detail/color/MSTR_C.png"
+        },
+        "detailElevation": {
+          "name": "MSTR_D",
+          "src": "maps/comanche3/detail/height/MSTR_D.png"
+        },
+        "detailShade": {
+          "name": "MSTR_S",
+          "src": "maps/comanche3/detail/shading/MSTR_S.png"
+        },
+        "sky": {
+          "name": "CLOUDS04",
+          "src": "maps/comanche3/clouds/CLOUDS04.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRAD2",
+          "src": "maps/comanche3/grads/SKYGRAD2.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "mission",
+          "value": "c4m6"
+        },
+        {
+          "key": "owner",
+          "value": "Mat Jennings"
+        },
+        {
+          "key": "source",
+          "value": "C4M2.MIS"
+        },
+        {
+          "key": "camouflage",
+          "value": "Green"
+        },
+        {
+          "key": "altitude",
+          "value": "117 m"
+        },
+        {
+          "key": "terrainScale",
+          "value": "20"
+        },
+        {
+          "key": "lowestElevation",
+          "value": "1 m"
+        },
+        {
+          "key": "skyHeight",
+          "value": "600 m"
         },
         {
           "key": "idealAltitude",
           "value": "20 m"
         },
         {
+          "key": "sun",
+          "value": "SUN.3DO"
+        },
+        {
           "key": "sunSlope",
-          "value": "55"
+          "value": "50"
         },
         {
           "key": "filter",
-          "value": "139, 125, 105"
+          "value": "128, 128, 128"
         },
         {
           "key": "gamma",
-          "value": "128"
+          "value": "144"
         },
         {
           "key": "saturation",
-          "value": "140"
+          "value": "128"
         },
         {
           "key": "cannon",
@@ -5067,15 +5615,15 @@
         },
         {
           "key": "stingers",
-          "value": "4"
+          "value": "8"
         },
         {
           "key": "hellfire",
-          "value": "12"
+          "value": "10"
         },
         {
           "key": "artillery",
-          "value": "10"
+          "value": "0"
         },
         {
           "key": "sidewinders",
@@ -5087,7 +5635,7 @@
         },
         {
           "key": "music",
-          "value": "D"
+          "value": "C"
         },
         {
           "key": "missionType",
@@ -5108,160 +5656,19 @@
       ]
     },
     {
-      "id": "comanche3/C1M6",
-      "collection": "comanche3",
-      "name": "c4m4",
-      "title": "c4m4",
-      "summary": "Green",
-      "creator": "Mat Jennings",
-      "playable": true,
-      "altitude": 117.04320000000001,
-      "skyColor": null,
-      "assets": {
-        "color": {
-          "name": "C4M3_C",
-          "src": "maps/comanche3/color/C4M3_C.png"
-        },
-        "elevation": {
-          "name": "C4M3_D",
-          "src": "maps/comanche3/height/C4M3_D.png"
-        },
-        "character": {
-          "name": "C4M3_M",
-          "src": "maps/comanche3/character/C4M3_M.png"
-        },
-        "detailColor": {
-          "name": "MSR1_C",
-          "src": "maps/comanche3/detail/color/MSR1_C.png"
-        },
-        "detailElevation": {
-          "name": "MSR1_D",
-          "src": "maps/comanche3/detail/height/MSR1_D.png"
-        },
-        "detailShade": {
-          "name": "MSR1_S",
-          "src": "maps/comanche3/detail/shading/MSR1_S.png"
-        },
-        "sky": {
-          "name": "CLOUDS01",
-          "src": "maps/comanche3/clouds/CLOUDS01.png"
-        },
-        "skyPalette": {
-          "name": "SKYGRAD2",
-          "src": "maps/comanche3/grads/SKYGRAD2.png"
-        }
-      },
-      "facts": [
-        {
-          "key": "owner",
-          "value": "Mat Jennings"
-        },
-        {
-          "key": "source",
-          "value": "C1M6.MIS"
-        },
-        {
-          "key": "camouflage",
-          "value": "Green"
-        },
-        {
-          "key": "altitude",
-          "value": "117 m"
-        },
-        {
-          "key": "terrainScale",
-          "value": "20"
-        },
-        {
-          "key": "lowestElevation",
-          "value": "150 m"
-        },
-        {
-          "key": "skyHeight",
-          "value": "750 m"
-        },
-        {
-          "key": "idealAltitude",
-          "value": "20 m"
-        },
-        {
-          "key": "sun",
-          "value": "SUN.3DO"
-        },
-        {
-          "key": "sunSlope",
-          "value": "55"
-        },
-        {
-          "key": "filter",
-          "value": "125, 135, 125"
-        },
-        {
-          "key": "gamma",
-          "value": "123"
-        },
-        {
-          "key": "saturation",
-          "value": "120"
-        },
-        {
-          "key": "cannon",
-          "value": "500"
-        },
-        {
-          "key": "rockets",
-          "value": "0"
-        },
-        {
-          "key": "stingers",
-          "value": "4"
-        },
-        {
-          "key": "hellfire",
-          "value": "4"
-        },
-        {
-          "key": "artillery",
-          "value": "0"
-        },
-        {
-          "key": "sidewinders",
-          "value": "0"
-        },
-        {
-          "key": "wingmen",
-          "value": "0"
-        },
-        {
-          "key": "music",
-          "value": "A"
-        },
-        {
-          "key": "missionType",
-          "value": "0"
-        },
-        {
-          "key": "copilot",
-          "value": "0"
-        },
-        {
-          "key": "lineOfSight",
-          "value": "0"
-        },
-        {
-          "key": "showEfams",
-          "value": "0"
-        }
-      ]
-    },
-    {
       "id": "comanche3/C4M3",
       "collection": "comanche3",
-      "name": "c4m4",
+      "name": "C4M3",
       "title": "c4m4",
       "summary": "Green",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        40,
+        160,
+        40
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -5299,6 +5706,10 @@
         }
       },
       "facts": [
+        {
+          "key": "mission",
+          "value": "c4m4"
+        },
         {
           "key": "owner",
           "value": "Mat Jennings"
@@ -5408,11 +5819,17 @@
     {
       "id": "comanche3/C4M4",
       "collection": "comanche3",
-      "name": "c4m4",
+      "name": "C4M4",
       "title": "c4m4",
       "summary": "Green",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -5555,11 +5972,17 @@
     {
       "id": "comanche3/C4M5",
       "collection": "comanche3",
-      "name": "c4m5",
+      "name": "C4M5",
       "title": "c4m5",
       "summary": "Green",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        126,
+        132,
+        127
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -5700,27 +6123,33 @@
       ]
     },
     {
-      "id": "comanche3/C4M2",
+      "id": "comanche3/C4M6",
       "collection": "comanche3",
-      "name": "c4m6",
-      "title": "c4m6",
+      "name": "C4M6",
+      "title": "c4m2",
       "summary": "Green",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        139,
+        125,
+        105
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
         "color": {
-          "name": "C4M6_C",
-          "src": "maps/comanche3/color/C4M6_C.png"
+          "name": "C4M2_C",
+          "src": "maps/comanche3/color/C4M2_C.png"
         },
         "elevation": {
-          "name": "C4M6_D",
-          "src": "maps/comanche3/height/C4M6_D.png"
+          "name": "C4M2_D",
+          "src": "maps/comanche3/height/C4M2_D.png"
         },
         "character": {
-          "name": "C4M6_M",
-          "src": "maps/comanche3/character/C4M6_M.png"
+          "name": "C4M2_M",
+          "src": "maps/comanche3/character/C4M2_M.png"
         },
         "detailColor": {
           "name": "MSTR_C",
@@ -5735,22 +6164,26 @@
           "src": "maps/comanche3/detail/shading/MSTR_S.png"
         },
         "sky": {
-          "name": "CLOUDS04",
-          "src": "maps/comanche3/clouds/CLOUDS04.png"
+          "name": "CLOUDS01",
+          "src": "maps/comanche3/clouds/CLOUDS01.png"
         },
         "skyPalette": {
-          "name": "SKYGRAD2",
-          "src": "maps/comanche3/grads/SKYGRAD2.png"
+          "name": "SNSGRAD1",
+          "src": "maps/comanche3/grads/SNSGRAD1.png"
         }
       },
       "facts": [
+        {
+          "key": "mission",
+          "value": "c4m2"
+        },
         {
           "key": "owner",
           "value": "Mat Jennings"
         },
         {
           "key": "source",
-          "value": "C4M2.MIS"
+          "value": "C4M6.MIS"
         },
         {
           "key": "camouflage",
@@ -5766,35 +6199,31 @@
         },
         {
           "key": "lowestElevation",
-          "value": "1 m"
+          "value": "300 m"
         },
         {
           "key": "skyHeight",
-          "value": "600 m"
+          "value": "800 m"
         },
         {
           "key": "idealAltitude",
           "value": "20 m"
         },
         {
-          "key": "sun",
-          "value": "SUN.3DO"
-        },
-        {
           "key": "sunSlope",
-          "value": "50"
+          "value": "55"
         },
         {
           "key": "filter",
-          "value": "128, 128, 128"
+          "value": "139, 125, 105"
         },
         {
           "key": "gamma",
-          "value": "144"
+          "value": "128"
         },
         {
           "key": "saturation",
-          "value": "128"
+          "value": "140"
         },
         {
           "key": "cannon",
@@ -5806,15 +6235,15 @@
         },
         {
           "key": "stingers",
-          "value": "8"
+          "value": "4"
         },
         {
           "key": "hellfire",
-          "value": "10"
+          "value": "12"
         },
         {
           "key": "artillery",
-          "value": "0"
+          "value": "10"
         },
         {
           "key": "sidewinders",
@@ -5826,7 +6255,7 @@
         },
         {
           "key": "music",
-          "value": "C"
+          "value": "D"
         },
         {
           "key": "missionType",
@@ -5849,11 +6278,17 @@
     {
       "id": "comanche3/C4M7",
       "collection": "comanche3",
-      "name": "c4m7",
+      "name": "C4M7",
       "title": "c4m7",
       "summary": "Green",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        40,
+        160,
+        40
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -5996,11 +6431,17 @@
     {
       "id": "comanche3/C4M8",
       "collection": "comanche3",
-      "name": "c4m8",
+      "name": "C4M8",
       "title": "c4m8",
       "summary": "Green",
       "creator": "wes",
       "playable": true,
+      "night": false,
+      "filter": [
+        126,
+        128,
+        127
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -6148,6 +6589,12 @@
       "summary": "Desert",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -6291,6 +6738,12 @@
       "summary": "Desert",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        138,
+        118,
+        140
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -6434,6 +6887,12 @@
       "summary": "Desert",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        126,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -6581,6 +7040,12 @@
       "summary": "Desert",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        40,
+        160,
+        40
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -6728,6 +7193,12 @@
       "summary": "Desert",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        152,
+        101,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -6871,6 +7342,12 @@
       "summary": "Desert",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        40,
+        160,
+        40
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -7018,6 +7495,12 @@
       "summary": "Desert",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        133,
+        124,
+        102
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -7165,6 +7648,12 @@
       "summary": "Desert",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        161,
+        114,
+        115
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -7308,6 +7797,12 @@
       "summary": "Desert",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        145,
+        120,
+        98
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -7451,6 +7946,12 @@
       "summary": "Green",
       "creator": "Dave Merrick",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -7593,11 +8094,17 @@
     {
       "id": "comanche3/C6M1",
       "collection": "comanche3",
-      "name": "c6m1",
+      "name": "C6M1",
       "title": "c6m1",
       "summary": "Green",
       "creator": "Dan Chang",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -7740,11 +8247,17 @@
     {
       "id": "comanche3/C6M2",
       "collection": "comanche3",
-      "name": "c6m2",
+      "name": "C6M2",
       "title": "c6m2",
       "summary": "Green",
       "creator": "Dan Chang",
       "playable": true,
+      "night": false,
+      "filter": [
+        40,
+        160,
+        40
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -7885,156 +8398,19 @@
       ]
     },
     {
-      "id": "comanche3/C6M4",
-      "collection": "comanche3",
-      "name": "c6m2",
-      "title": "c6m2",
-      "summary": "Green",
-      "creator": "Dan Chang",
-      "playable": true,
-      "altitude": 117.04320000000001,
-      "skyColor": null,
-      "assets": {
-        "color": {
-          "name": "C6M2_C",
-          "src": "maps/comanche3/color/C6M2_C.png"
-        },
-        "elevation": {
-          "name": "C6M2_D",
-          "src": "maps/comanche3/height/C6M2_D.png"
-        },
-        "character": {
-          "name": "C6M2_M",
-          "src": "maps/comanche3/character/C6M2_M.png"
-        },
-        "detailColor": {
-          "name": "CAMB_C",
-          "src": "maps/comanche3/detail/color/CAMB_C.png"
-        },
-        "detailElevation": {
-          "name": "CAMB_D",
-          "src": "maps/comanche3/detail/height/CAMB_D.png"
-        },
-        "detailShade": {
-          "name": "CAMB_S",
-          "src": "maps/comanche3/detail/shading/CAMB_S.png"
-        },
-        "sky": {
-          "name": "CLOUDS03",
-          "src": "maps/comanche3/clouds/CLOUDS03.png"
-        },
-        "skyPalette": {
-          "name": "STMGRAD1",
-          "src": "maps/comanche3/grads/STMGRAD1.png"
-        }
-      },
-      "facts": [
-        {
-          "key": "owner",
-          "value": "Dan Chang"
-        },
-        {
-          "key": "source",
-          "value": "C6M4.MIS"
-        },
-        {
-          "key": "camouflage",
-          "value": "Green"
-        },
-        {
-          "key": "altitude",
-          "value": "117 m"
-        },
-        {
-          "key": "terrainScale",
-          "value": "20"
-        },
-        {
-          "key": "lowestElevation",
-          "value": "0 m"
-        },
-        {
-          "key": "skyHeight",
-          "value": "700 m"
-        },
-        {
-          "key": "idealAltitude",
-          "value": "40 m"
-        },
-        {
-          "key": "sunSlope",
-          "value": "70"
-        },
-        {
-          "key": "filter",
-          "value": "128, 128, 128"
-        },
-        {
-          "key": "gamma",
-          "value": "140"
-        },
-        {
-          "key": "saturation",
-          "value": "90"
-        },
-        {
-          "key": "cannon",
-          "value": "500"
-        },
-        {
-          "key": "rockets",
-          "value": "0"
-        },
-        {
-          "key": "stingers",
-          "value": "6"
-        },
-        {
-          "key": "hellfire",
-          "value": "11"
-        },
-        {
-          "key": "artillery",
-          "value": "3"
-        },
-        {
-          "key": "sidewinders",
-          "value": "0"
-        },
-        {
-          "key": "wingmen",
-          "value": "0"
-        },
-        {
-          "key": "music",
-          "value": "R"
-        },
-        {
-          "key": "missionType",
-          "value": "0"
-        },
-        {
-          "key": "copilot",
-          "value": "0"
-        },
-        {
-          "key": "lineOfSight",
-          "value": "0"
-        },
-        {
-          "key": "showEfams",
-          "value": "1"
-        }
-      ]
-    },
-    {
       "id": "comanche3/C6M3",
       "collection": "comanche3",
-      "name": "c6m3",
+      "name": "C6M3",
       "title": "c6m3",
       "summary": "Green",
       "creator": "Dan Chang",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -8175,13 +8551,172 @@
       ]
     },
     {
+      "id": "comanche3/C6M4",
+      "collection": "comanche3",
+      "name": "C6M4",
+      "title": "c6m2",
+      "summary": "Green",
+      "creator": "Dan Chang",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": 117.04320000000001,
+      "skyColor": null,
+      "assets": {
+        "color": {
+          "name": "C6M2_C",
+          "src": "maps/comanche3/color/C6M2_C.png"
+        },
+        "elevation": {
+          "name": "C6M2_D",
+          "src": "maps/comanche3/height/C6M2_D.png"
+        },
+        "character": {
+          "name": "C6M2_M",
+          "src": "maps/comanche3/character/C6M2_M.png"
+        },
+        "detailColor": {
+          "name": "CAMB_C",
+          "src": "maps/comanche3/detail/color/CAMB_C.png"
+        },
+        "detailElevation": {
+          "name": "CAMB_D",
+          "src": "maps/comanche3/detail/height/CAMB_D.png"
+        },
+        "detailShade": {
+          "name": "CAMB_S",
+          "src": "maps/comanche3/detail/shading/CAMB_S.png"
+        },
+        "sky": {
+          "name": "CLOUDS03",
+          "src": "maps/comanche3/clouds/CLOUDS03.png"
+        },
+        "skyPalette": {
+          "name": "STMGRAD1",
+          "src": "maps/comanche3/grads/STMGRAD1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "mission",
+          "value": "c6m2"
+        },
+        {
+          "key": "owner",
+          "value": "Dan Chang"
+        },
+        {
+          "key": "source",
+          "value": "C6M4.MIS"
+        },
+        {
+          "key": "camouflage",
+          "value": "Green"
+        },
+        {
+          "key": "altitude",
+          "value": "117 m"
+        },
+        {
+          "key": "terrainScale",
+          "value": "20"
+        },
+        {
+          "key": "lowestElevation",
+          "value": "0 m"
+        },
+        {
+          "key": "skyHeight",
+          "value": "700 m"
+        },
+        {
+          "key": "idealAltitude",
+          "value": "40 m"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "140"
+        },
+        {
+          "key": "saturation",
+          "value": "90"
+        },
+        {
+          "key": "cannon",
+          "value": "500"
+        },
+        {
+          "key": "rockets",
+          "value": "0"
+        },
+        {
+          "key": "stingers",
+          "value": "6"
+        },
+        {
+          "key": "hellfire",
+          "value": "11"
+        },
+        {
+          "key": "artillery",
+          "value": "3"
+        },
+        {
+          "key": "sidewinders",
+          "value": "0"
+        },
+        {
+          "key": "wingmen",
+          "value": "0"
+        },
+        {
+          "key": "music",
+          "value": "R"
+        },
+        {
+          "key": "missionType",
+          "value": "0"
+        },
+        {
+          "key": "copilot",
+          "value": "0"
+        },
+        {
+          "key": "lineOfSight",
+          "value": "0"
+        },
+        {
+          "key": "showEfams",
+          "value": "1"
+        }
+      ]
+    },
+    {
       "id": "comanche3/C6M5",
       "collection": "comanche3",
-      "name": "c6m5",
+      "name": "C6M5",
       "title": "c6m5",
       "summary": "Green",
       "creator": "Dan Chang",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -8324,11 +8859,17 @@
     {
       "id": "comanche3/C6M6",
       "collection": "comanche3",
-      "name": "c6m6",
+      "name": "C6M6",
       "title": "c6m6",
       "summary": "Green",
       "creator": "Daniel Chang",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -8476,6 +9017,12 @@
       "summary": "Green",
       "creator": "Daniel Chang",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        119,
+        122
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -8618,11 +9165,17 @@
     {
       "id": "comanche3/C6M8",
       "collection": "comanche3",
-      "name": "c6m8",
+      "name": "C6M8",
       "title": "c6m8",
       "summary": "Green",
       "creator": "Dan Chang",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -8770,6 +9323,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -8917,6 +9476,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -9064,6 +9629,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        40,
+        160,
+        40
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -9211,6 +9782,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -9358,6 +9935,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        150
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -9501,6 +10084,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 58.52160000000001,
       "skyColor": null,
       "assets": {
@@ -9648,6 +10237,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        160,
+        128,
+        100
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -9791,6 +10386,12 @@
       "summary": "Green",
       "creator": "Keith Butler",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -9933,11 +10534,17 @@
     {
       "id": "comanche3/C8M1",
       "collection": "comanche3",
-      "name": "c8m1",
+      "name": "C8M1",
       "title": "c8m1",
       "summary": "Desert",
       "creator": "Steve McNally",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -10080,11 +10687,17 @@
     {
       "id": "comanche3/C8M2",
       "collection": "comanche3",
-      "name": "c8m2",
+      "name": "C8M2",
       "title": "c8m2",
       "summary": "Desert",
       "creator": "Steve McNally",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -10221,303 +10834,19 @@
       ]
     },
     {
-      "id": "comanche3/C8M5",
-      "collection": "comanche3",
-      "name": "c8m2",
-      "title": "c8m2",
-      "summary": "Green",
-      "creator": "Steve McNally",
-      "playable": true,
-      "altitude": 117.04320000000001,
-      "skyColor": null,
-      "assets": {
-        "color": {
-          "name": "C8M5_C",
-          "src": "maps/comanche3/color/C8M5_C.png"
-        },
-        "elevation": {
-          "name": "C8M5_D",
-          "src": "maps/comanche3/height/C8M5_D.png"
-        },
-        "character": {
-          "name": "C8M5_M",
-          "src": "maps/comanche3/character/C8M5_M.png"
-        },
-        "detailColor": {
-          "name": "MONG_C",
-          "src": "maps/comanche3/detail/color/MONG_C.png"
-        },
-        "detailElevation": {
-          "name": "MONG_D",
-          "src": "maps/comanche3/detail/height/MONG_D.png"
-        },
-        "detailShade": {
-          "name": "MONG_S",
-          "src": "maps/comanche3/detail/shading/MONG_S.png"
-        },
-        "sky": {
-          "name": "CLOUDS02",
-          "src": "maps/comanche3/clouds/CLOUDS02.png"
-        },
-        "skyPalette": {
-          "name": "SKYGRAD3",
-          "src": "maps/comanche3/grads/SKYGRAD3.png"
-        }
-      },
-      "facts": [
-        {
-          "key": "owner",
-          "value": "Steve McNally"
-        },
-        {
-          "key": "source",
-          "value": "C8M5.MIS"
-        },
-        {
-          "key": "camouflage",
-          "value": "Green"
-        },
-        {
-          "key": "altitude",
-          "value": "117 m"
-        },
-        {
-          "key": "terrainScale",
-          "value": "20"
-        },
-        {
-          "key": "lowestElevation",
-          "value": "0 m"
-        },
-        {
-          "key": "skyHeight",
-          "value": "850 m"
-        },
-        {
-          "key": "idealAltitude",
-          "value": "30 m"
-        },
-        {
-          "key": "sun",
-          "value": "SUN.3DO"
-        },
-        {
-          "key": "sunSlope",
-          "value": "50"
-        },
-        {
-          "key": "filter",
-          "value": "128, 128, 128"
-        },
-        {
-          "key": "gamma",
-          "value": "128"
-        },
-        {
-          "key": "saturation",
-          "value": "128"
-        },
-        {
-          "key": "cannon",
-          "value": "500"
-        },
-        {
-          "key": "rockets",
-          "value": "12"
-        },
-        {
-          "key": "stingers",
-          "value": "10"
-        },
-        {
-          "key": "hellfire",
-          "value": "6"
-        },
-        {
-          "key": "artillery",
-          "value": "0"
-        },
-        {
-          "key": "sidewinders",
-          "value": "0"
-        },
-        {
-          "key": "wingmen",
-          "value": "1"
-        },
-        {
-          "key": "music",
-          "value": "Q"
-        },
-        {
-          "key": "missionType",
-          "value": "0"
-        },
-        {
-          "key": "copilot",
-          "value": "0"
-        },
-        {
-          "key": "lineOfSight",
-          "value": "1"
-        },
-        {
-          "key": "showEfams",
-          "value": "1"
-        }
-      ]
-    },
-    {
-      "id": "comanche3/C8M6",
-      "collection": "comanche3",
-      "name": "c8m2",
-      "title": "c8m2",
-      "summary": "Green",
-      "creator": "Steve McNally",
-      "playable": true,
-      "altitude": 117.04320000000001,
-      "skyColor": null,
-      "assets": {
-        "color": {
-          "name": "C8M5_C",
-          "src": "maps/comanche3/color/C8M5_C.png"
-        },
-        "elevation": {
-          "name": "C8M5_D",
-          "src": "maps/comanche3/height/C8M5_D.png"
-        },
-        "character": {
-          "name": "C8M5_M",
-          "src": "maps/comanche3/character/C8M5_M.png"
-        },
-        "detailColor": {
-          "name": "MONG_C",
-          "src": "maps/comanche3/detail/color/MONG_C.png"
-        },
-        "detailElevation": {
-          "name": "MONG_D",
-          "src": "maps/comanche3/detail/height/MONG_D.png"
-        },
-        "detailShade": {
-          "name": "MONG_S",
-          "src": "maps/comanche3/detail/shading/MONG_S.png"
-        },
-        "sky": {
-          "name": "CLOUDS06",
-          "src": "maps/comanche3/clouds/CLOUDS06.png"
-        },
-        "skyPalette": {
-          "name": "SNSGRAD1",
-          "src": "maps/comanche3/grads/SNSGRAD1.png"
-        }
-      },
-      "facts": [
-        {
-          "key": "owner",
-          "value": "Steve McNally"
-        },
-        {
-          "key": "source",
-          "value": "C8M6.MIS"
-        },
-        {
-          "key": "camouflage",
-          "value": "Green"
-        },
-        {
-          "key": "altitude",
-          "value": "117 m"
-        },
-        {
-          "key": "terrainScale",
-          "value": "20"
-        },
-        {
-          "key": "lowestElevation",
-          "value": "0 m"
-        },
-        {
-          "key": "skyHeight",
-          "value": "850 m"
-        },
-        {
-          "key": "idealAltitude",
-          "value": "40 m"
-        },
-        {
-          "key": "sunSlope",
-          "value": "50"
-        },
-        {
-          "key": "filter",
-          "value": "139, 125, 105"
-        },
-        {
-          "key": "gamma",
-          "value": "123"
-        },
-        {
-          "key": "saturation",
-          "value": "145"
-        },
-        {
-          "key": "cannon",
-          "value": "500"
-        },
-        {
-          "key": "rockets",
-          "value": "12"
-        },
-        {
-          "key": "stingers",
-          "value": "6"
-        },
-        {
-          "key": "hellfire",
-          "value": "8"
-        },
-        {
-          "key": "artillery",
-          "value": "2"
-        },
-        {
-          "key": "sidewinders",
-          "value": "0"
-        },
-        {
-          "key": "wingmen",
-          "value": "0"
-        },
-        {
-          "key": "music",
-          "value": "X"
-        },
-        {
-          "key": "missionType",
-          "value": "0"
-        },
-        {
-          "key": "copilot",
-          "value": "0"
-        },
-        {
-          "key": "lineOfSight",
-          "value": "0"
-        },
-        {
-          "key": "showEfams",
-          "value": "1"
-        }
-      ]
-    },
-    {
       "id": "comanche3/C8M3",
       "collection": "comanche3",
-      "name": "c8m3",
+      "name": "C8M3",
       "title": "c8m3",
       "summary": "Desert",
       "creator": "Steve McNally",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -10660,11 +10989,17 @@
     {
       "id": "comanche3/C8M4",
       "collection": "comanche3",
-      "name": "c8m4",
+      "name": "C8M4",
       "title": "c8m4",
       "summary": "Desert",
       "creator": "Steve McNally",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -10805,13 +11140,329 @@
       ]
     },
     {
+      "id": "comanche3/C8M5",
+      "collection": "comanche3",
+      "name": "C8M5",
+      "title": "c8m2",
+      "summary": "Green",
+      "creator": "Steve McNally",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": 117.04320000000001,
+      "skyColor": null,
+      "assets": {
+        "color": {
+          "name": "C8M5_C",
+          "src": "maps/comanche3/color/C8M5_C.png"
+        },
+        "elevation": {
+          "name": "C8M5_D",
+          "src": "maps/comanche3/height/C8M5_D.png"
+        },
+        "character": {
+          "name": "C8M5_M",
+          "src": "maps/comanche3/character/C8M5_M.png"
+        },
+        "detailColor": {
+          "name": "MONG_C",
+          "src": "maps/comanche3/detail/color/MONG_C.png"
+        },
+        "detailElevation": {
+          "name": "MONG_D",
+          "src": "maps/comanche3/detail/height/MONG_D.png"
+        },
+        "detailShade": {
+          "name": "MONG_S",
+          "src": "maps/comanche3/detail/shading/MONG_S.png"
+        },
+        "sky": {
+          "name": "CLOUDS02",
+          "src": "maps/comanche3/clouds/CLOUDS02.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRAD3",
+          "src": "maps/comanche3/grads/SKYGRAD3.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "mission",
+          "value": "c8m2"
+        },
+        {
+          "key": "owner",
+          "value": "Steve McNally"
+        },
+        {
+          "key": "source",
+          "value": "C8M5.MIS"
+        },
+        {
+          "key": "camouflage",
+          "value": "Green"
+        },
+        {
+          "key": "altitude",
+          "value": "117 m"
+        },
+        {
+          "key": "terrainScale",
+          "value": "20"
+        },
+        {
+          "key": "lowestElevation",
+          "value": "0 m"
+        },
+        {
+          "key": "skyHeight",
+          "value": "850 m"
+        },
+        {
+          "key": "idealAltitude",
+          "value": "30 m"
+        },
+        {
+          "key": "sun",
+          "value": "SUN.3DO"
+        },
+        {
+          "key": "sunSlope",
+          "value": "50"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "cannon",
+          "value": "500"
+        },
+        {
+          "key": "rockets",
+          "value": "12"
+        },
+        {
+          "key": "stingers",
+          "value": "10"
+        },
+        {
+          "key": "hellfire",
+          "value": "6"
+        },
+        {
+          "key": "artillery",
+          "value": "0"
+        },
+        {
+          "key": "sidewinders",
+          "value": "0"
+        },
+        {
+          "key": "wingmen",
+          "value": "1"
+        },
+        {
+          "key": "music",
+          "value": "Q"
+        },
+        {
+          "key": "missionType",
+          "value": "0"
+        },
+        {
+          "key": "copilot",
+          "value": "0"
+        },
+        {
+          "key": "lineOfSight",
+          "value": "1"
+        },
+        {
+          "key": "showEfams",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": "comanche3/C8M6",
+      "collection": "comanche3",
+      "name": "C8M6",
+      "title": "c8m2",
+      "summary": "Green",
+      "creator": "Steve McNally",
+      "playable": true,
+      "night": false,
+      "filter": [
+        139,
+        125,
+        105
+      ],
+      "altitude": 117.04320000000001,
+      "skyColor": null,
+      "assets": {
+        "color": {
+          "name": "C8M5_C",
+          "src": "maps/comanche3/color/C8M5_C.png"
+        },
+        "elevation": {
+          "name": "C8M5_D",
+          "src": "maps/comanche3/height/C8M5_D.png"
+        },
+        "character": {
+          "name": "C8M5_M",
+          "src": "maps/comanche3/character/C8M5_M.png"
+        },
+        "detailColor": {
+          "name": "MONG_C",
+          "src": "maps/comanche3/detail/color/MONG_C.png"
+        },
+        "detailElevation": {
+          "name": "MONG_D",
+          "src": "maps/comanche3/detail/height/MONG_D.png"
+        },
+        "detailShade": {
+          "name": "MONG_S",
+          "src": "maps/comanche3/detail/shading/MONG_S.png"
+        },
+        "sky": {
+          "name": "CLOUDS06",
+          "src": "maps/comanche3/clouds/CLOUDS06.png"
+        },
+        "skyPalette": {
+          "name": "SNSGRAD1",
+          "src": "maps/comanche3/grads/SNSGRAD1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "mission",
+          "value": "c8m2"
+        },
+        {
+          "key": "owner",
+          "value": "Steve McNally"
+        },
+        {
+          "key": "source",
+          "value": "C8M6.MIS"
+        },
+        {
+          "key": "camouflage",
+          "value": "Green"
+        },
+        {
+          "key": "altitude",
+          "value": "117 m"
+        },
+        {
+          "key": "terrainScale",
+          "value": "20"
+        },
+        {
+          "key": "lowestElevation",
+          "value": "0 m"
+        },
+        {
+          "key": "skyHeight",
+          "value": "850 m"
+        },
+        {
+          "key": "idealAltitude",
+          "value": "40 m"
+        },
+        {
+          "key": "sunSlope",
+          "value": "50"
+        },
+        {
+          "key": "filter",
+          "value": "139, 125, 105"
+        },
+        {
+          "key": "gamma",
+          "value": "123"
+        },
+        {
+          "key": "saturation",
+          "value": "145"
+        },
+        {
+          "key": "cannon",
+          "value": "500"
+        },
+        {
+          "key": "rockets",
+          "value": "12"
+        },
+        {
+          "key": "stingers",
+          "value": "6"
+        },
+        {
+          "key": "hellfire",
+          "value": "8"
+        },
+        {
+          "key": "artillery",
+          "value": "2"
+        },
+        {
+          "key": "sidewinders",
+          "value": "0"
+        },
+        {
+          "key": "wingmen",
+          "value": "0"
+        },
+        {
+          "key": "music",
+          "value": "X"
+        },
+        {
+          "key": "missionType",
+          "value": "0"
+        },
+        {
+          "key": "copilot",
+          "value": "0"
+        },
+        {
+          "key": "lineOfSight",
+          "value": "0"
+        },
+        {
+          "key": "showEfams",
+          "value": "1"
+        }
+      ]
+    },
+    {
       "id": "comanche3/C8M7",
       "collection": "comanche3",
-      "name": "c8m7",
+      "name": "C8M7",
       "title": "c8m7",
       "summary": "Desert",
       "creator": "Steve McNally",
       "playable": true,
+      "night": false,
+      "filter": [
+        40,
+        160,
+        40
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -10954,11 +11605,17 @@
     {
       "id": "comanche3/C8M8",
       "collection": "comanche3",
-      "name": "c8m8",
+      "name": "C8M8",
       "title": "c8m8",
       "summary": "Desert",
       "creator": "Steve McNally",
       "playable": true,
+      "night": false,
+      "filter": [
+        132,
+        91,
+        119
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -11101,11 +11758,17 @@
     {
       "id": "comanche3/C9M1",
       "collection": "comanche3",
-      "name": "c9m1",
+      "name": "C9M1",
       "title": "c9m1",
       "summary": "Green",
       "creator": "Dave Merrick",
       "playable": true,
+      "night": false,
+      "filter": [
+        40,
+        160,
+        40
+      ],
       "altitude": 58.52160000000001,
       "skyColor": null,
       "assets": {
@@ -11248,11 +11911,17 @@
     {
       "id": "comanche3/C9M2",
       "collection": "comanche3",
-      "name": "c9m1",
+      "name": "C9M2",
       "title": "c9m1",
       "summary": "Green",
       "creator": "Dave Merrick",
       "playable": true,
+      "night": false,
+      "filter": [
+        126,
+        128,
+        128
+      ],
       "altitude": 58.52160000000001,
       "skyColor": null,
       "assets": {
@@ -11290,6 +11959,10 @@
         }
       },
       "facts": [
+        {
+          "key": "mission",
+          "value": "c9m1"
+        },
         {
           "key": "owner",
           "value": "Dave Merrick"
@@ -11396,6 +12069,12 @@
       "summary": "Snow",
       "creator": "Dave Merrick",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 58.52160000000001,
       "skyColor": null,
       "assets": {
@@ -11543,6 +12222,12 @@
       "summary": "Snow",
       "creator": "Dave Merrick",
       "playable": true,
+      "night": false,
+      "filter": [
+        140,
+        88,
+        160
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -11679,6 +12364,163 @@
       ]
     },
     {
+      "id": "comanche3/C9M5",
+      "collection": "comanche3",
+      "name": "C9M5",
+      "title": "Scud Hunt",
+      "summary": "Snow",
+      "creator": "Dave Merrick",
+      "playable": true,
+      "night": false,
+      "filter": [
+        138,
+        118,
+        140
+      ],
+      "altitude": 117.04320000000001,
+      "skyColor": null,
+      "assets": {
+        "color": {
+          "name": "C9M5_C",
+          "src": "maps/comanche3/color/C9M5_C.png"
+        },
+        "elevation": {
+          "name": "C9M5_D",
+          "src": "maps/comanche3/height/C9M5_D.png"
+        },
+        "character": {
+          "name": "C9M5_M",
+          "src": "maps/comanche3/character/C9M5_M.png"
+        },
+        "detailColor": {
+          "name": "SAKH_C",
+          "src": "maps/comanche3/detail/color/SAKH_C.png"
+        },
+        "detailElevation": {
+          "name": "SAKH_D",
+          "src": "maps/comanche3/detail/height/SAKH_D.png"
+        },
+        "detailShade": {
+          "name": "SAKH_S",
+          "src": "maps/comanche3/detail/shading/SAKH_S.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/comanche3/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRAD3",
+          "src": "maps/comanche3/grads/SKYGRAD3.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "mission",
+          "value": "Scud Hunt"
+        },
+        {
+          "key": "owner",
+          "value": "Dave Merrick"
+        },
+        {
+          "key": "source",
+          "value": "C9M5.MIS"
+        },
+        {
+          "key": "camouflage",
+          "value": "Snow"
+        },
+        {
+          "key": "altitude",
+          "value": "117 m"
+        },
+        {
+          "key": "terrainScale",
+          "value": "20"
+        },
+        {
+          "key": "lowestElevation",
+          "value": "0 m"
+        },
+        {
+          "key": "skyHeight",
+          "value": "900 m"
+        },
+        {
+          "key": "idealAltitude",
+          "value": "40 m"
+        },
+        {
+          "key": "sun",
+          "value": "MDAY_1Q.3DO"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        },
+        {
+          "key": "filter",
+          "value": "138, 118, 140"
+        },
+        {
+          "key": "gamma",
+          "value": "140"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "cannon",
+          "value": "500"
+        },
+        {
+          "key": "rockets",
+          "value": "0"
+        },
+        {
+          "key": "stingers",
+          "value": "4"
+        },
+        {
+          "key": "hellfire",
+          "value": "12"
+        },
+        {
+          "key": "artillery",
+          "value": "8"
+        },
+        {
+          "key": "sidewinders",
+          "value": "0"
+        },
+        {
+          "key": "wingmen",
+          "value": "1"
+        },
+        {
+          "key": "music",
+          "value": "X"
+        },
+        {
+          "key": "missionType",
+          "value": "0"
+        },
+        {
+          "key": "copilot",
+          "value": "0"
+        },
+        {
+          "key": "lineOfSight",
+          "value": "1"
+        },
+        {
+          "key": "showEfams",
+          "value": "1"
+        }
+      ]
+    },
+    {
       "id": "comanche3/C9M6",
       "collection": "comanche3",
       "name": "C9M6",
@@ -11686,6 +12528,12 @@
       "summary": "Snow",
       "creator": "Dave Merrick",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -11833,6 +12681,12 @@
       "summary": "Snow",
       "creator": "Dave Merrick",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 58.52160000000001,
       "skyColor": null,
       "assets": {
@@ -11976,6 +12830,12 @@
       "summary": "Snow",
       "creator": "Dave Merrick",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 58.52160000000001,
       "skyColor": null,
       "assets": {
@@ -12116,149 +12976,6 @@
       ]
     },
     {
-      "id": "comanche3/C4M1",
-      "collection": "comanche3",
-      "name": "Gitmo",
-      "title": "Gitmo",
-      "summary": "Green",
-      "creator": "dk",
-      "playable": true,
-      "altitude": 117.04320000000001,
-      "skyColor": null,
-      "assets": {
-        "color": {
-          "name": "C4M1_C",
-          "src": "maps/comanche3/color/C4M1_C.png"
-        },
-        "elevation": {
-          "name": "C4M1_D",
-          "src": "maps/comanche3/height/C4M1_D.png"
-        },
-        "character": {
-          "name": "C4M1_M",
-          "src": "maps/comanche3/character/C4M1_M.png"
-        },
-        "detailColor": {
-          "name": "MSTR_C",
-          "src": "maps/comanche3/detail/color/MSTR_C.png"
-        },
-        "detailElevation": {
-          "name": "MSTR_D",
-          "src": "maps/comanche3/detail/height/MSTR_D.png"
-        },
-        "detailShade": {
-          "name": "MSTR_S",
-          "src": "maps/comanche3/detail/shading/MSTR_S.png"
-        },
-        "sky": {
-          "name": "CLOUDS05",
-          "src": "maps/comanche3/clouds/CLOUDS05.png"
-        },
-        "skyPalette": {
-          "name": "SNSGRAD5",
-          "src": "maps/comanche3/grads/SNSGRAD5.png"
-        }
-      },
-      "facts": [
-        {
-          "key": "owner",
-          "value": "dk"
-        },
-        {
-          "key": "source",
-          "value": "C4M1.MIS"
-        },
-        {
-          "key": "camouflage",
-          "value": "Green"
-        },
-        {
-          "key": "altitude",
-          "value": "117 m"
-        },
-        {
-          "key": "terrainScale",
-          "value": "20"
-        },
-        {
-          "key": "lowestElevation",
-          "value": "0 m"
-        },
-        {
-          "key": "skyHeight",
-          "value": "700 m"
-        },
-        {
-          "key": "idealAltitude",
-          "value": "30 m"
-        },
-        {
-          "key": "sunSlope",
-          "value": "80"
-        },
-        {
-          "key": "filter",
-          "value": "132, 91, 119"
-        },
-        {
-          "key": "gamma",
-          "value": "129"
-        },
-        {
-          "key": "saturation",
-          "value": "63"
-        },
-        {
-          "key": "cannon",
-          "value": "500"
-        },
-        {
-          "key": "rockets",
-          "value": "20"
-        },
-        {
-          "key": "stingers",
-          "value": "6"
-        },
-        {
-          "key": "hellfire",
-          "value": "8"
-        },
-        {
-          "key": "artillery",
-          "value": "4"
-        },
-        {
-          "key": "sidewinders",
-          "value": "0"
-        },
-        {
-          "key": "wingmen",
-          "value": "4"
-        },
-        {
-          "key": "music",
-          "value": "A"
-        },
-        {
-          "key": "missionType",
-          "value": "0"
-        },
-        {
-          "key": "copilot",
-          "value": "0"
-        },
-        {
-          "key": "lineOfSight",
-          "value": "1"
-        },
-        {
-          "key": "showEfams",
-          "value": "1"
-        }
-      ]
-    },
-    {
       "id": "comanche3/MP01",
       "collection": "comanche3",
       "name": "MP01",
@@ -12266,6 +12983,12 @@
       "summary": "Desert",
       "creator": "Wes",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        115,
+        110
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -12413,6 +13136,12 @@
       "summary": "Desert",
       "creator": "Wes",
       "playable": true,
+      "night": false,
+      "filter": [
+        40,
+        160,
+        40
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -12553,145 +13282,6 @@
       ]
     },
     {
-      "id": "comanche3/MP05",
-      "collection": "comanche3",
-      "name": "mp03",
-      "title": "mp03",
-      "summary": "Snow",
-      "creator": "Mat",
-      "playable": true,
-      "altitude": 117.04320000000001,
-      "skyColor": null,
-      "assets": {
-        "color": {
-          "name": "MP03_C",
-          "src": "maps/comanche3/color/MP03_C.png"
-        },
-        "elevation": {
-          "name": "MP03_D",
-          "src": "maps/comanche3/height/MP03_D.png"
-        },
-        "character": {
-          "name": "MP03_M",
-          "src": "maps/comanche3/character/MP03_M.png"
-        },
-        "detailColor": {
-          "name": "MSTR_C",
-          "src": "maps/comanche3/detail/color/MSTR_C.png"
-        },
-        "detailElevation": {
-          "name": "MSTR_D",
-          "src": "maps/comanche3/detail/height/MSTR_D.png"
-        },
-        "detailShade": {
-          "name": "MSTR_S",
-          "src": "maps/comanche3/detail/shading/MSTR_S.png"
-        },
-        "sky": {
-          "name": "CLOUDS06",
-          "src": "maps/comanche3/clouds/CLOUDS06.png"
-        },
-        "skyPalette": {
-          "name": "SKYGRAD3",
-          "src": "maps/comanche3/grads/SKYGRAD3.png"
-        }
-      },
-      "facts": [
-        {
-          "key": "owner",
-          "value": "Mat"
-        },
-        {
-          "key": "source",
-          "value": "MP05.MIS"
-        },
-        {
-          "key": "camouflage",
-          "value": "Snow"
-        },
-        {
-          "key": "altitude",
-          "value": "117 m"
-        },
-        {
-          "key": "terrainScale",
-          "value": "20"
-        },
-        {
-          "key": "lowestElevation",
-          "value": "800 m"
-        },
-        {
-          "key": "skyHeight",
-          "value": "700 m"
-        },
-        {
-          "key": "sun",
-          "value": "SUN.3DO"
-        },
-        {
-          "key": "sunSlope",
-          "value": "70"
-        },
-        {
-          "key": "filter",
-          "value": "128, 128, 128"
-        },
-        {
-          "key": "gamma",
-          "value": "128"
-        },
-        {
-          "key": "saturation",
-          "value": "128"
-        },
-        {
-          "key": "cannon",
-          "value": "0"
-        },
-        {
-          "key": "rockets",
-          "value": "1000"
-        },
-        {
-          "key": "stingers",
-          "value": "0"
-        },
-        {
-          "key": "hellfire",
-          "value": "0"
-        },
-        {
-          "key": "artillery",
-          "value": "0"
-        },
-        {
-          "key": "sidewinders",
-          "value": "0"
-        },
-        {
-          "key": "wingmen",
-          "value": "0"
-        },
-        {
-          "key": "music",
-          "value": "0"
-        },
-        {
-          "key": "missionType",
-          "value": "1"
-        },
-        {
-          "key": "lineOfSight",
-          "value": "0"
-        },
-        {
-          "key": "showEfams",
-          "value": "0"
-        }
-      ]
-    },
-    {
       "id": "comanche3/MP03",
       "collection": "comanche3",
       "name": "MP03",
@@ -12699,6 +13289,12 @@
       "summary": "Snow",
       "creator": "Wes",
       "playable": true,
+      "night": false,
+      "filter": [
+        127,
+        127,
+        127
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -12846,6 +13442,12 @@
       "summary": "Green",
       "creator": "Wes",
       "playable": true,
+      "night": false,
+      "filter": [
+        138,
+        118,
+        135
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -12982,61 +13584,71 @@
       ]
     },
     {
-      "id": "comanche3/MP09",
+      "id": "comanche3/MP05",
       "collection": "comanche3",
       "name": "MP05",
-      "title": "MP05",
-      "summary": "Green",
-      "creator": "Mat Jennings",
+      "title": "mp03",
+      "summary": "Snow",
+      "creator": "Mat",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
         "color": {
-          "name": "C6M2_C",
-          "src": "maps/comanche3/color/C6M2_C.png"
+          "name": "MP03_C",
+          "src": "maps/comanche3/color/MP03_C.png"
         },
         "elevation": {
-          "name": "C6M2_D",
-          "src": "maps/comanche3/height/C6M2_D.png"
+          "name": "MP03_D",
+          "src": "maps/comanche3/height/MP03_D.png"
         },
         "character": {
-          "name": "C6M2_M",
-          "src": "maps/comanche3/character/C6M2_M.png"
+          "name": "MP03_M",
+          "src": "maps/comanche3/character/MP03_M.png"
         },
         "detailColor": {
-          "name": "CAMB_C",
-          "src": "maps/comanche3/detail/color/CAMB_C.png"
+          "name": "MSTR_C",
+          "src": "maps/comanche3/detail/color/MSTR_C.png"
         },
         "detailElevation": {
-          "name": "CAMB_D",
-          "src": "maps/comanche3/detail/height/CAMB_D.png"
+          "name": "MSTR_D",
+          "src": "maps/comanche3/detail/height/MSTR_D.png"
         },
         "detailShade": {
-          "name": "CAMB_S",
-          "src": "maps/comanche3/detail/shading/CAMB_S.png"
+          "name": "MSTR_S",
+          "src": "maps/comanche3/detail/shading/MSTR_S.png"
         },
         "sky": {
-          "name": "CLOUDS01",
-          "src": "maps/comanche3/clouds/CLOUDS01.png"
+          "name": "CLOUDS06",
+          "src": "maps/comanche3/clouds/CLOUDS06.png"
         },
         "skyPalette": {
-          "name": "SKYGRAD1",
-          "src": "maps/comanche3/grads/SKYGRAD1.png"
+          "name": "SKYGRAD3",
+          "src": "maps/comanche3/grads/SKYGRAD3.png"
         }
       },
       "facts": [
         {
+          "key": "mission",
+          "value": "mp03"
+        },
+        {
           "key": "owner",
-          "value": "Mat Jennings"
+          "value": "Mat"
         },
         {
           "key": "source",
-          "value": "MP09.MIS"
+          "value": "MP05.MIS"
         },
         {
           "key": "camouflage",
-          "value": "Green"
+          "value": "Snow"
         },
         {
           "key": "altitude",
@@ -13048,15 +13660,15 @@
         },
         {
           "key": "lowestElevation",
-          "value": "0 m"
+          "value": "800 m"
         },
         {
           "key": "skyHeight",
-          "value": "1500 m"
+          "value": "700 m"
         },
         {
-          "key": "idealAltitude",
-          "value": "40 m"
+          "key": "sun",
+          "value": "SUN.3DO"
         },
         {
           "key": "sunSlope",
@@ -13076,15 +13688,15 @@
         },
         {
           "key": "cannon",
-          "value": "500"
-        },
-        {
-          "key": "rockets",
           "value": "0"
         },
         {
+          "key": "rockets",
+          "value": "1000"
+        },
+        {
           "key": "stingers",
-          "value": "12"
+          "value": "0"
         },
         {
           "key": "hellfire",
@@ -13104,19 +13716,15 @@
         },
         {
           "key": "music",
-          "value": "A"
+          "value": "0"
         },
         {
           "key": "missionType",
           "value": "1"
         },
         {
-          "key": "copilot",
-          "value": "0"
-        },
-        {
           "key": "lineOfSight",
-          "value": "1"
+          "value": "0"
         },
         {
           "key": "showEfams",
@@ -13132,6 +13740,12 @@
       "summary": "Green",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        150
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -13275,6 +13889,12 @@
       "summary": "Green",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        40,
+        160,
+        40
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -13422,6 +14042,12 @@
       "summary": "Green",
       "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        140,
+        92,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
@@ -13558,61 +14184,71 @@
       ]
     },
     {
-      "id": "comanche3/C9M5",
+      "id": "comanche3/MP09",
       "collection": "comanche3",
-      "name": "Scud Hunt",
-      "title": "Scud Hunt",
-      "summary": "Snow",
-      "creator": "Dave Merrick",
+      "name": "MP09",
+      "title": "MP05",
+      "summary": "Green",
+      "creator": "Mat Jennings",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": 117.04320000000001,
       "skyColor": null,
       "assets": {
         "color": {
-          "name": "C9M5_C",
-          "src": "maps/comanche3/color/C9M5_C.png"
+          "name": "C6M2_C",
+          "src": "maps/comanche3/color/C6M2_C.png"
         },
         "elevation": {
-          "name": "C9M5_D",
-          "src": "maps/comanche3/height/C9M5_D.png"
+          "name": "C6M2_D",
+          "src": "maps/comanche3/height/C6M2_D.png"
         },
         "character": {
-          "name": "C9M5_M",
-          "src": "maps/comanche3/character/C9M5_M.png"
+          "name": "C6M2_M",
+          "src": "maps/comanche3/character/C6M2_M.png"
         },
         "detailColor": {
-          "name": "SAKH_C",
-          "src": "maps/comanche3/detail/color/SAKH_C.png"
+          "name": "CAMB_C",
+          "src": "maps/comanche3/detail/color/CAMB_C.png"
         },
         "detailElevation": {
-          "name": "SAKH_D",
-          "src": "maps/comanche3/detail/height/SAKH_D.png"
+          "name": "CAMB_D",
+          "src": "maps/comanche3/detail/height/CAMB_D.png"
         },
         "detailShade": {
-          "name": "SAKH_S",
-          "src": "maps/comanche3/detail/shading/SAKH_S.png"
+          "name": "CAMB_S",
+          "src": "maps/comanche3/detail/shading/CAMB_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
           "src": "maps/comanche3/clouds/CLOUDS01.png"
         },
         "skyPalette": {
-          "name": "SKYGRAD3",
-          "src": "maps/comanche3/grads/SKYGRAD3.png"
+          "name": "SKYGRAD1",
+          "src": "maps/comanche3/grads/SKYGRAD1.png"
         }
       },
       "facts": [
         {
+          "key": "mission",
+          "value": "MP05"
+        },
+        {
           "key": "owner",
-          "value": "Dave Merrick"
+          "value": "Mat Jennings"
         },
         {
           "key": "source",
-          "value": "C9M5.MIS"
+          "value": "MP09.MIS"
         },
         {
           "key": "camouflage",
-          "value": "Snow"
+          "value": "Green"
         },
         {
           "key": "altitude",
@@ -13628,15 +14264,11 @@
         },
         {
           "key": "skyHeight",
-          "value": "900 m"
+          "value": "1500 m"
         },
         {
           "key": "idealAltitude",
           "value": "40 m"
-        },
-        {
-          "key": "sun",
-          "value": "MDAY_1Q.3DO"
         },
         {
           "key": "sunSlope",
@@ -13644,11 +14276,11 @@
         },
         {
           "key": "filter",
-          "value": "138, 118, 140"
+          "value": "128, 128, 128"
         },
         {
           "key": "gamma",
-          "value": "140"
+          "value": "128"
         },
         {
           "key": "saturation",
@@ -13664,15 +14296,15 @@
         },
         {
           "key": "stingers",
-          "value": "4"
-        },
-        {
-          "key": "hellfire",
           "value": "12"
         },
         {
+          "key": "hellfire",
+          "value": "0"
+        },
+        {
           "key": "artillery",
-          "value": "8"
+          "value": "0"
         },
         {
           "key": "sidewinders",
@@ -13680,15 +14312,15 @@
         },
         {
           "key": "wingmen",
-          "value": "1"
+          "value": "0"
         },
         {
           "key": "music",
-          "value": "X"
+          "value": "A"
         },
         {
           "key": "missionType",
-          "value": "0"
+          "value": "1"
         },
         {
           "key": "copilot",
@@ -13700,7 +14332,7 @@
         },
         {
           "key": "showEfams",
-          "value": "1"
+          "value": "0"
         }
       ]
     },
@@ -13712,6 +14344,12 @@
       "summary": "Jungle Terrain 1",
       "creator": "Rod Parong",
       "playable": true,
+      "night": false,
+      "filter": [
+        120,
+        130,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -13819,6 +14457,12 @@
       "summary": "Jungle Terrain 1",
       "creator": "Rod Parong",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -13922,6 +14566,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -14025,6 +14675,12 @@
       "summary": "Jungle",
       "creator": "Rod Parong",
       "playable": true,
+      "night": false,
+      "filter": [
+        120,
+        130,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -14132,6 +14788,12 @@
       "summary": "Jungle",
       "creator": "Rod Parong",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -14239,6 +14901,12 @@
       "summary": "Sniper Super Fly",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -14342,6 +15010,12 @@
       "summary": "Sniper Super Fly",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -14445,6 +15119,12 @@
       "summary": "Jungle Terrain 1",
       "creator": "Rod Parong",
       "playable": true,
+      "night": false,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -14552,6 +15232,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        138,
+        118,
+        140
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -14655,6 +15341,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -14758,6 +15450,12 @@
       "summary": "Old Desert Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -14849,6 +15547,12 @@
       "summary": "Old Desert Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -14936,6 +15640,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -15039,6 +15749,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -15142,6 +15858,12 @@
       "summary": "Meat Grinder",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -15245,6 +15967,12 @@
       "summary": "Meat Grinder",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -15344,6 +16072,12 @@
       "summary": "Old Desert Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        130,
+        90,
+        135
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -15435,6 +16169,12 @@
       "summary": "Old Desert Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -15522,6 +16262,12 @@
       "summary": "Meat Grinder",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -15625,6 +16371,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -15728,6 +16480,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -15831,6 +16589,12 @@
       "summary": "c02m03",
       "creator": "Chris Tamburrino",
       "playable": true,
+      "night": false,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -15938,6 +16702,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -16041,6 +16811,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -16144,6 +16920,12 @@
       "summary": "c02m03",
       "creator": "Chris Tamburrino",
       "playable": true,
+      "night": false,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -16251,6 +17033,12 @@
       "summary": "Old Green Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -16342,6 +17130,12 @@
       "summary": "Old Green Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -16429,6 +17223,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -16532,6 +17332,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -16635,6 +17441,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        130
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -16738,6 +17550,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -16841,6 +17659,12 @@
       "summary": "Old Green Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -16932,6 +17756,12 @@
       "summary": "Old Green Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -17019,6 +17849,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -17122,6 +17958,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -17225,6 +18067,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -17328,6 +18176,12 @@
       "summary": "Grendel's Playground",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        150,
+        128,
+        100
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -17419,6 +18273,12 @@
       "summary": "Grendel's Playground",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -17506,6 +18366,12 @@
       "summary": "Old Lake Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        120,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -17613,6 +18479,12 @@
       "summary": "Old Lake Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -17716,6 +18588,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -17819,6 +18697,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -17922,6 +18806,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -18025,6 +18915,12 @@
       "summary": "Old Lake Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -18132,6 +19028,12 @@
       "summary": "Old Lake Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -18235,6 +19137,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -18338,6 +19246,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        145,
+        100,
+        85
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -18441,6 +19355,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -18544,6 +19464,12 @@
       "summary": "Grendel's Playground",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -18635,6 +19561,12 @@
       "summary": "Grendel's Playground",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -18722,6 +19654,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -18825,6 +19763,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -18928,6 +19872,12 @@
       "summary": "Old Snow Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        138,
+        118,
+        140
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -19019,6 +19969,12 @@
       "summary": "Old Snow Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -19106,6 +20062,12 @@
       "summary": "Freeze Yer...",
       "creator": "Jon Tando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -19213,6 +20175,12 @@
       "summary": "Freeze Yer...",
       "creator": "Jon Tando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -19316,6 +20284,12 @@
       "summary": "Old Snow Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -19419,6 +20393,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        135,
+        90,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -19522,6 +20502,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -19625,6 +20611,12 @@
       "summary": "Old Snow Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -19716,6 +20708,12 @@
       "summary": "Old Snow Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -19803,6 +20801,12 @@
       "summary": "Freeze Yer...",
       "creator": "Jon Tando",
       "playable": true,
+      "night": false,
+      "filter": [
+        138,
+        118,
+        140
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -19910,6 +20914,12 @@
       "summary": "Freeze Yer...",
       "creator": "Jon Tando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -20013,6 +21023,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -20116,6 +21132,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -20219,6 +21241,12 @@
       "summary": "Old Snow Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        138,
+        118,
+        140
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -20310,6 +21338,12 @@
       "summary": "Old Snow Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -20397,6 +21431,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -20500,6 +21540,12 @@
       "summary": "Freeze Yer...",
       "creator": "Jon Tando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -20607,6 +21653,12 @@
       "summary": "Freeze Yer...",
       "creator": "Jon Tando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -20710,6 +21762,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -20813,6 +21871,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -20916,6 +21980,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -21019,6 +22089,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -21122,6 +22198,12 @@
       "summary": "Grendel's Playground",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -21213,6 +22295,12 @@
       "summary": "Grendel's Playground",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -21300,6 +22388,12 @@
       "summary": "Old Lake Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -21407,6 +22501,12 @@
       "summary": "Old Lake Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -21510,6 +22610,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -21613,6 +22719,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -21716,6 +22828,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -21819,6 +22937,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -21922,6 +23046,12 @@
       "summary": "Meat Grinder",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -22025,6 +23155,12 @@
       "summary": "Meat Grinder",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -22124,6 +23260,12 @@
       "summary": "Old Desert Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -22215,6 +23357,12 @@
       "summary": "Old Desert Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -22302,6 +23450,12 @@
       "summary": "Jungle Terrain 1",
       "creator": "Rod Parong",
       "playable": true,
+      "night": false,
+      "filter": [
+        120,
+        130,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -22409,6 +23563,12 @@
       "summary": "Jungle Terrain 1",
       "creator": "Rod Parong",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -22512,6 +23672,12 @@
       "summary": "Jungle",
       "creator": "Rod Parong",
       "playable": true,
+      "night": false,
+      "filter": [
+        120,
+        130,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -22619,6 +23785,12 @@
       "summary": "Jungle",
       "creator": "Rod Parong",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -22722,6 +23894,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -22825,6 +24003,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -22928,6 +24112,12 @@
       "summary": "Sniper Super Fly",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -23031,6 +24221,12 @@
       "summary": "Sniper Super Fly",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -23134,6 +24330,12 @@
       "summary": "c02m03",
       "creator": "Chris Tamburrino",
       "playable": true,
+      "night": false,
+      "filter": [
+        120,
+        130,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -23241,6 +24443,12 @@
       "summary": "c02m03",
       "creator": "Chris Tamburrino",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -23344,6 +24552,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -23447,6 +24661,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -23550,6 +24770,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -23653,6 +24879,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -23756,6 +24988,12 @@
       "summary": "Old Green Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -23847,6 +25085,12 @@
       "summary": "Old Green Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -23934,6 +25178,12 @@
       "summary": "Test terrain 1",
       "creator": "Rod Parong",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -24037,6 +25287,12 @@
       "summary": "Test terrain 1",
       "creator": "Rod Parong",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -24140,6 +25396,12 @@
       "summary": "Death & More Death...did I mention Death?",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -24243,6 +25505,12 @@
       "summary": "Death & More Death...did I mention Death?",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -24346,6 +25614,12 @@
       "summary": "Test terrain 1",
       "creator": "Rod Parong",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -24449,6 +25723,12 @@
       "summary": "Test terrain 1",
       "creator": "Rod Parong",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -24552,6 +25832,12 @@
       "summary": "Test terrain 1",
       "creator": "Daniel Cabuco",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -24655,6 +25941,12 @@
       "summary": "Test terrain 1",
       "creator": "Daniel Cabuco",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -24758,6 +26050,12 @@
       "summary": "Sniper Super Fly",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -24861,6 +26159,12 @@
       "summary": "Sniper Super Fly",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -24964,6 +26268,12 @@
       "summary": "Test terrain 1",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -25051,6 +26361,12 @@
       "summary": "Test terrain 1",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -25146,6 +26462,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        138,
+        118,
+        140
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -25249,6 +26571,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -25352,6 +26680,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -25455,6 +26789,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -25558,6 +26898,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -25661,6 +27007,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -25764,6 +27116,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -25867,6 +27225,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -25970,6 +27334,12 @@
       "summary": "dfm11",
       "creator": "Chris Tamburrino",
       "playable": true,
+      "night": false,
+      "filter": [
+        120,
+        130,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -26077,6 +27447,12 @@
       "summary": "Ctf03",
       "creator": "Chris Tamburrino",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -26180,6 +27556,12 @@
       "summary": "Ctf03",
       "creator": "CT",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -26287,6 +27669,12 @@
       "summary": "Ctf03",
       "creator": "CT",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -26390,6 +27778,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -26493,6 +27887,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -26596,6 +27996,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -26699,6 +28105,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -26802,6 +28214,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        135,
+        90,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -26905,6 +28323,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -27008,6 +28432,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -27111,6 +28541,12 @@
       "summary": "Death & More Death",
       "creator": "Jason Tull",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -27214,6 +28650,12 @@
       "summary": "Freeze Yer...",
       "creator": "Jon Tando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -27321,6 +28763,12 @@
       "summary": "Freeze Yer...",
       "creator": "Jon Tando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -27424,6 +28872,12 @@
       "summary": "Old Snow Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -27515,6 +28969,12 @@
       "summary": "Old Snow Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -27602,6 +29062,12 @@
       "summary": "Old Snow Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {
@@ -27693,6 +29159,12 @@
       "summary": "Old Snow Terrain",
       "creator": "jontando",
       "playable": true,
+      "night": true,
+      "filter": [
+        80,
+        160,
+        30
+      ],
       "altitude": null,
       "skyColor": null,
       "assets": {

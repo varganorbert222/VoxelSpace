@@ -71,6 +71,15 @@
     </header>
 
     <div id="id_viewport" class="viewport">
+    <svg class="night-filter-def" aria-hidden="true" focusable="false">
+      <filter id="night-vision" color-interpolation-filters="sRGB">
+        <feColorMatrix
+          id="id_night_matrix"
+          type="matrix"
+          values="0.625 0 0 0 0  0 1.25 0 0 0  0 0 0.234375 0 0  0 0 0 1 0"
+        />
+      </filter>
+    </svg>
     <canvas id="id_fullscreen_canvas" width="800" height="400">
       Your browser does not support the canvas element.
     </canvas>
