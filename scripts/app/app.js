@@ -20,7 +20,6 @@ import {
   sanitizeSettings,
   collectSettings,
 } from "./settingsStore.js";
-import { Color } from "../math/color.js";
 import {
   ALGORITHM_CLASSIC,
   ALGORITHM_CUBEMAP,
@@ -446,7 +445,7 @@ class App {
     );
     this.camera.set({
       topColor: this.terrain.skyColor,
-      bottomColor: Color.WHITE,
+      bottomColor: this.terrain.horizonColor,
     });
   }
 

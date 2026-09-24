@@ -27,6 +27,10 @@ class Terrain {
     return this._skyColor;
   }
 
+  get horizonColor() {
+    return this._horizonColor;
+  }
+
   get colorMap() {
     return this._colorMap;
   }
@@ -47,6 +51,7 @@ class Terrain {
     this._colorMap = new Uint32Array(this._width * this._height);
     this._heightMap = new Uint8Array(this._width * this._height);
     this._skyColor = Color.WHITE;
+    this._horizonColor = Color.WHITE;
     this._exportedMaps = null;
     this._mapsGeneration = 0;
   }
@@ -139,6 +144,9 @@ class Terrain {
     this._skyColor = Number.isInteger(mapData.skyColor)
       ? mapData.skyColor
       : Color.hexToColor(mapData.skyColor);
+    this._horizonColor = Number.isInteger(mapData.horizonColor)
+      ? mapData.horizonColor
+      : Color.WHITE;
     this._mapShift = Math.log2(mapImages.colorMap.width);
     this._width = mapImages.colorMap.width;
     this._height = mapImages.colorMap.height;

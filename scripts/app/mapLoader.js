@@ -40,12 +40,16 @@ export function loadMap(app, mapName) {
       return;
     }
     const sky = images[2] ? paletteSky(images[2]) : null;
+    const skyColor = sky ? sky.top : selectedMap.skyColor || DEFAULT_SKY;
+    const horizonColor =
+      sky && sky.bottom !== sky.top ? sky.bottom : Color.WHITE;
     app.terrain.loadData(
       {
         altitude: Number.isFinite(selectedMap.altitude)
           ? selectedMap.altitude
           : DEFAULT_ALTITUDE,
-        skyColor: sky ? sky.top : selectedMap.skyColor || DEFAULT_SKY,
+        skyColor,
+        horizonColor,
       },
       {
         colorMap: images[0],
@@ -62,7 +66,7 @@ export function loadMap(app, mapName) {
     app.renderer.invalidatePanorama();
     app.camera.set({
       topColor: app.terrain.skyColor,
-      bottomColor: sky ? sky.bottom : Color.WHITE,
+      bottomColor: app.terrain.horizonColor,
     });
     if (app.currentMapName === selectedMap.id) {
       presentNight(selectedMap);
