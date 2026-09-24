@@ -1,0 +1,68 @@
+{
+  "source": "DFM5.TRN",
+  "terrain_name": "Sniper Super Fly",
+  "terrain_creator": "jontando",
+  "color_map": {
+    "name": "dfm5_c",
+    "png": "../png/DFM5_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "dfm5_d",
+    "png": "../png/DFM5_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "dfm5_m",
+    "png": "../png/DFM5_M.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "snip_c",
+    "png": "../png/SNIP_C.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "snip_d",
+    "png": "../png/SNIP_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "snip_s",
+    "png": "../png/SNIP_S.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds06",
+    "png": "../png/CLOUDS06.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "skygrad4",
+    "png": "../png/SKYGRAD4.png",
+    "found": true
+  },
+  "sky_height": 1236,
+  "water_map": {
+    "name": "AquajonW",
+    "png": "../png/AQUAJONW.png",
+    "found": true
+  },
+  "water_palette": {
+    "name": "AquajonP",
+    "png": "../png/AQUAJONP.png",
+    "found": true
+  },
+  "water_height": 7,
+  "water_opacity": 0.4,
+  "horizon": 1.0,
+  "camouflage": "white",
+  "filter": [
+    128,
+    128,
+    128
+  ],
+  "gamma": 128,
+  "saturation": 99,
+  "sun_slope": 70
+}

@@ -1,0 +1,76 @@
+{
+  "source": "C2M2.MIS",
+  "mission": "C2M2",
+  "owner": "Keith Butler",
+  "camouflage": "green",
+  "color_map": {
+    "name": "c2m2_c",
+    "png": "../png/C2M2_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "c2m2_d",
+    "png": "../png/C2M2_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "c2m2_m",
+    "png": "../png/C2M2_M.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "mstr_d",
+    "png": "../png/MSTR_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "mstr_s",
+    "png": "../png/MSTR_S.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "mstr_c",
+    "png": "../png/MSTR_C.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds04",
+    "png": "../png/CLOUDS04.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "skygrad1",
+    "png": "../png/SKYGRAD1.png",
+    "found": true
+  },
+  "sun": "SUN.3DO",
+  "stars": null,
+  "sun_slope": 50,
+  "lowest_elevation": 800,
+  "sky_height": 1500,
+  "terrain_scale": 20,
+  "gamma": 128,
+  "saturation": 128,
+  "filter": [
+    128,
+    128,
+    128
+  ],
+  "cannon_rounds": 500,
+  "rockets": 16,
+  "stingers": 2,
+  "hellfire": 9,
+  "artillery": 0,
+  "wingmen": 1,
+  "sidewinders": 0,
+  "line_of_sight": 0,
+  "show_efams": 1,
+  "music": "A",
+  "mission_type": 0,
+  "copilot": 0,
+  "ideal_altitude": 20,
+  "magic_pal": 425,
+  "obj_weight": 19,
+  "effect": 0,
+  "future": 0
+}

@@ -1,0 +1,76 @@
+{
+  "source": "C6M7.MIS",
+  "mission": "C6M7",
+  "owner": "Daniel Chang",
+  "camouflage": "green",
+  "color_map": {
+    "name": "c4m7_c",
+    "png": "../png/C4M7_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "c4m7_d",
+    "png": "../png/C4M7_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "c4m7_m",
+    "png": "../png/C4M7_M.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "mstr_d",
+    "png": "../png/MSTR_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "mstr_s",
+    "png": "../png/MSTR_S.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "mstr_c",
+    "png": "../png/MSTR_C.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds01",
+    "png": "../png/CLOUDS01.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "skygrad1",
+    "png": "../png/SKYGRAD1.png",
+    "found": true
+  },
+  "sun": "SUN.3DO",
+  "stars": null,
+  "sun_slope": 70,
+  "lowest_elevation": 0,
+  "sky_height": 900,
+  "terrain_scale": 20,
+  "gamma": 104,
+  "saturation": 76,
+  "filter": [
+    128,
+    119,
+    122
+  ],
+  "cannon_rounds": 500,
+  "rockets": 0,
+  "stingers": 12,
+  "hellfire": 8,
+  "artillery": 5,
+  "wingmen": 1,
+  "sidewinders": 0,
+  "line_of_sight": 0,
+  "show_efams": 1,
+  "music": "Y",
+  "mission_type": 0,
+  "copilot": 0,
+  "ideal_altitude": 40,
+  "magic_pal": 425,
+  "obj_weight": 19,
+  "effect": 0,
+  "future": 0
+}

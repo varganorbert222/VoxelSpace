@@ -1,0 +1,130 @@
+{
+  "source": "C2M5.TRN",
+  "terrain_name": "Jungle Terrain 1",
+  "terrain_creator": "Rod Parong",
+  "color_map": {
+    "name": "dfg1_c",
+    "png": "../png/DFG1_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "dfg1_d",
+    "png": "../png/DFG1_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "dfg1_m",
+    "png": "../png/DFG1_M.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "snip_c",
+    "png": "../png/SNIP_C.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "snip_d",
+    "png": "../png/SNIP_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "snip_s",
+    "png": "../png/SNIP_S.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds01",
+    "png": "../png/CLOUDS01.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "grengrad",
+    "png": "../png/GRENGRAD.png",
+    "found": true
+  },
+  "sky_height": 700,
+  "water_map": {
+    "name": "aquajonw",
+    "png": "../png/AQUAJONW.png",
+    "found": true
+  },
+  "water_palette": {
+    "name": "awuajonp",
+    "png": null,
+    "found": false
+  },
+  "water_height": 0,
+  "water_opacity": 0.6,
+  "horizon": 1,
+  "camouflage": "Green",
+  "filter": [
+    80,
+    160,
+    30
+  ],
+  "gamma": 95,
+  "saturation": 0,
+  "sun_slope": 90,
+  "types": [
+    {
+      "r": 112,
+      "g": 116,
+      "b": 48,
+      "name": "grass"
+    },
+    {
+      "r": 64,
+      "g": 68,
+      "b": 32,
+      "name": "grass"
+    },
+    {
+      "r": 100,
+      "g": 108,
+      "b": 48,
+      "name": "grass"
+    },
+    {
+      "r": 172,
+      "g": 136,
+      "b": 92,
+      "name": "dirt"
+    },
+    {
+      "r": 72,
+      "g": 64,
+      "b": 56,
+      "name": "dirt"
+    },
+    {
+      "r": 44,
+      "g": 36,
+      "b": 32,
+      "name": "cement"
+    },
+    {
+      "r": 28,
+      "g": 24,
+      "b": 20,
+      "name": "cement"
+    },
+    {
+      "r": 104,
+      "g": 92,
+      "b": 84,
+      "name": "packed_dirt"
+    },
+    {
+      "r": 120,
+      "g": 104,
+      "b": 96,
+      "name": "packed_dirt"
+    },
+    {
+      "r": 220,
+      "g": 208,
+      "b": 200,
+      "name": "packed_dirt"
+    }
+  ]
+}

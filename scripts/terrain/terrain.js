@@ -136,7 +136,9 @@ class Terrain {
     this._colorMap = loadRGBAImageToArray(mapImages.colorMap);
     this._heightMap = loadRImageToArray(mapImages.heightMap);
     this._altitude = mapData.altitude;
-    this._skyColor = Color.hexToColor(mapData.skyColor);
+    this._skyColor = Number.isInteger(mapData.skyColor)
+      ? mapData.skyColor
+      : Color.hexToColor(mapData.skyColor);
     this._mapShift = Math.log2(mapImages.colorMap.width);
     this._width = mapImages.colorMap.width;
     this._height = mapImages.colorMap.height;

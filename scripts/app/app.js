@@ -1,6 +1,6 @@
 "use strict";
 
-import maps from "../../data/maps.json" with { type: "json" };
+import { firstMapId, playableMapIds, resolveMapId } from "./mapCatalog.js";
 import config from "../../data/config.json" with { type: "json" };
 import Camera from "../camera/camera.js";
 import Terrain from "../terrain/terrain.js";
@@ -127,7 +127,7 @@ class App {
     if (config.settings.cameraModes.default) {
       this.camera.set({ mode: config.settings.cameraModes.default });
     }
-    this.currentMapName = maps[0].name;
+    this.currentMapName = firstMapId();
     this._applyPersistedSettings(readPersistedSettings());
 
     window.onresize = () => this.resize();
@@ -471,8 +471,12 @@ class App {
 
   _applyPersistedSettings(data) {
     const options = this.renderer.getOptions();
+    const stored =
+      data && typeof data === "object"
+        ? { ...data, map: resolveMapId(data.map) }
+        : data;
     const sanitized = sanitizeSettings(
-      data,
+      stored,
       {
         farClip: this.camera.farClip,
         fov: this.camera.fov,
@@ -511,7 +515,7 @@ class App {
         algorithms: config.settings.renderAlgorithms.values,
         backends: config.settings.renderBackends.values,
         debugViews: config.settings.debugViews.values,
-        mapNames: maps.map((m) => m.name),
+        mapNames: playableMapIds(),
         mipCount: {
           min: config.settings.mipCount.min,
           max: TERRAIN_MIP_MAX_COUNT,

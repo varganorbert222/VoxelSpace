@@ -107,6 +107,9 @@ function detectSettingHotkey(input, e) {
 }
 
 function detectKeysDown(input, e) {
+  if (document.body.classList.contains("map-picker-open")) {
+    return;
+  }
   if (isFormTarget(e.target)) {
     return;
   }

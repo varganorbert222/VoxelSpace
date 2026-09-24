@@ -1,0 +1,68 @@
+{
+  "source": "C2M1N.TRN",
+  "terrain_name": "Jungle Terrain 1",
+  "terrain_creator": "Rod Parong",
+  "color_map": {
+    "name": "dfg1_c",
+    "png": "../png/DFG1_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "dfg1_d",
+    "png": "../png/DFG1_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "dfg1_m",
+    "png": "../png/DFG1_M.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "snip_c",
+    "png": "../png/SNIP_C.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "snip_d",
+    "png": "../png/SNIP_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "snip_s",
+    "png": "../png/SNIP_S.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds06",
+    "png": "../png/CLOUDS06.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "grengrad",
+    "png": "../png/GRENGRAD.png",
+    "found": true
+  },
+  "sky_height": 700,
+  "water_map": {
+    "name": "aquajonw",
+    "png": "../png/AQUAJONW.png",
+    "found": true
+  },
+  "water_palette": {
+    "name": "awuajonp",
+    "png": null,
+    "found": false
+  },
+  "water_height": 0,
+  "water_opacity": 0.6,
+  "horizon": 1,
+  "camouflage": "Green",
+  "filter": [
+    80,
+    160,
+    30
+  ],
+  "gamma": 85,
+  "saturation": 0,
+  "sun_slope": 20
+}

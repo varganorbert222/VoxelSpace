@@ -1,0 +1,68 @@
+{
+  "source": "DFG4N.TRN",
+  "terrain_name": "Sniper Super Fly",
+  "terrain_creator": "jontando",
+  "color_map": {
+    "name": "dfg4_c",
+    "png": "../png/DFG4_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "dfg4_d",
+    "png": "../png/DFG4_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "dfg4_m",
+    "png": "../png/DFG4_M.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "snip_c",
+    "png": "../png/SNIP_C.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "snip_d",
+    "png": "../png/SNIP_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "snip_s",
+    "png": "../png/SNIP_S.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds06",
+    "png": "../png/CLOUDS06.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "grengrad",
+    "png": "../png/GRENGRAD.png",
+    "found": true
+  },
+  "sky_height": 1236,
+  "water_map": {
+    "name": "AquajonW",
+    "png": "../png/AQUAJONW.png",
+    "found": true
+  },
+  "water_palette": {
+    "name": "grengrad",
+    "png": "../png/GRENGRAD.png",
+    "found": true
+  },
+  "water_height": 0,
+  "water_opacity": 0.4,
+  "horizon": 1.0,
+  "camouflage": "white",
+  "filter": [
+    80,
+    160,
+    30
+  ],
+  "gamma": 85,
+  "saturation": 0,
+  "sun_slope": 20
+}

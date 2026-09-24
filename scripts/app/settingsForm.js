@@ -1,6 +1,7 @@
 "use strict";
 
-import maps from "../../data/maps.json" with { type: "json" };
+import { mapChipLabel, mapInputLabel } from "./mapCatalog.js";
+import { initMapPicker } from "./mapPicker.js";
 import config from "../../data/config.json" with { type: "json" };
 import { BACKEND_CHIP, usesWorkers } from "../constants/backend.js";
 import { MODE_ORBITAL } from "../constants/camera.js";
@@ -259,6 +260,7 @@ class SettingsForm {
     const options = app.renderer.getOptions();
     const persist = () => app.persistAndSync();
 
+    initMapPicker(app);
     this._elements = {
       renderDistance: initRangeElement(
         "id_render_distance",
@@ -430,14 +432,7 @@ class SettingsForm {
           persist();
         }
       ),
-      map: initOptionElement(
-        "id_mapselector",
-        { values: maps.map((m) => m.name) },
-        app.currentMapName,
-        (e) => {
-          app.loadMap(e.target.value);
-        }
-      ),
+      map: prepareControl(document.getElementById("id_mapselector")),
       cameraMode: initOptionElement(
         "id_cameraselector",
         config.settings.cameraModes,
@@ -586,7 +581,7 @@ class SettingsForm {
       !usesWorkers(options.backend),
       "Multithreading is only available for CPU backends."
     );
-    map.value = this._app.currentMapName;
+    map.value = mapInputLabel(this._app.currentMapName);
     cameraMode.value = camera.mode;
     document.body.classList.toggle("cam-orbital", camera.mode === MODE_ORBITAL);
     document.body.classList.toggle("cam-fly", camera.mode !== MODE_ORBITAL);
@@ -609,7 +604,7 @@ class SettingsForm {
       "Debug overlay is only available for panorama and cubemap algorithms."
     );
     debugOverlay.checked = overlayOk && !!options.debugOverlay;
-    setChip("id_hud_map", this._app.currentMapName);
+    setChip("id_hud_map", mapChipLabel(this._app.currentMapName));
     setChip("id_hud_algorithm", options.algorithm);
     setChip("id_hud_backend", BACKEND_CHIP[options.backend] || options.backend);
     setChip("id_hud_camera", camera.mode);

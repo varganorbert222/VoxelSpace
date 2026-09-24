@@ -1,0 +1,76 @@
+{
+  "source": "C4M1.MIS",
+  "mission": "Gitmo",
+  "owner": "dk",
+  "camouflage": "green",
+  "color_map": {
+    "name": "c4m1_c",
+    "png": "../png/C4M1_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "c4m1_d",
+    "png": "../png/C4M1_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "c4m1_m",
+    "png": "../png/C4M1_M.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "mstr_d",
+    "png": "../png/MSTR_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "mstr_s",
+    "png": "../png/MSTR_S.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "mstr_c",
+    "png": "../png/MSTR_C.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds05",
+    "png": "../png/CLOUDS05.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "snsgrad5",
+    "png": "../png/SNSGRAD5.png",
+    "found": true
+  },
+  "sun": null,
+  "stars": null,
+  "sun_slope": 80,
+  "lowest_elevation": 0,
+  "sky_height": 700,
+  "terrain_scale": 20,
+  "gamma": 129,
+  "saturation": 63,
+  "filter": [
+    132,
+    91,
+    119
+  ],
+  "cannon_rounds": 500,
+  "rockets": 20,
+  "stingers": 6,
+  "hellfire": 8,
+  "artillery": 4,
+  "wingmen": 4,
+  "sidewinders": 0,
+  "line_of_sight": 1,
+  "show_efams": 1,
+  "music": "A",
+  "mission_type": 0,
+  "copilot": 0,
+  "ideal_altitude": 30,
+  "magic_pal": 426,
+  "obj_weight": 20,
+  "effect": 0,
+  "future": 0
+}

@@ -1,7 +1,7 @@
 "use strict";
 
 import time from "./time.js";
-import maps from "../../data/maps.json" with { type: "json" };
+import { playableMapIds } from "./mapCatalog.js";
 import config from "../../data/config.json" with { type: "json" };
 import { cycleAvailableBackend } from "../backends/contract.js";
 import { usesWorkers } from "../constants/backend.js";
@@ -74,8 +74,9 @@ function applySettingsHotkeys(app) {
     }
   }
   if (app.input.consumeCycleMap) {
-    const mapNames = maps.map((m) => m.name);
-    app.loadMap(cycleValue(mapNames, app.currentMapName));
+    if (!document.body.classList.contains("map-picker-open")) {
+      app.loadMap(cycleValue(playableMapIds(), app.currentMapName));
+    }
   }
   if (app.input.consumeCycleCamera) {
     app.setCameraMode(

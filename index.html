@@ -111,13 +111,33 @@
       <div class="hud-panel-scroll">
       <section class="hud-section">
         <h2 class="hud-section-title"><span>01</span> Mission</h2>
-        <div class="control" data-tip="Height and color maps from Comanche missions.">
+        <div class="control" data-tip="Mission library. Browse opens color, elevation, and character previews from each game's map files.">
           <div class="control-head">
             <label for="id_mapselector">Map</label>
           </div>
-          <select id="id_mapselector" name="MapSelector" autocomplete="off" aria-keyshortcuts="M">
-            <option value="">Please select map</option>
-          </select>
+          <div class="map-pick">
+            <input
+              id="id_mapselector"
+              class="map-pick-value"
+              type="text"
+              name="MapSelector"
+              readonly
+              autocomplete="off"
+              spellcheck="false"
+              aria-keyshortcuts="M"
+              aria-haspopup="dialog"
+              aria-controls="id_map_modal"
+            />
+            <button
+              type="button"
+              id="id_map_browse"
+              class="map-pick-btn"
+              aria-haspopup="dialog"
+              aria-controls="id_map_modal"
+            >
+              Browse
+            </button>
+          </div>
         </div>
       </section>
 
@@ -508,6 +528,50 @@
             Use CPU / Classic
           </button>
         </div>
+      </div>
+    </div>
+    <div
+      id="id_map_modal"
+      class="map-modal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="id_map_modal_title"
+    >
+      <div class="map-modal-card">
+        <header class="map-modal-head">
+          <div class="map-modal-heading">
+            <p class="map-modal-kicker">Mission library</p>
+            <h2 id="id_map_modal_title" class="map-modal-title">Select map</h2>
+          </div>
+          <button type="button" id="id_map_close" class="map-modal-close">Close</button>
+        </header>
+        <div id="id_map_tabs" class="map-tabs" role="tablist" aria-label="Map libraries"></div>
+        <div class="map-modal-filter">
+          <label class="map-filter-label" for="id_map_filter">Filter</label>
+          <input
+            id="id_map_filter"
+            class="map-filter"
+            type="search"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Name, terrain, creator"
+          />
+        </div>
+        <div class="map-modal-body">
+          <div id="id_map_gallery" class="map-gallery"></div>
+          <aside id="id_map_detail" class="map-detail" aria-label="Map assets"></aside>
+        </div>
+        <footer class="map-modal-foot">
+          <div class="map-modal-status">
+            <p id="id_map_status" class="map-modal-selected"></p>
+            <p id="id_map_note" class="map-modal-note"></p>
+          </div>
+          <div class="map-modal-actions">
+            <button type="button" id="id_map_cancel" class="map-action">Cancel</button>
+            <button type="button" id="id_map_load" class="map-action map-action--primary">Load</button>
+          </div>
+        </footer>
       </div>
     </div>
     <script>

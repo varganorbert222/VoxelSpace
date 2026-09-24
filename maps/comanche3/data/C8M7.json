@@ -1,0 +1,72 @@
+{
+  "source": "C8M7.MIS",
+  "mission": "c8m7",
+  "owner": "Steve McNally",
+  "camouflage": "desert",
+  "color_map": {
+    "name": "mng3_c",
+    "png": "../png/MNG3_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "mng3_d",
+    "png": "../png/MNG3_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "c1m1_m",
+    "png": "../png/C1M1_M.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "mong_d",
+    "png": "../png/MONG_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "mong_s",
+    "png": "../png/MONG_S.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "mong_c",
+    "png": "../png/MONG_C.png",
+    "found": true
+  },
+  "sky_map": null,
+  "sky_palette": {
+    "name": "grengrad",
+    "png": "../png/GRENGRAD.png",
+    "found": true
+  },
+  "sun": "MOON_3Q.3DO",
+  "stars": "STARS1.SKY",
+  "sun_slope": 64,
+  "lowest_elevation": 0,
+  "sky_height": 1500,
+  "terrain_scale": 20,
+  "gamma": 120,
+  "saturation": 128,
+  "filter": [
+    40,
+    160,
+    40
+  ],
+  "cannon_rounds": 500,
+  "rockets": 0,
+  "stingers": 4,
+  "hellfire": 4,
+  "artillery": 3,
+  "wingmen": 0,
+  "sidewinders": 0,
+  "line_of_sight": 0,
+  "show_efams": 0,
+  "music": "U",
+  "mission_type": 0,
+  "copilot": 0,
+  "ideal_altitude": 40,
+  "magic_pal": 425,
+  "obj_weight": 19,
+  "effect": 0,
+  "future": 0
+}

@@ -1,0 +1,68 @@
+{
+  "source": "DFG6.TRN",
+  "terrain_name": "Death & More Death",
+  "terrain_creator": "Jason Tull",
+  "color_map": {
+    "name": "dfg6_c",
+    "png": "../png/DFG6_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "dfg6_d",
+    "png": "../png/DFG6_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "dfg6_m",
+    "png": "../png/DFG6_M.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "snip_c",
+    "png": "../png/SNIP_C.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "snip_d",
+    "png": "../png/SNIP_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "snip_s",
+    "png": "../png/SNIP_S.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds06",
+    "png": "../png/CLOUDS06.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "skygrad4",
+    "png": "../png/SKYGRAD4.png",
+    "found": true
+  },
+  "sky_height": 1236,
+  "water_map": {
+    "name": "AquajonW",
+    "png": "../png/AQUAJONW.png",
+    "found": true
+  },
+  "water_palette": {
+    "name": "AquajonP",
+    "png": "../png/AQUAJONP.png",
+    "found": true
+  },
+  "water_height": 15,
+  "water_opacity": 0.1,
+  "horizon": 1.0,
+  "camouflage": "green",
+  "filter": [
+    128,
+    128,
+    128
+  ],
+  "gamma": 128,
+  "saturation": 128,
+  "sun_slope": 20
+}

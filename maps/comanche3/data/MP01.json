@@ -1,0 +1,76 @@
+{
+  "source": "MP01.MIS",
+  "mission": "MP01",
+  "owner": "Wes",
+  "camouflage": "desert",
+  "color_map": {
+    "name": "mp01_c",
+    "png": "../png/MP01_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "mp01_d",
+    "png": "../png/MP01_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "mp01_m",
+    "png": "../png/MP01_M.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "teramapd",
+    "png": "../png/TERAMAPD.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "teramaps",
+    "png": "../png/TERAMAPS.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "teramapc",
+    "png": "../png/TERAMAPC.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds01",
+    "png": "../png/CLOUDS01.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "skygrad1",
+    "png": "../png/SKYGRAD1.png",
+    "found": true
+  },
+  "sun": "SUN.3DO",
+  "stars": null,
+  "sun_slope": 25,
+  "lowest_elevation": 600,
+  "sky_height": 1250,
+  "terrain_scale": 20,
+  "gamma": 128,
+  "saturation": 105,
+  "filter": [
+    128,
+    115,
+    110
+  ],
+  "cannon_rounds": 500,
+  "rockets": 56,
+  "stingers": 0,
+  "hellfire": 0,
+  "artillery": 0,
+  "wingmen": 0,
+  "sidewinders": 0,
+  "line_of_sight": 1,
+  "show_efams": 1,
+  "music": "A",
+  "mission_type": 1,
+  "copilot": 0,
+  "ideal_altitude": 40,
+  "magic_pal": 425,
+  "obj_weight": 19,
+  "effect": 0,
+  "future": 0
+}

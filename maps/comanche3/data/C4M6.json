@@ -1,0 +1,76 @@
+{
+  "source": "C4M6.MIS",
+  "mission": "c4m2",
+  "owner": "Mat Jennings",
+  "camouflage": "green",
+  "color_map": {
+    "name": "c4m2_c",
+    "png": "../png/C4M2_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "c4m2_d",
+    "png": "../png/C4M2_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "c4m2_m",
+    "png": "../png/C4M2_M.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "mstr_d",
+    "png": "../png/MSTR_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "mstr_s",
+    "png": "../png/MSTR_S.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "mstr_c",
+    "png": "../png/MSTR_C.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds01",
+    "png": "../png/CLOUDS01.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "snsgrad1",
+    "png": "../png/SNSGRAD1.png",
+    "found": true
+  },
+  "sun": null,
+  "stars": null,
+  "sun_slope": 55,
+  "lowest_elevation": 300,
+  "sky_height": 800,
+  "terrain_scale": 20,
+  "gamma": 128,
+  "saturation": 140,
+  "filter": [
+    139,
+    125,
+    105
+  ],
+  "cannon_rounds": 500,
+  "rockets": 0,
+  "stingers": 4,
+  "hellfire": 12,
+  "artillery": 10,
+  "wingmen": 12,
+  "sidewinders": 0,
+  "line_of_sight": 0,
+  "show_efams": 1,
+  "music": "D",
+  "mission_type": 0,
+  "copilot": 0,
+  "ideal_altitude": 20,
+  "magic_pal": 425,
+  "obj_weight": 19,
+  "effect": 0,
+  "future": 0
+}

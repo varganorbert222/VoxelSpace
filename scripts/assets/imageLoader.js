@@ -12,7 +12,12 @@ function loadImagesAsync(urls) {
     }
     urls.forEach(function (url, i) {
       const image = new Image();
-      image.src = url;
+      const finish = function () {
+        pending--;
+        if (pending === 0) {
+          resolve(result);
+        }
+      };
       image.onload = function () {
         const width = image.naturalWidth;
         const height = image.naturalHeight;
@@ -29,12 +34,13 @@ function loadImagesAsync(urls) {
           width: width,
           height: height,
         };
-
-        pending--;
-        if (pending === 0) {
-          resolve(result);
-        }
+        finish();
       };
+      image.onerror = function () {
+        result[i] = null;
+        finish();
+      };
+      image.src = url;
     });
   });
 }

@@ -1,0 +1,68 @@
+{
+  "source": "C2M6N.TRN",
+  "terrain_name": "Death & More Death",
+  "terrain_creator": "Jason Tull",
+  "color_map": {
+    "name": "dfg3_c",
+    "png": "../png/DFG3_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "dfg3_d",
+    "png": "../png/DFG3_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "dfg3_m",
+    "png": "../png/DFG3_M.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "snip_c",
+    "png": "../png/SNIP_C.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "snip_d",
+    "png": "../png/SNIP_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "snip_s",
+    "png": "../png/SNIP_S.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds05",
+    "png": "../png/CLOUDS05.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "grengrad",
+    "png": "../png/GRENGRAD.png",
+    "found": true
+  },
+  "sky_height": 700,
+  "water_map": {
+    "name": "256water",
+    "png": "../png/256WATER.png",
+    "found": true
+  },
+  "water_palette": {
+    "name": "grengrad",
+    "png": "../png/GRENGRAD.png",
+    "found": true
+  },
+  "water_height": 0,
+  "water_opacity": 0,
+  "horizon": 1.0,
+  "camouflage": "green",
+  "filter": [
+    80,
+    160,
+    30
+  ],
+  "gamma": 85,
+  "saturation": 0,
+  "sun_slope": 20
+}

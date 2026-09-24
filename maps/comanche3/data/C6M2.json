@@ -1,0 +1,72 @@
+{
+  "source": "C6M2.MIS",
+  "mission": "c6m2",
+  "owner": "Dan Chang",
+  "camouflage": "green",
+  "color_map": {
+    "name": "c6m2_c",
+    "png": "../png/C6M2_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "c6m2_d",
+    "png": "../png/C6M2_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "c6m2_m",
+    "png": "../png/C6M2_M.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "camb_d",
+    "png": "../png/CAMB_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "camb_s",
+    "png": "../png/CAMB_S.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "camb_c",
+    "png": "../png/CAMB_C.png",
+    "found": true
+  },
+  "sky_map": null,
+  "sky_palette": {
+    "name": "grengrad",
+    "png": "../png/GRENGRAD.png",
+    "found": true
+  },
+  "sun": "MOON.3DO",
+  "stars": "STARS1.SKY",
+  "sun_slope": 70,
+  "lowest_elevation": 0,
+  "sky_height": 900,
+  "terrain_scale": 20,
+  "gamma": 120,
+  "saturation": 64,
+  "filter": [
+    40,
+    160,
+    40
+  ],
+  "cannon_rounds": 500,
+  "rockets": 0,
+  "stingers": 4,
+  "hellfire": 4,
+  "artillery": 0,
+  "wingmen": 0,
+  "sidewinders": 0,
+  "line_of_sight": 0,
+  "show_efams": 0,
+  "music": "Q",
+  "mission_type": 0,
+  "copilot": 0,
+  "ideal_altitude": 40,
+  "magic_pal": 425,
+  "obj_weight": 19,
+  "effect": 0,
+  "future": 0
+}

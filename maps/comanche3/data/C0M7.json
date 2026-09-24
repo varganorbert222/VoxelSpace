@@ -1,0 +1,76 @@
+{
+  "source": "C0M7.MIS",
+  "mission": "C0M7",
+  "owner": "Dave Merrick",
+  "camouflage": "green",
+  "color_map": {
+    "name": "c4m6_c",
+    "png": "../png/C4M6_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "c4m6_d",
+    "png": "../png/C4M6_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "c4m6_m",
+    "png": "../png/C4M6_M.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "mstr_d",
+    "png": "../png/MSTR_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "mstr_s",
+    "png": "../png/MSTR_S.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "mstr_c",
+    "png": "../png/MSTR_C.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds05",
+    "png": "../png/CLOUDS05.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "skygrad3",
+    "png": "../png/SKYGRAD3.png",
+    "found": true
+  },
+  "sun": null,
+  "stars": null,
+  "sun_slope": 70,
+  "lowest_elevation": 0,
+  "sky_height": 600,
+  "terrain_scale": 19,
+  "gamma": 100,
+  "saturation": 88,
+  "filter": [
+    128,
+    128,
+    128
+  ],
+  "cannon_rounds": 500,
+  "rockets": 0,
+  "stingers": 6,
+  "hellfire": 11,
+  "artillery": 4,
+  "wingmen": 1,
+  "sidewinders": 0,
+  "line_of_sight": 1,
+  "show_efams": 1,
+  "music": "Y",
+  "mission_type": 0,
+  "copilot": 0,
+  "ideal_altitude": 40,
+  "magic_pal": 425,
+  "obj_weight": 19,
+  "effect": 0,
+  "future": 0
+}

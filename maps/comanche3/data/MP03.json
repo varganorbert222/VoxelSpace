@@ -1,0 +1,76 @@
+{
+  "source": "MP03.MIS",
+  "mission": "MP03",
+  "owner": "Wes",
+  "camouflage": "snow",
+  "color_map": {
+    "name": "mp03_c",
+    "png": "../png/MP03_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "mp03_d",
+    "png": "../png/MP03_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "mp03_m",
+    "png": "../png/MP03_M.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "mstr_d",
+    "png": "../png/MSTR_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "mstr_s",
+    "png": "../png/MSTR_S.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "mstr_c",
+    "png": "../png/MSTR_C.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds06",
+    "png": "../png/CLOUDS06.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "skygrad2",
+    "png": "../png/SKYGRAD2.png",
+    "found": true
+  },
+  "sun": "SUN.3DO",
+  "stars": null,
+  "sun_slope": 70,
+  "lowest_elevation": 1,
+  "sky_height": 700,
+  "terrain_scale": 20,
+  "gamma": 127,
+  "saturation": 123,
+  "filter": [
+    127,
+    127,
+    127
+  ],
+  "cannon_rounds": 500,
+  "rockets": 56,
+  "stingers": 0,
+  "hellfire": 0,
+  "artillery": 1,
+  "wingmen": 0,
+  "sidewinders": 0,
+  "line_of_sight": 1,
+  "show_efams": 1,
+  "music": "A",
+  "mission_type": 1,
+  "copilot": 0,
+  "ideal_altitude": 20,
+  "magic_pal": 625,
+  "obj_weight": 22,
+  "effect": 0,
+  "future": 0
+}

@@ -1,0 +1,68 @@
+{
+  "source": "C6M6N.TRN",
+  "terrain_name": "Freeze Yer...",
+  "terrain_creator": "Jon Tando",
+  "color_map": {
+    "name": "dfs2_c",
+    "png": "../png/DFS2_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "dfs2_d",
+    "png": "../png/DFS2_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "dfs2_m",
+    "png": "../png/DFS2_M.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "snip_c",
+    "png": "../png/SNIP_C.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "snip_d",
+    "png": "../png/SNIP_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "snip_s",
+    "png": "../png/SNIP_S.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds06",
+    "png": "../png/CLOUDS06.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "grengrad",
+    "png": "../png/GRENGRAD.png",
+    "found": true
+  },
+  "sky_height": 700,
+  "water_map": {
+    "name": "aquajonw",
+    "png": "../png/AQUAJONW.png",
+    "found": true
+  },
+  "water_palette": {
+    "name": "grengrad",
+    "png": "../png/GRENGRAD.png",
+    "found": true
+  },
+  "water_height": 0,
+  "water_opacity": 0.6,
+  "horizon": 1,
+  "camouflage": "White",
+  "filter": [
+    80,
+    160,
+    30
+  ],
+  "gamma": 85,
+  "saturation": 0,
+  "sun_slope": 20
+}

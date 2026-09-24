@@ -1,0 +1,76 @@
+{
+  "source": "C4M8.MIS",
+  "mission": "c4m8",
+  "owner": "wes",
+  "camouflage": "green",
+  "color_map": {
+    "name": "c4m8_c",
+    "png": "../png/C4M8_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "c4m8_d",
+    "png": "../png/C4M8_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "c4m8_m",
+    "png": "../png/C4M8_M.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "mstr_d",
+    "png": "../png/MSTR_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "mstr_s",
+    "png": "../png/MSTR_S.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "mstr_c",
+    "png": "../png/MSTR_C.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds05",
+    "png": "../png/CLOUDS05.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "skygrad1",
+    "png": "../png/SKYGRAD1.png",
+    "found": true
+  },
+  "sun": "SUN.3DO",
+  "stars": null,
+  "sun_slope": 70,
+  "lowest_elevation": 0,
+  "sky_height": 800,
+  "terrain_scale": 20,
+  "gamma": 144,
+  "saturation": 128,
+  "filter": [
+    126,
+    128,
+    127
+  ],
+  "cannon_rounds": 500,
+  "rockets": 20,
+  "stingers": 6,
+  "hellfire": 6,
+  "artillery": 3,
+  "wingmen": 1,
+  "sidewinders": 0,
+  "line_of_sight": 1,
+  "show_efams": 1,
+  "music": "C",
+  "mission_type": 0,
+  "copilot": 0,
+  "ideal_altitude": 20,
+  "magic_pal": 425,
+  "obj_weight": 19,
+  "effect": 0,
+  "future": 0
+}

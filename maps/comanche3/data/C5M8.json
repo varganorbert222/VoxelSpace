@@ -1,0 +1,76 @@
+{
+  "source": "C5M8.MIS",
+  "mission": "C5M8",
+  "owner": "Keith Butler",
+  "camouflage": "desert",
+  "color_map": {
+    "name": "c5m8_c",
+    "png": "../png/C5M8_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "c5m8_d",
+    "png": "../png/C5M8_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "c5m8_m",
+    "png": "../png/C5M8_M.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "clifmapd",
+    "png": "../png/CLIFMAPD.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "clifmaps",
+    "png": "../png/CLIFMAPS.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "clifmapc",
+    "png": "../png/CLIFMAPC.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds01",
+    "png": "../png/CLOUDS01.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "snsgrad6",
+    "png": "../png/SNSGRAD6.png",
+    "found": true
+  },
+  "sun": null,
+  "stars": null,
+  "sun_slope": 80,
+  "lowest_elevation": 800,
+  "sky_height": 1400,
+  "terrain_scale": 20,
+  "gamma": 70,
+  "saturation": 135,
+  "filter": [
+    145,
+    120,
+    98
+  ],
+  "cannon_rounds": 500,
+  "rockets": 12,
+  "stingers": 6,
+  "hellfire": 8,
+  "artillery": 3,
+  "wingmen": 1,
+  "sidewinders": 0,
+  "line_of_sight": 0,
+  "show_efams": 1,
+  "music": "A",
+  "mission_type": 0,
+  "copilot": 0,
+  "ideal_altitude": 20,
+  "magic_pal": 425,
+  "obj_weight": 19,
+  "effect": 0,
+  "future": 0
+}

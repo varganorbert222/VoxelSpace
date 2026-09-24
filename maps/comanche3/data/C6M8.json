@@ -1,0 +1,76 @@
+{
+  "source": "C6M8.MIS",
+  "mission": "c6m8",
+  "owner": "Dan Chang",
+  "camouflage": "green",
+  "color_map": {
+    "name": "c6m8_c",
+    "png": "../png/C6M8_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "c6m8_d",
+    "png": "../png/C6M8_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "c6m8_m",
+    "png": "../png/C6M8_M.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "camb_d",
+    "png": "../png/CAMB_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "camb_s",
+    "png": "../png/CAMB_S.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "camb_c",
+    "png": "../png/CAMB_C.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds01",
+    "png": "../png/CLOUDS01.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "skygrad1",
+    "png": "../png/SKYGRAD1.png",
+    "found": true
+  },
+  "sun": "SUN.3DO",
+  "stars": null,
+  "sun_slope": 70,
+  "lowest_elevation": 0,
+  "sky_height": 900,
+  "terrain_scale": 20,
+  "gamma": 128,
+  "saturation": 128,
+  "filter": [
+    128,
+    128,
+    128
+  ],
+  "cannon_rounds": 500,
+  "rockets": 0,
+  "stingers": 8,
+  "hellfire": 10,
+  "artillery": 8,
+  "wingmen": 1,
+  "sidewinders": 0,
+  "line_of_sight": 0,
+  "show_efams": 1,
+  "music": "Q",
+  "mission_type": 0,
+  "copilot": 0,
+  "ideal_altitude": 40,
+  "magic_pal": 425,
+  "obj_weight": 19,
+  "effect": 0,
+  "future": 0
+}

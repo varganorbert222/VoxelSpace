@@ -119,6 +119,9 @@ export function initHud(app) {
   }
 
   window.addEventListener("keydown", (e) => {
+    if (document.body.classList.contains("map-picker-open")) {
+      return;
+    }
     if (e.code === "Escape") {
       if (document.activeElement && document.activeElement.blur) {
         document.activeElement.blur();

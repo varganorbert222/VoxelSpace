@@ -1,0 +1,56 @@
+{
+  "source": "C5M2N.TRN",
+  "terrain_name": "Grendel's Playground",
+  "terrain_creator": "jontando",
+  "color_map": {
+    "name": "dfb3_c",
+    "png": "../png/DFB3_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "dfb3_d",
+    "png": "../png/DFB3_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "dfb3_m",
+    "png": "../png/DFB3_M.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "snip_c",
+    "png": "../png/SNIP_C.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "snip_d",
+    "png": "../png/SNIP_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "snip_s",
+    "png": "../png/SNIP_S.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds05",
+    "png": "../png/CLOUDS05.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "grengrad",
+    "png": "../png/GRENGRAD.png",
+    "found": true
+  },
+  "sky_height": 700,
+  "horizon": 1.0,
+  "camouflage": "Desert",
+  "filter": [
+    80,
+    160,
+    30
+  ],
+  "gamma": 85,
+  "saturation": 0,
+  "sun_slope": 20
+}

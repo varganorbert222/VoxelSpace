@@ -1,0 +1,76 @@
+{
+  "source": "C7M4.MIS",
+  "mission": "C7M4",
+  "owner": "Keith Butler",
+  "camouflage": "green",
+  "color_map": {
+    "name": "c7m4_c",
+    "png": "../png/C7M4_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "c7m4_d",
+    "png": "../png/C7M4_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "c7m4_m",
+    "png": "../png/C7M4_M.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "kyrg_d",
+    "png": "../png/KYRG_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "kyrg_s",
+    "png": "../png/KYRG_S.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "kyrg_c",
+    "png": "../png/KYRG_C.png",
+    "found": true
+  },
+  "sky_map": {
+    "name": "clouds03",
+    "png": "../png/CLOUDS03.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "skygrad1",
+    "png": "../png/SKYGRAD1.png",
+    "found": true
+  },
+  "sun": "SUN.3DO",
+  "stars": null,
+  "sun_slope": 70,
+  "lowest_elevation": 600,
+  "sky_height": 1100,
+  "terrain_scale": 20,
+  "gamma": 128,
+  "saturation": 128,
+  "filter": [
+    128,
+    128,
+    128
+  ],
+  "cannon_rounds": 500,
+  "rockets": 8,
+  "stingers": 8,
+  "hellfire": 8,
+  "artillery": 4,
+  "wingmen": 1,
+  "sidewinders": 0,
+  "line_of_sight": 0,
+  "show_efams": 1,
+  "music": "Q",
+  "mission_type": 0,
+  "copilot": 0,
+  "ideal_altitude": 40,
+  "magic_pal": 425,
+  "obj_weight": 19,
+  "effect": 0,
+  "future": 0
+}

@@ -1,0 +1,72 @@
+{
+  "source": "C9M1.MIS",
+  "mission": "c9m1",
+  "owner": "Dave Merrick",
+  "camouflage": "green",
+  "color_map": {
+    "name": "c9m2_c",
+    "png": "../png/C9M2_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "c9m2_d",
+    "png": "../png/C9M2_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "c9m2_m",
+    "png": "../png/C9M2_M.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "sakh_d",
+    "png": "../png/SAKH_D.png",
+    "found": true
+  },
+  "detail_shade": {
+    "name": "sakh_s",
+    "png": "../png/SAKH_S.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "sakh_c",
+    "png": "../png/SAKH_C.png",
+    "found": true
+  },
+  "sky_map": null,
+  "sky_palette": {
+    "name": "grengrad",
+    "png": "../png/GRENGRAD.png",
+    "found": true
+  },
+  "sun": "MOON_1Q.3DO",
+  "stars": "STARS1.SKY",
+  "sun_slope": 70,
+  "lowest_elevation": 0,
+  "sky_height": 600,
+  "terrain_scale": 19,
+  "gamma": 120,
+  "saturation": 64,
+  "filter": [
+    40,
+    160,
+    40
+  ],
+  "cannon_rounds": 500,
+  "rockets": 20,
+  "stingers": 2,
+  "hellfire": 0,
+  "artillery": 0,
+  "wingmen": 1,
+  "sidewinders": 0,
+  "line_of_sight": 1,
+  "show_efams": 0,
+  "music": "U",
+  "mission_type": 0,
+  "copilot": 0,
+  "ideal_altitude": 40,
+  "magic_pal": 425,
+  "obj_weight": 19,
+  "effect": 0,
+  "future": 0
+}
