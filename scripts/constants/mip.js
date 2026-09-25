@@ -162,40 +162,6 @@ export function clampStepDivisor(value) {
   return n;
 }
 
-export function marchStep(mip, refine, refineMip, divisor) {
-  return marchCellSize(mip, refine, refineMip) / clampStepDivisor(divisor);
-}
-
-export function clampMarchStep(step, mip, refine, refineMip, divisor) {
-  const lo = marchStep(mip, refine, refineMip, divisor);
-  const hi = marchCellSize(mip, refine, refineMip);
-  let s = Number(step);
-  if (!(s >= lo)) {
-    s = lo;
-  }
-  if (s > hi) {
-    s = hi;
-  }
-  return s;
-}
-
-export function growMarchStep(step, growth, mip, refine, refineMip, divisor) {
-  const g = Number(growth);
-  return clampMarchStep(step + (g > 0 ? g : 0), mip, refine, refineMip, divisor);
-}
-
-export function marchBandKey(mip, refineMip) {
-  return (((mip | 0) << 8) | (refineMip & 255)) | 0;
-}
-
-export function syncBandStep(step, prevKey, mip, refine, refineMip, divisor) {
-  const key = marchBandKey(mip, refine ? refineMip : 0);
-  return {
-    step: clampMarchStep(step, mip, refine, refineMip, divisor),
-    key: key,
-  };
-}
-
 export function mixNearestBilinear(nearest, bilinear, fade) {
   if (!(fade > 0)) {
     return nearest;
@@ -205,6 +171,14 @@ export function mixNearestBilinear(nearest, bilinear, fade) {
   }
   return nearest + (bilinear - nearest) * fade;
 }
+
+const easeScratch = {
+  sampleMip: 0,
+  sampleRefineOn: false,
+  sampleRefineMip: 0,
+  noiseAmp: 0,
+  filterFade: 0,
+};
 
 export function easeLodSample(
   t,
@@ -216,26 +190,12 @@ export function easeLodSample(
 ) {
   const sampleMip = mip | 0;
   const sampleRefineOn = lod0RefineAt(refineOn, sampleMip);
-  const sampleRefineMip = sampleRefineOn ? refineMip | 0 : 0;
-  return {
-    sampleMip: sampleMip,
-    sampleRefineOn: sampleRefineOn,
-    sampleRefineMip: sampleRefineMip,
-    noiseAmp: sampleRefineOn ? LOD0_REFINE_NOISE_AMPLITUDE : 0,
-    filterFade: (sampleMip | 0) === 0 ? 1 : 0,
-  };
-}
-
-export function firstMarchT(nearClip, refine, divisor) {
-  const step = marchStep(0, refine, 0, divisor);
-  let t0 = Number(nearClip);
-  if (!(t0 > 0)) {
-    t0 = step;
-  }
-  if (step > t0) {
-    t0 = step;
-  }
-  return t0;
+  easeScratch.sampleMip = sampleMip;
+  easeScratch.sampleRefineOn = sampleRefineOn;
+  easeScratch.sampleRefineMip = sampleRefineOn ? refineMip | 0 : 0;
+  easeScratch.noiseAmp = sampleRefineOn ? LOD0_REFINE_NOISE_AMPLITUDE : 0;
+  easeScratch.filterFade = sampleMip === 0 ? 1 : 0;
+  return easeScratch;
 }
 
 export function lod0RefineAt(enabled, mip) {
@@ -511,7 +471,9 @@ export function mipSwitchDistances(mipCount, farClip, out, mode, spacing, capLod
   return finalizeLodSwitches(dest, switchN, far);
 }
 
-export function classicLodDeltas(bandCount, divisor, out) {
+// One step per LOD. The mip cell sets the length (1 m, then 2, 4, 8, …).
+// Step divides that cell, so a higher Step samples the same LOD more densely.
+export function bandSteps(bandCount, divisor, out) {
   const n = clampMipCount(bandCount);
   const dest = out || new Float64Array(n);
   const d = clampStepDivisor(divisor);
@@ -519,6 +481,62 @@ export function classicLodDeltas(bandCount, divisor, out) {
     dest[i] = mipVoxelSize(i) / d;
   }
   return dest;
+}
+
+export function firstBandT(nearClip, steps) {
+  let t = Number(nearClip);
+  if (!(t > 0)) {
+    t = 0;
+  }
+  const s0 = steps && steps[0] > 0 ? steps[0] : MIN_SAMPLE_DISTANCE;
+  if (s0 > t) {
+    t = s0;
+  }
+  if (MIN_SAMPLE_DISTANCE > t) {
+    t = MIN_SAMPLE_DISTANCE;
+  }
+  return t;
+}
+
+export function bandStepAt(steps, mip) {
+  const m = mip | 0;
+  const last = (steps.length - 1) | 0;
+  const s = steps[m < 0 ? 0 : m > last ? last : m];
+  return s > 0 ? s : MIN_SAMPLE_DISTANCE;
+}
+
+export function bandMarchStep(steps, mip, refine, refineMip) {
+  const base = mipVoxelSize(mip);
+  const cell = marchCellSize(mip, refine, refineMip);
+  const s = bandStepAt(steps, mip);
+  if ((cell < base) & (base > 0)) {
+    return (s * cell) / base;
+  }
+  return s;
+}
+
+export function fitBandStep(step, steps, mip, refine, refineMip) {
+  const lo = bandMarchStep(steps, mip, refine, refineMip);
+  const cell = marchCellSize(mip, refine, refineMip);
+  const hi = cell > lo ? cell : lo;
+  let s = Number(step);
+  if (!(s >= lo)) {
+    s = lo;
+  }
+  if (s > hi) {
+    s = hi;
+  }
+  return s;
+}
+
+export function growBandStep(step, steps, mip, refine, refineMip, growth) {
+  const cell = marchCellSize(mip, refine, refineMip);
+  const g = Number(growth);
+  let s = Number(step);
+  if (g > 0) {
+    s = s + g * cell;
+  }
+  return fitBandStep(s, steps, mip, refine, refineMip);
 }
 
 export function fillClassicLodDistances(out, zStart, farClip, switches, bandCount) {
@@ -614,16 +632,4 @@ export function projectSdfYSpan(sdf, dst, z, zFar, horizon) {
     }
   }
   return y;
-}
-
-export function advanceRayT(t, mip, wx, wy, dirX, dirY, refine, refineMip, divisor, step, growth) {
-  const s = clampMarchStep(step, mip, refine, refineMip, divisor);
-  let next = t + s;
-  if (!(next > t)) {
-    next = t + (s > 0 ? s : MIN_SAMPLE_DISTANCE);
-  }
-  return {
-    t: next,
-    step: growMarchStep(s, growth, mip, refine, refineMip, divisor),
-  };
 }

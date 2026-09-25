@@ -5,7 +5,7 @@
 @group(1) @binding(3) var<storage, read> skyPano: array<u32>;
 @group(2) @binding(0) var heightTex: texture_2d<u32>;
 @group(2) @binding(1) var colorTex: texture_2d<f32>;
-@group(2) @binding(2) var<storage, read> mipSwitchArr: array<f32, 16>;
+@group(2) @binding(2) var<storage, read> mipSwitchArr: array<f32, 32>;
 @group(3) @binding(0) var panoColor: texture_storage_2d<r32uint, write>;
 @group(3) @binding(1) var panoDepth: texture_storage_2d<r32float, write>;
 @group(3) @binding(2) var panoHeight: texture_storage_2d<r32uint, write>;
@@ -15,7 +15,10 @@ const MAX_STEPS: u32 = 65536u;
 const EPSILON: f32 = 1e-6;
 
 fn sampleHeightPair(mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> vec2f {
-  return terrainSampleHeightPair(heightTex, mip, wx, wy, dist, t);
+  let sampled = terrainSampleHeightPair(heightTex, mip, wx, wy, dist, t);
+  let addBytes = detailHeightBytes(wx, wy, t);
+  let add = addBytes * (frame.tMaxMinDzAltMaxH.z / 255.0);
+  return vec2f(sampled.x + add, clamp(sampled.y + addBytes, 0.0, 255.0));
 }
 
 fn sampleHeightByte(mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> u32 {
@@ -27,7 +30,7 @@ fn sampleHeight(mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> f32 {
 }
 
 fn sampleColor(mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> vec4f {
-  return terrainSampleColor(colorTex, mip, wx, wy, dist, t);
+  return detailColor(terrainSampleColor(colorTex, mip, wx, wy, dist, t), wx, wy, t);
 }
 
 fn yHitFromHat(sHat: f32) -> i32 {
@@ -88,8 +91,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   var dirY = dir.y;
   var t0 = frame.camFwdPad.w;
   var t = t0;
-  var step = 0.0;
-  var bandKey = -1;
   var H = panoH;
   var wasInside = 0;
   var mip = 0;
@@ -151,10 +152,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         if (wasInside != 0) {
           break;
         }
-        let taken = takeMarchStep(t, step, bandKey, mip);
-        t = taken.x;
-        step = taken.y;
-        bandKey = i32(taken.z);
+        t = t + bandMarchStep(mipSwitchArr[16 + mip], mip, t);
         continue;
       }
       wasInside = 1;
@@ -163,10 +161,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let hs = sampleHeightPair(mip, wx, wy, filterClip, t);
     let h = hs.x;
     if (sealed && (h < camZ + t * tanH - EPSILON)) {
-      let taken = takeMarchStep(t, step, bandKey, mip);
-      t = taken.x;
-      step = taken.y;
-      bandKey = i32(taken.z);
+      t = t + bandMarchStep(mipSwitchArr[16 + mip], mip, t);
       continue;
     }
 
@@ -225,9 +220,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       H = yHit;
     }
 
-    let taken = takeMarchStep(t, step, bandKey, mip);
-    t = taken.x;
-    step = taken.y;
-    bandKey = i32(taken.z);
+    t = t + bandMarchStep(mipSwitchArr[16 + mip], mip, t);
   }
 }

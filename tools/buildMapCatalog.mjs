@@ -311,6 +311,43 @@ function missionFacts(row) {
   return facts;
 }
 
+function renderFields(row) {
+  const filter = Array.isArray(row.filter) ? row.filter.map(Number) : [128, 128, 128];
+  const turbidity = Array.isArray(row.turbidity) ? row.turbidity.map(Number) : [23, 8, 4];
+  return {
+    skyHeight: Number.isFinite(Number(row.sky_height)) ? Number(row.sky_height) : 1236,
+    horizon: row.horizon == null ? 1 : Number(row.horizon),
+    gamma: Number.isFinite(Number(row.gamma)) ? Number(row.gamma) : 128,
+    saturation: Number.isFinite(Number(row.saturation)) ? Number(row.saturation) : 128,
+    filter,
+    waterHeight: Number.isFinite(Number(row.water_height)) ? Number(row.water_height) : 0,
+    waterOpacity: Number.isFinite(Number(row.water_opacity)) ? Number(row.water_opacity) : 0,
+    turbidity,
+  };
+}
+
+function requiredAssetsReady(assets, render) {
+  const keys = [
+    "color",
+    "elevation",
+    "character",
+    "detailColor",
+    "detailElevation",
+    "detailShade",
+    "sky",
+    "skyPalette",
+  ];
+  for (const key of keys) {
+    if (!assets[key] || !assets[key].src) {
+      return false;
+    }
+  }
+  if (render.waterHeight) {
+    return !!(assets.water && assets.water.src && assets.waterPalette && assets.waterPalette.src);
+  }
+  return true;
+}
+
 function missionMaps(collection, pngs) {
   const dataDir = path.join(ROOT, collection.dir, "data");
   if (!fs.existsSync(dataDir)) {
@@ -336,6 +373,7 @@ function missionMaps(collection, pngs) {
       assets.character = { name: "", src: null };
     }
     const name = path.basename(file, ".json");
+    const render = renderFields(row);
     const comanche = isComancheMission(row);
     const missionLabel = row.mission ? String(row.mission).trim() : "";
     const title = comanche
@@ -355,11 +393,12 @@ function missionMaps(collection, pngs) {
         : row.terrain_creator
           ? String(row.terrain_creator)
           : "",
-      playable: !!(assets.color && assets.color.src && assets.elevation && assets.elevation.src),
+      playable: requiredAssetsReady(assets, render),
       night: isNightMap(name),
       filter: filterColor(row),
       altitude: comanche ? altitudeFromTerrainScale(row.terrain_scale) : null,
       skyColor: null,
+      render,
       assets,
       facts: comanche ? comancheFacts(row, name) : missionFacts(row),
     });

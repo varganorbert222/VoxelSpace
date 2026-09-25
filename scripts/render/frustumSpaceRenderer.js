@@ -6,6 +6,9 @@ import { isDebugColor } from "../constants/debugView.js";
 import { canShareBuffers, ensureU32 } from "./sharedBuffers.js";
 
 function frustumSpaceKernel(renderer) {
+  if (renderer.showDetails) {
+    return renderFrustumSpaceColumns;
+  }
   return (
     (!renderer.useJsFrustumSpace &&
       renderer.kernels &&
@@ -53,6 +56,11 @@ function frustumSpaceParams(renderer, maps) {
     farClip: renderer.effectiveFarClip,
     minDeltaZ: camera.minDeltaZ,
     quality: camera.quality,
+    fov: camera.fov,
+    showDetails: renderer.showDetails ? 1 : 0,
+    nearRefine: renderer.nearRefine ? 1 : 0,
+    lod0Refine: renderer.lod0Refine ? 1 : 0,
+    lod0RefineCurve: renderer.lod0RefineCurve,
     applyFog: renderer.applyFog,
     fogStart: renderer.fogStart,
     debugView: renderer.debugView,

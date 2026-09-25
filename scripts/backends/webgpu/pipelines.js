@@ -11,13 +11,18 @@ async function loadText(rel) {
   return res.text();
 }
 
-async function loadCompute(device, label, file, onStatus) {
+async function loadCompute(device, label, file, onStatus, extras) {
   if (onStatus) {
     onStatus("Compiling shader", label);
   }
   const common = await loadText("./shaders/common.wgsl");
   const body = await loadText("./shaders/" + file);
-  return compileShader(device, label, common + "\n" + body);
+  const parts = [common];
+  for (const extra of extras || []) {
+    parts.push(await loadText("./shaders/" + extra));
+  }
+  parts.push(body);
+  return compileShader(device, label, parts.join("\n"));
 }
 
 async function loadBlit(device, onStatus) {
@@ -28,28 +33,59 @@ async function loadBlit(device, onStatus) {
 }
 
 export async function createPipelines(device, canvasFormat, onStatus) {
-  const classicMod = await loadCompute(device, "classicMarch", "classicMarch.wgsl", onStatus);
+  const classicMod = await loadCompute(
+    device,
+    "classicMarch",
+    "classicMarch.wgsl",
+    onStatus,
+    ["retailSky.wgsl", "detailBindMaps.wgsl", "detailSample.wgsl"]
+  );
   let frustumSpaceMod = classicMod;
   try {
     frustumSpaceMod = await loadCompute(
       device,
       "frustumSpaceMarch",
       "frustumSpaceMarch.wgsl",
-      onStatus
+      onStatus,
+      ["retailSky.wgsl", "detailBindMaps.wgsl", "detailSample.wgsl"]
     );
   } catch (err) {
     console.warn("frustumSpaceMarch compile failed:", err);
   }
-  const genMod = await loadCompute(device, "panoGenerate", "panoramaGenerate.wgsl", onStatus);
+  const genMod = await loadCompute(device, "panoGenerate", "panoramaGenerate.wgsl", onStatus, [
+    "detailBindMips2.wgsl",
+    "detailSample.wgsl",
+  ]);
   const viewMod = await loadCompute(device, "panoView", "panoramaView.wgsl", onStatus);
-  const cubeGenMod = await loadCompute(device, "cubeGenerate", "cubemapGenerate.wgsl", onStatus);
-  const cubePolarMod = await loadCompute(device, "cubePolar", "cubemapPolar.wgsl", onStatus);
+  const cubeGenMod = await loadCompute(device, "cubeGenerate", "cubemapGenerate.wgsl", onStatus, [
+    "detailBindMips1.wgsl",
+    "detailSample.wgsl",
+  ]);
+  const cubePolarMod = await loadCompute(device, "cubePolar", "cubemapPolar.wgsl", onStatus, [
+    "detailBindMips1.wgsl",
+    "detailSample.wgsl",
+  ]);
   const cubeFillMod = await loadCompute(device, "cubeFill", "cubemapFill.wgsl", onStatus);
   const cubeStitchMod = await loadCompute(device, "cubeStitch", "cubemapStitch.wgsl", onStatus);
   const cubeViewMod = await loadCompute(device, "cubeView", "cubemapView.wgsl", onStatus);
   const overlayPanoMod = await loadCompute(device, "overlayPano", "debugOverlay.wgsl", onStatus);
   const overlayCubeMod = await loadCompute(device, "overlayCube", "debugOverlayCube.wgsl", onStatus);
-  const voxelMod = await loadCompute(device, "voxelRay", "voxelRay.wgsl", onStatus);
+  const voxelMod = await loadCompute(device, "voxelRay", "voxelRay.wgsl", onStatus, [
+    "detailBindMips1.wgsl",
+    "detailSample.wgsl",
+  ]);
+  let skyCompositeMod = null;
+  try {
+    skyCompositeMod = await loadCompute(
+      device,
+      "skyComposite",
+      "skyComposite.wgsl",
+      onStatus,
+      ["retailSky.wgsl"]
+    );
+  } catch (err) {
+    console.warn("skyComposite compile failed:", err);
+  }
   const blitMod = await loadBlit(device, onStatus);
 
   const frameLayout = device.createBindGroupLayout({
@@ -77,6 +113,9 @@ export async function createPipelines(device, canvasFormat, onStatus) {
     entries: [
       { binding: 0, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
       { binding: 1, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "float" } },
+      { binding: 2, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
+      { binding: 3, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
+      { binding: 4, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
     ],
   });
 
@@ -108,6 +147,9 @@ export async function createPipelines(device, canvasFormat, onStatus) {
       { binding: 0, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
       { binding: 1, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "float" } },
       { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+      { binding: 3, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
+      { binding: 4, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
+      { binding: 5, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
     ],
   });
 
@@ -206,6 +248,44 @@ export async function createPipelines(device, canvasFormat, onStatus) {
       { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
     ],
   });
+
+  let skyCompositeLayout = null;
+  let skyCompositePipe = null;
+  if (skyCompositeMod) {
+    try {
+      device.pushErrorScope("validation");
+      const layout = device.createBindGroupLayout({
+        label: "skyComposite",
+        entries: [
+          {
+            binding: 0,
+            visibility: GPUShaderStage.COMPUTE,
+            storageTexture: { access: "read-write", format: "r32uint", viewDimension: "2d" },
+          },
+          { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+        ],
+      });
+      const pipe = device.createComputePipeline({
+        label: "skyComposite",
+        layout: device.createPipelineLayout({ bindGroupLayouts: [layout] }),
+        compute: { module: skyCompositeMod, entryPoint: "main" },
+      });
+      const pipeErr = await device.popErrorScope();
+      if (pipeErr) {
+        console.warn("skyComposite pipeline failed:", pipeErr.message);
+      } else {
+        skyCompositeLayout = layout;
+        skyCompositePipe = pipe;
+      }
+    } catch (err) {
+      try {
+        await device.popErrorScope();
+      } catch {
+        void 0;
+      }
+      console.warn("skyComposite pipeline failed:", err);
+    }
+  }
 
   const classicLayout = device.createPipelineLayout({
     bindGroupLayouts: [frameLayout, classicTablesLayout, mapsLayout, classicOutLayout],
@@ -347,6 +427,7 @@ export async function createPipelines(device, canvasFormat, onStatus) {
     overlayPano: overlayPanoPipe,
     overlayCube: overlayCubePipe,
     voxel: voxelPipe,
+    skyComposite: skyCompositePipe,
     blit: blitPipe,
     layouts: {
       frame: frameLayout,
@@ -361,6 +442,7 @@ export async function createPipelines(device, canvasFormat, onStatus) {
       viewOut: viewOutLayout,
       cubeSample: cubeSampleLayout,
       cubeSky: cubeSkyLayout,
+      skyComposite: skyCompositeLayout,
       blit: blitLayout,
     },
     workgroup1d: 64,

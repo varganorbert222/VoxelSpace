@@ -15,7 +15,7 @@ import {
 import { BACKEND_WASM } from "../../constants/backend.js";
 import { instantiateMarch, marchModuleSupported } from "../../wasm/instantiate.js";
 import { createWasmKernels } from "../../wasm/kernels.js";
-
+import { bindRetailMaps } from "../../render/retail/detail.js";
 let availableCache = null;
 
 class WasmBackend {
@@ -55,6 +55,14 @@ class WasmBackend {
 
   get useJsFrustumSpace() {
     return false;
+  }
+
+  get nearRefine() {
+    return this._host.nearRefine;
+  }
+
+  get showDetails() {
+    return this._host.showDetails;
   }
 
   async init(ctx) {
@@ -172,6 +180,10 @@ class WasmBackend {
     }
   }
 
+  skyFill(color) {
+    return this._host.skyFill(color);
+  }
+
   drawBackground() {
     this._host.drawBackground();
   }
@@ -182,6 +194,7 @@ class WasmBackend {
 
   async setMaps(exportedMaps) {
     this._maps = exportedMaps;
+    bindRetailMaps(exportedMaps);
     if (this._pool && exportedMaps) {
       this._pool.initMaps(exportedMaps);
     }
@@ -201,23 +214,18 @@ class WasmBackend {
   }
 
   async render(frame) {
+    bindRetailMaps(this._maps);
     if (frame.algorithm === ALGORITHM_PANORAMA) {
       await this._panorama.render(frame.terrain);
-      return;
-    }
-    if (frame.algorithm === ALGORITHM_CUBEMAP) {
+    } else if (frame.algorithm === ALGORITHM_CUBEMAP) {
       await this._cubemap.render(frame.terrain);
-      return;
-    }
-    if (frame.algorithm === ALGORITHM_FRUSTUM_SPACE) {
+    } else if (frame.algorithm === ALGORITHM_FRUSTUM_SPACE) {
       await this._frustumSpace.render(frame.terrain);
-  return;
-    }
-    if (frame.algorithm === ALGORITHM_VOXEL) {
+    } else if (frame.algorithm === ALGORITHM_VOXEL) {
       await this._voxel.render(frame.terrain);
-      return;
+    } else {
+      await this._classic.render(frame.terrain);
     }
-    await this._classic.render(frame.terrain);
   }
 
   dispose() {

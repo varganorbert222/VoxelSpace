@@ -35,7 +35,6 @@ import { detectBackends } from "../backends/contract.js";
 import {
   QUALITY_LABEL,
   QUALITY_LOW,
-  renderScaleForQuality,
   clampQualityForContext,
 } from "../constants/quality.js";
 import { DEBUG_VIEW_COLOR } from "../constants/debugView.js";
@@ -96,11 +95,25 @@ class App {
       debugView: config.settings.debugViews.default || DEBUG_VIEW_COLOR,
       debugOverlay: !!config.settings.debugOverlay.default,
       interpolateHeight:
-        !!config.settings.lod0Refine && config.settings.lod0Refine.default,
+        !!(config.settings.nearRefine && config.settings.nearRefine.default),
       filterColor:
-        !!config.settings.lod0Refine && config.settings.lod0Refine.default,
+        !!(config.settings.nearRefine && config.settings.nearRefine.default),
       lod0Refine:
-        !!config.settings.lod0Refine && config.settings.lod0Refine.default,
+        !!(config.settings.nearRefine
+          ? config.settings.nearRefine.default
+          : config.settings.lod0Refine && config.settings.lod0Refine.default),
+      nearRefine:
+        !!(config.settings.nearRefine
+          ? config.settings.nearRefine.default
+          : config.settings.lod0Refine && config.settings.lod0Refine.default),
+      showDetails:
+        !config.settings.showDetails || config.settings.showDetails.default !== false,
+      showSky: !config.settings.showSky || config.settings.showSky.default !== false,
+      showSkyGradient:
+        !config.settings.showSkyGradient ||
+        config.settings.showSkyGradient.default !== false,
+      showClouds:
+        !config.settings.showClouds || config.settings.showClouds.default !== false,
       lod0RefineCurve:
         (config.settings.lod0RefineCurve &&
           config.settings.lod0RefineCurve.default) ||
@@ -429,14 +442,6 @@ class App {
 
   resize() {
     const view = this._viewportSize();
-    const next = renderScaleForQuality(
-      this.camera.quality,
-      view.w,
-      view.h
-    );
-    if (next !== this.camera.renderScale) {
-      this.camera.set({ renderScale: next });
-    }
     this.settingsForm.syncRenderScale();
     this.camera.resize(
       this.surface ? this.surface.getCanvas() : document.getElementById(CANVAS_ID),
@@ -487,7 +492,13 @@ class App {
         repeat: options.repeat,
         interpolateHeight: options.interpolateHeight,
         filterColor: options.filterColor,
-        lod0Refine: options.lod0Refine,
+        lod0Refine: options.nearRefine,
+        nearRefine: options.nearRefine,
+        showDetails: options.showDetails,
+        showSky: options.showSky,
+        showSkyGradient: options.showSkyGradient,
+        showClouds: options.showClouds,
+        renderScale: this.camera.renderScale,
         lod0RefineCurve: options.lod0RefineCurve,
         stepDivisor: options.stepDivisor,
         filterDistance: options.filterDistance,
@@ -520,6 +531,7 @@ class App {
           max: TERRAIN_MIP_MAX_COUNT,
         },
         lodSpacingModes: config.settings.lodSpacingMode.values,
+        renderScale: config.settings.renderScale,
         lod0RefineCurves:
           (config.settings.lod0RefineCurve &&
             config.settings.lod0RefineCurve.values) ||
@@ -535,6 +547,7 @@ class App {
       fov: sanitized.fov,
       quality: clampQualityForContext(sanitized.quality, sanitized.backend),
       mode: sanitized.mode,
+      renderScale: sanitized.renderScale,
     });
     this.renderer.setOptions({
       applyFog: sanitized.applyFog,
@@ -543,7 +556,12 @@ class App {
       repeat: sanitized.repeat,
       interpolateHeight: sanitized.interpolateHeight,
       filterColor: sanitized.filterColor,
-      lod0Refine: sanitized.lod0Refine,
+      lod0Refine: sanitized.nearRefine,
+      nearRefine: sanitized.nearRefine,
+      showDetails: sanitized.showDetails,
+      showSky: sanitized.showSky,
+      showSkyGradient: sanitized.showSkyGradient,
+      showClouds: sanitized.showClouds,
       lod0RefineCurve: sanitized.lod0RefineCurve,
       stepDivisor: sanitized.stepDivisor,
       filterDistance: sanitized.filterDistance,

@@ -217,6 +217,7 @@ class WorkerPool {
           mipShifts: mips ? mips.shifts : [snapshot.mapShift],
           mipHeightMaps: sharedMipH,
           mipColorMaps: sharedMipC,
+          retail: snapshot.retail || null,
         });
         continue;
       }
@@ -253,6 +254,7 @@ class WorkerPool {
           mipShifts: mips ? mips.shifts : [snapshot.mapShift],
           mipHeightMaps: mipHeightMaps,
           mipColorMaps: mipColorMaps,
+          retail: snapshot.retail || null,
         },
         transfer
       );
@@ -444,7 +446,6 @@ class WorkerPool {
     for (let face = 0; face < 4; face = (face + 1) | 0) {
       jobs.push({ kind: "horizon", face: face });
     }
-    const azCount = n << 2;
     const share = canShareBuffers();
     const maxPolar = share ? 8 : 4;
     const polarJobs = Math.max(
@@ -456,20 +457,20 @@ class WorkerPool {
           : this._slots.length - 4
       )
     );
-    const azChunk = Math.ceil(azCount / polarJobs) | 0;
+    const colChunk = Math.ceil(n / polarJobs) | 0;
     for (let i = 0; (i < polarJobs) | 0; i = (i + 1) | 0) {
-      const startAz = (i * azChunk) | 0;
-      if ((startAz >= azCount) | 0) {
+      const startCol = (i * colChunk) | 0;
+      if ((startCol >= n) | 0) {
         break;
       }
-      let endAz = (startAz + azChunk) | 0;
-      if ((endAz > azCount) | 0) {
-        endAz = azCount;
+      let endCol = (startCol + colChunk) | 0;
+      if ((endCol > n) | 0) {
+        endCol = n;
       }
       jobs.push({
         kind: "polar",
-        startAz: startAz,
-        endAz: endAz,
+        startCol: startCol,
+        endCol: endCol,
         fillSky: 0,
       });
     }
@@ -650,10 +651,19 @@ class WorkerPool {
       }
       return;
     }
-    if (data && data.type === MSG_WORKER_ERROR && this._kernelWait) {
-      const wait = this._kernelWait;
-      this._kernelWait = null;
-      wait.reject(new Error(data.message || "kernel init failed"));
+    if (data && data.type === MSG_WORKER_ERROR) {
+      if (this._kernelWait) {
+        const wait = this._kernelWait;
+        this._kernelWait = null;
+        wait.reject(new Error(data.message || "kernel init failed"));
+      }
+      slot.busy = 0;
+      const active = this._active;
+      if (active && (!data.jobId || data.jobId === active.jobId)) {
+        const finish = active.finish;
+        this._active = null;
+        finish(null);
+      }
       return;
     }
     slot.busy = 0;

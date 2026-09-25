@@ -6,6 +6,9 @@ import { isDebugColor } from "../constants/debugView.js";
 import { canShareBuffers, ensureU32 } from "./sharedBuffers.js";
 
 function classicKernel(renderer) {
+  if (renderer.showDetails) {
+    return renderClassicColumns;
+  }
   return (
     (renderer.kernels && renderer.kernels.renderClassicColumns) ||
     renderClassicColumns
@@ -42,6 +45,9 @@ function classicParams(renderer, maps) {
     nearClip: camera.nearClip,
     farClip: renderer.effectiveFarClip,
     quality: camera.quality,
+    fov: camera.fov,
+    showDetails: renderer.showDetails ? 1 : 0,
+    nearRefine: renderer.nearRefine ? 1 : 0,
     applyFog: renderer.applyFog,
     fogStart: renderer.fogStart,
     debugView: renderer.debugView,

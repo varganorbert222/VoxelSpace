@@ -14,6 +14,7 @@ const FLAG_OVERLAY_CUBE = 1 << 11;
 const FLAG_HEIGHT_LERP = 1 << 12;
 const FLAG_COLOR_FILTER = 1 << 13;
 const FLAG_LOD0_REFINE = 1 << 14;
+const FLAG_SHOW_DETAILS = 1 << 15;
 
 export function createFramePacker() {
   const buffer = new ArrayBuffer(FRAME_BYTES);
@@ -73,6 +74,9 @@ export function packFrame(packer, p) {
   }
   if (p.lod0Refine) {
     flags |= FLAG_LOD0_REFINE;
+  }
+  if (p.showDetails) {
+    flags |= FLAG_SHOW_DETAILS;
   }
   flags |= ((p.debugViewId | 0) & 3) << FLAG_DEBUG_SHIFT;
   if (p.debugOverlay) {
@@ -142,4 +146,12 @@ export function packFrame(packer, p) {
   f[85] = Number.isFinite(p.fogStart) ? p.fogStart : 0;
   f[86] = Number.isFinite(p.fogEnd) ? p.fogEnd : 0;
   f[87] = Number.isFinite(p.maxSlope) ? p.maxSlope : p.altitude;
+  f[88] = Number.isFinite(p.detailEnd0) ? p.detailEnd0 : 0;
+  f[89] = Number.isFinite(p.detailEnd1) ? p.detailEnd1 : 0;
+  f[90] = Number.isFinite(p.detailEnd2) ? p.detailEnd2 : 0;
+  f[91] = Number.isFinite(p.detailEnd3) ? p.detailEnd3 : 0;
+  f[92] = Number.isFinite(p.detailEnd4) ? p.detailEnd4 : 0;
+  f[93] = Number.isFinite(p.detailLightR) ? p.detailLightR : 0;
+  f[94] = Number.isFinite(p.detailLightG) ? p.detailLightG : 0;
+  f[95] = Number.isFinite(p.detailLightB) ? p.detailLightB : 0;
 }

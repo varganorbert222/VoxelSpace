@@ -44,9 +44,25 @@ class FrameBuffer {
     this._bottomColor = NaN;
   }
 
-  drawBackground(screenHorizon) {
+  drawBackground(screenHorizon, skyRows) {
     const h2 = this._height * HALF;
     const horizon = screenHorizon ?? h2;
+    if (skyRows && skyRows.length >= this._height && this._buffer32bit) {
+      const dest = this._buffer32bit;
+      const cached = this._cachedBuffer32bit;
+      const width = this._width;
+      const height = this._height;
+      for (let i = 0; (i < height) | 0; i = (i + 1) | 0) {
+        const color = skyRows[i];
+        const row = (i * width) | 0;
+        dest.fill(color, row, row + width);
+        if (cached) {
+          cached.fill(color, row, row + width);
+        }
+      }
+      this._mustBeRecalcBuffer32bit = true;
+      return;
+    }
     const horizonKey = horizon | 0;
     if (
       !this._mustBeRecalcBuffer32bit &&

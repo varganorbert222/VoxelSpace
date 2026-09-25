@@ -35,6 +35,15 @@ function migratePersisted(data) {
   if (data.version === 3) {
     return { ...data, version: SETTINGS_STORAGE_VERSION, multithread: true };
   }
+  if (data.version === 4) {
+    return {
+      ...data,
+      version: SETTINGS_STORAGE_VERSION,
+      nearRefine:
+        typeof data.nearRefine === "boolean" ? data.nearRefine : !!data.lod0Refine,
+      showDetails: typeof data.showDetails === "boolean" ? data.showDetails : true,
+    };
+  }
   return data;
 }
 
@@ -75,7 +84,13 @@ export function collectSettings(app) {
     repeat: options.repeat,
     interpolateHeight: options.interpolateHeight,
     filterColor: options.filterColor,
-    lod0Refine: options.lod0Refine,
+    lod0Refine: options.nearRefine,
+    nearRefine: options.nearRefine,
+    showDetails: options.showDetails,
+    showSky: options.showSky,
+    showSkyGradient: options.showSkyGradient,
+    showClouds: options.showClouds,
+    renderScale: app.camera.renderScale,
     lod0RefineCurve: options.lod0RefineCurve,
     stepDivisor: options.stepDivisor,
     filterDistance: options.filterDistance,
@@ -117,7 +132,10 @@ export function sanitizeSettings(data, defaults, bounds) {
     lodSpacingMax,
     Math.round(finiteOr(data.lodSpacing, defaults.lodSpacing))
   );
-  const lod0FeatureGroup = boolOr(data.lod0Refine, defaults.lod0Refine);
+  const nearRefine = boolOr(
+    data.nearRefine != null ? data.nearRefine : data.lod0Refine,
+    defaults.nearRefine != null ? defaults.nearRefine : defaults.lod0Refine
+  );
   return {
     farClip,
     fov: VMath.clamp(
@@ -131,9 +149,19 @@ export function sanitizeSettings(data, defaults, bounds) {
     fogStart: fog.fogStart,
     fogEnd: fog.fogEnd,
     repeat: boolOr(data.repeat, defaults.repeat),
-    interpolateHeight: lod0FeatureGroup,
-    filterColor: lod0FeatureGroup,
-    lod0Refine: lod0FeatureGroup,
+    interpolateHeight: nearRefine,
+    filterColor: nearRefine,
+    lod0Refine: nearRefine,
+    nearRefine,
+    showDetails: boolOr(data.showDetails, defaults.showDetails),
+    showSky: boolOr(data.showSky, defaults.showSky),
+    showSkyGradient: boolOr(data.showSkyGradient, defaults.showSkyGradient),
+    showClouds: boolOr(data.showClouds, defaults.showClouds),
+    renderScale: VMath.clamp(
+      bounds.renderScale.min,
+      bounds.renderScale.max,
+      finiteOr(data.renderScale, defaults.renderScale)
+    ),
     lod0RefineCurve: pickAllowed(
       data.lod0RefineCurve,
       bounds.lod0RefineCurves,

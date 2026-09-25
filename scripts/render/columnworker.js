@@ -10,6 +10,7 @@ import {
   renderCubemapPolarAzimuths,
 } from "./cubemapmarch.js";
 import { renderVoxelTexels as renderVoxelTexelsJs } from "./voxelmarch.js";
+import { bindRetailMaps } from "./retail/detail.js";
 import {
   MSG_INIT_MAPS,
   MSG_INIT_PANO,
@@ -77,7 +78,7 @@ async function setKernelBackend(backend) {
     const kernels = createWasmKernels(instance);
     renderClassicColumns = kernels.renderClassicColumns;
     renderFrustumSpaceColumns = kernels.renderFrustumSpaceColumns;
-    renderPanoramaColumns = kernels.renderPanoramaColumns;
+    renderPanoramaColumns = renderPanoramaColumnsJs;
     renderPanoramaViewColumns = kernels.renderPanoramaViewColumns;
     renderVoxelTexels = kernels.renderVoxelTexels;
     return;
@@ -132,6 +133,9 @@ function initMaps(msg) {
     shifts: msg.mipShifts || [workerState.mapShift],
   };
   workerState.terrainMips = workerState.panoMips;
+  if (msg.retail) {
+    bindRetailMaps({ retail: msg.retail });
+  }
 }
 
 function initPano(msg) {
@@ -179,7 +183,8 @@ function renderClassic(msg) {
       pixels.fill(rowColors[y], row, row + localWidth);
     }
   }
-  renderClassicColumns({
+  const renderClassic = msg.showDetails ? renderClassicColumnsJs : renderClassicColumns;
+  renderClassic({
     heightMap: workerState.heightMap,
     colorMap: workerState.colorMap,
     mapW: workerState.mapW,
@@ -205,6 +210,8 @@ function renderClassic(msg) {
     nearClip: msg.nearClip,
     farClip: msg.farClip,
     quality: msg.quality,
+    fov: msg.fov,
+    showDetails: msg.showDetails,
     applyFog: msg.applyFog,
     fogStart: msg.fogStart,
     debugView: msg.debugView,
@@ -214,6 +221,8 @@ function renderClassic(msg) {
     lod0Refine: msg.lod0Refine,
     lod0RefineCurve: msg.lod0RefineCurve,
     stepDivisor: msg.stepDivisor,
+    retailWidth: msg.retailWidth,
+    fov: msg.fov,
     filterDistance: msg.filterDistance,
     mipCount: msg.mipCount,
     lodSpacingMode: msg.lodSpacingMode,
@@ -247,7 +256,10 @@ function renderFrustumSpace(msg) {
       pixels.fill(rowColors[y], row, row + localWidth);
     }
   }
-  renderFrustumSpaceColumns({
+  const renderFrustum = msg.showDetails
+    ? renderFrustumSpaceColumnsJs
+    : renderFrustumSpaceColumns;
+  renderFrustum({
     heightMap: workerState.heightMap,
     colorMap: workerState.colorMap,
     mapW: workerState.mapW,
@@ -281,6 +293,8 @@ function renderFrustumSpace(msg) {
     farClip: msg.farClip,
     minDeltaZ: msg.minDeltaZ,
     quality: msg.quality,
+    fov: msg.fov,
+    showDetails: msg.showDetails,
     applyFog: msg.applyFog,
     fogStart: msg.fogStart,
     debugView: msg.debugView,
@@ -288,6 +302,8 @@ function renderFrustumSpace(msg) {
     interpolateHeight: msg.interpolateHeight,
     filterColor: msg.filterColor,
     filterDistance: msg.filterDistance,
+    lod0Refine: msg.lod0Refine,
+    lod0RefineCurve: msg.lod0RefineCurve,
     mipCount: msg.mipCount,
     stepDivisor: msg.stepDivisor,
     lodSpacingMode: msg.lodSpacingMode,
@@ -345,6 +361,9 @@ function renderPanorama(msg) {
     lod0Refine: msg.lod0Refine,
     lod0RefineCurve: msg.lod0RefineCurve,
     stepDivisor: msg.stepDivisor,
+    retailWidth: msg.retailWidth,
+    fov: msg.fov,
+    showDetails: msg.showDetails,
     filterDistance: msg.filterDistance,
     mipCount: msg.mipCount,
     lodSpacingMode: msg.lodSpacingMode,
@@ -484,7 +503,8 @@ function renderCubeView(msg) {
 function renderVoxel(msg) {
   const localWidth = (msg.endColumn - msg.startColumn) | 0;
   const pixels = new Uint32Array((localWidth * msg.screenHeight) | 0);
-  renderVoxelTexels({
+  const renderVoxel = msg.showDetails ? renderVoxelTexelsJs : renderVoxelTexels;
+  renderVoxel({
     heightMap: workerState.heightMap,
     colorMap: workerState.colorMap,
     mapW: workerState.mapW,
@@ -530,6 +550,7 @@ function renderVoxel(msg) {
     mipCount: msg.mipCount,
     lodSpacingMode: msg.lodSpacingMode,
     lodSpacing: msg.lodSpacing,
+    showDetails: msg.showDetails,
     skyColor: msg.skyColor,
     horizonColor: msg.horizonColor,
     pixels,
@@ -598,6 +619,9 @@ function renderCubeGenerate(msg) {
     lod0Refine: msg.lod0Refine,
     lod0RefineCurve: msg.lod0RefineCurve,
     stepDivisor: msg.stepDivisor,
+    retailWidth: msg.retailWidth,
+    fov: msg.fov,
+    showDetails: msg.showDetails,
     filterDistance: msg.filterDistance,
     mipCount: msg.mipCount,
     lodSpacingMode: msg.lodSpacingMode,
@@ -612,13 +636,10 @@ function renderCubeGenerate(msg) {
     terrainMips: workerState.terrainMips || workerState.panoMips,
   };
   if (polar) {
-    const azCount = n << 2;
     renderCubemapPolarAzimuths({
       ...shared,
-      startAz: msg.startAz | 0,
-      endAz: msg.endAz > 0 ? msg.endAz | 0 : azCount,
-      azCount: azCount,
-      fillSky: msg.fillSky | 0,
+      startCol: msg.startCol | 0,
+      endCol: msg.endCol > 0 ? msg.endCol | 0 : n,
       pzOff: 0,
       nzOff: n * n,
     });

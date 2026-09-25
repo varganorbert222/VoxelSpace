@@ -21,6 +21,8 @@ struct Frame {
   mipMask1: vec4u,
   debugRect: vec4u,
   sampleLimit: vec4f,
+  detailNear: vec4f,
+  detailTail: vec4f,
 };
 
 fn packRgba(c: vec4f) -> u32 {
@@ -443,55 +445,6 @@ fn mipCellSize(mip: i32, t: f32) -> f32 {
   return exp2(f32(mip));
 }
 
-fn stepDivisor() -> f32 {
-  var d = frame.tMaxMinDzAltMaxH.y;
-  if (d < 1.0) {
-    d = 3.0;
-  }
-  if (d > 5.0) {
-    d = 5.0;
-  }
-  return d;
-}
-
-fn marchStep(mip: i32, t: f32) -> f32 {
-  return mipCellSize(mip, t) / stepDivisor();
-}
-
-fn clampMarchStep(step: f32, mip: i32, t: f32) -> f32 {
-  let lo = marchStep(mip, t);
-  let hi = mipCellSize(mip, t);
-  var s = step;
-  if (!(s >= lo)) {
-    s = lo;
-  }
-  if (s > hi) {
-    s = hi;
-  }
-  return s;
-}
-
-fn growMarchStep(step: f32, mip: i32, t: f32) -> f32 {
-  var g = frame.clipDhTanLastGrowth.w;
-  if (!(g > 0.0)) {
-    g = 0.0;
-  }
-  return clampMarchStep(step + g, mip, t);
-}
-
-fn marchBandKey(mip: i32, t: f32) -> i32 {
-  var rm = 0;
-  if (lod0RefineAt(t, mip)) {
-    rm = lod0RefineMipAt(t);
-  }
-  return (mip << 8) | rm;
-}
-
-fn syncBandStep(step: f32, prevKey: i32, mip: i32, t: f32) -> vec2f {
-  let key = marchBandKey(mip, t);
-  return vec2f(clampMarchStep(step + f32(prevKey) * 0.0, mip, t), f32(key));
-}
-
 fn mipDdaDelta(wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32, t: f32) -> f32 {
   let s = mipCellSize(mip, t);
   let ix = floor(wx / s);
@@ -575,19 +528,53 @@ fn terrainSamplePos(wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32, t: f32) ->
   return vec2f(wx + dirX * e, wy + dirY * e);
 }
 
-fn advanceRayT(t: f32, mip: i32, step: f32) -> vec2f {
-  let s = clampMarchStep(step, mip, t);
-  var next = t + s;
-  if (!(next > t)) {
-    next = t + 0.5;
+fn stepDivisor() -> f32 {
+  var d = frame.tMaxMinDzAltMaxH.y;
+  if (d < 1.0) {
+    d = 3.0;
   }
-  return vec2f(next, growMarchStep(s, mip, t));
+  if (d > 5.0) {
+    d = 5.0;
+  }
+  return d;
 }
 
-fn takeMarchStep(t: f32, step: f32, bandKey: i32, mip: i32) -> vec3f {
-  let synced = syncBandStep(step, bandKey, mip, t);
-  let adv = advanceRayT(t, mip, synced.x);
-  return vec3f(adv.x, adv.y, synced.y);
+fn fitBandStep(step: f32, lo: f32, cell: f32) -> f32 {
+  var hi = cell;
+  var s = step;
+  if (hi < lo) {
+    hi = lo;
+  }
+  if (s < lo) {
+    s = lo;
+  }
+  if (s > hi) {
+    s = hi;
+  }
+  return s;
+}
+
+fn growBandStep(step: f32, lo: f32, cell: f32) -> f32 {
+  return fitBandStep(step + frame.clipDhTanLastGrowth.w * cell, lo, cell);
+}
+
+fn bandMarchStep(bandStep: f32, mip: i32, t: f32) -> f32 {
+  let cell = mipCellSize(mip, t);
+  var base = 1.0;
+  if (mip > 0) {
+    base = exp2(f32(mip));
+  }
+  var s = bandStep;
+  if (!(s > 0.0)) {
+    s = cell / stepDivisor();
+  }
+  if (cell < base) {
+    s = s * (cell / base);
+  }
+  if (!(s > 0.0)) {
+    s = cell / stepDivisor();
+  }
+  return s;
 }
 
 const DEBUG_COLOR: u32 = 0u;

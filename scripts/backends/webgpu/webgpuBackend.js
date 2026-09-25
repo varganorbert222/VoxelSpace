@@ -2,6 +2,7 @@
 
 import { BACKEND_WEBGPU } from "../../constants/backend.js";
 import {
+  ALGORITHM_CLASSIC,
   ALGORITHM_CUBEMAP,
   ALGORITHM_FRUSTUM_SPACE,
   ALGORITHM_PANORAMA,
@@ -12,6 +13,7 @@ import {
   CUBE_NET_CELL_W,
   debugViewId,
   envOverlayAllowed,
+  isDebugColor,
   overlayDestRect,
 } from "../../constants/debugView.js";
 import { cubeSizeForQuality } from "../../constants/cubemap.js";
@@ -27,14 +29,25 @@ import {
 } from "../../constants/panorama.js";
 import {
   TERRAIN_MIP_MAX_COUNT,
-  classicLodDeltas,
+  bandStepAt,
+  bandSteps,
   fillClassicLodDistances,
-  firstMarchT,
+  firstBandT,
   mipInvScale,
   mipSwitchDistances,
   lod0RefineSwitchDistances,
 } from "../../constants/mip.js";
 import { resolveTerrainMips } from "../../terrain/mipChain.js";
+import { useRetailFrame } from "../../render/retail/schedule.js";
+import { detailNearEnds, prepareRetailDetail } from "../../render/retail/detail.js";
+import {
+  createSkyPack,
+  ensureSkyPack,
+  skyPackByteLength,
+  skyPackDynamicRanges,
+  skyView,
+  updateSkyPack,
+} from "../../render/retail/skybox.js";
 import {
   NDC_SCALE,
   PIXEL_CENTER,
@@ -61,12 +74,14 @@ import { createPipelines } from "./pipelines.js";
 import {
   createHeightTexture,
   createColorTexture,
+  createTexture,
   createScreenTarget,
   createPanoDepthTarget,
   copyTargetToLayer,
   createCubeArray,
   uploadHeight,
   uploadColor,
+  uploadTexels,
   writeBuffer,
   createStorageBuffer,
   createUniformBuffer,
@@ -183,6 +198,10 @@ class WebGpuBackend {
     this._mipSwitchBuf = null;
     this._skyRowBuf = null;
     this._skyRowCap = 0;
+    this._skyPack = null;
+    this._skyBufPack = null;
+    this._cubeSkyBuf = null;
+    this._cubeSkyCap = 0;
     this._maps = null;
     this._heightTex = null;
     this._colorTex = null;
@@ -285,11 +304,15 @@ class WebGpuBackend {
     this._offsetBuf = createStorageBuffer(this._device, TERRAIN_MIP_MAX_COUNT * 4);
     this._deltaBuf = createStorageBuffer(this._device, TERRAIN_MIP_MAX_COUNT * 4);
     this._distBuf = createStorageBuffer(this._device, 32 * 4);
-    this._mipSwitchBuf = createStorageBuffer(this._device, TERRAIN_MIP_MAX_COUNT * 4);
+    this._mipSwitchBuf = createStorageBuffer(this._device, TERRAIN_MIP_MAX_COUNT * 2 * 4);
     this._dummyH = createHeightTexture(this._device, 1, 1, 1);
     this._dummyC = createColorTexture(this._device, 1, 1, 1);
     uploadHeight(this._device, this._dummyH, new Uint8Array(1), 1, 1);
     uploadColor(this._device, this._dummyC, new Uint32Array(1), 1, 1);
+    this._characterTex = null;
+    this._detailPackedTex = null;
+    this._detailPalTex = null;
+    this._installDetailTextures(null);
     this._atanBuf = createStorageBuffer(this._device, PANO_VIEW_ATAN_LUT_SIZE * 4);
     writeBuffer(this._device, this._atanBuf, buildAtanLut());
   }
@@ -305,6 +328,11 @@ class WebGpuBackend {
 
   async setMaps(exportedMaps) {
     this._maps = exportedMaps;
+    this._skyPack =
+      exportedMaps && exportedMaps.retail
+        ? createSkyPack(exportedMaps.retail.sky)
+        : null;
+    this._skyBufPack = null;
     this._uploadMaps(exportedMaps);
     this.invalidatePanorama();
   }
@@ -353,7 +381,117 @@ class WebGpuBackend {
         m
       );
     }
+    this._installDetailTextures(maps && maps.retail);
     this._dropBinds(["maps", "cubeMips", "classicMaps"]);
+  }
+
+  _installDetailTextures(retail) {
+    const prepared = prepareRetailDetail(retail);
+    const mips = prepared && prepared.detailMips;
+    const character = prepared && prepared.characterIndex;
+    destroyTex(this._characterTex);
+    destroyTex(this._detailPackedTex);
+    destroyTex(this._detailPalTex);
+    if (!mips || !character) {
+      this._characterTex = createTexture(
+        this._device,
+        1,
+        1,
+        "r8uint",
+        GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+        1
+      );
+      this._detailPackedTex = createTexture(
+        this._device,
+        16,
+        16,
+        "r32uint",
+        GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+        5
+      );
+      this._detailPalTex = createTexture(
+        this._device,
+        256,
+        1,
+        "rgba8uint",
+        GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+        1
+      );
+      uploadHeight(this._device, this._characterTex, new Uint8Array(1), 1, 1, 0);
+      for (let level = 0; level < 5; level++) {
+        const n = 16 >> level;
+        uploadTexels(this._device, this._detailPackedTex, new Uint32Array(n * n), n, n, 4, level);
+      }
+      uploadTexels(this._device, this._detailPalTex, new Uint8Array(256 * 4), 256, 1, 4, 0);
+      return;
+    }
+    this._characterTex = createTexture(
+      this._device,
+      character.width,
+      character.height,
+      "r8uint",
+      GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      1
+    );
+    this._detailPackedTex = createTexture(
+      this._device,
+      16,
+      4096,
+      "r32uint",
+      GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      5
+    );
+    this._detailPalTex = createTexture(
+      this._device,
+      256,
+      1,
+      "rgba8uint",
+      GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      1
+    );
+    uploadHeight(
+      this._device,
+      this._characterTex,
+      character.data,
+      character.width,
+      character.height,
+      0
+    );
+    for (let level = 0; level < mips.length && level < 5; level++) {
+      const n = 16 >> level;
+      uploadTexels(this._device, this._detailPackedTex, mips[level], n, 256 * n, 4, level);
+    }
+    uploadTexels(
+      this._device,
+      this._detailPalTex,
+      prepared.detailPalette,
+      256,
+      1,
+      4,
+      0
+    );
+  }
+
+  _detailBindEntries() {
+    const character = this._characterTex;
+    const packed = this._detailPackedTex;
+    const palette = this._detailPalTex;
+    return [
+      { binding: 2, resource: character.createView() },
+      { binding: 3, resource: packed.createView() },
+      { binding: 4, resource: palette.createView() },
+    ];
+  }
+
+  _detailMipEntries() {
+    const character = this._characterTex;
+    const packed = this._detailPackedTex;
+    const palette = this._detailPalTex;
+    return [
+      { binding: 3, resource: character.createView() },
+      { binding: 4, resource: packed.createView() },
+      { binding: 5, resource: palette.createView() },
+    ];
   }
 
   _ensureScreen(width, height) {
@@ -368,7 +506,7 @@ class WebGpuBackend {
     destroyTex(this._screenSample);
     this._screenSample = null;
     this._screenTex = createScreenTarget(this._device, width, height);
-    this._dropBinds(["viewOut", "classicOut", "blit"]);
+    this._dropBinds(["viewOut", "classicOut", "blit", "skyComposite"]);
   }
 
   _ensurePano(width, height) {
@@ -480,9 +618,33 @@ class WebGpuBackend {
       destroyBuf(this._skyRowBuf);
       this._skyRowBuf = createStorageBuffer(this._device, packed.byteLength);
       this._skyRowCap = packed.byteLength;
-      this._dropBinds(["classicOut", "cubeSky"]);
+      this._dropBinds(["classicOut", "skyComposite"]);
     }
     writeBuffer(this._device, this._skyRowBuf, packed);
+    this._skyBufPack = null;
+  }
+
+  _writeCubeSky(rows) {
+    if (!this._cubeSkyBuf || this._cubeSkyCap < rows.byteLength) {
+      destroyBuf(this._cubeSkyBuf);
+      this._cubeSkyBuf = createStorageBuffer(this._device, rows.byteLength);
+      this._cubeSkyCap = rows.byteLength;
+      this._dropBinds(["cubeSky"]);
+    }
+    writeBuffer(this._device, this._cubeSkyBuf, rows);
+  }
+
+  _retailSkyActive() {
+    return !!(this._skyPack && this._pipes && this._pipes.skyComposite);
+  }
+
+  // A detailed retail sky writes the 0 marker and the composite pass paints
+  // the gradient and clouds. Otherwise the host fill is a flat color.
+  _skyFill(color) {
+    if (!this._retailSkyActive()) {
+      return color;
+    }
+    return this._host.skyFill(color);
   }
 
   _dropBinds(keys) {
@@ -557,6 +719,7 @@ class WebGpuBackend {
       this._panoFarClip !== camera.farClip ||
       this._panoFov !== camera.fov ||
       this._panoAspect !== aspect ||
+      this._panoScreenW !== screenW ||
       this._panoRepeat !== this._host.repeat ||
       this._panoInterp !== this._host.interpolateHeight ||
       this._panoFilter !== this._host.filterColor ||
@@ -567,8 +730,8 @@ class WebGpuBackend {
       this._panoMipCount !== this._host.mipCount ||
       this._panoLodSpacingMode !== this._host.lodSpacingMode ||
       this._panoLodSpacing !== this._host.lodSpacing ||
-      this._panoSkyColor !== terrain.skyColor ||
-      this._panoHorizonColor !== camera.bottomColor ||
+      this._panoSkyColor !== this._skyFill(terrain.skyColor) ||
+      this._panoHorizonColor !== this._skyFill(camera.bottomColor) ||
       this._panoQuality !== camera.quality
     ) {
       return true;
@@ -587,6 +750,7 @@ class WebGpuBackend {
     this._panoFarClip = camera.farClip;
     this._panoFov = camera.fov;
     this._panoAspect = screenH ? screenW / screenH : 0;
+    this._panoScreenW = screenW;
     this._panoRepeat = this._host.repeat;
     this._panoInterp = this._host.interpolateHeight;
     this._panoFilter = this._host.filterColor;
@@ -599,11 +763,74 @@ class WebGpuBackend {
     this._panoMipCount = this._host.mipCount;
     this._panoLodSpacingMode = this._host.lodSpacingMode;
     this._panoLodSpacing = this._host.lodSpacing;
-    this._panoSkyColor = terrain.skyColor;
-    this._panoHorizonColor = camera.bottomColor;
+    this._panoSkyColor = this._skyFill(terrain.skyColor);
+    this._panoHorizonColor = this._skyFill(camera.bottomColor);
     this._panoQuality = camera.quality;
     this._panoValid = true;
     this._panoDirty = false;
+  }
+
+  _writeSky(screenW, screenH, horizon, camera, perspective, retailBlack) {
+    const pack = this._skyPack;
+    const host = this._host;
+    const detailed =
+      pack &&
+      host.showSky &&
+      (host.showSkyGradient || host.showClouds);
+    if (!detailed) {
+      if (pack && host.showSky) {
+        const flat = host.skyFill(camera.topColor);
+        if (!this._flatSkyRows || this._flatSkyRows.length !== screenH) {
+          this._flatSkyRows = new Uint32Array(screenH);
+        }
+        this._flatSkyRows.fill(flat);
+        this._writeSkyRows(this._flatSkyRows);
+        return;
+      }
+      this._writeSkyRows(
+        classicSkyRows(screenH, horizon, camera.topColor, camera.bottomColor)
+      );
+      return;
+    }
+    const rebuilt = ensureSkyPack(pack, screenH);
+    updateSkyPack(
+      pack,
+      skyView(camera, screenH, perspective, retailBlack),
+      camera,
+      screenW,
+      screenH,
+      {
+        gradient: !!host.showSkyGradient,
+        clouds: !!host.showClouds,
+      }
+    );
+    const bytes = skyPackByteLength(pack, screenH);
+    if (!this._skyRowBuf || this._skyRowCap < bytes) {
+      destroyBuf(this._skyRowBuf);
+      this._skyRowBuf = createStorageBuffer(this._device, bytes);
+      this._skyRowCap = bytes;
+      this._dropBinds(["classicOut", "skyComposite"]);
+      this._skyBufPack = null;
+    }
+    if (rebuilt || this._skyBufPack !== pack) {
+      writeBuffer(
+        this._device,
+        this._skyRowBuf,
+        new Uint32Array(pack.words.buffer, 0, bytes >> 2)
+      );
+      this._skyBufPack = pack;
+      return;
+    }
+    const ranges = skyPackDynamicRanges(pack, screenH);
+    for (let i = 0; i < ranges.length; i++) {
+      const [from, to] = ranges[i];
+      writeBuffer(
+        this._device,
+        this._skyRowBuf,
+        new Uint32Array(pack.words.buffer, from * 4, to - from),
+        from * 4
+      );
+    }
   }
 
   _terrainHeight() {
@@ -615,6 +842,14 @@ class WebGpuBackend {
   }
 
   _pack(camera, terrain, screenW, screenH, panoW, panoH, cubeFace, destBuf, destOffset) {
+    useRetailFrame({
+      screenWidth: screenW,
+      fov: camera.fov,
+      quality: camera.quality,
+      farClip: camera.farClip,
+      showDetails: this._host.showDetails,
+      lod0Refine: this._host.lod0Refine,
+    });
     const maps = this._maps;
     const q = qualityIndex(camera.quality);
     const fov = camera.calculateFov();
@@ -641,15 +876,19 @@ class WebGpuBackend {
       this._host.lodSpacing,
       this._host.lod0RefineCurve
     );
-    const switchF32 = new Float32Array(TERRAIN_MIP_MAX_COUNT);
-    switchF32.fill(1e30);
+    const steps = bandSteps(mipCount, this._host.stepDivisor);
+    // [0, 16): mip switch distances, [16, 32): band steps per mip.
+    const switchF32 = new Float32Array(TERRAIN_MIP_MAX_COUNT * 2);
+    switchF32.fill(1e30, 0, TERRAIN_MIP_MAX_COUNT);
     switchF32.set(Float32Array.from(switchDist));
+    for (let m = 0; (m < TERRAIN_MIP_MAX_COUNT) | 0; m = (m + 1) | 0) {
+      switchF32[TERRAIN_MIP_MAX_COUNT + m] = bandStepAt(steps, m);
+    }
     writeBuffer(this._device, this._mipSwitchBuf, switchF32);
     const tanMin = buildTanMinLut(panoH);
     const tanLast = tanMin[(panoH - 1) | 0] || 0;
     const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
-    const refineOn = !!this._host.lod0Refine;
-    let t0 = firstMarchT(camera.nearClip, refineOn, this._host.stepDivisor);
+    let t0 = firstBandT(camera.nearClip, steps);
     if ((camera.posZ > clipZ) & (tanLast < 0)) {
       const tGroundPole = (clipZ - camera.posZ) / tanLast;
       if ((tGroundPole > 0) & (tGroundPole < t0)) {
@@ -666,6 +905,17 @@ class WebGpuBackend {
     if (!(tMax > 0)) {
       tMax = envFar * FAR_PLANE_T_SCALE;
     }
+    useRetailFrame({
+      screenWidth: screenW,
+      fov: camera.fov,
+      quality: camera.quality,
+      farClip: packFar,
+      showDetails: this._host.showDetails,
+      lod0Refine: this._host.lod0Refine,
+    });
+    const detailEnds = detailNearEnds();
+    const detailLight =
+      maps.retail && maps.retail.lightRGB ? maps.retail.lightRGB : [0, 0, 0];
     packFrame(this._framePacker, {
       camX: camera.posX,
       camY: camera.posY,
@@ -704,12 +954,21 @@ class WebGpuBackend {
       interpolateHeight: this._host.interpolateHeight,
       filterColor: this._host.filterColor,
       lod0Refine: this._host.lod0Refine,
+      showDetails: this._host.showDetails,
+      detailEnd0: detailEnds[0],
+      detailEnd1: detailEnds[1],
+      detailEnd2: detailEnds[2],
+      detailEnd3: detailEnds[3],
+      detailEnd4: detailEnds[4],
+      detailLightR: detailLight[0],
+      detailLightG: detailLight[1],
+      detailLightB: detailLight[2],
       lodSpacing: this._host.lodSpacing,
       filterDistance: this._host.filterDistance,
       fogStart: this._host.fogStart,
       fogEnd: this._host.fogEnd,
-      skyColor: terrain.skyColor,
-      horizonColor: camera.bottomColor,
+      skyColor: this._skyFill(terrain.skyColor),
+      horizonColor: this._skyFill(camera.bottomColor),
       clipZ: clipZ,
       dhGround: clipZ - camera.posZ,
       tanLast: tanLast,
@@ -786,6 +1045,15 @@ class WebGpuBackend {
   }
 
   _writeClassicTables(camera) {
+    const screenW = this._host.frameBuffer ? this._host.frameBuffer.width : 1024;
+    useRetailFrame({
+      screenWidth: screenW,
+      fov: camera.fov,
+      quality: camera.quality,
+      farClip: this._host.effectiveFarClip,
+      showDetails: this._host.showDetails,
+      lod0Refine: this._host.lod0Refine,
+    });
     const maps = this._maps;
     const mips = resolveTerrainMips(
       maps && (maps.terrainMips || maps.panoMips),
@@ -797,13 +1065,12 @@ class WebGpuBackend {
       this._host.mipCount
     );
     const bandCount = mips.count;
-    const refineOn = !!this._host.lod0Refine;
-    const deltasAll = classicLodDeltas(bandCount, this._host.stepDivisor);
+    const deltasAll = bandSteps(bandCount, this._host.stepDivisor);
     const deltas = new Float32Array(TERRAIN_MIP_MAX_COUNT);
     for (let i = 0; (i < bandCount) | 0; i = (i + 1) | 0) {
       deltas[i] = deltasAll[i];
     }
-    const zStart = firstMarchT(camera.nearClip, refineOn, this._host.stepDivisor);
+    const zStart = firstBandT(camera.nearClip, deltasAll);
     const far = this._host.effectiveFarClip;
     const switches = mipSwitchDistances(
       bandCount,
@@ -847,6 +1114,7 @@ class WebGpuBackend {
         entries: [
           { binding: 0, resource: this._terrainHeight().createView() },
           { binding: 1, resource: this._terrainColor().createView() },
+          ...this._detailBindEntries(),
         ],
       })
     );
@@ -886,6 +1154,7 @@ class WebGpuBackend {
         entries: [
           { binding: 0, resource: this._terrainHeight().createView() },
           { binding: 1, resource: this._terrainColor().createView() },
+          ...this._detailBindEntries(),
         ],
       })
     );
@@ -931,6 +1200,7 @@ class WebGpuBackend {
           { binding: 0, resource: this._terrainHeight().createView() },
           { binding: 1, resource: this._terrainColor().createView() },
           { binding: 2, resource: { buffer: this._mipSwitchBuf } },
+          ...this._detailMipEntries(),
         ],
       })
     );
@@ -1077,7 +1347,7 @@ class WebGpuBackend {
       polar.setBindGroup(0, this._cubeFaceBinds[face]);
       polar.setBindGroup(1, mips);
       polar.setBindGroup(2, out);
-      polar.dispatchWorkgroups(Math.ceil((n * 4) / WEBGPU_WORKGROUP_1D));
+      polar.dispatchWorkgroups(Math.ceil(n / WEBGPU_WORKGROUP_1D));
       polar.end();
       this._copyCubeFace(encoder, face);
     }
@@ -1101,7 +1371,7 @@ class WebGpuBackend {
     const sky = this._cachedBind("cubeSky", () =>
       this._device.createBindGroup({
         layout: this._pipes.layouts.cubeSky,
-        entries: [{ binding: 0, resource: { buffer: this._skyRowBuf } }],
+        entries: [{ binding: 0, resource: { buffer: this._cubeSkyBuf } }],
       })
     );
     const pass = encoder.beginComputePass();
@@ -1190,6 +1460,39 @@ class WebGpuBackend {
     pass.end();
   }
 
+  _dispatchSkyComposite(encoder, screenW, screenH) {
+    const host = this._host;
+    if (!this._retailSkyActive() || !host.showSky || !isDebugColor(host.debugView)) {
+      return;
+    }
+    if (!host.showSkyGradient && !host.showClouds) {
+      return;
+    }
+    const selfPainted =
+      host.algorithm === ALGORITHM_CLASSIC ||
+      host.algorithm === ALGORITHM_FRUSTUM_SPACE;
+    if (selfPainted && !host.showClouds) {
+      return;
+    }
+    const bind = this._cachedBind("skyComposite", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.skyComposite,
+        entries: [
+          { binding: 0, resource: this._screenTex.createView() },
+          { binding: 1, resource: { buffer: this._skyRowBuf } },
+        ],
+      })
+    );
+    const pass = encoder.beginComputePass();
+    pass.setPipeline(this._pipes.skyComposite);
+    pass.setBindGroup(0, bind);
+    pass.dispatchWorkgroups(
+      Math.ceil(screenW / WEBGPU_WORKGROUP_2D),
+      Math.ceil(screenH / WEBGPU_WORKGROUP_2D)
+    );
+    pass.end();
+  }
+
   _present(encoder) {
     this._blit(encoder);
   }
@@ -1231,12 +1534,33 @@ class WebGpuBackend {
       return;
     }
     this._ensureScreen(screenW, screenH);
+    const dst = camera.calculateProjPlane();
+    const horizon = camera.calculateHorizon(dst);
+    const classic =
+      frame.algorithm !== ALGORITHM_CUBEMAP &&
+      frame.algorithm !== ALGORITHM_VOXEL &&
+      frame.algorithm !== ALGORITHM_PANORAMA &&
+      frame.algorithm !== ALGORITHM_FRUSTUM_SPACE;
+    if (classic || frame.algorithm === ALGORITHM_FRUSTUM_SPACE || this._retailSkyActive()) {
+      this._writeSky(
+        screenW,
+        screenH,
+        horizon,
+        camera,
+        !classic,
+        classic || frame.algorithm === ALGORITHM_FRUSTUM_SPACE
+      );
+    }
 
     if (frame.algorithm === ALGORITHM_CUBEMAP) {
       const n = cubeSizeForQuality(camera.quality);
       this._ensureCube(n);
-      this._writeSkyRows(
-        viewSkyRows(screenH, camera.topColor, camera.bottomColor)
+      this._writeCubeSky(
+        viewSkyRows(
+          screenH,
+          this._skyFill(camera.topColor),
+          this._skyFill(camera.bottomColor)
+        )
       );
       const encoder = this._device.createCommandEncoder();
       if (this._shouldRegen(terrain, camera, screenW, screenH)) {
@@ -1246,6 +1570,7 @@ class WebGpuBackend {
       this._pack(camera, terrain, screenW, screenH, n, n);
       this._dispatchCubeView(encoder, screenW, screenH);
       this._dispatchOverlay(encoder, screenW, screenH, true);
+      this._dispatchSkyComposite(encoder, screenW, screenH);
       this._present(encoder);
       this._device.queue.submit([encoder.finish()]);
       return;
@@ -1255,6 +1580,7 @@ class WebGpuBackend {
       this._pack(camera, terrain, screenW, screenH, screenW, screenH);
       const encoder = this._device.createCommandEncoder();
       this._dispatchVoxel(encoder, screenW, screenH);
+      this._dispatchSkyComposite(encoder, screenW, screenH);
       this._present(encoder);
       this._device.queue.submit([encoder.finish()]);
       return;
@@ -1265,9 +1591,9 @@ class WebGpuBackend {
     this._uploadPanoLuts(
       size.width,
       size.height,
-      terrain.skyColor,
-      camera.topColor,
-      camera.bottomColor
+      this._skyFill(terrain.skyColor),
+      this._skyFill(camera.topColor),
+      this._skyFill(camera.bottomColor)
     );
     this._pack(camera, terrain, screenW, screenH, size.width, size.height);
     const encoder = this._device.createCommandEncoder();
@@ -1279,22 +1605,13 @@ class WebGpuBackend {
       this._dispatchView(encoder, screenW, screenH);
       this._dispatchOverlay(encoder, screenW, screenH, false);
     } else if (frame.algorithm === ALGORITHM_FRUSTUM_SPACE) {
-      const dst = camera.calculateProjPlane();
-      const horizon = camera.calculateHorizon(dst);
-      this._writeSkyRows(
-        classicSkyRows(screenH, horizon, camera.topColor, camera.bottomColor)
-      );
       this._writeClassicTables(camera);
       this._dispatchFrustumSpace(encoder, screenW, screenH);
     } else {
-      const dst = camera.calculateProjPlane();
-      const horizon = camera.calculateHorizon(dst);
-      this._writeSkyRows(
-        classicSkyRows(screenH, horizon, camera.topColor, camera.bottomColor)
-      );
       this._writeClassicTables(camera);
       this._dispatchClassic(encoder, screenW, screenH);
     }
+    this._dispatchSkyComposite(encoder, screenW, screenH);
     this._present(encoder);
     this._device.queue.submit([encoder.finish()]);
   }
@@ -1331,6 +1648,9 @@ class WebGpuBackend {
     destroyTex(this._cubeIterArray);
     destroyTex(this._heightTex);
     destroyTex(this._colorTex);
+    destroyTex(this._characterTex);
+    destroyTex(this._detailPackedTex);
+    destroyTex(this._detailPalTex);
     destroyBuf(this._uniformBuf);
     destroyBuf(this._cubeFaceUniform);
     destroyBuf(this._offsetBuf);
@@ -1338,6 +1658,7 @@ class WebGpuBackend {
     destroyBuf(this._distBuf);
     destroyBuf(this._mipSwitchBuf);
     destroyBuf(this._skyRowBuf);
+    destroyBuf(this._cubeSkyBuf);
     destroyBuf(this._tanBuf);
     destroyBuf(this._yHitBuf);
     destroyBuf(this._dirBuf);

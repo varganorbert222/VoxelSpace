@@ -2,7 +2,7 @@
   "settings": {
     "renderDistance": {
       "min": 100.0,
-      "max": 8000.0,
+      "max": 74500.0,
       "step": 100.0
     },
     "stepDivisor": {
@@ -75,6 +75,21 @@
     },
     "lod0Refine": {
       "default": false
+    },
+    "nearRefine": {
+      "default": false
+    },
+    "showDetails": {
+      "default": true
+    },
+    "showSky": {
+      "default": true
+    },
+    "showSkyGradient": {
+      "default": true
+    },
+    "showClouds": {
+      "default": true
     },
     "lod0RefineCurve": {
       "values": ["linear", "double", "log"],

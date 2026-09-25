@@ -45,6 +45,9 @@ static i32 g_filter_color;
 static f64 g_filter_distance = 500.0;
 static f64 g_fwd_x = 0.0;
 static f64 g_fwd_y = -1.0;
+static i32 g_lod0_refine;
+static i32 g_step_divisor;
+static f64 g_refine_sw[4];
 
 static f64 *g_tan_min;
 static i32 g_tan_len;
@@ -383,12 +386,71 @@ static __attribute__((always_inline)) u32 sample_sv_color(
       y - y0);
 }
 
+/* LOD 0 refine cell is 1, 1/2, 1/4, 1/8, 1/16. The stored band step is the
+   1 m cell divided by Step, so the refine step is that times the cell. */
+static f64 lod0_step(f64 base_step, f64 t) {
+  i32 m = 0;
+  i32 subdiv;
+  if (!g_lod0_refine) {
+    return base_step;
+  }
+  while ((m < 4) && (t >= g_refine_sw[m])) {
+    m = (m + 1) | 0;
+  }
+  subdiv = 16 >> m;
+  if (subdiv < 1) {
+    subdiv = 1;
+  }
+  return base_step * (1.0 / (f64)subdiv);
+}
+
+static void band_limits(i32 mip, f64 t, f64 *lo, f64 *cap) {
+  f64 div = g_step_divisor > 0 ? (f64)g_step_divisor : 3.0;
+  f64 cell;
+  if (g_lod0_refine && (mip == 0)) {
+    cell = lod0_step(1.0, t);
+  } else {
+    cell = (f64)(1 << mip);
+  }
+  if (!(cell > 0.0)) {
+    cell = 1.0;
+  }
+  *cap = cell;
+  *lo = cell / div;
+  if (!(*lo > 0.0)) {
+    *lo = cell;
+  }
+}
+
+static f64 fit_step(f64 step, f64 lo, f64 cap) {
+  if (!(step >= lo)) {
+    step = lo;
+  }
+  if (step > cap) {
+    step = cap;
+  }
+  return step;
+}
+
 WASM_EXPORT void set_sample_flags(
     i32 height_lerp,
     i32 color_filter,
     f64 filter_distance,
     f64 fwd_x,
-    f64 fwd_y) {
+    f64 fwd_y,
+    i32 lod0_refine,
+    i32 step_divisor,
+    f64 refine_sw0,
+    f64 refine_sw1,
+    f64 refine_sw2,
+    f64 refine_sw3) {
+  if (step_divisor < 1) {
+    g_step_divisor = 3;
+  } else if (step_divisor > 5) {
+    g_step_divisor = 5;
+  } else {
+    g_step_divisor = step_divisor;
+  }
   g_lerp_height = height_lerp ? 1 : 0;
   g_filter_color = color_filter ? 1 : 0;
   if (filter_distance < 10.0) {
@@ -400,6 +462,11 @@ WASM_EXPORT void set_sample_flags(
   }
   g_fwd_x = fwd_x;
   g_fwd_y = fwd_y;
+  g_lod0_refine = lod0_refine ? 1 : 0;
+  g_refine_sw[0] = refine_sw0;
+  g_refine_sw[1] = refine_sw1;
+  g_refine_sw[2] = refine_sw2;
+  g_refine_sw[3] = refine_sw3;
 }
 
 WASM_EXPORT void set_fog_range(f64 fog_start) {
@@ -628,6 +695,7 @@ WASM_EXPORT void classic_columns(
   f64 y_ground = cam_z + T_NON_REPEAT_GROUND;
   i32 map_w_mask = (g_map_w - 1) | 0;
   i32 map_h_mask = (g_map_h - 1) | 0;
+  i32 lod_shift = g_map_shift;
   i32 lod;
   i32 i;
   i32 n;
@@ -706,16 +774,31 @@ WASM_EXPORT void classic_columns(
     i32 px_offset = g_pixel_offsets[lod - 1];
     f64 step = deltas[lod - 1];
     f64 z;
+    i32 mip = (lod - 1) | 0;
+    f64 lod_scale;
 
     if (start_index >= far_clip) {
       continue;
     }
+    if (mip >= g_mip_count) {
+      mip = (g_mip_count - 1) | 0;
+    }
+    height_map = g_mip_h[mip];
+    color_map = g_mip_c[mip];
+    map_w_mask = g_mip_wmask[mip];
+    map_h_mask = g_mip_hmask[mip];
+    lod_shift = g_mip_sh[mip];
+    lod_scale = 1.0 / (f64)(1 << mip);
 
     for (i = 0; i < local_width; i = (i + 1) | 0) {
       hidden_y[i] = screen_height;
     }
 
-    for (z = start_index; (z < end_index) & (z < far_clip); z = z + step) {
+    for (z = start_index; (z < end_index) & (z < far_clip);) {
+      f64 lo;
+      f64 cap;
+      band_limits(mip, z, &lo, &cap);
+      step = fit_step(step, lo, cap);
       f64 z_scale = dst_to_proj / z;
       i32 ceiling_on_screen = (i32)(ceiling_sdf * z_scale + screen_horizon);
       i32 ground_on_screen = (i32)(y_ground * z_scale + screen_horizon);
@@ -727,9 +810,10 @@ WASM_EXPORT void classic_columns(
       f64 dy = k_dy * z;
       f64 plx = k_left_x * z + cam_x + dx * (f64)start_column;
       f64 ply = k_left_y * z + cam_y + dy * (f64)start_column;
-      i32 lerp_now = do_lerp && (z <= g_filter_distance);
-      i32 filter_now = do_filter && (z <= g_filter_distance);
+      i32 lerp_now = do_lerp && (mip == 0) && (z <= g_filter_distance);
+      i32 filter_now = do_filter && (mip == 0) && (z <= g_filter_distance);
       i32 col;
+      i32 slice_open = 0;
 
       for (col = start_column; col < end_column; col = (col + px_offset) | 0) {
         i32 local_i = (col - start_column) | 0;
@@ -745,6 +829,9 @@ WASM_EXPORT void classic_columns(
         inside = (plx >= 0.0) & (plx <= (f64)g_map_w) & (ply >= 0.0) &
                  (ply <= (f64)g_map_h);
         is_ok = inside | (repeat | 0);
+        if (!(is_ok & (ceiling_on_screen >= col_hidden))) {
+          slice_open = 1;
+        }
 
         if (is_ok) {
           if (ceiling_on_screen >= col_hidden) {
@@ -753,20 +840,22 @@ WASM_EXPORT void classic_columns(
             continue;
           }
 
+          f64 sx = plx * lod_scale;
+          f64 sy = ply * lod_scale;
           i32 nn_off =
-              ((((i32)ply & map_w_mask) << g_map_shift) +
-               ((i32)plx & map_h_mask)) |
+              ((((i32)sy & map_w_mask) << lod_shift) +
+               ((i32)sx & map_h_mask)) |
               0;
           u32 h_byte_sv;
           f64 h_fine;
           if (lerp_now) {
             h_fine = sample_sv_height(
                 height_map,
-                plx,
-                ply,
+                sx,
+                sy,
                 map_w_mask,
                 map_h_mask,
-                g_map_shift,
+                lod_shift,
                 repeat,
                 1,
                 &h_byte_sv,
@@ -801,11 +890,11 @@ WASM_EXPORT void classic_columns(
             plot_color = filter_now
                             ? sample_sv_color(
                                   color_map,
-                                  plx,
-                                  ply,
+                                  sx,
+                                  sy,
                                   map_w_mask,
                                   map_h_mask,
-                                  g_map_shift,
+                                  lod_shift,
                                   repeat,
                                   1,
                                   nn_off)
@@ -840,7 +929,14 @@ WASM_EXPORT void classic_columns(
         ply += dy * (f64)px_offset;
       }
 
-      step += step_growth;
+      if (!slice_open) {
+        break;
+      }
+      z = z + step;
+      step = step + step_growth * cap;
+      if (step > cap) {
+        step = cap;
+      }
     }
   }
 }
@@ -911,8 +1007,9 @@ WASM_EXPORT void pano_columns(
   i32 last_mip;
   i32 px;
 
-  mip_switch_t[0] = switch_t0;
-  mip_switch_t[1] = switch_t1;
+  mip_switch_t[0] = switch_t0 > 0.0 ? switch_t0 : 1e300;
+  mip_switch_t[1] = switch_t1 > mip_switch_t[0] ? switch_t1 : 1e300;
+  mip_switch_t[2] = 1e300;
   mip_inv[0] = inv0;
   mip_inv[1] = inv1;
   mip_inv[2] = inv2;
@@ -953,11 +1050,11 @@ WASM_EXPORT void pano_columns(
       if (H == 0) {
         break;
       }
-      while ((mip < last_mip) && t >= mip_switch_t[mip]) {
+      while ((mip < last_mip) && (mip < 2) && t >= mip_switch_t[mip]) {
         mip = (mip + 1) | 0;
         step *= T_MIP_STEP_SCALE;
         step_cap = mip == 1 ? step_cap1 : step_cap2;
-        if (step > step_cap) {
+        if (step_cap > 0.0 && step > step_cap) {
           step = step_cap;
         }
       }
@@ -1005,8 +1102,11 @@ WASM_EXPORT void pano_columns(
           }
           t += step;
           step += step_growth;
-          if (step > step_cap) {
+          if (step_cap > 0.0 && step > step_cap) {
             step = step_cap;
+          }
+          if (!(step > 0.0)) {
+            step = step0 > 0.0 ? step0 : 1.0;
           }
           continue;
         }
@@ -1014,7 +1114,8 @@ WASM_EXPORT void pano_columns(
       }
 
       {
-        f64 inv = mip_inv[mip];
+        i32 inv_mip = mip > 2 ? 2 : mip;
+        f64 inv = mip_inv[inv_mip];
         f64 sx = wx * inv;
         f64 sy = wy * inv;
         i32 shift = g_mip_sh[mip];
@@ -1052,8 +1153,11 @@ WASM_EXPORT void pano_columns(
         if (sealed && h < cam_z + t * tan_h - T_EPSILON) {
           t += step;
           step += step_growth;
-          if (step > step_cap) {
+          if (step_cap > 0.0 && step > step_cap) {
             step = step_cap;
+          }
+          if (!(step > 0.0)) {
+            step = step0 > 0.0 ? step0 : 1.0;
           }
           continue;
         }
@@ -1143,8 +1247,11 @@ WASM_EXPORT void pano_columns(
 
       t += step;
       step += step_growth;
-      if (step > step_cap) {
+      if (step_cap > 0.0 && step > step_cap) {
         step = step_cap;
+      }
+      if (!(step > 0.0)) {
+        step = step0 > 0.0 ? step0 : 1.0;
       }
     }
 
@@ -1538,319 +1645,137 @@ WASM_EXPORT void frustum_space_columns(
   xn_step = 2.0 * screen_width_scaler;
   xn0 = ((f64)start_column + 0.5) * xn_step - 1.0;
 
-  live_cols = local_width;
-  n = (local_width * screen_height) | 0;
-  for (i = 0; i < n; i = (i + 1) | 0) {
-    cover[i] = 0;
-  }
-  for (i = 0; i < local_width; i = (i + 1) | 0) {
-    hidden_y[i] = screen_height;
-    fs_free_n[i] = screen_height;
-    fs_dirty[i] = 0;
-  }
-
-  /* Front-to-back view-Z slices, one persistent horizon per column. */
-  for (lod = 1; lod <= g_lod_n; lod = (lod + 1) | 0) {
-    f64 start_index;
-    f64 end_index;
-    f64 step;
-    f64 z;
-    i32 mip;
-    u8 *lod_height_map;
-    u32 *lod_color_map;
-    i32 lod_w_mask;
-    i32 lod_h_mask;
-    i32 lod_shift;
-    f64 lod_scale;
-    if (live_cols <= 0) {
-      break;
-    }
-    start_index = lod_distances[lod - 1];
-    end_index = lod_distances[lod];
-    if (start_index >= far_clip) {
-      continue;
-    }
-    mip = (lod - 1) | 0;
-    if (mip >= g_mip_count) {
-      mip = (g_mip_count - 1) | 0;
-    }
-    lod_height_map = g_mip_h[mip];
-    lod_color_map = g_mip_c[mip];
-    lod_w_mask = g_mip_wmask[mip];
-    lod_h_mask = g_mip_hmask[mip];
-    lod_shift = g_mip_sh[mip];
-    lod_scale = 1.0 / (f64)(1 << mip);
-    step = deltas[lod - 1];
-    z = start_index;
-    while ((z < end_index) & (z < far_clip) & (live_cols > 0)) {
-      f64 fog_t_raw =
-          fog_range == 0.0 ? T_FOG_SAT : (z - T_FOG_START) * inv_fog;
-      f64 fog_t = fog_t_raw;
-      i32 fog_white;
-      i32 apply_fog_t;
-      i32 use_fine;
-      i32 fine_lerp;
-      i32 col;
-      f64 z_tan_x;
-      f64 z_inv_h2;
-      f64 row_step_x;
-      f64 row_step_y;
-      f64 row_step_z;
-      f64 drift_per_row;
-      i32 has_row_step;
-      f64 inv_row_step_z;
-      f64 rise_max;
-      f64 close_rate;
-      i32 can_rise;
-      f64 inv_close_rate;
-      i32 skip_texel;
-      f64 col_step_x;
-      f64 col_step_y;
-      f64 col_step_z;
-      f64 wx_base;
-      f64 wy_base;
-      f64 wz_base;
-      if (fog_t < 0.0) {
-        fog_t = 0.0;
+  /* One ray per column. The LOD cell sets the step and Step divides it.
+     The first hit paints this row, rewinds one step, and moves up a row. */
+  {
+    i32 step_budget = (screen_height + 64) | 0;
+    i32 band;
+    for (band = 0; band < g_lod_n; band = (band + 1) | 0) {
+      f64 width = lod_distances[band + 1] - lod_distances[band];
+      f64 s = deltas[band];
+      if (g_lod0_refine && (band == 0)) {
+        s = lod0_step(s, 0.0);
       }
-      if (fog_t > T_FOG_SAT) {
-        fog_t = T_FOG_SAT;
+      if (!(s > 0.0)) {
+        s = 1.0;
       }
-      fog_white = use_fog & (fog_t >= T_FOG_SAT);
-      apply_fog_t = use_fog & (fog_t > 0.0) & (fog_white ^ 1);
-      use_fine = (z <= g_filter_distance) ? 1 : 0;
-      fine_lerp = do_lerp & use_fine;
-      z_tan_x = z * tan_half_fov_x;
-      z_inv_h2 = z * inv_h2;
-      row_step_x = z_inv_h2 * up_x;
-      row_step_y = z_inv_h2 * up_y;
-      row_step_z = z_inv_h2 * up_z;
-      drift_per_row = z_inv_h2 * up_xy;
-      has_row_step = row_step_z != 0.0;
-      inv_row_step_z = has_row_step ? 1.0 / row_step_z : 0.0;
-      {
-        f64 abs_rsx = row_step_x < 0.0 ? -row_step_x : row_step_x;
-        f64 abs_rsy = row_step_y < 0.0 ? -row_step_y : row_step_y;
-        f64 drift_cheb = abs_rsx > abs_rsy ? abs_rsx : abs_rsy;
-        rise_max = slope_cap * (abs_rsx + abs_rsy);
-        close_rate = rise_max - row_step_z;
-        can_rise = close_rate > 0.0;
-        inv_close_rate = can_rise ? 1.0 / close_rate : 0.0;
-        if (drift_cheb > 0.0) {
-          skip_texel = (i32)wasm_floor(1.0 / drift_cheb);
-        } else {
-          skip_texel = screen_height;
-        }
-        if (skip_texel < 1) {
-          skip_texel = 1;
-        }
+      if (width > 0.0) {
+        step_budget = (step_budget + (i32)(width / s) + 1) | 0;
       }
-      col_step_x = xn_step * z_tan_x * right_x;
-      col_step_y = xn_step * z_tan_x * right_y;
-      col_step_z = xn_step * z_tan_x * right_z;
-      wx_base = cam_x + xn0 * z_tan_x * right_x + z * fwd_x;
-      wy_base = cam_y + xn0 * z_tan_x * right_y + z * fwd_y;
-      wz_base = cam_z + xn0 * z_tan_x * right_z + z * fwd_z;
-      for (col = start_column; col < end_column; col = (col + 1) | 0) {
-        i32 local_i = (col - start_column) | 0;
-        i32 hy = hidden_y[local_i];
-        i32 w_top = 0;
-        i32 w_bot;
-        i32 nn_off = 0;
-        u32 h_byte = 0;
+    }
+    if (step_budget > 2000000) {
+      step_budget = 2000000;
+    }
+    for (i32 col = start_column; col < end_column; col = (col + 1) | 0) {
+      i32 local_i = (col - start_column) | 0;
+      i32 sy = (screen_height - 1) | 0;
+      f64 t = z_start;
+      f64 step = 0.0;
+      i32 guard = 0;
+      f64 xn = ((f64)col + 0.5) * xn_step - 1.0;
+      while ((sy >= 0) & (t < far_clip) & (guard < step_budget)) {
+        i32 mip = 0;
+        f64 lo;
+        f64 cap;
+        f64 yn;
+        f64 bx;
+        f64 by;
+        f64 bz;
         f64 wx;
         f64 wy;
         f64 wz;
-        f64 h_fine;
         i32 inside;
-        w_bot = hy;
-        if (hy <= 0) {
-          goto fs_next_col;
+        u8 *lod_height_map;
+        u32 *lod_color_map;
+        i32 lod_w_mask;
+        i32 lod_h_mask;
+        i32 lod_shift;
+        f64 lod_scale;
+        i32 nn_off = 0;
+        u32 h_byte = 0;
+        f64 h_fine;
+        i32 use_fine;
+        i32 fine_lerp;
+        f64 fog_t;
+        i32 fog_white;
+        i32 apply_fog_t;
+        u32 plot;
+        guard = (guard + 1) | 0;
+        while (((mip + 1) < g_lod_n) & (t >= lod_distances[mip + 1])) {
+          mip = (mip + 1) | 0;
         }
-        if (has_row_step) {
-          f64 r_ceil = row_base - (ceiling - wz_base) * inv_row_step_z;
-          f64 r_ground = row_base - (clip_z - wz_base) * inv_row_step_z;
-          f64 lo = r_ceil < r_ground ? r_ceil : r_ground;
-          f64 hi = r_ceil < r_ground ? r_ground : r_ceil;
-          i32 bot;
-          if (!(lo > -FS_ROW_LIMIT)) {
-            lo = -FS_ROW_LIMIT;
-          }
-          if (!(hi < FS_ROW_LIMIT)) {
-            hi = FS_ROW_LIMIT;
-          }
-          w_top = (i32)wasm_ceil(lo);
-          if (w_top < 0) {
-            w_top = 0;
-          }
-          bot = ((i32)wasm_floor(hi) + 1) | 0;
-          if (bot < w_bot) {
-            w_bot = bot;
-          }
-        } else if ((wz_base < clip_z) | (wz_base > ceiling)) {
-          goto fs_next_col;
+        if (mip >= g_mip_count) {
+          mip = (g_mip_count - 1) | 0;
         }
-        if (w_top >= w_bot) {
-          goto fs_next_col;
+        if (mip < 0) {
+          mip = 0;
         }
-
-        if (has_row_step &&
-            drift_per_row * (f64)(hy - w_top) < FS_DRIFT_SPAN_TEXELS) {
-          /* Sub-texel drift: one sample resolves the whole span. */
-          f64 yn = row_base - (f64)(hy - 1);
-          i32 r_hit;
-          wx = wx_base + yn * row_step_x;
-          wy = wy_base + yn * row_step_y;
-          inside = (wx >= 0.0) & (wx <= (f64)g_map_w) & (wy >= 0.0) &
-                   (wy <= (f64)g_map_h);
-          if (!(inside | wrap)) {
-            goto fs_next_col;
+        band_limits(mip, t, &lo, &cap);
+        step = fit_step(step, lo, cap);
+        yn = (row_base - (f64)sy) * inv_h2;
+        bx = fwd_x + xn * tan_half_fov_x * right_x + yn * up_x;
+        by = fwd_y + xn * tan_half_fov_x * right_y + yn * up_y;
+        bz = fwd_z + xn * tan_half_fov_x * right_z + yn * up_z;
+        wx = cam_x + t * bx;
+        wy = cam_y + t * by;
+        wz = cam_z + t * bz;
+        if ((wz > g_max_height) && !(bz < 0.0)) {
+          break;
+        }
+        inside = (wx >= 0.0) & (wx <= (f64)g_map_w) & (wy >= 0.0) & (wy <= (f64)g_map_h);
+        if (!inside && !wrap) {
+          t = t + step;
+          step = step + step_growth * cap;
+          if (step > cap) {
+            step = cap;
           }
-            h_fine = sample_sv_height(
-              lod_height_map, wx * lod_scale, wy * lod_scale,
-              lod_w_mask, lod_h_mask, lod_shift, wrap,
-              fine_lerp, &h_byte, &nn_off);
-          if (sample_ok) {
-            g_sample_n[local_i] = (g_sample_n[local_i] + 1) | 0;
+          continue;
+        }
+        lod_height_map = g_mip_h[mip];
+        lod_color_map = g_mip_c[mip];
+        lod_w_mask = g_mip_wmask[mip];
+        lod_h_mask = g_mip_hmask[mip];
+        lod_shift = g_mip_sh[mip];
+        lod_scale = 1.0 / (f64)(1 << mip);
+        use_fine = (mip == 0) && (t <= g_filter_distance);
+        fine_lerp = do_lerp & (use_fine ? 1 : 0);
+        h_fine = sample_sv_height(
+            lod_height_map, wx * lod_scale, wy * lod_scale, lod_w_mask, lod_h_mask,
+            lod_shift, wrap, fine_lerp, &h_byte, &nn_off);
+        if (sample_ok) {
+          g_sample_n[local_i] = (g_sample_n[local_i] + 1) | 0;
+        }
+        if (wz < h_fine * g_alt_scale) {
+          f64 fog_t_raw =
+              fog_range == 0.0 ? T_FOG_SAT : (t - T_FOG_START) * inv_fog;
+          fog_t = fog_t_raw;
+          if (fog_t < 0.0) {
+            fog_t = 0.0;
           }
-          r_hit = (i32)wasm_ceil(
-              row_base - (h_fine * g_alt_scale - wz_base) * inv_row_step_z);
-          if (r_hit < hy) {
-            i32 bottom = hy;
-            i32 rr;
-            u32 plot;
-            if (r_hit < w_top) {
-              r_hit = w_top;
-            }
-            if (!wrap && (w_bot < bottom)) {
-              bottom = w_bot;
-            }
-            if (r_hit < bottom) {
-              i32 painted = 0;
-              plot = fs_terrain_color(
-                  lod_color_map, wx * lod_scale, wy * lod_scale, nn_off,
-                  use_fine, do_filter, wrap, lod_w_mask, lod_h_mask, lod_shift,
-                  z, far_clip, fog_t,
-                  fog_white, apply_fog_t, debug, h_byte,
-                  sample_ok ? g_sample_n[local_i] : 0);
-              if (fs_dirty[local_i]) {
-                for (rr = r_hit; rr < bottom; rr = (rr + 1) | 0) {
-                  i32 ci = (rr * local_width + local_i) | 0;
-                  if (!cover[ci]) {
-                    pixels[((rr * stride + local_i) | 0)] = plot;
-                    cover[ci] = 1;
-                    painted = (painted + 1) | 0;
-                  }
-                }
-              } else {
-                for (rr = r_hit; rr < bottom; rr = (rr + 1) | 0) {
-                  pixels[((rr * stride + local_i) | 0)] = plot;
-                }
-                painted = (bottom - r_hit) | 0;
-              }
-              fs_free_n[local_i] = (fs_free_n[local_i] - painted) | 0;
-              hidden_y[local_i] = r_hit;
-            }
+          if (fog_t > T_FOG_SAT) {
+            fog_t = T_FOG_SAT;
+          }
+          fog_white = use_fog & (fog_t >= T_FOG_SAT);
+          apply_fog_t = use_fog & (fog_t > 0.0) & (fog_white ^ 1);
+          plot = fs_terrain_color(
+              lod_color_map, wx * lod_scale, wy * lod_scale, nn_off, use_fine ? 1 : 0,
+              do_filter, wrap, lod_w_mask, lod_h_mask, lod_shift, t, far_clip, fog_t,
+              fog_white, apply_fog_t, debug, h_byte,
+              sample_ok ? g_sample_n[local_i] : guard);
+          pixels[(sy * stride + local_i) | 0] = plot;
+          sy = (sy - 1) | 0;
+          {
+            f64 prev = t - step;
+            t = prev > z_start ? prev : z_start;
           }
         } else {
-          /* Pitched column: walk up from the horizon. Occupied rows paint
-           * their own XY; empty rows jump over rows terrain cannot reach. */
-          i32 seed = (w_bot < hy ? w_bot : hy) | 0;
-          i32 suffix = seed;
-          i32 painted = 0;
-          i32 rr = (w_bot - 1) | 0;
-          u32 first_color = 0;
-          while (rr >= w_top) {
-            i32 cidx = (rr * local_width + local_i) | 0;
-            f64 yn;
-            f64 gap;
-            u32 plot;
-            if (cover[cidx]) {
-              if (((rr + 1) | 0) == suffix) {
-                suffix = rr;
-              }
-              rr = (rr - 1) | 0;
-              continue;
-            }
-            yn = row_base - (f64)rr;
-            wx = wx_base + yn * row_step_x;
-            wy = wy_base + yn * row_step_y;
-            wz = wz_base + yn * row_step_z;
-            inside = (wx >= 0.0) & (wx <= (f64)g_map_w) & (wy >= 0.0) &
-                     (wy <= (f64)g_map_h);
-            if (!(inside | wrap)) {
-              break;
-            }
-            h_fine = sample_sv_height(
-              lod_height_map, wx * lod_scale, wy * lod_scale,
-              lod_w_mask, lod_h_mask, lod_shift, wrap,
-                fine_lerp, &h_byte, &nn_off);
-            if (sample_ok) {
-              g_sample_n[local_i] = (g_sample_n[local_i] + 1) | 0;
-            }
-            gap = wz - h_fine * g_alt_scale;
-            if (gap > 0.0) {
-              i32 skip_n = skip_texel;
-              if (can_rise) {
-                i32 s2 = (i32)wasm_ceil(gap * inv_close_rate);
-                if (s2 > skip_n) {
-                  skip_n = s2;
-                }
-              }
-              if (skip_n < 1) {
-                skip_n = 1;
-              }
-              rr = (rr - skip_n) | 0;
-              continue;
-            }
-            plot = fs_terrain_color(
-              lod_color_map, wx * lod_scale, wy * lod_scale, nn_off,
-              use_fine, do_filter, wrap, lod_w_mask, lod_h_mask, lod_shift,
-              z, far_clip, fog_t,
-                fog_white, apply_fog_t, debug, h_byte,
-                sample_ok ? g_sample_n[local_i] : 0);
-            pixels[((rr * stride + local_i) | 0)] = plot;
-            cover[cidx] = 1;
-            if (painted == 0) {
-              first_color = plot;
-            }
-            painted = (painted + 1) | 0;
-            if (((rr + 1) | 0) == suffix) {
-              suffix = rr;
-            } else {
-              fs_dirty[local_i] = 1;
-            }
-            rr = (rr - 1) | 0;
-          }
-          if (painted) {
-            fs_free_n[local_i] = (fs_free_n[local_i] - painted) | 0;
-          }
-          if (suffix < seed) {
-            if (wrap && (w_bot < hy)) {
-              i32 f;
-              for (f = w_bot; f < hy; f = (f + 1) | 0) {
-                i32 ci = (f * local_width + local_i) | 0;
-                if (!cover[ci]) {
-                  pixels[((f * stride + local_i) | 0)] = first_color;
-                  cover[ci] = 1;
-                  fs_free_n[local_i] = (fs_free_n[local_i] - 1) | 0;
-                }
-              }
-            }
-            hidden_y[local_i] = suffix;
+          t = t + step;
+          step = step + step_growth * cap;
+          if (step > cap) {
+            step = cap;
           }
         }
-        if ((hidden_y[local_i] <= 0) | (fs_free_n[local_i] <= 0)) {
-          hidden_y[local_i] = 0;
-          live_cols = (live_cols - 1) | 0;
-        }
-      fs_next_col:
-        wx_base += col_step_x;
-        wy_base += col_step_y;
-        wz_base += col_step_z;
       }
-      z = z + step;
-      step = step + step_growth;
     }
   }
 }

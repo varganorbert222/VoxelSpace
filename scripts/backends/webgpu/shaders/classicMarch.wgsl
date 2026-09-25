@@ -16,12 +16,13 @@ fn classicSampleHeight(plx: f32, ply: f32, mip: i32, lerp: bool, z: f32) -> vec2
   if (altitude > 0.0) {
     hFine = sampled.x * (255.0 / altitude);
   }
-  return vec2f(hFine, sampled.y);
+  hFine = hFine + detailHeightBytes(plx, ply, z);
+  return vec2f(hFine, clamp(hFine + 0.5, 0.0, 255.0));
 }
 
 fn classicSampleColor(plx: f32, ply: f32, mip: i32, doFilter: bool, z: f32) -> vec4f {
   let dist = select(frame.sampleLimit.x + 1.0, 0.0, doFilter);
-  return terrainSampleColor(colorTex, mip, plx, ply, dist, z);
+  return detailColor(terrainSampleColor(colorTex, mip, plx, ply, dist, z), plx, ply, z);
 }
 
 @compute @workgroup_size(64)
@@ -41,7 +42,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     }
     var sky = 0u;
     if (debugView == DEBUG_COLOR) {
-      sky = skyRows[min(u32(y), u32(arrayLength(&skyRows) - 1u))];
+      sky = skyColorAt(x, y);
     }
     textureStore(outTex, vec2<i32>(x, y), vec4<u32>(sky, 0u, 0u, 0u));
     y = y + 1;
@@ -100,15 +101,15 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     var z = startIndex;
     var n = 0u;
     var step = 0.0;
-    var bandKey = -1;
+    let bandStep = lodDeltas[mip];
     loop {
       if ((z >= endIndex) || (z >= farClip) || (n >= MAX_STEPS)) {
         break;
       }
       n = n + 1u;
-      let synced = syncBandStep(step, bandKey, mip, z);
-      step = synced.x;
-      bandKey = i32(synced.y);
+      let lo = bandMarchStep(bandStep, mip, z);
+      let cell = mipCellSize(mip, z);
+      step = fitBandStep(step, lo, cell);
       let zScale = dst / z;
       let ceilingOnScreen = i32(ceilingSdf * zScale + screenHorizon);
       let groundOnScreen = i32(yGround * zScale + screenHorizon);
@@ -120,9 +121,12 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       var plx = kLeftX * z + camX + dx * f32(x);
       var ply = kLeftY * z + camY + dy * f32(x);
       let colHidden = hiddenY;
+      let inside = (plx >= 0.0) && (plx <= f32(mapW)) && (ply >= 0.0) && (ply <= f32(mapH));
+      let isOk = inside || repeat;
+      if ((colHidden == 0) || (isOk && (ceilingOnScreen >= colHidden))) {
+        break;
+      }
       if (colHidden != 0) {
-        let inside = (plx >= 0.0) && (plx <= f32(mapW)) && (ply >= 0.0) && (ply <= f32(mapH));
-        let isOk = inside || repeat;
         if (isOk && (ceilingOnScreen < colHidden)) {
           let useFine = mip == 0;
           let sampled = classicSampleHeight(plx, ply, mip, flagHeightLerp(flags) && useFine, z);
@@ -185,9 +189,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
           }
         }
       }
-      let grown = growMarchStep(step, mip, z);
       z = z + step;
-      step = grown;
+      step = growBandStep(step, lo, cell);
     }
   }
 }

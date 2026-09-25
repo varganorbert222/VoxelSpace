@@ -1,48 +1,71 @@
 "use strict";
 
 import { readColorFromImage, readRedFromImage } from "./image.js";
+import { decodeIndexedPng, pngPalette } from "./pngPalette.js";
 
-function loadImagesAsync(urls) {
+function decodeImageBytes(bytes) {
+  const indicesPromise = decodeIndexedPng(bytes);
   return new Promise(function (resolve) {
-    let pending = urls.length;
-    const result = [];
-    if (pending === 0) {
-      resolve([]);
-      return;
-    }
-    urls.forEach(function (url, i) {
-      const image = new Image();
-      const finish = function () {
-        pending--;
-        if (pending === 0) {
-          resolve(result);
-        }
-      };
-      image.onload = function () {
-        const width = image.naturalWidth;
-        const height = image.naturalHeight;
-
-        const tempcanvas = document.createElement("canvas");
-        const tempcontext = tempcanvas.getContext("2d");
-
-        tempcanvas.width = width;
-        tempcanvas.height = height;
-        tempcontext.drawImage(image, 0, 0, width, height);
-
-        result[i] = {
+    const blob = new Blob([bytes], { type: "image/png" });
+    const objectUrl = URL.createObjectURL(blob);
+    const image = new Image();
+    const finish = function (value) {
+      URL.revokeObjectURL(objectUrl);
+      resolve(value);
+    };
+    image.onload = function () {
+      const width = image.naturalWidth;
+      const height = image.naturalHeight;
+      const tempcanvas = document.createElement("canvas");
+      const tempcontext = tempcanvas.getContext("2d", { willReadFrequently: true });
+      if (!tempcontext) {
+        finish(null);
+        return;
+      }
+      tempcanvas.width = width;
+      tempcanvas.height = height;
+      tempcontext.drawImage(image, 0, 0, width, height);
+      indicesPromise.then(function (indices) {
+        finish({
           data: tempcontext.getImageData(0, 0, width, height).data,
           width: width,
           height: height,
-        };
-        finish();
-      };
-      image.onerror = function () {
-        result[i] = null;
-        finish();
-      };
-      image.src = url;
-    });
+          palette: pngPalette(bytes),
+          indices: indices,
+        });
+      });
+    };
+    image.onerror = function () {
+      finish(null);
+    };
+    image.src = objectUrl;
   });
+}
+
+function loadImagesAsync(urls) {
+  return Promise.all(
+    urls.map(function (url) {
+      if (!url) {
+        return Promise.resolve(null);
+      }
+      return fetch(url)
+        .then(function (response) {
+          if (!response.ok) {
+            return null;
+          }
+          return response.arrayBuffer();
+        })
+        .then(function (buffer) {
+          if (!buffer) {
+            return null;
+          }
+          return decodeImageBytes(new Uint8Array(buffer));
+        })
+        .catch(function () {
+          return null;
+        });
+    })
+  );
 }
 
 function loadRGBAImageToArray(image) {

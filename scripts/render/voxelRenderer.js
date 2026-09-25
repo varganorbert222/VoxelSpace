@@ -5,6 +5,9 @@ import { Color } from "../math/color.js";
 import { isDebugColor } from "../constants/debugView.js";
 
 function voxelKernel(renderer) {
+  if (renderer.showDetails) {
+    return renderVoxelTexels;
+  }
   return (
     (renderer.kernels && renderer.kernels.renderVoxelTexels) ||
     renderVoxelTexels
@@ -58,8 +61,8 @@ function voxelParams(renderer, maps) {
     mipCount: renderer.mipCount,
     lodSpacingMode: renderer.lodSpacingMode,
     lodSpacing: renderer.lodSpacing,
-    skyColor: maps.skyColor,
-    horizonColor: camera.bottomColor,
+    skyColor: renderer.skyFill(maps.skyColor),
+    horizonColor: renderer.skyFill(camera.bottomColor),
     panoMips: maps.panoMips,
     terrainMips: maps.terrainMips || maps.panoMips,
     mapsGeneration: maps.generation,
@@ -114,7 +117,7 @@ class VoxelRenderer {
   renderLocal(terrain) {
     const maps = terrain.exportMaps();
     const params = voxelParams(this._renderer, maps);
-    params.skyColor = terrain.skyColor;
+    params.skyColor = this._renderer.skyFill(terrain.skyColor);
     const frameBuffer = this._renderer.frameBuffer;
     voxelKernel(this._renderer)({
       ...params,
@@ -130,7 +133,7 @@ class VoxelRenderer {
     const pool = renderer.ensurePool();
     pool.initMaps(maps);
     const params = voxelParams(renderer, maps);
-    params.skyColor = terrain.skyColor;
+    params.skyColor = renderer.skyFill(terrain.skyColor);
     const camera = renderer.camera;
     const token = {
       algorithm: renderer.algorithm,
@@ -153,6 +156,7 @@ class VoxelRenderer {
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
       lodSpacing: renderer.lodSpacing,
+      showDetails: renderer.showDetails ? 1 : 0,
       camX: camera.posX,
       camY: camera.posY,
       camZ: camera.posZ,

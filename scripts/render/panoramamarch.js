@@ -1,12 +1,19 @@
 "use strict";
 
 import { Color } from "../math/color.js";
+import { useRetailFrame } from "./retail/schedule.js";
+import { applyDetail, detailHeightAdd, detailInRange } from "./retail/detail.js";
+import { minmaxSkipT } from "./retail/minmax.js";
 import ColorPalette from "../math/colorPalette.js";
 import {
   SKY_PALETTE_STEPS,
   skyPaletteT,
 } from "../constants/framebuffer.js";
 import { EPSILON, HALF, TWO_PI } from "../constants/vmath.js";
+import {
+  STEP_GROWTH_BY_QUALITY,
+  qualityIndex,
+} from "../constants/quality.js";
 import {
   FILTER_DISTANCE_DEFAULT,
 } from "../constants/sampling.js";
@@ -21,13 +28,11 @@ import {
   PANO_YHIT_SLOPE_INF,
 } from "../constants/panorama.js";
 import {
-  STEP_GROWTH_BY_QUALITY,
-  qualityIndex,
-} from "../constants/quality.js";
-import {
   TERRAIN_MIP_MAX_COUNT,
-  advanceRayT,
-  firstMarchT,
+  bandSteps,
+  fitBandStep,
+  growBandStep,
+  firstBandT,
   lod0RefineAt,
   lod0RefineMipAt,
   lod0RefineSwitchDistances,
@@ -41,7 +46,6 @@ import {
   mipInvScale,
   mipSwitchDistances,
   mipTexelFloor,
-  syncBandStep,
 } from "../constants/mip.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
 
@@ -52,6 +56,7 @@ let skyPaletteCache = null;
 let skyPaletteSky = 0;
 let skyPaletteHorizon = 0;
 const mipSwitchT = new Float64Array(TERRAIN_MIP_MAX_COUNT);
+const bandStepScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
 const lod0RefineSwitchScratch = new Float64Array(LOD0_REFINE_SWITCH_COUNT);
 const mipInvScaleScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
 const mipWMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
@@ -349,6 +354,9 @@ export function renderPanoramaColumns({
   lod0Refine,
   lod0RefineCurve,
   stepDivisor,
+  retailWidth,
+  fov,
+  showDetails = 0,
   filterDistance = FILTER_DISTANCE_DEFAULT,
   fwdX = 0,
   fwdY = -1,
@@ -365,6 +373,15 @@ export function renderPanoramaColumns({
   lodSpacingMode,
   lodSpacing,
 }) {
+  useRetailFrame({
+    screenWidth: retailWidth || width,
+    fov,
+    quality,
+    lod0Refine,
+    farClip,
+    showDetails,
+  });
+  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
   const localWidth = (endPx - startPx) | 0;
   fillSkySlice(
     pixels,
@@ -386,13 +403,6 @@ export function renderPanoramaColumns({
   const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
   const refine = lod0Refine ? 1 : 0;
   const refineOn = refine;
-  let t0 = firstMarchT(nearClip, refineOn, stepDivisor);
-  if ((camZ > clipZ) & (tanLast < 0)) {
-    const tGroundPole = (clipZ - camZ) / tanLast;
-    if ((tGroundPole > 0) & (tGroundPole < t0)) {
-      t0 = nearClip > tGroundPole ? nearClip : tGroundPole;
-    }
-  }
   let tStop = tMax;
   if (!(tStop > 0)) {
     tStop = farClip * FAR_PLANE_T_SCALE;
@@ -419,6 +429,14 @@ export function renderPanoramaColumns({
     lodSpacingMode,
     lodSpacing
   );
+  const bandStepTable = bandSteps(mipCount, stepDivisor, bandStepScratch);
+  let t0 = firstBandT(nearClip, bandStepTable);
+  if ((camZ > clipZ) & (tanLast < 0)) {
+    const tGroundPole = (clipZ - camZ) / tanLast;
+    if ((tGroundPole > 0) & (tGroundPole < t0)) {
+      t0 = nearClip > tGroundPole ? nearClip : tGroundPole;
+    }
+  }
   const refineSwitches = lod0RefineSwitchDistances(
     lodSpacing,
     lod0RefineCurve,
@@ -438,7 +456,6 @@ export function renderPanoramaColumns({
   const filterC = filterColor | 0;
   const wrap = repeat | 0;
   const maxSteps = marchMaxSteps(refineOn);
-  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
   const ceiling = maxHeight == null ? altitude : maxHeight;
   const dhGround = clipZ - camZ;
   const absGround = dhGround < 0 ? -dhGround : dhGround;
@@ -454,12 +471,11 @@ export function renderPanoramaColumns({
     horizon[localX] = H;
 
     let t = t0;
-    let step = 0;
-    let bandKey = -1;
     let wasInside = 0;
     let mip = 0;
     let tStopCol = tStop;
     let k = 0;
+    let step = 0;
 
     while ((t < tStopCol) & (k < maxSteps)) {
       k = (k + 1) | 0;
@@ -473,11 +489,7 @@ export function renderPanoramaColumns({
 
       const refineHere = lod0RefineAt(refine, mip);
       const refineMip = refineHere ? lod0RefineMipAt(t, refineSwitches) : 0;
-      {
-        const synced = syncBandStep(step, bandKey, mip, refineHere, refineMip, stepDivisor);
-        step = synced.step;
-        bandKey = synced.key;
-      }
+      step = fitBandStep(step, bandStepTable, mip, refineHere, refineMip);
       const sealed = (H !== height) | 0;
       const tanH = sealed ? lut[H] : 0;
       if (sealed) {
@@ -520,14 +532,44 @@ export function renderPanoramaColumns({
           if (wasInside) {
             break;
           }
-          {
-            const adv = advanceRayT(t, mip, wx, wy, dirX, dirY, refineHere, refineMip, stepDivisor, step, stepGrowth);
-            t = adv.t;
-            step = adv.step;
-          }
+          t = t + step;
+          step = growBandStep(
+          step,
+          bandStepTable,
+          mip,
+          refineHere,
+          refineMip,
+          stepGrowth
+        );
           continue;
         }
         wasInside = 1;
+      }
+
+      if (H !== height) {
+        const skip = minmaxSkipT({
+          t,
+          mip,
+          lastMip,
+          wx,
+          wy,
+          dirX,
+          dirY,
+          mips,
+          wrap,
+          altScale,
+          below(h, t0, t1) {
+            const tanH = lut[H] || 0;
+            return (
+              h < camZ + t0 * tanH - EPSILON &&
+              h < camZ + t1 * tanH - EPSILON
+            );
+          },
+        });
+        if (skip > t) {
+          t = skip;
+          continue;
+        }
       }
 
       const ease = easeLodSample(
@@ -574,7 +616,7 @@ export function renderPanoramaColumns({
             ease.filterFade
           )
         : nearestH;
-      const hFine = applyLod0RefineHeight(
+      let hFine = applyLod0RefineHeight(
         hSample,
         wx,
         wy,
@@ -584,14 +626,21 @@ export function renderPanoramaColumns({
         useRm,
         ease.noiseAmp
       );
+      if (detailInRange(t)) {
+        hFine += detailHeightAdd(wx, wy, t);
+      }
       const h = hFine * altScale;
 
       if (sealed && h < camZ + t * tanH - EPSILON) {
-        {
-          const adv = advanceRayT(t, mip, wx, wy, dirX, dirY, refineHere, refineMip, stepDivisor, step, stepGrowth);
-          t = adv.t;
-          step = adv.step;
-        }
+        t = t + step;
+        step = growBandStep(
+          step,
+          bandStepTable,
+          mip,
+          refineHere,
+          refineMip,
+          stepGrowth
+        );
         continue;
       }
 
@@ -645,6 +694,7 @@ export function renderPanoramaColumns({
                   (ease.filterFade * 256) | 0
                 )
             : mipColorMaps[useMip][offset];
+          const plotColor = detailInRange(t) ? applyDetail(color, wx, wy, t) : color;
           const dist = Math.sqrt(t * t + dh * dh);
           if (heightBuf || iterBuf) {
             const hByte = heightBuf
@@ -654,7 +704,7 @@ export function renderPanoramaColumns({
               : 0;
             for (let y = yHit; (y < yBottom) | 0; y = (y + 1) | 0) {
               const pix = (y * localWidth + localX) | 0;
-              pixels[pix] = color;
+              pixels[pix] = plotColor;
               if (depth) {
                 depth[pix] = dist;
               }
@@ -668,7 +718,7 @@ export function renderPanoramaColumns({
           } else {
             for (let y = yHit; (y < yBottom) | 0; y = (y + 1) | 0) {
               const pix = (y * localWidth + localX) | 0;
-              pixels[pix] = color;
+              pixels[pix] = plotColor;
               if (depth) {
                 depth[pix] = dist;
               }
@@ -679,11 +729,15 @@ export function renderPanoramaColumns({
         horizon[localX] = H;
       }
 
-      {
-        const adv = advanceRayT(t, mip, wx, wy, dirX, dirY, refineHere, refineMip, stepDivisor, step, stepGrowth);
-        t = adv.t;
-        step = adv.step;
-      }
+      t = t + step;
+      step = growBandStep(
+          step,
+          bandStepTable,
+          mip,
+          refineHere,
+          refineMip,
+          stepGrowth
+        );
     }
 
     const nextX = dirX * rotC + dirY * rotS;

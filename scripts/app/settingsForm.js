@@ -309,8 +309,13 @@ class SettingsForm {
         "id_render_scale",
         config.settings.renderScale,
         camera.renderScale,
-        () => {},
-        () => {}
+        (e) => {
+          const value = parseFloat(e.target.value);
+          app.camera.set({ renderScale: value });
+          app.resize();
+          persist();
+        },
+        persist
       ),
       fov: initRangeElement(
         "id_fov",
@@ -398,17 +403,43 @@ class SettingsForm {
       }),
       lod0Refine: initCheckboxElement(
         "id_lod0_refine",
-        options.lod0Refine,
+        options.nearRefine,
         (e) => {
           const enabled = e.target.checked;
           app.renderer.setOptions({
+            nearRefine: enabled,
+            lod0Refine: enabled,
             interpolateHeight: enabled,
             filterColor: enabled,
-            lod0Refine: enabled,
           });
           persist();
         }
       ),
+      showDetails: initCheckboxElement(
+        "id_show_details",
+        options.showDetails,
+        (e) => {
+          app.renderer.setOptions({ showDetails: e.target.checked });
+          persist();
+        }
+      ),
+      showSky: initCheckboxElement("id_show_sky", options.showSky, (e) => {
+        app.renderer.setOptions({ showSky: e.target.checked });
+        persist();
+        this.sync();
+      }),
+      showSkyGradient: initCheckboxElement(
+        "id_show_sky_gradient",
+        options.showSkyGradient,
+        (e) => {
+          app.renderer.setOptions({ showSkyGradient: e.target.checked });
+          persist();
+        }
+      ),
+      showClouds: initCheckboxElement("id_show_clouds", options.showClouds, (e) => {
+        app.renderer.setOptions({ showClouds: e.target.checked });
+        persist();
+      }),
       lod0RefineCurve: initOptionElement(
         "id_lod0_refine_curve",
         config.settings.lod0RefineCurve || config.settings.lodSpacingMode,
@@ -487,11 +518,6 @@ class SettingsForm {
         }
       ),
     };
-    setDisabled(
-      this._elements.renderScale,
-      true,
-      "Render scale is controlled by quality."
-    );
     this.sync();
   }
 
@@ -516,6 +542,9 @@ class SettingsForm {
       repeat,
       lod0Refine,
       lod0RefineCurve,
+      showSky,
+      showSkyGradient,
+      showClouds,
       multithread,
       map,
       cameraMode,
@@ -535,7 +564,6 @@ class SettingsForm {
       Number.isFinite(options.fogStart) ? options.fogStart : 0,
       Number.isFinite(options.fogEnd) ? options.fogEnd : camera.farClip
     );
-    setDisabled(renderScale, true, "Render scale is controlled by quality.");
     renderScale.value = camera.renderScale;
     updateBoundValue("id_render_scale", camera.renderScale);
     fov.value = camera.fov;
@@ -573,7 +601,22 @@ class SettingsForm {
     quality.value = String(camera.quality);
     applyFog.checked = options.applyFog;
     repeat.checked = options.repeat;
-    lod0Refine.checked = !!options.lod0Refine;
+    lod0Refine.checked = !!options.nearRefine;
+    if (this._elements.showDetails) {
+      this._elements.showDetails.checked = !!options.showDetails;
+    }
+    if (showSky) {
+      showSky.checked = !!options.showSky;
+      showSkyGradient.checked = !!options.showSkyGradient;
+      showClouds.checked = !!options.showClouds;
+      const skyOn = !!options.showSky;
+      setDisabled(
+        showSkyGradient,
+        !skyOn,
+        "Turn Sky on to use the gradient."
+      );
+      setDisabled(showClouds, !skyOn, "Turn Sky on to draw clouds.");
+    }
     lod0RefineCurve.value = options.lod0RefineCurve;
     multithread.checked = options.multithread;
     setDisabled(
@@ -621,11 +664,6 @@ class SettingsForm {
     if (!this._elements || !this._elements.renderScale) {
       return;
     }
-    setDisabled(
-      this._elements.renderScale,
-      true,
-      "Render scale is controlled by quality."
-    );
     this._elements.renderScale.value = this._app.camera.renderScale;
     updateBoundValue("id_render_scale", this._app.camera.renderScale);
   }

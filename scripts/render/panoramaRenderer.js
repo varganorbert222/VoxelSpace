@@ -14,6 +14,9 @@ import { needsHeightBuf, needsIterBuf } from "../constants/debugView.js";
 import { canShareBuffers, allocU32, allocI32, allocF32, isShared } from "./sharedBuffers.js";
 
 function panoGenerate(renderer) {
+  if (renderer.showDetails) {
+    return renderPanoramaColumns;
+  }
   return (
     (renderer.kernels && renderer.kernels.renderPanoramaColumns) ||
     renderPanoramaColumns
@@ -147,6 +150,7 @@ class PanoramaRenderer {
       this._panoFarClip !== camera.farClip ||
       this._panoFov !== camera.fov ||
       this._panoAspect !== aspect ||
+      this._panoRetailWidth !== fb.width ||
       this._panoRepeat !== this._renderer.repeat ||
       this._panoInterp !== this._renderer.interpolateHeight ||
       this._panoFilter !== this._renderer.filterColor ||
@@ -157,8 +161,8 @@ class PanoramaRenderer {
       this._panoMipCount !== this._renderer.mipCount ||
       this._panoLodSpacingMode !== this._renderer.lodSpacingMode ||
       this._panoLodSpacing !== this._renderer.lodSpacing ||
-      this._panoSkyColor !== terrain.skyColor ||
-      this._panoHorizonColor !== camera.bottomColor ||
+      this._panoSkyColor !== this._renderer.skyFill(terrain.skyColor) ||
+      this._panoHorizonColor !== this._renderer.skyFill(camera.bottomColor) ||
       this._panoQuality !== camera.quality;
 
     if (settingsChanged) {
@@ -182,6 +186,7 @@ class PanoramaRenderer {
     this._panoAspect = this._renderer.frameBuffer.height
       ? this._renderer.frameBuffer.width / this._renderer.frameBuffer.height
       : 0;
+    this._panoRetailWidth = this._renderer.frameBuffer.width;
     this._panoRepeat = this._renderer.repeat;
     this._panoInterp = this._renderer.interpolateHeight;
     this._panoFilter = this._renderer.filterColor;
@@ -194,8 +199,8 @@ class PanoramaRenderer {
     this._panoMipCount = this._renderer.mipCount;
     this._panoLodSpacingMode = this._renderer.lodSpacingMode;
     this._panoLodSpacing = this._renderer.lodSpacing;
-    this._panoSkyColor = terrain.skyColor;
-    this._panoHorizonColor = camera.bottomColor;
+    this._panoSkyColor = this._renderer.skyFill(terrain.skyColor);
+    this._panoHorizonColor = this._renderer.skyFill(camera.bottomColor);
     this._panoQuality = camera.quality;
     this._panoramaValid = true;
     this._panoramaDirty = false;
@@ -217,8 +222,8 @@ class PanoramaRenderer {
       heightBuf: this._panoramaHeight,
       iterBuf: this._panoramaIter,
       panoGeneration: this._panoGen,
-      skyColor: camera.topColor,
-      horizonColor: camera.bottomColor,
+      skyColor: this._renderer.skyFill(camera.topColor),
+      horizonColor: this._renderer.skyFill(camera.bottomColor),
       nearClip: camera.nearClip,
       farClip: camera.farClip,
       applyFog: renderer.applyFog,
@@ -267,8 +272,8 @@ class PanoramaRenderer {
       screenHeight: renderer.frameBuffer.height,
       fovY: camera.fov,
       dstToProjPlane: camera.calculateProjPlane(),
-      skyColor: camera.topColor,
-      horizonColor: camera.bottomColor,
+      skyColor: this._renderer.skyFill(camera.topColor),
+      horizonColor: this._renderer.skyFill(camera.bottomColor),
       nearClip: camera.nearClip,
       farClip: camera.farClip,
       applyFog: renderer.applyFog,
@@ -391,14 +396,17 @@ class PanoramaRenderer {
       nearClip: camera.nearClip,
       tMax: this._panoTMax(),
       repeat: renderer.repeat,
-      skyColor: terrain.skyColor,
-      horizonColor: camera.bottomColor,
+      skyColor: this._renderer.skyFill(terrain.skyColor),
+      horizonColor: this._renderer.skyFill(camera.bottomColor),
       quality: camera.quality,
       interpolateHeight: renderer.interpolateHeight ? 1 : 0,
       filterColor: renderer.filterColor ? 1 : 0,
       lod0Refine: renderer.lod0Refine ? 1 : 0,
       lod0RefineCurve: renderer.lod0RefineCurve,
       stepDivisor: renderer.stepDivisor,
+      retailWidth: renderer.frameBuffer.width,
+      fov: camera.fov,
+      showDetails: renderer.showDetails ? 1 : 0,
       filterDistance: renderer.filterDistance,
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
@@ -443,8 +451,8 @@ class PanoramaRenderer {
       camX: camera.posX,
       camY: camera.posY,
       camZ: camera.posZ,
-      skyColor: terrain.skyColor,
-      horizonColor: camera.bottomColor,
+      skyColor: this._renderer.skyFill(terrain.skyColor),
+      horizonColor: this._renderer.skyFill(camera.bottomColor),
     };
     const slices = await pool.renderPanorama({
       width: this._panoWidth,
@@ -456,14 +464,17 @@ class PanoramaRenderer {
       nearClip: camera.nearClip,
       tMax: tMax,
       repeat: renderer.repeat,
-      skyColor: terrain.skyColor,
-      horizonColor: camera.bottomColor,
+      skyColor: this._renderer.skyFill(terrain.skyColor),
+      horizonColor: this._renderer.skyFill(camera.bottomColor),
       quality: camera.quality,
       interpolateHeight: renderer.interpolateHeight ? 1 : 0,
       filterColor: renderer.filterColor ? 1 : 0,
       lod0Refine: renderer.lod0Refine ? 1 : 0,
       lod0RefineCurve: renderer.lod0RefineCurve,
       stepDivisor: renderer.stepDivisor,
+      retailWidth: renderer.frameBuffer.width,
+      fov: camera.fov,
+      showDetails: renderer.showDetails ? 1 : 0,
       filterDistance: renderer.filterDistance,
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
@@ -493,8 +504,8 @@ class PanoramaRenderer {
       camera.posX !== token.camX ||
       camera.posY !== token.camY ||
       camera.posZ !== token.camZ ||
-      terrain.skyColor !== token.skyColor ||
-      camera.bottomColor !== token.horizonColor
+      this._renderer.skyFill(terrain.skyColor) !== token.skyColor ||
+      this._renderer.skyFill(camera.bottomColor) !== token.horizonColor
     ) {
       return false;
     }

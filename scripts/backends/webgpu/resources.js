@@ -130,6 +130,10 @@ export function createPanoDepthTarget(device, width, height) {
   return createStorageTarget(device, width, height, "r32float");
 }
 
+export function uploadTexels(device, texture, data, width, height, bytesPerTexel, mipLevel) {
+  writeTexels(device, texture, data, width, height, bytesPerTexel, mipLevel);
+}
+
 export function uploadHeight(device, texture, heightMap, width, height, mipLevel) {
   writeTexels(device, texture, heightMap, width, height, 1, mipLevel);
 }

@@ -262,7 +262,7 @@
         </div>
         <div
           class="control"
-          data-tip="Starting ray step is voxel size divided by this integer. Within each LOD / refine mip the step then grows with quality, but never larger than the current voxel. Applies to LOD 0 refine mips (1/16, 1/8, 1/4, 1/2, then 1 m) and the terrain mip chain. Higher is denser and slower."
+          data-tip="Samples per LOD cell. The step is that cell divided by this value: LOD 0 is 1 m, or the refine cell, and each coarser LOD doubles the cell. Higher is denser and slower."
         >
           <div class="control-head">
             <label for="id_step_divisor">Step</label>
@@ -306,26 +306,35 @@
           </div>
           <input id="id_fov" type="range" autocomplete="off" aria-keyshortcuts="O Shift+O" />
         </div>
-        <div class="control" data-tip="Internal resolution. Set automatically by quality.">
+        <div class="control" data-tip="Internal resolution as a fraction of the window. Independent of Quality.">
           <div class="control-head">
-            <label for="id_render_scale">Scale</label>
+            <label for="id_render_scale">Render scale</label>
             <span class="control-value" data-for="id_render_scale"></span>
           </div>
-          <input id="id_render_scale" type="range" disabled autocomplete="off" />
+          <input id="id_render_scale" type="range" autocomplete="off" />
         </div>
       </section>
 
       <section class="hud-section">
-        <h2 class="hud-section-title"><span>04</span> LOD0 refine</h2>
+        <h2 class="hud-section-title"><span>04</span> Near</h2>
         <div class="flag-grid">
           <label
             class="check"
             for="id_lod0_refine"
-            data-tip="LOD 0 refinement, height interpolation, and color filtering. Five mips (16, 8, 4, 2, then 1 virtual voxel per meter) follow this section's Curve."
+            data-tip="Near Refine. On: height and color interpolation across the near bands. Off: point sample."
           >
             <input id="id_lod0_refine" name="lod0refine" type="checkbox" autocomplete="off" />
             <span class="check-box" aria-hidden="true"></span>
-            Enable
+            Near Refine
+          </label>
+          <label
+            class="check"
+            for="id_show_details"
+            data-tip="Show Details samples the near detail atlas. Off keeps the base color. Far terrain never samples detail."
+          >
+            <input id="id_show_details" name="showDetails" type="checkbox" autocomplete="off" checked />
+            <span class="check-box" aria-hidden="true"></span>
+            Show Details
           </label>
         </div>
         <div
@@ -389,6 +398,21 @@
             <input id="id_repeat" name="repeat" type="checkbox" autocomplete="off" aria-keyshortcuts="P" />
             <span class="check-box" aria-hidden="true"></span>
             Repeat
+          </label>
+          <label class="check" for="id_show_sky" data-tip="Retail sky. Off uses the simple two-color sky and skips the per-pixel sky pass.">
+            <input id="id_show_sky" name="showsky" type="checkbox" autocomplete="off" checked />
+            <span class="check-box" aria-hidden="true"></span>
+            Sky
+          </label>
+          <label class="check" for="id_show_sky_gradient" data-tip="Sky color ramp from the mission palette. Off paints a flat horizon color.">
+            <input id="id_show_sky_gradient" name="showskygradient" type="checkbox" autocomplete="off" checked />
+            <span class="check-box" aria-hidden="true"></span>
+            Gradient
+          </label>
+          <label class="check" for="id_show_clouds" data-tip="Cloud plane. Off skips the cloud mip lookup and the overlay on terrain.">
+            <input id="id_show_clouds" name="showclouds" type="checkbox" autocomplete="off" checked />
+            <span class="check-box" aria-hidden="true"></span>
+            Clouds
           </label>
           <label
             class="check"

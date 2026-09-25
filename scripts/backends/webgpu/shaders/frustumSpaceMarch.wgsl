@@ -86,7 +86,9 @@ fn frustumShade(
   mapHMask: i32,
   mapWMask: i32,
   debugView: u32,
-  sampleN: u32
+  sampleN: u32,
+  worldX: f32,
+  worldY: f32
 ) -> u32 {
   if (debugView != DEBUG_COLOR) {
     if (debugView == DEBUG_HEIGHT) { return encodeHeight(hByte); }
@@ -100,7 +102,12 @@ fn frustumShade(
   if (fogWhite) {
     return packRgba(vec4f(1.0));
   }
-  var plot = classicSampleColor(px, py, mip, flagColorFilter(flags) && useFine, repeat, mapHMask, mapWMask);
+  var plot = detailColor(
+    classicSampleColor(px, py, mip, flagColorFilter(flags) && useFine, repeat, mapHMask, mapWMask),
+    worldX,
+    worldY,
+    z
+  );
   if (applyFogT) { plot = fogRgb(plot, fogT); }
   return packRgba(plot);
 }
@@ -124,7 +131,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     }
     var sky = 0u;
     if (debugView == DEBUG_COLOR) {
-      sky = skyRows[min(u32(y), u32(arrayLength(&skyRows) - 1u))];
+      sky = skyColorAt(x, y);
     }
     textureStore(outTex, vec2<i32>(x, y), vec4<u32>(sky, 0u, 0u, 0u));
     y = y + 1;
@@ -144,7 +151,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let flags = frame.mapFlags.w;
   let useFog = flagFog(flags);
   let repeat = flagRepeat(flags);
-  let stepGrowth = frame.clipDhTanLastGrowth.w;
   let lodCount = i32(frame.extraU.y);
   let altScale = altitude / 255.0;
   let mapWMask = mapW - 1;
@@ -165,181 +171,74 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let mapWf = f32(mapW);
   let mapHf = f32(mapH);
 
-  var hiddenY = screenH;
-  var freeN = screenH;
-  var dirty = false;
-  var cover: array<u32, 64>;
-  var coverWord = 0u;
-  loop {
-    if (coverWord >= 64u) { break; }
-    cover[coverWord] = 0u;
-    coverWord = coverWord + 1u;
-  }
   var sampleN = 0u;
-  var lod = 1;
+  var sy = screenH - 1;
+  var t = lodDistances[0];
+  var step = 0.0;
+  var guard = 0u;
   loop {
-    if ((lod > lodCount) || (hiddenY <= 0) || (freeN <= 0)) { break; }
-    let mip = lod - 1;
-    let mipScale = exp2(-f32(mip));
-    let lodWMask = (mapW >> u32(mip)) - 1;
-    let lodHMask = (mapH >> u32(mip)) - 1;
-    let startIndex = lodDistances[lod - 1];
-    let endIndex = lodDistances[lod];
-    lod = lod + 1;
-    if ((_po > 999u) || (startIndex >= farClip)) { continue; }
-    var step = lodDeltas[lod - 2];
-    var z = startIndex;
-    var zGuard = 0u;
+    if ((sy < 0) || (t >= farClip) || (guard >= MAX_STEPS)) { break; }
+    guard = guard + 1u;
+    var mip = 0;
     loop {
-      if ((z >= endIndex) || (z >= farClip) || (hiddenY <= 0) || (freeN <= 0) || (zGuard >= MAX_STEPS)) { break; }
-      zGuard = zGuard + 1u;
-      let fogT = fogAmount(z, fogStart, fogEnd);
+      if ((mip + 1 >= lodCount) || (t < lodDistances[mip + 1])) { break; }
+      mip = mip + 1;
+    }
+    let mipScale = exp2(-f32(mip));
+    let lodWMask = (mapW >> u32(max(mip, 0))) - 1;
+    let lodHMask = (mapH >> u32(max(mip, 0))) - 1;
+    let lo = max(bandMarchStep(lodDeltas[mip], mip, t), 1.0e-4);
+    let cell = mipCellSize(mip, t);
+    step = fitBandStep(step, lo, cell);
+    let yn = (rowBase - f32(sy)) * invH2;
+    let dir = fwd + right * (xn * tanHalfX) + up * yn;
+    let pos = cam + dir * t;
+    if ((pos.z > ceiling) && !(dir.z < 0.0)) {
+      break;
+    }
+    let inside = ((pos.x >= 0.0) && (pos.x <= mapWf) && (pos.y >= 0.0) && (pos.y <= mapHf)) || repeat;
+    if (!inside) {
+      t = t + step;
+      step = growBandStep(step, lo, cell);
+      continue;
+    }
+    let useFine = (mip == 0) && (t <= filterDist);
+    let doLerp = flagHeightLerp(flags) && useFine;
+    let sampled = classicSampleHeight(pos.x * mipScale, pos.y * mipScale, mip, doLerp, repeat, lodHMask, lodWMask);
+    let hFine = sampled.x + detailHeightBytes(pos.x, pos.y, t);
+    sampleN = sampleN + 1u;
+    if (pos.z < hFine * altScale) {
+      let fogT = fogAmount(t, fogStart, fogEnd);
       let fogWhite = useFog && (fogT >= 1.0);
       let applyFogT = useFog && (fogT > 0.0) && !fogWhite;
-      let useFine = z <= filterDist;
-      let doLerp = flagHeightLerp(flags) && useFine;
-      let zTanX = z * tanHalfX;
-      let zInvH2 = z * invH2;
-      let rowStep = up * zInvH2;
-      let driftPerRow = zInvH2 * upXY;
-      let hasRowStep = rowStep.z != 0.0;
-      let invRowStepZ = select(0.0, 1.0 / rowStep.z, hasRowStep);
-      let riseMax = slopeCap * (abs(rowStep.x) + abs(rowStep.y));
-      let closeRate = riseMax - rowStep.z;
-      let canRise = closeRate > 0.0;
-      let invCloseRate = select(0.0, 1.0 / closeRate, canRise);
-      let driftCheb = max(abs(rowStep.x), abs(rowStep.y));
-      var skipTexel = select(screenH, i32(floor(1.0 / driftCheb)), driftCheb > 0.0);
-      if (skipTexel < 1) { skipTexel = 1; }
-      let colBase = cam + (xn * zTanX) * right + z * fwd;
-
-      var wTop = 0;
-      var wBot = hiddenY;
-      var skip = false;
-      if (hasRowStep) {
-        let rCeil = rowBase - (ceiling - colBase.z) * invRowStepZ;
-        let rGround = rowBase - (CLIP_Z - colBase.z) * invRowStepZ;
-        let lo = clamp(min(rCeil, rGround), -ROW_LIMIT, ROW_LIMIT);
-        let hi = clamp(max(rCeil, rGround), -ROW_LIMIT, ROW_LIMIT);
-        wTop = max(0, i32(ceil(lo)));
-        wBot = min(wBot, i32(floor(hi)) + 1);
-      } else if ((colBase.z < CLIP_Z) || (colBase.z > ceiling)) {
-        skip = true;
-      }
-      if (skip || (wTop >= wBot)) {
-        continue;
-      }
-
-      if (hasRowStep && (driftPerRow * f32(hiddenY - wTop) < DRIFT_SPAN_TEXELS)) {
-        // Sub-texel drift across the span: one sample, closed-form hit row.
-        let p = colBase + (rowBase - f32(hiddenY - 1)) * rowStep;
-        let inside = ((p.x >= 0.0) && (p.x <= mapWf) && (p.y >= 0.0) && (p.y <= mapHf)) || repeat;
-        if (inside) {
-          let sampled = classicSampleHeight(p.x * mipScale, p.y * mipScale, mip, doLerp, repeat, lodHMask, lodWMask);
-          sampleN = sampleN + 1u;
-          var rHit = i32(ceil(rowBase - (sampled.x * altScale - colBase.z) * invRowStepZ));
-          if (rHit < hiddenY) {
-            rHit = max(rHit, wTop);
-            var bottom = hiddenY;
-            if (!repeat) { bottom = min(bottom, wBot); }
-            if (rHit < bottom) {
-              let plot = frustumShade(p.x * mipScale, p.y * mipScale, u32(sampled.y), z, farClip, fogT, fogWhite, applyFogT, useFine, mip, flags, repeat, lodHMask, lodWMask, debugView, sampleN);
-              var painted = 0;
-              var r = rHit;
-              if (dirty) {
-                loop {
-                  if (r >= bottom) { break; }
-                  if (!coverGet(&cover, r)) {
-                    textureStore(outTex, vec2<i32>(x, r), vec4<u32>(plot, 0u, 0u, 0u));
-                    coverSet(&cover, r);
-                    painted = painted + 1;
-                  }
-                  r = r + 1;
-                }
-              } else {
-                loop {
-                  if (r >= bottom) { break; }
-                  textureStore(outTex, vec2<i32>(x, r), vec4<u32>(plot, 0u, 0u, 0u));
-                  r = r + 1;
-                }
-                painted = bottom - rHit;
-              }
-              freeN = freeN - painted;
-              hiddenY = rHit;
-            }
-          }
-        }
-      } else {
-        // Pitched column: walk up from the horizon. Occupied rows paint their
-        // own XY; empty rows jump over the rows terrain cannot reach.
-        let seed = min(wBot, hiddenY);
-        var suffix = seed;
-        var firstColor = 0u;
-        var painted = 0;
-        var r = wBot - 1;
-        loop {
-          if (r < wTop) { break; }
-          if (coverGet(&cover, r)) {
-            if ((r + 1) == suffix) { suffix = r; }
-            r = r - 1;
-            continue;
-          }
-          let p = colBase + (rowBase - f32(r)) * rowStep;
-          let inside = ((p.x >= 0.0) && (p.x <= mapWf) && (p.y >= 0.0) && (p.y <= mapHf)) || repeat;
-          if (!inside) { break; }
-          let sampled = classicSampleHeight(p.x * mipScale, p.y * mipScale, mip, doLerp, repeat, lodHMask, lodWMask);
-          sampleN = sampleN + 1u;
-          let gap = p.z - sampled.x * altScale;
-          if (gap > 0.0) {
-            var skipN = skipTexel;
-            if (canRise) {
-              let s2 = i32(ceil(gap * invCloseRate));
-              if (s2 > skipN) { skipN = s2; }
-            }
-            if (skipN < 1) { skipN = 1; }
-            r = r - skipN;
-            continue;
-          }
-          let plot = frustumShade(p.x * mipScale, p.y * mipScale, u32(sampled.y), z, farClip, fogT, fogWhite, applyFogT, useFine, mip, flags, repeat, lodHMask, lodWMask, debugView, sampleN);
-          textureStore(outTex, vec2<i32>(x, r), vec4<u32>(plot, 0u, 0u, 0u));
-          coverSet(&cover, r);
-          if (painted == 0) { firstColor = plot; }
-          painted = painted + 1;
-          if ((r + 1) == suffix) {
-            suffix = r;
-          } else {
-            dirty = true;
-          }
-          r = r - 1;
-        }
-        if (painted > 0) {
-          freeN = freeN - painted;
-        }
-        if (suffix < seed) {
-          if (repeat && (wBot < hiddenY)) {
-            var f = wBot;
-            loop {
-              if (f >= hiddenY) { break; }
-              if (!coverGet(&cover, f)) {
-                textureStore(outTex, vec2<i32>(x, f), vec4<u32>(firstColor, 0u, 0u, 0u));
-                coverSet(&cover, f);
-                freeN = freeN - 1;
-              }
-              f = f + 1;
-            }
-          }
-          hiddenY = suffix;
-        }
-      }
-      if ((hiddenY <= 0) || (freeN <= 0)) {
-        hiddenY = 0;
-        freeN = 0;
-      }
-
-      continuing {
-        z = z + step;
-        step = step + stepGrowth;
-      }
+      let plot = frustumShade(
+        pos.x * mipScale,
+        pos.y * mipScale,
+        u32(clamp(hFine + 0.5, 0.0, 255.0)),
+        t,
+        farClip,
+        fogT,
+        fogWhite,
+        applyFogT,
+        useFine,
+        mip,
+        flags,
+        repeat,
+        lodHMask,
+        lodWMask,
+        debugView,
+        sampleN,
+        pos.x,
+        pos.y
+      );
+      textureStore(outTex, vec2<i32>(x, sy), vec4<u32>(plot, 0u, 0u, 0u));
+      sy = sy - 1;
+      let prev = t - step;
+      let t0 = lodDistances[0];
+      t = select(t0, prev, prev > t0);
+    } else {
+      t = t + step;
+      step = growBandStep(step, lo, cell);
     }
   }
 }

@@ -34,6 +34,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 500,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C0M1_C",
@@ -187,6 +205,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 600,
+        "horizon": 1,
+        "gamma": 123,
+        "saturation": 145,
+        "filter": [
+          139,
+          125,
+          105
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C6M6_C",
@@ -336,6 +372,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C1M1_C",
@@ -489,6 +543,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 600,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C6M5_C",
@@ -642,6 +714,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 128,
+        "filter": [
+          138,
+          118,
+          140
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C0M5_C",
@@ -786,7 +876,7 @@
       "title": "C0M6",
       "summary": "Green",
       "creator": "Dave Merrick",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         40,
@@ -795,6 +885,24 @@
       ],
       "altitude": 58.52160000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 600,
+        "horizon": 1,
+        "gamma": 120,
+        "saturation": 64,
+        "filter": [
+          40,
+          160,
+          40
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C0M6_C",
@@ -948,6 +1056,24 @@
       ],
       "altitude": 58.52160000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 600,
+        "horizon": 1,
+        "gamma": 100,
+        "saturation": 88,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C4M6_C",
@@ -1097,6 +1223,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C0M8_C",
@@ -1241,7 +1385,7 @@
       "title": "C1M0",
       "summary": "Desert",
       "creator": "Keith Butler",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         128,
@@ -1250,6 +1394,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C5M5_C",
@@ -1399,6 +1561,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1350,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 99,
+        "filter": [
+          128,
+          120,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C1M1_C",
@@ -1547,7 +1727,7 @@
       "title": "C1M2",
       "summary": "Green",
       "creator": "Mat Jennings",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         173,
@@ -1556,6 +1736,24 @@
       ],
       "altitude": 58.52160000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1350,
+        "horizon": 1,
+        "gamma": 90,
+        "saturation": 129,
+        "filter": [
+          173,
+          120,
+          97
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C1M2_C",
@@ -1709,6 +1907,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1350,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 110,
+        "filter": [
+          125,
+          126,
+          126
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C1M3_C",
@@ -1857,7 +2073,7 @@
       "title": "C1M4",
       "summary": "Desert",
       "creator": "Keith Butler",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         40,
@@ -1866,6 +2082,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1500,
+        "horizon": 1,
+        "gamma": 120,
+        "saturation": 64,
+        "filter": [
+          40,
+          160,
+          40
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C1M4_C",
@@ -2019,6 +2253,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1500,
+        "horizon": 1,
+        "gamma": 132,
+        "saturation": 124,
+        "filter": [
+          127,
+          126,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C1M5_C",
@@ -2172,6 +2424,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 750,
+        "horizon": 1,
+        "gamma": 123,
+        "saturation": 120,
+        "filter": [
+          125,
+          135,
+          125
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C4M3_C",
@@ -2329,6 +2599,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 800,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C8M5_C",
@@ -2473,7 +2761,7 @@
       "title": "C2M1",
       "summary": "Green",
       "creator": "Keith Butler",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         128,
@@ -2482,6 +2770,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1600,
+        "horizon": 1,
+        "gamma": 100,
+        "saturation": 90,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C2M1_C",
@@ -2631,6 +2937,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1500,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C2M2_C",
@@ -2775,7 +3099,7 @@
       "title": "C2M3",
       "summary": "Green",
       "creator": "Keith Butler",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         128,
@@ -2784,6 +3108,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1550,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C2M3_C",
@@ -2937,6 +3279,24 @@
       ],
       "altitude": 58.52160000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1300,
+        "horizon": 1,
+        "gamma": 120,
+        "saturation": 100,
+        "filter": [
+          150,
+          105,
+          85
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C2M4_C",
@@ -3086,6 +3446,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1300,
+        "horizon": 1,
+        "gamma": 138,
+        "saturation": 82,
+        "filter": [
+          126,
+          122,
+          150
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C2M5_C",
@@ -3226,7 +3604,7 @@
       "title": "C2M6",
       "summary": "Green",
       "creator": "Keith Butler",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         40,
@@ -3235,6 +3613,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1500,
+        "horizon": 1,
+        "gamma": 120,
+        "saturation": 64,
+        "filter": [
+          40,
+          160,
+          40
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C2M6_C",
@@ -3388,6 +3784,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1300,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          159,
+          110,
+          65
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C2M7_C",
@@ -3537,6 +3951,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1400,
+        "horizon": 1,
+        "gamma": 144,
+        "saturation": 128,
+        "filter": [
+          128,
+          135,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C2M8_C",
@@ -3690,6 +4122,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1500,
+        "horizon": 1,
+        "gamma": 120,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C2M8_C",
@@ -3839,6 +4289,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 600,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C5M4_C",
@@ -3992,6 +4460,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 2400,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C3M2_C",
@@ -4145,6 +4631,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 4000,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C3M1_C",
@@ -4298,6 +4802,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 2000,
+        "horizon": 1,
+        "gamma": 135,
+        "saturation": 129,
+        "filter": [
+          145,
+          118,
+          140
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C3M3_C",
@@ -4442,7 +4964,7 @@
       "title": "c3m4",
       "summary": "Snow",
       "creator": "Mat Jennings",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         120,
@@ -4451,6 +4973,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 2700,
+        "horizon": 1,
+        "gamma": 75,
+        "saturation": 85,
+        "filter": [
+          120,
+          120,
+          150
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C3M4_C",
@@ -4600,6 +5140,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 2700,
+        "horizon": 1,
+        "gamma": 127,
+        "saturation": 136,
+        "filter": [
+          140,
+          87,
+          159
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C3M5_C",
@@ -4753,6 +5311,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 600,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 120,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C3M6_C",
@@ -4906,6 +5482,24 @@
       ],
       "altitude": 234.08640000000003,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1500,
+        "horizon": 1,
+        "gamma": 138,
+        "saturation": 128,
+        "filter": [
+          138,
+          118,
+          140
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C3M7_C",
@@ -5046,7 +5640,7 @@
       "title": "c3m8",
       "summary": "Snow",
       "creator": "Mat Jennings",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         127,
@@ -5055,6 +5649,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1550,
+        "horizon": 1,
+        "gamma": 129,
+        "saturation": 114,
+        "filter": [
+          127,
+          127,
+          127
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C3M8_C",
@@ -5208,6 +5820,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C1M5_C",
@@ -5361,6 +5991,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 129,
+        "saturation": 63,
+        "filter": [
+          132,
+          91,
+          119
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C4M1_C",
@@ -5514,6 +6162,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 600,
+        "horizon": 1,
+        "gamma": 144,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C4M6_C",
@@ -5671,6 +6337,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 750,
+        "horizon": 1,
+        "gamma": 120,
+        "saturation": 64,
+        "filter": [
+          40,
+          160,
+          40
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C4M3_C",
@@ -5832,6 +6516,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 650,
+        "horizon": 1,
+        "gamma": 160,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C4M4_C",
@@ -5985,6 +6687,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 550,
+        "horizon": 1,
+        "gamma": 138,
+        "saturation": 126,
+        "filter": [
+          126,
+          132,
+          127
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C4M5_C",
@@ -6138,6 +6858,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 800,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 140,
+        "filter": [
+          139,
+          125,
+          105
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C4M2_C",
@@ -6282,7 +7020,7 @@
       "title": "c4m7",
       "summary": "Green",
       "creator": "Mat Jennings",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         40,
@@ -6291,6 +7029,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 650,
+        "horizon": 1,
+        "gamma": 120,
+        "saturation": 64,
+        "filter": [
+          40,
+          160,
+          40
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C4M7_C",
@@ -6444,6 +7200,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 800,
+        "horizon": 1,
+        "gamma": 144,
+        "saturation": 128,
+        "filter": [
+          126,
+          128,
+          127
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C4M8_C",
@@ -6588,7 +7362,7 @@
       "title": "C5M0",
       "summary": "Desert",
       "creator": "Keith Butler",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         128,
@@ -6597,6 +7371,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 800,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C8M1_C",
@@ -6737,7 +7529,7 @@
       "title": "C5M1",
       "summary": "Desert",
       "creator": "Keith Butler",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         138,
@@ -6746,6 +7538,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1600,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 128,
+        "filter": [
+          138,
+          118,
+          140
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C5M1_C",
@@ -6886,7 +7696,7 @@
       "title": "C5M2",
       "summary": "Desert",
       "creator": "Keith Butler",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         128,
@@ -6895,6 +7705,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1600,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 126,
+        "filter": [
+          128,
+          126,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C5M2_C",
@@ -7039,7 +7867,7 @@
       "title": "C5M3",
       "summary": "Desert",
       "creator": "Keith Butler",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         40,
@@ -7048,6 +7876,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1500,
+        "horizon": 1,
+        "gamma": 120,
+        "saturation": 64,
+        "filter": [
+          40,
+          160,
+          40
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C5M3_C",
@@ -7201,6 +8047,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1600,
+        "horizon": 1,
+        "gamma": 99,
+        "saturation": 131,
+        "filter": [
+          152,
+          101,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C5M4_C",
@@ -7341,7 +8205,7 @@
       "title": "C5M5",
       "summary": "Desert",
       "creator": "Keith Butler",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         40,
@@ -7350,6 +8214,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1500,
+        "horizon": 1,
+        "gamma": 120,
+        "saturation": 64,
+        "filter": [
+          40,
+          160,
+          40
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C5M5_C",
@@ -7494,7 +8376,7 @@
       "title": "C5M6",
       "summary": "Desert",
       "creator": "Mat Jennings",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         133,
@@ -7503,6 +8385,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1250,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 126,
+        "filter": [
+          133,
+          124,
+          102
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C5M6_C",
@@ -7647,7 +8547,7 @@
       "title": "C5M7",
       "summary": "Desert",
       "creator": "Keith Butler",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         161,
@@ -7656,6 +8556,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1300,
+        "horizon": 1,
+        "gamma": 122,
+        "saturation": 133,
+        "filter": [
+          161,
+          114,
+          115
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C5M7_C",
@@ -7796,7 +8714,7 @@
       "title": "C5M8",
       "summary": "Desert",
       "creator": "Keith Butler",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         145,
@@ -7805,6 +8723,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1400,
+        "horizon": 1,
+        "gamma": 70,
+        "saturation": 135,
+        "filter": [
+          145,
+          120,
+          98
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C5M8_C",
@@ -7954,6 +8890,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C7M1_C",
@@ -8107,6 +9061,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C6M1_C",
@@ -8251,7 +9223,7 @@
       "title": "c6m2",
       "summary": "Green",
       "creator": "Dan Chang",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         40,
@@ -8260,6 +9232,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 120,
+        "saturation": 64,
+        "filter": [
+          40,
+          160,
+          40
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C6M2_C",
@@ -8413,6 +9403,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C1M1_C",
@@ -8566,6 +9574,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 90,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C6M2_C",
@@ -8719,6 +9745,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C6M5_C",
@@ -8872,6 +9916,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C6M6_C",
@@ -9025,6 +10087,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 104,
+        "saturation": 76,
+        "filter": [
+          128,
+          119,
+          122
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C4M7_C",
@@ -9178,6 +10258,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C6M8_C",
@@ -9331,6 +10429,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1000,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C7M1_C",
@@ -9484,6 +10600,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1200,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "KRG1_C",
@@ -9628,7 +10762,7 @@
       "title": "C7M3",
       "summary": "Green",
       "creator": "Keith Butler",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         40,
@@ -9637,6 +10771,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 800,
+        "horizon": 1,
+        "gamma": 120,
+        "saturation": 64,
+        "filter": [
+          40,
+          160,
+          40
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C7M3_C",
@@ -9790,6 +10942,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1100,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C7M4_C",
@@ -9943,6 +11113,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1200,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 90,
+        "filter": [
+          128,
+          128,
+          150
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C7M3_C",
@@ -10092,6 +11280,24 @@
       ],
       "altitude": 58.52160000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C7M6_C",
@@ -10245,6 +11451,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1400,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 120,
+        "filter": [
+          160,
+          128,
+          100
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C7M7_C",
@@ -10394,6 +11618,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1400,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C7M8_C",
@@ -10547,6 +11789,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C8M1_C",
@@ -10700,6 +11960,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 400,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 90,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C8M2_C",
@@ -10849,6 +12127,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 800,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 90,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C8M3_C",
@@ -11002,6 +12298,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 750,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C8M4_C",
@@ -11155,6 +12469,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 850,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C8M5_C",
@@ -11312,6 +12644,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 850,
+        "horizon": 1,
+        "gamma": 123,
+        "saturation": 145,
+        "filter": [
+          139,
+          125,
+          105
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C8M5_C",
@@ -11456,7 +12806,7 @@
       "title": "c8m7",
       "summary": "Desert",
       "creator": "Steve McNally",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         40,
@@ -11465,6 +12815,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1500,
+        "horizon": 1,
+        "gamma": 120,
+        "saturation": 128,
+        "filter": [
+          40,
+          160,
+          40
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "MNG3_C",
@@ -11618,6 +12986,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 129,
+        "saturation": 63,
+        "filter": [
+          132,
+          91,
+          119
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C8M4_C",
@@ -11762,7 +13148,7 @@
       "title": "c9m1",
       "summary": "Green",
       "creator": "Dave Merrick",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         40,
@@ -11771,6 +13157,24 @@
       ],
       "altitude": 58.52160000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 600,
+        "horizon": 1,
+        "gamma": 120,
+        "saturation": 64,
+        "filter": [
+          40,
+          160,
+          40
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C9M2_C",
@@ -11924,6 +13328,24 @@
       ],
       "altitude": 58.52160000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 600,
+        "horizon": 1,
+        "gamma": 100,
+        "saturation": 76,
+        "filter": [
+          126,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C9M2_C",
@@ -12077,6 +13499,24 @@
       ],
       "altitude": 58.52160000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 600,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C9M3_C",
@@ -12230,6 +13670,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 135,
+        "filter": [
+          140,
+          88,
+          160
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C9M4_C",
@@ -12379,6 +13837,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 128,
+        "filter": [
+          138,
+          118,
+          140
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C9M5_C",
@@ -12536,6 +14012,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 900,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C9M6_C",
@@ -12689,6 +14183,24 @@
       ],
       "altitude": 58.52160000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 600,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 90,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C9M7_C",
@@ -12838,6 +14350,24 @@
       ],
       "altitude": 58.52160000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 600,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C9M8_C",
@@ -12982,7 +14512,7 @@
       "title": "MP01",
       "summary": "Desert",
       "creator": "Wes",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         128,
@@ -12991,6 +14521,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1250,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 105,
+        "filter": [
+          128,
+          115,
+          110
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "MP01_C",
@@ -13135,7 +14683,7 @@
       "title": "MP02",
       "summary": "Desert",
       "creator": "Wes",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         40,
@@ -13144,6 +14692,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1500,
+        "horizon": 1,
+        "gamma": 120,
+        "saturation": 64,
+        "filter": [
+          40,
+          160,
+          40
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "MP02_C",
@@ -13297,6 +14863,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 127,
+        "saturation": 123,
+        "filter": [
+          127,
+          127,
+          127
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "MP03_C",
@@ -13450,6 +15034,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1500,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 105,
+        "filter": [
+          138,
+          118,
+          135
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "MP04_C",
@@ -13599,6 +15201,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "MP03_C",
@@ -13748,6 +15368,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1900,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 90,
+        "filter": [
+          128,
+          128,
+          150
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C8M5_C",
@@ -13888,7 +15526,7 @@
       "title": "MP07",
       "summary": "Green",
       "creator": "Mat Jennings",
-      "playable": true,
+      "playable": false,
       "night": false,
       "filter": [
         40,
@@ -13897,6 +15535,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1500,
+        "horizon": 1,
+        "gamma": 120,
+        "saturation": 64,
+        "filter": [
+          40,
+          160,
+          40
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C7M1_C",
@@ -14050,6 +15706,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1500,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 132,
+        "filter": [
+          140,
+          92,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C9M4_C",
@@ -14199,6 +15873,24 @@
       ],
       "altitude": 117.04320000000001,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1500,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "C6M2_C",
@@ -14352,6 +16044,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 115,
+        "filter": [
+          120,
+          130,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.6,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG1_C",
@@ -14465,6 +16175,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.6,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG1_C",
@@ -14574,6 +16302,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG3_C",
@@ -14683,6 +16429,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 115,
+        "filter": [
+          120,
+          130,
+          128
+        ],
+        "waterHeight": 28,
+        "waterOpacity": 0.4,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG2_C",
@@ -14796,6 +16560,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 28,
+        "waterOpacity": 0.4,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG2_C",
@@ -14909,6 +16691,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 99,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.4,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG4_C",
@@ -15018,6 +16818,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.4,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG4_C",
@@ -15127,6 +16945,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 95,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.6,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG1_C",
@@ -15240,6 +17076,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 128,
+        "filter": [
+          138,
+          118,
+          140
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG3_C",
@@ -15349,6 +17203,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG3_C",
@@ -15458,6 +17330,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD4_C",
@@ -15555,6 +17445,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD4_C",
@@ -15648,6 +17556,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD1_C",
@@ -15757,6 +17683,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD1_C",
@@ -15866,6 +17810,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 100,
+        "saturation": 80,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.8,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD3_C",
@@ -15975,6 +17937,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.8,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD3_C",
@@ -16080,6 +18060,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 120,
+        "filter": [
+          130,
+          90,
+          135
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD4_C",
@@ -16177,6 +18175,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD4_C",
@@ -16270,6 +18286,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.8,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD3_C",
@@ -16379,6 +18413,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD2_C",
@@ -16479,7 +18531,7 @@
       "title": "Death & More Death",
       "summary": "Death & More Death",
       "creator": "Jason Tull",
-      "playable": true,
+      "playable": false,
       "night": true,
       "filter": [
         80,
@@ -16488,6 +18540,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD2_C",
@@ -16597,6 +18667,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.4,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG5_C",
@@ -16710,6 +18798,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 138,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG7_C",
@@ -16819,6 +18925,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG7_C",
@@ -16928,6 +19052,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.4,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG5_C",
@@ -17041,6 +19183,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG8_C",
@@ -17138,6 +19298,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG8_C",
@@ -17231,6 +19409,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 130,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 15,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG6_C",
@@ -17340,6 +19536,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 15,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG6_C",
@@ -17449,6 +19663,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 550,
+        "horizon": 1,
+        "gamma": 100,
+        "saturation": 90,
+        "filter": [
+          128,
+          128,
+          130
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG7_C",
@@ -17558,6 +19790,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 550,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG7_C",
@@ -17667,6 +19917,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 120,
+        "saturation": 110,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG8_C",
@@ -17764,6 +20032,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG8_C",
@@ -17857,6 +20143,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 15,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG6_C",
@@ -17966,6 +20270,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 15,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG6_C",
@@ -18075,6 +20397,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 15,
+        "waterOpacity": 0.3,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB2_C",
@@ -18184,6 +20524,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 90,
+        "saturation": 128,
+        "filter": [
+          150,
+          128,
+          100
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB3_C",
@@ -18281,6 +20639,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB3_C",
@@ -18374,6 +20750,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 600,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 90,
+        "filter": [
+          128,
+          120,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.8,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB4_C",
@@ -18487,6 +20881,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 600,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.8,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB4_C",
@@ -18596,6 +21008,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB2_C",
@@ -18705,6 +21135,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 135,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB1B_C",
@@ -18814,6 +21262,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB1B_C",
@@ -18923,6 +21389,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 130,
+        "saturation": 80,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.8,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB4_C",
@@ -19036,6 +21520,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.8,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB4_C",
@@ -19145,6 +21647,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB1_C",
@@ -19254,6 +21774,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 130,
+        "saturation": 128,
+        "filter": [
+          145,
+          100,
+          85
+        ],
+        "waterHeight": 15,
+        "waterOpacity": 0.3,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB2_C",
@@ -19363,6 +21901,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 15,
+        "waterOpacity": 0.3,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB2_C",
@@ -19472,6 +22028,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 130,
+        "saturation": 80,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB3_C",
@@ -19569,6 +22143,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB3_C",
@@ -19662,6 +22254,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 135,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB1_C",
@@ -19771,6 +22381,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB1_C",
@@ -19880,6 +22508,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 128,
+        "filter": [
+          138,
+          118,
+          140
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS3_C",
@@ -19977,6 +22623,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS3_C",
@@ -20070,6 +22734,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 115,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.6,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS2_C",
@@ -20183,6 +22865,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.6,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS2_C",
@@ -20292,6 +22992,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS4_C",
@@ -20401,6 +23119,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 550,
+        "horizon": 1,
+        "gamma": 160,
+        "saturation": 90,
+        "filter": [
+          135,
+          90,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.5,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS1_C",
@@ -20510,6 +23246,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 550,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.5,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS1_C",
@@ -20619,6 +23373,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 130,
+        "saturation": 80,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS3_C",
@@ -20716,6 +23488,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS3_C",
@@ -20809,6 +23599,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 120,
+        "filter": [
+          138,
+          118,
+          140
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.6,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS2_C",
@@ -20922,6 +23730,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.6,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS2_C",
@@ -21031,6 +23857,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.5,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS1_C",
@@ -21140,6 +23984,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.5,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS1_C",
@@ -21249,6 +24111,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 128,
+        "filter": [
+          138,
+          118,
+          140
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS4_C",
@@ -21346,6 +24226,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS4_C",
@@ -21439,6 +24337,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 550,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.5,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS1_C",
@@ -21548,6 +24464,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 115,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.6,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS2_C",
@@ -21661,6 +24595,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.6,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS2_C",
@@ -21770,6 +24722,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB1_C",
@@ -21879,6 +24849,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB1_C",
@@ -21988,6 +24976,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 15,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB2_C",
@@ -22097,6 +25103,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 15,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB2_C",
@@ -22206,6 +25230,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 100,
+        "saturation": 80,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB3_C",
@@ -22303,6 +25345,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB3_C",
@@ -22396,6 +25456,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 100,
+        "saturation": 80,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.8,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB4_C",
@@ -22509,6 +25587,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.8,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFB4_C",
@@ -22618,6 +25714,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD1_C",
@@ -22727,6 +25841,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD1_C",
@@ -22836,6 +25968,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD2_C",
@@ -22945,6 +26095,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD2_C",
@@ -23054,6 +26222,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 100,
+        "saturation": 80,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.8,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD3_C",
@@ -23163,6 +26349,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.8,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD3_C",
@@ -23268,6 +26472,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 100,
+        "saturation": 80,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD4_C",
@@ -23365,6 +26587,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFD4_C",
@@ -23458,6 +26698,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 115,
+        "filter": [
+          120,
+          130,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.6,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG1_C",
@@ -23571,6 +26829,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.6,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG1_C",
@@ -23680,6 +26956,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 115,
+        "filter": [
+          120,
+          130,
+          128
+        ],
+        "waterHeight": 28,
+        "waterOpacity": 0.4,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG2_C",
@@ -23793,6 +27087,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 28,
+        "waterOpacity": 0.4,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG2_C",
@@ -23902,6 +27214,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG3_C",
@@ -24011,6 +27341,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG3_C",
@@ -24120,6 +27468,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 99,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.4,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG4_C",
@@ -24229,6 +27595,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.4,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG4_C",
@@ -24338,6 +27722,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 115,
+        "filter": [
+          120,
+          130,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.4,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG5_C",
@@ -24451,6 +27853,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.4,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG5_C",
@@ -24560,6 +27980,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 15,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG6_C",
@@ -24669,6 +28107,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 15,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG6_C",
@@ -24778,6 +28234,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG7_C",
@@ -24887,6 +28361,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG7_C",
@@ -24996,6 +28488,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 100,
+        "saturation": 80,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG8_C",
@@ -25093,6 +28603,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFG8_C",
@@ -25186,6 +28714,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 800,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 26,
+        "waterOpacity": 0.3,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM1_C",
@@ -25295,6 +28841,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 800,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 26,
+        "waterOpacity": 0.3,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM1_C",
@@ -25404,6 +28968,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.8,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM2_C",
@@ -25513,6 +29095,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.8,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM2_C",
@@ -25622,6 +29222,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 100,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.25,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM3_C",
@@ -25731,6 +29349,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.25,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM3_C",
@@ -25840,6 +29476,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM4_C",
@@ -25949,6 +29603,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM4_C",
@@ -26058,6 +29730,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 99,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 7,
+        "waterOpacity": 0.4,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM5_C",
@@ -26167,6 +29857,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 7,
+        "waterOpacity": 0.4,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM5_C",
@@ -26276,6 +29984,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM6_C",
@@ -26369,6 +30095,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM6_C",
@@ -26470,6 +30214,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 120,
+        "filter": [
+          138,
+          118,
+          140
+        ],
+        "waterHeight": 15,
+        "waterOpacity": 0.2,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM7_C",
@@ -26579,6 +30341,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 15,
+        "waterOpacity": 0.2,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM7_C",
@@ -26688,6 +30468,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 15,
+        "waterOpacity": 0.5,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM8_C",
@@ -26797,6 +30595,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 15,
+        "waterOpacity": 0.5,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM8_C",
@@ -26906,6 +30722,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM9_C",
@@ -27015,6 +30849,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM9_C",
@@ -27124,6 +30976,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM10_C",
@@ -27233,6 +31103,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM10_C",
@@ -27342,6 +31230,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 115,
+        "filter": [
+          120,
+          130,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.6,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM11_C",
@@ -27455,6 +31361,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.6,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM11_C",
@@ -27564,6 +31488,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM12_C",
@@ -27677,6 +31619,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM12_C",
@@ -27786,6 +31746,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 10,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM13_C",
@@ -27895,6 +31873,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 10,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM13_C",
@@ -28004,6 +32000,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM14_C",
@@ -28113,6 +32127,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 700,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.1,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM14_C",
@@ -28222,6 +32254,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 550,
+        "horizon": 1,
+        "gamma": 160,
+        "saturation": 90,
+        "filter": [
+          135,
+          90,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.5,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM15_C",
@@ -28331,6 +32381,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 550,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.5,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFM15_C",
@@ -28440,6 +32508,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.5,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS1_C",
@@ -28549,6 +32635,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.5,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS1_C",
@@ -28658,6 +32762,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 140,
+        "saturation": 115,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.6,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS2_C",
@@ -28771,6 +32893,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0.6,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS2_C",
@@ -28880,6 +33020,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 100,
+        "saturation": 80,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS3_C",
@@ -28977,6 +33135,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS3_C",
@@ -29070,6 +33246,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 100,
+        "saturation": 80,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS4_C",
@@ -29167,6 +33361,24 @@
       ],
       "altitude": null,
       "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 85,
+        "saturation": 0,
+        "filter": [
+          80,
+          160,
+          30
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
       "assets": {
         "color": {
           "name": "DFS4_C",

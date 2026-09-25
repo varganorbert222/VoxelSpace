@@ -14,6 +14,9 @@ import { needsHeightBuf, needsIterBuf } from "../constants/debugView.js";
 import { canShareBuffers, allocU32, allocF32, isShared } from "./sharedBuffers.js";
 
 function cubeGenerate(renderer) {
+  if (renderer.showDetails) {
+    return renderCubemapFaces;
+  }
   return (
     (renderer.kernels && renderer.kernels.renderCubemapFaces) ||
     renderCubemapFaces
@@ -128,6 +131,7 @@ class CubemapRenderer {
       this._farClip !== camera.farClip ||
       this._fov !== camera.fov ||
       this._aspect !== aspect ||
+      this._retailWidth !== fb.width ||
       this._repeat !== this._renderer.repeat ||
       this._interp !== this._renderer.interpolateHeight ||
       this._filter !== this._renderer.filterColor ||
@@ -138,8 +142,8 @@ class CubemapRenderer {
       this._mipCount !== this._renderer.mipCount ||
       this._lodSpacingMode !== this._renderer.lodSpacingMode ||
       this._lodSpacing !== this._renderer.lodSpacing ||
-      this._skyColor !== terrain.skyColor ||
-      this._horizonColor !== camera.bottomColor ||
+      this._skyColor !== this._renderer.skyFill(terrain.skyColor) ||
+      this._horizonColor !== this._renderer.skyFill(camera.bottomColor) ||
       this._quality !== camera.quality
     ) {
       return true;
@@ -161,6 +165,7 @@ class CubemapRenderer {
     this._aspect = this._renderer.frameBuffer.height
       ? this._renderer.frameBuffer.width / this._renderer.frameBuffer.height
       : 0;
+    this._retailWidth = this._renderer.frameBuffer.width;
     this._repeat = this._renderer.repeat;
     this._interp = this._renderer.interpolateHeight;
     this._filter = this._renderer.filterColor;
@@ -173,8 +178,8 @@ class CubemapRenderer {
     this._mipCount = this._renderer.mipCount;
     this._lodSpacingMode = this._renderer.lodSpacingMode;
     this._lodSpacing = this._renderer.lodSpacing;
-    this._skyColor = terrain.skyColor;
-    this._horizonColor = camera.bottomColor;
+    this._skyColor = this._renderer.skyFill(terrain.skyColor);
+    this._horizonColor = this._renderer.skyFill(camera.bottomColor);
     this._quality = camera.quality;
     this._cubeValid = true;
     this._cubeDirty = false;
@@ -201,14 +206,17 @@ class CubemapRenderer {
       nearClip: camera.nearClip,
       tMax: this._tMax(),
       repeat: renderer.repeat,
-      skyColor: terrain.skyColor,
-      horizonColor: camera.bottomColor,
+      skyColor: this._renderer.skyFill(terrain.skyColor),
+      horizonColor: this._renderer.skyFill(camera.bottomColor),
       quality: camera.quality,
       interpolateHeight: renderer.interpolateHeight ? 1 : 0,
       filterColor: renderer.filterColor ? 1 : 0,
       lod0Refine: renderer.lod0Refine ? 1 : 0,
       lod0RefineCurve: renderer.lod0RefineCurve,
       stepDivisor: renderer.stepDivisor,
+      retailWidth: renderer.frameBuffer.width,
+      fov: camera.fov,
+      showDetails: renderer.showDetails ? 1 : 0,
       filterDistance: renderer.filterDistance,
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
@@ -278,8 +286,8 @@ class CubemapRenderer {
       heightBuf,
       iterBuf,
       n,
-      terrain.skyColor,
-      camera.bottomColor
+      this._renderer.skyFill(terrain.skyColor),
+      this._renderer.skyFill(camera.bottomColor)
     );
     const polarOff = cubeFaceOffset(CUBE_FACE_PZ, n);
     for (let i = 0; (i < polarSlices.length) | 0; i = (i + 1) | 0) {
@@ -333,14 +341,17 @@ class CubemapRenderer {
       nearClip: camera.nearClip,
       tMax: tMax,
       repeat: renderer.repeat,
-      skyColor: terrain.skyColor,
-      horizonColor: camera.bottomColor,
+      skyColor: this._renderer.skyFill(terrain.skyColor),
+      horizonColor: this._renderer.skyFill(camera.bottomColor),
       quality: camera.quality,
       interpolateHeight: renderer.interpolateHeight ? 1 : 0,
       filterColor: renderer.filterColor ? 1 : 0,
       lod0Refine: renderer.lod0Refine ? 1 : 0,
       lod0RefineCurve: renderer.lod0RefineCurve,
       stepDivisor: renderer.stepDivisor,
+      retailWidth: renderer.frameBuffer.width,
+      fov: camera.fov,
+      showDetails: renderer.showDetails ? 1 : 0,
       filterDistance: renderer.filterDistance,
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
@@ -392,8 +403,8 @@ class CubemapRenderer {
       dstToProjPlane: camera.calculateProjPlane(),
       frameBuffer: renderer.frameBuffer,
       cubeGeneration: this._gen,
-      skyColor: camera.topColor,
-      horizonColor: camera.bottomColor,
+      skyColor: this._renderer.skyFill(camera.topColor),
+      horizonColor: this._renderer.skyFill(camera.bottomColor),
       nearClip: camera.nearClip,
       farClip: camera.farClip,
       applyFog: renderer.applyFog,
@@ -441,8 +452,8 @@ class CubemapRenderer {
       cubeN: this._cubeN,
       fovY: camera.fov,
       dstToProjPlane: camera.calculateProjPlane(),
-      skyColor: camera.topColor,
-      horizonColor: camera.bottomColor,
+      skyColor: this._renderer.skyFill(camera.topColor),
+      horizonColor: this._renderer.skyFill(camera.bottomColor),
       nearClip: camera.nearClip,
       farClip: camera.farClip,
       applyFog: renderer.applyFog,

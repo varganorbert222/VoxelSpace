@@ -1,6 +1,8 @@
 "use strict";
 
 import { Color } from "../math/color.js";
+import { useRetailFrame } from "./retail/schedule.js";
+import { applyDetail, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import {
   CHANNEL_MASK,
   CHANNEL_MAX,
@@ -26,9 +28,11 @@ import {
 } from "../constants/quality.js";
 import {
   TERRAIN_MIP_MAX_COUNT,
+  bandSteps,
+  fitBandStep,
+  growBandStep,
   fillClassicLodDistances,
-  firstMarchT,
-  growMarchStep,
+  firstBandT,
   lod0RefineAt,
   lod0RefineMipAt,
   lod0RefineSwitchDistances,
@@ -41,13 +45,13 @@ import {
   mipSpanFarT,
   mipSwitchDistances,
   projectSdfYSpan,
-  syncBandStep,
 } from "../constants/mip.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
 
 let hiddenYScratch = new Int32Array(1);
 let sampleNScratch = new Int32Array(1);
 const lodDistancesScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT + 1);
+const bandStepsScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
 const lod0RefineSwitchScratch = new Float64Array(LOD0_REFINE_SWITCH_COUNT);
 const mipWMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
 const mipHMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
@@ -84,8 +88,8 @@ function setupClassicLod(params) {
   );
   const bandCount = mips.count;
   const refine = !!params.lod0Refine;
-  const stepDivisor = params.stepDivisor;
-  const zStart = firstMarchT(params.nearClip, refine, stepDivisor);
+  const steps = bandSteps(bandCount, params.stepDivisor, bandStepsScratch);
+  const zStart = firstBandT(params.nearClip, steps);
   const switches = mipSwitchDistances(
     bandCount,
     params.farClip,
@@ -113,7 +117,7 @@ function setupClassicLod(params) {
     mips: mips,
     bandCount: bandCount,
     refine: refine,
-    stepDivisor: stepDivisor,
+    steps: steps,
     lodSpacing: params.lodSpacing,
     refineSwitches: refineSwitches,
     mipSwitches: switches,
@@ -332,7 +336,8 @@ function renderClassicColumnsSampled({
   const mips = lodState.mips;
   const bandCount = lodState.bandCount;
   const refine = lodState.refine;
-  const stepDiv = lodState.stepDivisor;
+  const bandStepTable = lodState.steps;
+  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
   const refineSwitches = lodState.refineSwitches;
   const mipSwitches = lodState.mipSwitches;
   const lod0Far = lodState.lodSpacing;
@@ -347,8 +352,6 @@ function renderClassicColumnsSampled({
   const kLeftY = -cosAngle - kRightY;
   const kDx = (kRightX + kRightX) * screenWidthScaler;
   const kDy = (kRightY + kRightY) * screenWidthScaler;
-  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
-
   for (let lod = bandCount; (lod > 0) | 0; lod = (lod - 1) | 0) {
     const startIndex = lodDistances[lod - 1];
     const endIndex = lodDistances[lod];
@@ -369,7 +372,6 @@ function renderClassicColumnsSampled({
     }
 
     let step = 0;
-    let bandKey = -1;
     for (
       let z = startIndex;
       ((z < endIndex) | 0) & ((z < farClip) | 0);
@@ -377,9 +379,7 @@ function renderClassicColumnsSampled({
     ) {
       const refineHere = lod0RefineAt(refine, mip);
       const refineMip = refineHere ? lod0RefineMipAt(z, refineSwitches) : 0;
-      const synced = syncBandStep(step, bandKey, mip, refineHere, refineMip, stepDiv);
-      step = synced.step;
-      bandKey = synced.key;
+      step = fitBandStep(step, bandStepTable, mip, refineHere, refineMip);
       const zScale = dstToProjPlane / z;
       const ceilingOnScreen = (ceilingSdf * zScale + screenHorizon) | 0;
       const groundOnScreen = (yGround * zScale + screenHorizon) | 0;
@@ -397,6 +397,7 @@ function renderClassicColumnsSampled({
       const dy = kDy * z;
       let plx = kLeftX * z + camX + dx * startColumn;
       let ply = kLeftY * z + camY + dy * startColumn;
+      let sliceOpen = 0;
 
       for (
         let i = startColumn;
@@ -417,6 +418,9 @@ function renderClassicColumnsSampled({
           ((ply >= 0) | 0) &
           ((ply <= mapH) | 0);
         const isOk = inside | (repeat | 0);
+        if (!((isOk) & ((ceilingOnScreen >= colHidden) | 0))) {
+          sliceOpen = 1;
+        }
 
         if (isOk) {
           if ((ceilingOnScreen >= colHidden) | 0) {
@@ -474,7 +478,7 @@ function renderClassicColumnsSampled({
                 ease.filterFade
               )
             : nearestH;
-          const hFine = applyLod0RefineHeight(
+          let hFine = applyLod0RefineHeight(
             hSample,
             plx,
             ply,
@@ -484,6 +488,9 @@ function renderClassicColumnsSampled({
             useRm,
             ease.noiseAmp
           );
+          if (detailInRange(z)) {
+            hFine += detailHeightAdd(plx, ply, z);
+          }
           const hByte = heightByteFromFine(hFine);
           const terrainHeight = hFine * altScale;
           const terrainSDF = camZ - terrainHeight;
@@ -550,6 +557,9 @@ function renderClassicColumnsSampled({
                     (ease.filterFade * 256) | 0
                   )
               : useColor[offset];
+            if (detailInRange(z)) {
+              plotColor = applyDetail(plotColor, plx, ply, z);
+            }
             if (applyFogT) {
               const a = (plotColor >>> SHIFT_ALPHA) & CHANNEL_MASK;
               const r = (plotColor >>> SHIFT_RED) & CHANNEL_MASK;
@@ -580,8 +590,18 @@ function renderClassicColumnsSampled({
         ply += dy;
       }
 
+      if (!sliceOpen) {
+        break;
+      }
       z = z + step;
-      step = growMarchStep(step, stepGrowth, mip, refineHere, refineMip, stepDiv);
+      step = growBandStep(
+        step,
+        bandStepTable,
+        mip,
+        refineHere,
+        refineMip,
+        stepGrowth
+      );
     }
   }
 }
@@ -666,7 +686,8 @@ function renderClassicColumnsNearest({
   const mips = lodState.mips;
   const bandCount = lodState.bandCount;
   const refine = lodState.refine;
-  const stepDiv = lodState.stepDivisor;
+  const bandStepTable = lodState.steps;
+  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
   const refineSwitches = lodState.refineSwitches;
   const mipSwitches = lodState.mipSwitches;
   const lod0Far = lodState.lodSpacing;
@@ -679,8 +700,6 @@ function renderClassicColumnsNearest({
   const kLeftY = -cosAngle - kRightY;
   const kDx = (kRightX + kRightX) * screenWidthScaler;
   const kDy = (kRightY + kRightY) * screenWidthScaler;
-  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
-
   for (let lod = bandCount; (lod > 0) | 0; lod = (lod - 1) | 0) {
     const startIndex = lodDistances[lod - 1];
     const endIndex = lodDistances[lod];
@@ -701,7 +720,6 @@ function renderClassicColumnsNearest({
     }
 
     let step = 0;
-    let bandKey = -1;
     for (
       let z = startIndex;
       ((z < endIndex) | 0) & ((z < farClip) | 0);
@@ -709,9 +727,7 @@ function renderClassicColumnsNearest({
     ) {
       const refineHere = lod0RefineAt(refine, mip);
       const refineMip = refineHere ? lod0RefineMipAt(z, refineSwitches) : 0;
-      const synced = syncBandStep(step, bandKey, mip, refineHere, refineMip, stepDiv);
-      step = synced.step;
-      bandKey = synced.key;
+      step = fitBandStep(step, bandStepTable, mip, refineHere, refineMip);
       const zScale = dstToProjPlane / z;
       const ceilingOnScreen = (ceilingSdf * zScale + screenHorizon) | 0;
       const groundOnScreen = (yGround * zScale + screenHorizon) | 0;
@@ -729,6 +745,7 @@ function renderClassicColumnsNearest({
       const dy = kDy * z;
       let plx = kLeftX * z + camX + dx * startColumn;
       let ply = kLeftY * z + camY + dy * startColumn;
+      let sliceOpen = 0;
 
       for (
         let i = startColumn;
@@ -749,6 +766,9 @@ function renderClassicColumnsNearest({
           ((ply >= 0) | 0) &
           ((ply <= mapH) | 0);
         const isOk = inside | (repeat | 0);
+        if (!((isOk) & ((ceilingOnScreen >= colHidden) | 0))) {
+          sliceOpen = 1;
+        }
 
         if (isOk) {
           if ((ceilingOnScreen >= colHidden) | 0) {
@@ -782,7 +802,11 @@ function renderClassicColumnsNearest({
             ((((sy | 0) & useWMask) << useShift) +
               ((sx | 0) & useHMask)) |
             0;
-          const terrainHeight = useHeight[offset] * altScale;
+          let hFine = useHeight[offset];
+          if (detailInRange(z)) {
+            hFine += detailHeightAdd(plx, ply, z);
+          }
+          const terrainHeight = hFine * altScale;
           const terrainSDF = camZ - terrainHeight;
           const heightOnScreen = classicProjectedY(
             terrainSDF,
@@ -823,6 +847,9 @@ function renderClassicColumnsNearest({
             }
           } else if (!fogWhite) {
             plotColor = useColor[offset];
+            if (detailInRange(z)) {
+              plotColor = applyDetail(plotColor, plx, ply, z);
+            }
             if (applyFogT) {
               const a = (plotColor >>> SHIFT_ALPHA) & CHANNEL_MASK;
               const r = (plotColor >>> SHIFT_RED) & CHANNEL_MASK;
@@ -853,13 +880,24 @@ function renderClassicColumnsNearest({
         ply += dy;
       }
 
+      if (!sliceOpen) {
+        break;
+      }
       z = z + step;
-      step = growMarchStep(step, stepGrowth, mip, refineHere, refineMip, stepDiv);
+      step = growBandStep(
+        step,
+        bandStepTable,
+        mip,
+        refineHere,
+        refineMip,
+        stepGrowth
+      );
     }
   }
 }
 
 export function renderClassicColumns(params) {
+  useRetailFrame(params);
   if (
     (params.interpolateHeight | 0) |
     (params.filterColor | 0) |

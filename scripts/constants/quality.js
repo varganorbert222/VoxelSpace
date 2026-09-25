@@ -55,6 +55,10 @@ export const PANO_QUALITY_MAX = PANO_SIZE_BY_QUALITY.length - 1;
 export const PANO_WIDTH = PANO_SIZE_BY_QUALITY[PANO_QUALITY_MAX].width;
 export const PANO_HEIGHT = PANO_SIZE_BY_QUALITY[PANO_QUALITY_MAX].height;
 
+export const STEP_GROWTH_BY_QUALITY = Object.freeze([
+  0, 0.0038, 0.0031, 0.0025, 0.002, 0.0014,
+]);
+
 export function qualityIndex(quality) {
   let q = quality | 0;
   if ((q < 1) | 0) {
@@ -103,23 +107,6 @@ export function renderScaleForQuality(quality, screenW, screenH) {
   }
   return s;
 }
-
-export const STEP_GROWTH_BY_QUALITY = Object.freeze([
-  0,
-  0.0038,
-  0.0031,
-  0.0025,
-  0.002,
-  0.0014,
-]);
-export const INITIAL_STEP_SCALE_BY_QUALITY = Object.freeze([
-  0,
-  1,
-  0.94,
-  0.88,
-  0.82,
-  0.72,
-]);
 
 export const MIN_SAMPLE_DISTANCE = 0.5;
 export const FOG_SATURATED = 1;

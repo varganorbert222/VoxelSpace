@@ -8,9 +8,11 @@ import {
 } from "../constants/backend.js";
 import {
   ALGORITHM_CLASSIC,
+  ALGORITHM_FRUSTUM_SPACE,
   isAlgorithmAllowed,
 } from "../constants/algorithm.js";
-import { DEBUG_VIEW_COLOR } from "../constants/debugView.js";
+import { DEBUG_VIEW_COLOR, isDebugColor } from "../constants/debugView.js";
+import { UNFILLED_PIXEL } from "../constants/framebuffer.js";
 import {
   FILTER_DISTANCE_DEFAULT,
   clampFilterDistance,
@@ -38,6 +40,15 @@ import {
   syncFogEndToFarClip,
 } from "../constants/fog.js";
 import { createBackend, listBackends } from "../backends/contract.js";
+import {
+  compositeSky,
+  createSkyPack,
+  ensureSkyPack,
+  skyFlatColor,
+  skyView,
+  updateSkyPack,
+} from "./retail/skybox.js";
+import { compositePresentedWater } from "./retail/present.js";
 
 const FOG_BOUNDS = {
   min: FOG_RANGE_MIN,
@@ -56,6 +67,17 @@ class Renderer {
     this._interpolateHeight = true;
     this._filterColor = true;
     this._lod0Refine = false;
+    this._nearRefine = false;
+    this._showDetails = true;
+    this._showSky = true;
+    this._showSkyGradient = true;
+    this._showClouds = true;
+    this._maps = null;
+    this._skyPack = null;
+    this._skyPending = false;
+    this._waterPending = false;
+    this._skyMarker = null;
+    this._flatSkyRows = null;
     this._lod0RefineCurve = LOD_SPACING_DEFAULT_MODE;
     this._stepDivisor = STEP_DIVISOR_DEFAULT;
     this._filterDistance = FILTER_DISTANCE_DEFAULT;
@@ -129,6 +151,26 @@ class Renderer {
 
   get lod0Refine() {
     return this._lod0Refine;
+  }
+
+  get nearRefine() {
+    return this._nearRefine;
+  }
+
+  get showDetails() {
+    return this._showDetails;
+  }
+
+  get showSky() {
+    return this._showSky;
+  }
+
+  get showSkyGradient() {
+    return this._showSkyGradient;
+  }
+
+  get showClouds() {
+    return this._showClouds;
   }
 
   get lod0RefineCurve() {
@@ -240,6 +282,11 @@ class Renderer {
       interpolateHeight: this._interpolateHeight,
       filterColor: this._filterColor,
       lod0Refine: this._lod0Refine,
+      nearRefine: this._nearRefine,
+      showDetails: this._showDetails,
+      showSky: this._showSky,
+      showSkyGradient: this._showSkyGradient,
+      showClouds: this._showClouds,
       lod0RefineCurve: this._lod0RefineCurve,
       stepDivisor: this._stepDivisor,
       filterDistance: this._filterDistance,
@@ -286,13 +333,35 @@ class Renderer {
         this.invalidatePanorama();
       }
     }
-    if (options.lod0Refine !== undefined) {
-      const next = !!options.lod0Refine;
-      if (next !== this._lod0Refine) {
+    if (options.nearRefine !== undefined || options.lod0Refine !== undefined) {
+      const next = !!(
+        options.nearRefine !== undefined ? options.nearRefine : options.lod0Refine
+      );
+      if (next !== this._nearRefine || next !== this._lod0Refine) {
+        this._nearRefine = next;
         this._lod0Refine = next;
+        this._interpolateHeight = next;
+        this._filterColor = next;
         this.cancelJobs();
         this.invalidatePanorama();
       }
+    }
+    if (options.showDetails !== undefined) {
+      const next = !!options.showDetails;
+      if (next !== this._showDetails) {
+        this._showDetails = next;
+        this.cancelJobs();
+        this.invalidatePanorama();
+      }
+    }
+    if (options.showSky !== undefined) {
+      this._showSky = !!options.showSky;
+    }
+    if (options.showSkyGradient !== undefined) {
+      this._showSkyGradient = !!options.showSkyGradient;
+    }
+    if (options.showClouds !== undefined) {
+      this._showClouds = !!options.showClouds;
     }
     if (options.lod0RefineCurve !== undefined) {
       const next = normalizeLodSpacingMode(options.lod0RefineCurve);
@@ -394,18 +463,125 @@ class Renderer {
   }
 
   async setMaps(exportedMaps) {
+    this._maps = exportedMaps;
+    this._skyPack =
+      exportedMaps && exportedMaps.retail
+        ? createSkyPack(exportedMaps.retail.sky)
+        : null;
+    this._skyPending = false;
+    this._waterPending = false;
     if (this._backend && exportedMaps) {
       await this._backend.setMaps(exportedMaps);
     }
   }
 
+  get retailSky() {
+    return !!this._skyPack;
+  }
+
+  _skyView(height) {
+    return skyView(
+      this._camera,
+      height,
+      this._algorithm !== ALGORITHM_CLASSIC,
+      this._algorithm === ALGORITHM_CLASSIC ||
+        this._algorithm === ALGORITHM_FRUSTUM_SPACE
+    );
+  }
+
+  // Per-pixel retail sky (gradient and/or clouds). Off uses a flat fill.
+  _retailSkyDetailed() {
+    return !!(
+      this._skyPack &&
+      this._showSky &&
+      (this._showSkyGradient || this._showClouds)
+    );
+  }
+
+  _flatSkyRows(height) {
+    const h = height | 0;
+    if (!this._flatSkyRows || this._flatSkyRows.length < h) {
+      this._flatSkyRows = new Uint32Array(h);
+    }
+    const color = skyFlatColor(this._skyPack, this._skyView(h));
+    this._flatSkyRows.fill(color, 0, h);
+    return this._flatSkyRows;
+  }
+
+  // With a detailed retail sky every algorithm writes the 0 marker, and
+  // writeToContext paints the gradient and clouds. Otherwise the fill is
+  // the flat horizon color, or the caller's simple sky color.
+  skyFill(color) {
+    if (!this._retailSkyDetailed()) {
+      if (this._skyPack && this._showSky && this._camera) {
+        return skyFlatColor(
+          this._skyPack,
+          this._skyView(this._frameBuffer ? this._frameBuffer.height : 1)
+        );
+      }
+      return color;
+    }
+    return UNFILLED_PIXEL;
+  }
+
   drawBackground() {
     const dstToProjPlane = this._camera.calculateProjPlane();
     const screenHorizon = this._camera.calculateHorizon(dstToProjPlane);
-    this._frameBuffer.drawBackground(screenHorizon);
+    this._waterPending = true;
+    if (!this._retailSkyDetailed()) {
+      this._skyPending = false;
+      const rows =
+        this._skyPack && this._showSky
+          ? this._flatSkyRows(this._frameBuffer.height | 0)
+          : null;
+      this._frameBuffer.drawBackground(screenHorizon, rows);
+      return;
+    }
+    const height = this._frameBuffer.height | 0;
+    if (!this._skyMarker || this._skyMarker.length < height) {
+      this._skyMarker = new Uint32Array(height);
+    }
+    this._skyPending = true;
+    this._frameBuffer.drawBackground(screenHorizon, this._skyMarker);
+  }
+
+  _compositeSky() {
+    const pack = this._skyPack;
+    const camera = this._camera;
+    const frameBuffer = this._frameBuffer;
+    if (this._waterPending) {
+      this._waterPending = false;
+      compositePresentedWater(frameBuffer, camera, this._maps);
+    }
+    if (!this._skyPending || !pack || !camera || !frameBuffer.buffer32bit) {
+      return;
+    }
+    this._skyPending = false;
+    const width = frameBuffer.width | 0;
+    const height = frameBuffer.height | 0;
+    ensureSkyPack(pack, height);
+    updateSkyPack(
+      pack,
+      this._skyView(height),
+      camera,
+      width,
+      height,
+      {
+        gradient: this._showSkyGradient,
+        clouds: this._showClouds,
+      }
+    );
+    compositeSky(
+      frameBuffer.buffer32bit,
+      width,
+      height,
+      pack,
+      isDebugColor(this._debugView)
+    );
   }
 
   writeToContext() {
+    this._compositeSky();
     this._frameBuffer.writeToContext();
   }
 

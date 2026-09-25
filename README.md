@@ -243,7 +243,7 @@ Internal resolution and march density follow quality. Scale is automatic.
 
 | Control | Range | Role |
 | --- | --- | --- |
-| **Distance** | 100 – 8000 | Far clip (HUD value; march may stop sooner if Fog is on and Fog range end is lower) |
+| **Distance** | 100 – 74500 | Far clip (HUD value; march may stop sooner if Fog is on and Fog range end is lower). The max is the retail Direct5 end at 640×480 / FOV 90 (≈74473). |
 | **Fog range** | 0 – Distance | Dual thumbs: fog starts at the lower bound and saturates at the upper. The track max follows Distance. |
 | **Delta Z** | 0.1 – 2.0 | Ray step for classic / panorama / cubemap. Unused by voxel (mip cell size steps). |
 | **LOD** | 1 – map log₂ | How many mip rasters the march uses. 1 is full resolution only. On a 1024 map, 5 stops at 64×64 and 10 at 2×2. Default is the middle of the range. Voxel uses the same distance bands: hit voxel size is `2^mip` (or lod0 refine 1/16…1 m); coarser max-mips may still skip empty air. |

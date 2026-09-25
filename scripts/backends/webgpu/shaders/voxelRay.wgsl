@@ -113,10 +113,13 @@ fn voxelColumn(skipMip: i32, ix: i32, iy: i32, cellSize: f32, t: f32) -> VoxelCo
       amp = 1.0;
     }
     hFine = applyLod0RefineHeight(hFine, wx, wy, 0, rm, amp);
+    hFine = hFine + detailHeightBytes(wx, wy, t);
     hByte = u32(clamp(hFine + 0.5, 0.0, 255.0));
   } else {
-    hByte = terrainHeightAt(heightTex, ix, iy, skipMip, wrap);
-    hFine = f32(hByte);
+    let wx = (f32(ix) + 0.5) * cellSize;
+    let wy = (f32(iy) + 0.5) * cellSize;
+    hFine = f32(terrainHeightAt(heightTex, ix, iy, skipMip, wrap)) + detailHeightBytes(wx, wy, t);
+    hByte = u32(clamp(hFine + 0.5, 0.0, 255.0));
   }
   var h = hFine * (altitude / 255.0);
   if (!(h > 0.0)) {
@@ -125,14 +128,15 @@ fn voxelColumn(skipMip: i32, ix: i32, iy: i32, cellSize: f32, t: f32) -> VoxelCo
   return VoxelColumn(h, hByte, colX, colY);
 }
 
-fn voxelHitColor(mip: i32, colX: i32, colY: i32) -> vec4f {
-  return terrainColorAt(
+fn voxelHitColor(mip: i32, colX: i32, colY: i32, wx: f32, wy: f32, dist: f32) -> vec4f {
+  let base = terrainColorAt(
     colorTex,
     colX,
     colY,
     mip,
     flagRepeat(frame.mapFlags.w)
   );
+  return detailColor(base, wx, wy, dist);
 }
 
 fn voxelWrite(
@@ -239,7 +243,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   if (camInside && (cam.z <= hCamW)) {
     voxelWrite(
       p,
-      voxelHitColor(0, camCol.colX, camCol.colY),
+      voxelHitColor(0, camCol.colX, camCol.colY, cam.x, cam.y, s0),
       s0,
       hCamByte,
       1u,
@@ -264,7 +268,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         if (sHit >= s0 && sHit <= farClip) {
           voxelWrite(
             p,
-            voxelHitColor(0, camCol.colX, camCol.colY),
+            voxelHitColor(0, camCol.colX, camCol.colY, cam.x, cam.y, sHit),
             sHit,
             hCamByte,
             1u,
@@ -283,7 +287,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       if (sHit >= s0 && sHit <= farClip) {
         voxelWrite(
           p,
-          voxelHitColor(0, camCol.colX, camCol.colY),
+          voxelHitColor(0, camCol.colX, camCol.colY, cam.x, cam.y, sHit),
           sHit,
           hCamByte,
           1u,
@@ -381,7 +385,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     }
     voxelWrite(
       p,
-      voxelHitColor(mip, col.colX, col.colY),
+      voxelHitColor(mip, col.colX, col.colY, hx, hy, sHit),
       sHit,
       col.hByte,
       k,

@@ -1,6 +1,8 @@
 ﻿"use strict";
 
 import { Color } from "../math/color.js";
+import { useRetailFrame } from "./retail/schedule.js";
+import { applyDetail, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import {
   CHANNEL_MASK,
   CHANNEL_MAX,
@@ -23,61 +25,38 @@ import {
 } from "../constants/debugView.js";
 import { encodeHeight, encodeIter, encodeUnit } from "./debugEncode.js";
 import {
+  LOD0_REFINE_SWITCH_COUNT,
   TERRAIN_MIP_MAX_COUNT,
-  classicLodDeltas,
+  bandMarchStep,
+  fitBandStep,
+  growBandStep,
+  bandSteps,
   fillClassicLodDistances,
+  firstBandT,
+  lod0RefineAt,
+  lod0RefineMipAt,
+  lod0RefineSwitchDistances,
+  mipLevelAtDistance,
   mipSwitchDistances,
 } from "../constants/mip.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
 import {
   FOG_SATURATED,
-  MIN_SAMPLE_DISTANCE,
   STEP_GROWTH_BY_QUALITY,
   qualityIndex,
 } from "../constants/quality.js";
 
-// View-Z slices, front-to-back, one persistent horizon per column.
-//
-// With roll = 0 the slice point's world Z is column independent:
-//   wz(row, z) = camZ + z * ((H/2 - row - 0.5) * invH2 * upZ + fwdZ)
-// so the terrain slab maps to a closed-form row window per slice, and the
-// hit row of a sampled height is a closed-form projection (the pitch-general
-// form of classic `heightOnScreen`).
-//
-// Per column the slice contributes rows above the running horizon only.
-// If the column's XY drifts less than a texel across that span, one height
-// sample resolves the whole span (classic cost). Otherwise the span is walked
-// upward from the horizon, each row sampling its own XY.
-//
-// A pitched slice plane is close to parallel to the terrain, so above the first
-// empty row the surface can cross the plane again: the rows a slice adds are
-// contour bands, not one run above the horizon. Stopping at the first empty row
-// leaves those bands to a later slice, which paints them from the wrong XY and
-// eats into steep slopes. Empty rows are therefore skipped by the largest step
-// that provably holds no terrain: with `maxSlope` bounding the steepest
-// neighbour step, the sampled height rises by at most
-//   riseMax = maxSlope * (|rowStepX| + |rowStepY|)
-// per row while the plane rises by rowStepZ, so a gap of `g` world units needs
-// at least g / (riseMax - rowStepZ) rows to close. When riseMax <= rowStepZ the
-// surface can never return and the first empty row ends the column, which is
-// the pitch-0 case. A coverage mask keeps each pixel's first hit even when a
-// detached band reaches it before the horizon does.
-//
-// Spec is Y-up; this project is Z-up (X,Y map, Z altitude).
-const DRIFT_SPAN_TEXELS = 1;
-const ROW_LIMIT = 1e9;
+// One ray per column, matching the retail terrain pass. LOD cell size sets
+// the step; Step divides it. On a heightfield hit the row is painted, the
+// ray rewinds one step, and the row cursor moves up. The next test continues
+// from that point. A miss only advances the ray. Spec is Y-up; this project
+// is Z-up (X, Y map, Z altitude).
 
 let sampleNScratch = new Int32Array(1);
-let hiddenScratch = new Int32Array(1);
-let coverScratch = new Uint8Array(1);
-let freeScratch = new Int32Array(1);
-let dirtyScratch = new Uint8Array(1);
 const deltasScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
 const lodDistancesScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT + 1);
+const lod0RefineSwitchScratch = new Float64Array(LOD0_REFINE_SWITCH_COUNT);
 let sampleNCapacity = 1;
-let hiddenCapacity = 1;
-let coverCapacity = 1;
-let freeCapacity = 1;
 
 function sampleNBuffer(width) {
   if ((width > sampleNCapacity) | 0) {
@@ -85,31 +64,6 @@ function sampleNBuffer(width) {
     sampleNScratch = new Int32Array(width);
   }
   return sampleNScratch;
-}
-
-function hiddenBuffer(width) {
-  if ((width > hiddenCapacity) | 0) {
-    hiddenCapacity = width;
-    hiddenScratch = new Int32Array(width);
-  }
-  return hiddenScratch;
-}
-
-function coverBuffer(n) {
-  if ((n > coverCapacity) | 0) {
-    coverCapacity = n;
-    coverScratch = new Uint8Array(n);
-  }
-  return coverScratch;
-}
-
-function freeBuffer(width) {
-  if ((width > freeCapacity) | 0) {
-    freeCapacity = width;
-    freeScratch = new Int32Array(width);
-    dirtyScratch = new Uint8Array(width);
-  }
-  return freeScratch;
 }
 
 function wrapSampleCoord(v, mask, wrap) {
@@ -267,6 +221,11 @@ export function renderFrustumSpaceColumns({
   fwdY,
   fwdZ,
   tanHalfFovX,
+  fov = 0,
+  showDetails = 0,
+  nearRefine = 0,
+  lod0Refine = 0,
+  lod0RefineCurve,
   dstToProjPlane,
   nearClip,
   farClip,
@@ -286,7 +245,23 @@ export function renderFrustumSpaceColumns({
   pixels,
   pixelWidth,
   fillUnfilled,
+  depth = null,
+  heightBuf = null,
+  iterBuf = null,
+  pixelBase = 0,
+  spanColumns = 0,
 }) {
+  useRetailFrame({
+    screenWidth,
+    tanHalfFovX,
+    fov,
+    quality,
+    showDetails,
+    nearRefine,
+    lod0Refine,
+    farClip,
+  });
+  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;
   const fogRange = farClip - fogStart;
@@ -311,8 +286,6 @@ export function renderFrustumSpaceColumns({
     pixels.fill(UNFILLED_PIXEL, 0, (localWidth * screenHeight) | 0);
   }
 
-  const q = qualityIndex(quality);
-  const stepGrowth = STEP_GROWTH_BY_QUALITY[q];
   const mips = resolveTerrainMips(
     terrainMips,
     heightMap,
@@ -324,8 +297,8 @@ export function renderFrustumSpaceColumns({
   );
   const deltas = deltasScratch;
   const bandCount = Math.max(1, Math.min(TERRAIN_MIP_MAX_COUNT, mips.count | 0));
-  classicLodDeltas(bandCount, stepDivisor, deltas);
-  const zStart = Math.max(nearClip, deltas[0], MIN_SAMPLE_DISTANCE);
+  bandSteps(bandCount, stepDivisor, deltas);
+  const zStart = firstBandT(nearClip, deltas);
   const lodDistances = lodDistancesScratch;
   const switches = mipSwitchDistances(
     bandCount,
@@ -356,24 +329,30 @@ export function renderFrustumSpaceColumns({
   let shadeHMask = mapHMask;
   let shadeInvScale = 1;
 
-  // Row parametrisation: yn(row) = screenHorizon - row - 0.5.
+  const refineSwitches = lod0RefineSwitchDistances(
+    lodSpacing,
+    lod0RefineCurve,
+    lod0RefineSwitchScratch
+  );
+  const lastMip = (bandCount - 1) | 0;
   const rowBase = screenHorizon - 0.5;
-  const upXY = Math.sqrt(upX * upX + upY * upY);
   const xnStep = 2 * screenWidthScaler;
-  const xn0 = (startColumn + 0.5) * xnStep - 1;
-
-  const hiddenY = hiddenBuffer(localWidth);
-  const freeN = freeBuffer(localWidth);
-  const dirty = dirtyScratch;
-  const coverN = (localWidth * screenHeight) | 0;
-  const cover = coverBuffer(coverN);
-  cover.fill(0, 0, coverN);
-  for (let i = 0; (i < localWidth) | 0; i = (i + 1) | 0) {
-    hiddenY[i] = screenHeight;
-    freeN[i] = screenHeight;
-    dirty[i] = 0;
+  let stepBudget = (screenHeight + 64) | 0;
+  for (let m = 0; (m < bandCount) | 0; m = (m + 1) | 0) {
+    const bandWidth = lodDistances[m + 1] - lodDistances[m];
+    const refineHere = lod0RefineAt(lod0Refine, m);
+    const refineMip = refineHere
+      ? lod0RefineMipAt(lodDistances[m], refineSwitches)
+      : 0;
+    const bandStep = bandMarchStep(deltas, m, refineHere, refineMip);
+    const s = bandStep > 0 ? bandStep : 1;
+    if (bandWidth > 0) {
+      stepBudget = (stepBudget + Math.ceil(bandWidth / s)) | 0;
+    }
   }
-  let liveCols = localWidth;
+  if ((stepBudget > 2000000) | 0) {
+    stepBudget = 2000000;
+  }
 
   function shade(wx, wy, offset, hByte, z, fogT, fogWhite, applyFogT, useFine, localI) {
     if (debug) {
@@ -403,322 +382,124 @@ export function renderFrustumSpaceColumns({
             wrap
           )
         : shadeColorMap[offset];
+    if (detailInRange(z)) {
+      plotColor = applyDetail(plotColor, wx, wy, z);
+    }
     if (applyFogT) {
       plotColor = applyFogPacked(plotColor, fogT);
     }
     return plotColor;
   }
 
-  for (let lod = 1; (lod <= bandCount) | 0; lod = (lod + 1) | 0) {
-    if ((liveCols <= 0) | 0) {
-      break;
-    }
-    const startIndex = lodDistances[lod - 1];
-    const endIndex = lodDistances[lod];
-    if ((startIndex >= farClip) | 0) {
-      continue;
-    }
-    let step = deltas[lod - 1];
-    const useHeightMap = mips.heightMaps[lod - 1];
-    shadeColorMap = mips.colorMaps[lod - 1];
-    shadeMapShift = mips.shifts[lod - 1];
-    shadeWMask = (mips.widths[lod - 1] - 1) | 0;
-    shadeHMask = (mips.heights[lod - 1] - 1) | 0;
-    shadeInvScale = 1 / (1 << (lod - 1));
-    let z = startIndex;
-    while (
-      ((z < endIndex) | 0) &
-      ((z < farClip) | 0) &
-      ((liveCols > 0) | 0)
-    ) {
-      const fogTRaw =
-        fogRange === 0 ? FOG_SATURATED : (z - fogStart) * invFogRange;
-      const fogT =
-        fogTRaw < 0
-          ? 0
-          : fogTRaw > FOG_SATURATED
-            ? FOG_SATURATED
-            : fogTRaw;
-      const fogWhite = useFog & ((fogT >= FOG_SATURATED) | 0);
-      const applyFogT = useFog & ((fogT > 0) | 0) & (fogWhite ^ 1);
-      const useFine = (z <= filterDist) | 0;
-      const doLerp = lerpH & useFine;
-
-      const zTanX = z * tanHalfFovX;
-      const zInvH2 = z * invH2;
-      // One row step upward (row - 1) moves the sample by these deltas.
-      const rowStepX = zInvH2 * upX;
-      const rowStepY = zInvH2 * upY;
-      const rowStepZ = zInvH2 * upZ;
-      const driftPerRow = zInvH2 * upXY;
-      const hasRowStep = rowStepZ !== 0;
-      const invRowStepZ = hasRowStep ? 1 / rowStepZ : 0;
-
-      // Fastest the terrain can close the gap to the plane, per row upward.
-      // Height only changes after XY moves ~1 texel, so empty rows can jump by
-      // at least that many rows; the slope bound may jump further.
-      const absX = rowStepX < 0 ? -rowStepX : rowStepX;
-      const absY = rowStepY < 0 ? -rowStepY : rowStepY;
-      const riseMax = slopeCap * (absX + absY);
-      const closeRate = riseMax - rowStepZ;
-      const canRise = closeRate > 0;
-      const invCloseRate = canRise ? 1 / closeRate : 0;
-      const driftCheb = absX > absY ? absX : absY;
-      const skipTexelRaw =
-        driftCheb > 0 ? Math.floor(1 / driftCheb) | 0 : screenHeight;
-      const skipTexel = (skipTexelRaw < 1) | 0 ? 1 : skipTexelRaw;
-
-      const colStepX = xnStep * zTanX * rightX;
-      const colStepY = xnStep * zTanX * rightY;
-      const colStepZ = xnStep * zTanX * rightZ;
-      let wxBase = camX + xn0 * zTanX * rightX + z * fwdX;
-      let wyBase = camY + xn0 * zTanX * rightY + z * fwdY;
-      let wzBase = camZ + xn0 * zTanX * rightZ + z * fwdZ;
-
-      for (let i = startColumn; (i < endColumn) | 0; i = (i + 1) | 0) {
-        const localI = (i - startColumn) | 0;
-        const hy = hiddenY[localI];
-        if ((hy <= 0) | 0) {
-          wxBase += colStepX;
-          wyBase += colStepY;
-          wzBase += colStepZ;
-          continue;
-        }
-
-        // Terrain slab -> row window for this column (M2).
-        let wTop = 0;
-        let wBot = hy;
-        if (hasRowStep) {
-          const rCeil = rowBase - (ceiling - wzBase) * invRowStepZ;
-          const rGround = rowBase - (clipZ - wzBase) * invRowStepZ;
-          let lo = rCeil < rGround ? rCeil : rGround;
-          let hi = rCeil < rGround ? rGround : rCeil;
-          if (!(lo > -ROW_LIMIT)) lo = -ROW_LIMIT;
-          if (!(hi < ROW_LIMIT)) hi = ROW_LIMIT;
-          wTop = Math.ceil(lo) | 0;
-          if ((wTop < 0) | 0) wTop = 0;
-          const bot = (Math.floor(hi) | 0) + 1;
-          if ((bot < wBot) | 0) wBot = bot;
-        } else if (wzBase < clipZ || wzBase > ceiling) {
-          wxBase += colStepX;
-          wyBase += colStepY;
-          wzBase += colStepZ;
-          continue;
-        }
-
-        if ((wTop >= wBot) | 0) {
-          wxBase += colStepX;
-          wyBase += colStepY;
-          wzBase += colStepZ;
-          continue;
-        }
-
-        if (hasRowStep && driftPerRow * (hy - wTop) < DRIFT_SPAN_TEXELS) {
-          // Sub-texel drift: the whole span shares one XY (M4, exact at
-          // pitch 0). One height sample, closed-form hit row, span fill.
-          const yn = rowBase - (hy - 1);
-          const wx = wxBase + yn * rowStepX;
-          const wy = wyBase + yn * rowStepY;
-          const inside =
-            ((wx >= 0) | 0) &
-            ((wx <= mapW) | 0) &
-            ((wy >= 0) | 0) &
-            ((wy <= mapH) | 0);
-          if (!(inside | wrap)) {
-            wxBase += colStepX;
-            wyBase += colStepY;
-            wzBase += colStepZ;
-            continue;
-          }
-          const sampleX = wx * shadeInvScale;
-          const sampleY = wy * shadeInvScale;
-          const offset =
-            ((((sampleY | 0) & shadeWMask) << shadeMapShift) +
-              ((sampleX | 0) & shadeHMask)) | 0;
-          const nearestH = useHeightMap[offset];
-          const hFine = doLerp
-            ? sampleHeightBilinear(
-                useHeightMap,
-                sampleX,
-                sampleY,
-                shadeMapShift,
-                shadeWMask,
-                shadeHMask,
-                wrap
-              )
-            : nearestH;
-          if (countIter) {
-            sampleN[localI] = (sampleN[localI] + 1) | 0;
-          }
-          let rHit =
-            Math.ceil(rowBase - (hFine * altScale - wzBase) * invRowStepZ) | 0;
-          if ((rHit < hy) | 0) {
-            if ((rHit < wTop) | 0) rHit = wTop;
-            let bottom = hy;
-            if (!wrap && wBot < bottom) {
-              bottom = wBot;
-            }
-            if ((rHit < bottom) | 0) {
-              const hByte = doLerp ? heightByteFromFine(hFine) : nearestH;
-              const col = shade(
-                sampleX,
-                sampleY,
-                offset,
-                hByte,
-                z,
-                fogT,
-                fogWhite,
-                applyFogT,
-                useFine,
-                localI
-              );
-              let painted = 0;
-              let o = (rHit * stride + localI) | 0;
-              if (dirty[localI]) {
-                let ci = (rHit * localWidth + localI) | 0;
-                for (let r = rHit; (r < bottom) | 0; r = (r + 1) | 0) {
-                  if (!cover[ci]) {
-                    pixels[o] = col;
-                    cover[ci] = 1;
-                    painted = (painted + 1) | 0;
-                  }
-                  o = (o + stride) | 0;
-                  ci = (ci + localWidth) | 0;
-                }
-              } else {
-                for (let r = rHit; (r < bottom) | 0; r = (r + 1) | 0) {
-                  pixels[o] = col;
-                  o = (o + stride) | 0;
-                }
-                painted = (bottom - rHit) | 0;
-              }
-              freeN[localI] = (freeN[localI] - painted) | 0;
-              hiddenY[localI] = rHit;
-            }
-          }
-        } else {
-          // Pitched column: walk upward from the horizon. Occupied rows paint
-          // their own XY, empty rows jump over the rows terrain cannot reach.
-          const seed = (wBot < hy ? wBot : hy) | 0;
-          let suffix = seed;
-          let firstColor = 0;
-          let painted = 0;
-          let r = (wBot - 1) | 0;
-          while ((r >= wTop) | 0) {
-            const cidx = (r * localWidth + localI) | 0;
-            if (cover[cidx]) {
-              if ((r + 1 === suffix) | 0) {
-                suffix = r;
-              }
-              r = (r - 1) | 0;
-              continue;
-            }
-            const yn = rowBase - r;
-            const wx = wxBase + yn * rowStepX;
-            const wy = wyBase + yn * rowStepY;
-            const wz = wzBase + yn * rowStepZ;
-            const inside =
-              ((wx >= 0) | 0) &
-              ((wx <= mapW) | 0) &
-              ((wy >= 0) | 0) &
-              ((wy <= mapH) | 0);
-            if (!(inside | wrap)) {
-              break;
-            }
-            const sampleX = wx * shadeInvScale;
-            const sampleY = wy * shadeInvScale;
-            const offset =
-              ((((sampleY | 0) & shadeWMask) << shadeMapShift) +
-                ((sampleX | 0) & shadeHMask)) | 0;
-            const nearestH = useHeightMap[offset];
-            const hFine = doLerp
-              ? sampleHeightBilinear(
-                  useHeightMap,
-                  sampleX,
-                  sampleY,
-                  shadeMapShift,
-                  shadeWMask,
-                  shadeHMask,
-                  wrap
-                )
-              : nearestH;
-            if (countIter) {
-              sampleN[localI] = (sampleN[localI] + 1) | 0;
-            }
-            const gap = wz - hFine * altScale;
-            if (gap > 0) {
-              let skip = skipTexel | 0;
-              if (canRise) {
-                const s2 = Math.ceil(gap * invCloseRate) | 0;
-                if ((s2 > skip) | 0) {
-                  skip = s2;
-                }
-              }
-              if ((skip < 1) | 0) {
-                skip = 1;
-              }
-              r = (r - skip) | 0;
-              continue;
-            }
-            const hByte = doLerp ? heightByteFromFine(hFine) : nearestH;
-            const col = shade(
-              sampleX,
-              sampleY,
-              offset,
-              hByte,
-              z,
-              fogT,
-              fogWhite,
-              applyFogT,
-              useFine,
-              localI
-            );
-            pixels[(r * stride + localI) | 0] = col;
-            cover[cidx] = 1;
-            if ((painted === 0) | 0) {
-              firstColor = col;
-            }
-            painted = (painted + 1) | 0;
-            if ((r + 1 === suffix) | 0) {
-              suffix = r;
-            } else {
-              dirty[localI] = 1;
-            }
-            r = (r - 1) | 0;
-          }
-          if (painted) {
-            freeN[localI] = (freeN[localI] - painted) | 0;
-          }
-          if ((suffix < seed) | 0) {
-            if (wrap && ((wBot < hy) | 0)) {
-              let f = (wBot * stride + localI) | 0;
-              let ci = (wBot * localWidth + localI) | 0;
-              for (let rr = wBot; (rr < hy) | 0; rr = (rr + 1) | 0) {
-                if (!cover[ci]) {
-                  pixels[f] = firstColor;
-                  cover[ci] = 1;
-                  freeN[localI] = (freeN[localI] - 1) | 0;
-                }
-                f = (f + stride) | 0;
-                ci = (ci + localWidth) | 0;
-              }
-            }
-            hiddenY[localI] = suffix;
-          }
-        }
-
-        if (((hiddenY[localI] <= 0) | 0) | ((freeN[localI] <= 0) | 0)) {
-          hiddenY[localI] = 0;
-          liveCols = (liveCols - 1) | 0;
-        }
-
-        wxBase += colStepX;
-        wyBase += colStepY;
-        wzBase += colStepZ;
+  for (let i = startColumn; (i < endColumn) | 0; i = (i + 1) | 0) {
+    const localI = (i - startColumn) | 0;
+    const pixCol = spanColumns ? i : localI;
+    const xn = (i + 0.5) * xnStep - 1;
+    let sy = (screenHeight - 1) | 0;
+    let t = zStart;
+    let step = 0;
+    let guard = 0;
+    while (((sy >= 0) | 0) & (t < farClip) & ((guard < stepBudget) | 0)) {
+      guard = (guard + 1) | 0;
+      const mip = mipLevelAtDistance(t, switches, lastMip);
+      const refineHere = lod0RefineAt(lod0Refine, mip);
+      const refineMip = refineHere ? lod0RefineMipAt(t, refineSwitches) : 0;
+      step = fitBandStep(step, deltas, mip, refineHere, refineMip);
+      const yn = (rowBase - sy) * invH2;
+      const bx = fwdX + xn * tanHalfFovX * rightX + yn * upX;
+      const by = fwdY + xn * tanHalfFovX * rightY + yn * upY;
+      const bz = fwdZ + xn * tanHalfFovX * rightZ + yn * upZ;
+      const wx = camX + t * bx;
+      const wy = camY + t * by;
+      const wz = camZ + t * bz;
+      if ((wz > ceiling) & !(bz < 0)) {
+        break;
       }
-
-      z = z + step;
-      step += stepGrowth;
+      const inside =
+        ((wx >= 0) | 0) &
+        ((wx <= mapW) | 0) &
+        ((wy >= 0) | 0) &
+        ((wy <= mapH) | 0);
+      if (!(inside | wrap)) {
+        t = t + step;
+        step = growBandStep(step, deltas, mip, refineHere, refineMip, stepGrowth);
+        continue;
+      }
+      shadeInvScale = 1 / (1 << mip);
+      shadeColorMap = mips.colorMaps[mip];
+      shadeMapShift = mips.shifts[mip];
+      shadeWMask = (mips.widths[mip] - 1) | 0;
+      shadeHMask = (mips.heights[mip] - 1) | 0;
+      const sampleX = wx * shadeInvScale;
+      const sampleY = wy * shadeInvScale;
+      const offset =
+        ((((sampleY | 0) & shadeWMask) << shadeMapShift) +
+          ((sampleX | 0) & shadeHMask)) |
+        0;
+      const nearestH = mips.heightMaps[mip][offset];
+      const useFine = ((mip | 0) === 0) & ((t <= filterDist) | 0);
+      const doLerp = lerpH & useFine;
+      let hFine = doLerp
+        ? sampleHeightBilinear(
+            mips.heightMaps[mip],
+            sampleX,
+            sampleY,
+            shadeMapShift,
+            shadeWMask,
+            shadeHMask,
+            wrap
+          )
+        : nearestH;
+      if (detailInRange(t)) {
+        hFine += detailHeightAdd(wx, wy, t);
+      }
+      if (countIter) {
+        sampleN[localI] = (sampleN[localI] + 1) | 0;
+      }
+      if (wz < hFine * altScale) {
+        const fogTRaw =
+          fogRange === 0 ? FOG_SATURATED : (t - fogStart) * invFogRange;
+        const fogT =
+          fogTRaw < 0
+            ? 0
+            : fogTRaw > FOG_SATURATED
+              ? FOG_SATURATED
+              : fogTRaw;
+        const fogWhite = useFog & ((fogT >= FOG_SATURATED) | 0);
+        const applyFogT = useFog & ((fogT > 0) | 0) & (fogWhite ^ 1);
+        const hByte = doLerp ? heightByteFromFine(hFine) : nearestH;
+        const col = shade(
+          wx,
+          wy,
+          offset,
+          hByte,
+          t,
+          fogT,
+          fogWhite,
+          applyFogT,
+          useFine,
+          localI
+        );
+        const o = (pixelBase + ((sy * stride + pixCol) | 0)) | 0;
+        pixels[o] = col;
+        if (depth) {
+          const rayLen = Math.hypot(bx, by, bz);
+          const dist = t * rayLen;
+          depth[o] = dist > 0 ? dist : t;
+        }
+        if (heightBuf) {
+          heightBuf[o] = hByte;
+        }
+        if (iterBuf) {
+          iterBuf[o] = guard;
+        }
+        sy = (sy - 1) | 0;
+        const prev = t - step;
+        t = prev > zStart ? prev : zStart;
+      } else {
+        t = t + step;
+        step = growBandStep(step, deltas, mip, refineHere, refineMip, stepGrowth);
+      }
     }
   }
 }

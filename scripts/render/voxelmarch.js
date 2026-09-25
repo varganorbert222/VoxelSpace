@@ -1,6 +1,8 @@
 "use strict";
 
 import { Color } from "../math/color.js";
+import { useRetailFrame } from "./retail/schedule.js";
+import { applyDetail, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import ColorPalette from "../math/colorPalette.js";
 import {
   CHANNEL_MASK,
@@ -316,7 +318,17 @@ export function renderVoxelTexels({
   stepDivisor,
   lodSpacingMode,
   lodSpacing,
+  quality = 1,
+  showDetails = 0,
 }) {
+  useRetailFrame({
+    screenWidth,
+    fov: fovY,
+    quality,
+    farClip,
+    showDetails,
+    lod0Refine,
+  });
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;
   if (fillUnfilled) {
@@ -411,7 +423,7 @@ export function renderVoxelTexels({
       );
       const refineHere = lod0RefineAt(refine, 0);
       const refineMip = refineHere ? lod0RefineMipAt(t, refineSwitches) : 0;
-      const hFine = applyLod0RefineHeight(
+      let hFine = applyLod0RefineHeight(
         nearestH,
         wx,
         wy,
@@ -421,6 +433,9 @@ export function renderVoxelTexels({
         refineMip,
         LOD0_REFINE_NOISE_AMPLITUDE
       );
+      if (detailInRange(t)) {
+        hFine += detailHeightAdd(wx, wy, t);
+      }
       let h = hFine * altScale;
       if (!(h > GROUND_HEIGHT)) {
         h = GROUND_HEIGHT + AABB_Z_EPS;
@@ -434,16 +449,26 @@ export function renderVoxelTexels({
       }
       return { h: h, hByte: hb, colX: lodIx, colY: lodIy };
     }
-    const hByte = heightAt(
-      mips.heightMaps[skipMip],
-      ix | 0,
-      iy | 0,
-      mips.shifts[skipMip],
-      (mips.widths[skipMip] - 1) | 0,
-      (mips.heights[skipMip] - 1) | 0,
-      wrap
-    );
-    let h = hByte * altScale;
+    const wx = (ix + HALF) * cellSize;
+    const wy = (iy + HALF) * cellSize;
+    let hFine =
+      heightAt(
+        mips.heightMaps[skipMip],
+        ix | 0,
+        iy | 0,
+        mips.shifts[skipMip],
+        (mips.widths[skipMip] - 1) | 0,
+        (mips.heights[skipMip] - 1) | 0,
+        wrap
+      ) + (detailInRange(t) ? detailHeightAdd(wx, wy, t) : 0);
+    let hByte = (hFine + HALF) | 0;
+    if ((hByte < 0) | 0) {
+      hByte = 0;
+    }
+    if ((hByte > 255) | 0) {
+      hByte = 255;
+    }
+    let h = hFine * altScale;
     if (!(h > GROUND_HEIGHT)) {
       h = GROUND_HEIGHT + AABB_Z_EPS;
     }
@@ -453,29 +478,29 @@ export function renderVoxelTexels({
   function hitColor(hx, hy, dirX, dirY, t, colX, colY, skipMip) {
     if ((skipMip | 0) <= 0) {
       const lod = lod0SampleXY(hx, hy, dirX, dirY, t);
-      if (filterC) {
-        return sampleColorFiltered(
-          lod0C,
-          lod.sx,
-          lod.sy,
-          lod0Shift,
-          lod0WMask,
-          lod0HMask,
-          wrap
-        );
-      }
-      return colorAt(
-        lod0C,
-        Math.floor(lod.sx) | 0,
-        Math.floor(lod.sy) | 0,
-        lod0Shift,
-        lod0WMask,
-        lod0HMask,
-        wrap
-      );
+      const base = filterC
+        ? sampleColorFiltered(
+            lod0C,
+            lod.sx,
+            lod.sy,
+            lod0Shift,
+            lod0WMask,
+            lod0HMask,
+            wrap
+          )
+        : colorAt(
+            lod0C,
+            Math.floor(lod.sx) | 0,
+            Math.floor(lod.sy) | 0,
+            lod0Shift,
+            lod0WMask,
+            lod0HMask,
+            wrap
+          );
+      return detailInRange(t) ? applyDetail(base, lod.sx, lod.sy, t) : base;
     }
     const mip = skipMip | 0;
-    return colorAt(
+    const coarse = colorAt(
       mips.colorMaps[mip],
       colX | 0,
       colY | 0,
@@ -484,6 +509,7 @@ export function renderVoxelTexels({
       (mips.heights[mip] - 1) | 0,
       wrap
     );
+    return detailInRange(t) ? applyDetail(coarse, hx, hy, t) : coarse;
   }
 
   function writeHit(dest, color, dist, hByte, iter, hatZ) {
