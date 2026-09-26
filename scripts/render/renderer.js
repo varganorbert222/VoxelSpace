@@ -42,6 +42,7 @@ import {
   CLOUD_LOD_DOUBLE,
   CLOUD_LOD_LINEAR,
   CLOUD_LOD_LOG,
+  CLOUD_LOD_RETAIL,
   compositeSky,
   createSkyPack,
   ensureSkyPack,
@@ -432,6 +433,9 @@ class Renderer {
     }
     if (this._cloudLodCurve === "log") {
       return CLOUD_LOD_LOG;
+    }
+    if (this._cloudLodCurve === "retail") {
+      return CLOUD_LOD_RETAIL;
     }
     return CLOUD_LOD_DOUBLE;
   }

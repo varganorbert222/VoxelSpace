@@ -23,9 +23,10 @@ import {
   TERRAIN_MIP_MAX_COUNT,
   mipInvScale,
   lod0RefineSwitchDistances,
+  mipSwitchDistances,
 } from "../constants/mip.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
-import { useRetailFrame, retailMipSwitches } from "../render/retail/schedule.js";
+import { useRetailFrame } from "../render/retail/schedule.js";
 import { detailNearEnds, retailDetailState } from "../render/retail/detail.js";
 import {
   DEG_TO_RAD,
@@ -174,7 +175,13 @@ export function createWasmKernels(instance) {
     const offsets = new Int32Array(bandCount);
     offsets.fill(1);
     const farDeltas = new Float64Array(0);
-    const switches = retailMipSwitches(bandCount, params.farClip);
+    const switches = mipSwitchDistances(
+      bandCount,
+      params.farClip,
+      null,
+      params.lodSpacingMode,
+      params.lodSpacing
+    );
     // march.c scales the switch table by far_clip.
     const far = params.farClip > 0 ? params.farClip : 1;
     const fracs = new Float64Array(switches.length);
@@ -216,7 +223,13 @@ export function createWasmKernels(instance) {
     if (switchKey === key) {
       return;
     }
-    const dist = retailMipSwitches(mipCount, params.farClip);
+    const dist = mipSwitchDistances(
+      mipCount,
+      params.farClip,
+      null,
+      params.lodSpacingMode,
+      params.lodSpacing
+    );
     copyBytes(memory, switchSlot.ptr, dist);
     ex.set_mip_switch(switchSlot.ptr, dist.length);
     switchKey = key;

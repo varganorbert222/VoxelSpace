@@ -213,6 +213,7 @@ const SKY_FLAG_GRADIENT = 1;
 export const CLOUD_LOD_LINEAR = 0;
 export const CLOUD_LOD_DOUBLE = 1;
 export const CLOUD_LOD_LOG = 2;
+export const CLOUD_LOD_RETAIL = 3;
 // Retail mode 1: the normalized ray Z is at most 0x100 in Q22.
 const HORIZON_DIR_Z2 = (0x100 / 4194304) ** 2;
 const CLOUD_SCROLL_STEP = (1 << 13) / 65536;
@@ -360,7 +361,9 @@ export function updateSkyPack(pack, view, camera, width, height, skyDraw) {
     : packFrame(sky.lightRGB[0], sky.lightRGB[1], sky.lightRGB[2]);
   const lodCurve = draw.lodCurve | 0;
   words[H_CLOUD_LOD] =
-    lodCurve === CLOUD_LOD_LINEAR || lodCurve === CLOUD_LOD_LOG
+    lodCurve === CLOUD_LOD_LINEAR ||
+    lodCurve === CLOUD_LOD_LOG ||
+    lodCurve === CLOUD_LOD_RETAIL
       ? lodCurve
       : CLOUD_LOD_DOUBLE;
   const f = view.f;
@@ -407,6 +410,19 @@ function cloudMip(foot, last, curve) {
       mip = 0;
     }
     return mip > lastMip ? lastMip : mip;
+  }
+  if ((curve | 0) === CLOUD_LOD_RETAIL) {
+    const span = 1 << lastMip;
+    let mip = 0;
+    while (mip < lastMip) {
+      const u = Math.pow(2, mip - 6);
+      const edge = u > 0 && u < 1 ? u * span : span;
+      if (!(foot >= edge)) {
+        break;
+      }
+      mip = (mip + 1) | 0;
+    }
+    return mip;
   }
   let mip = 0;
   let s = foot;

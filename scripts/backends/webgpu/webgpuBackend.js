@@ -8,7 +8,7 @@ import {
 } from "../../constants/algorithm.js";
 import { debugViewId, isDebugColor } from "../../constants/debugView.js";
 import { STEP_GROWTH_BY_QUALITY, qualityIndex } from "../../constants/quality.js";
-import { useRetailFrame, retailMipSwitches, retailStepScale } from "../../render/retail/schedule.js";
+import { useRetailFrame, retailStepScale } from "../../render/retail/schedule.js";
 import { detailNearEnds, prepareRetailDetail } from "../../render/retail/detail.js";
 import {
   createSkyPack,
@@ -29,6 +29,7 @@ import {
   firstBandT,
   mipInvScale,
   lod0RefineSwitchDistances,
+  mipSwitchDistances,
 } from "../../constants/mip.js";
 import { resolveTerrainMips } from "../../terrain/mipChain.js";
 import { isWebGpuAvailable, createGpuDevice, attachDeviceDiagnostics } from "./device.js";
@@ -478,6 +479,8 @@ class WebGpuBackend {
       farClip: camera.farClip,
       showDetails: this._host.showDetails,
       lod0Refine: this._host.lod0Refine,
+      lodSpacingMode: this._host.lodSpacingMode,
+      lodSpacing: this._host.lodSpacing,
     });
     const maps = this._maps;
     const q = qualityIndex(camera.quality);
@@ -494,7 +497,13 @@ class WebGpuBackend {
       this._host.mipCount
     );
     const mipCount = mips.count;
-    const switchDist = retailMipSwitches(mipCount, camera.farClip);
+    const switchDist = mipSwitchDistances(
+      mipCount,
+      camera.farClip,
+      null,
+      this._host.lodSpacingMode,
+      this._host.lodSpacing
+    );
     const refineSw = lod0RefineSwitchDistances(
       this._host.lodSpacing,
       this._host.lod0RefineCurve
@@ -515,6 +524,8 @@ class WebGpuBackend {
       farClip: packFar,
       showDetails: this._host.showDetails,
       lod0Refine: this._host.lod0Refine,
+      lodSpacingMode: this._host.lodSpacingMode,
+      lodSpacing: this._host.lodSpacing,
     });
     const detailEnds = detailNearEnds();
     const detailLight =
@@ -641,6 +652,8 @@ class WebGpuBackend {
       farClip: this._host.effectiveFarClip,
       showDetails: this._host.showDetails,
       lod0Refine: this._host.lod0Refine,
+      lodSpacingMode: this._host.lodSpacingMode,
+      lodSpacing: this._host.lodSpacing,
     });
     const maps = this._maps;
     const mips = resolveTerrainMips(
@@ -656,7 +669,13 @@ class WebGpuBackend {
     const deltas = new Float32Array(TERRAIN_MIP_MAX_COUNT);
     const zStart = firstBandT(camera.nearClip);
     const far = this._host.effectiveFarClip;
-    const switches = retailMipSwitches(bandCount, far);
+    const switches = mipSwitchDistances(
+      bandCount,
+      far,
+      null,
+      this._host.lodSpacingMode,
+      this._host.lodSpacing
+    );
     const lodDistances = new Float32Array(32);
     fillClassicLodDistances(lodDistances, zStart, far, switches, bandCount);
     const offsets = new Uint32Array(TERRAIN_MIP_MAX_COUNT);

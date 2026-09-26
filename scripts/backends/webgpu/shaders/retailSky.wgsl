@@ -7,6 +7,7 @@ const SKY_ROW_STEP: u32 = 32u;
 const SKY_CLOUD_LOD: u32 = 35u;
 const CLOUD_LOD_LINEAR: u32 = 0u;
 const CLOUD_LOD_LOG: u32 = 2u;
+const CLOUD_LOD_RETAIL: u32 = 3u;
 
 fn skyWord(i: u32) -> u32 {
   return skyRows[min(i, arrayLength(&skyRows) - 1u)];
@@ -70,6 +71,22 @@ fn skyCloudMip(foot: f32) -> u32 {
   if (curve == CLOUD_LOD_LOG) {
     let denom = log2(f32(last) + 1.0);
     return min(last, u32(floor(log2(log2(foot) + 1.0) / denom * f32(last))));
+  }
+  if (curve == CLOUD_LOD_RETAIL) {
+    let span = f32(1u << last);
+    var mip = 0u;
+    loop {
+      if (mip >= last) {
+        break;
+      }
+      let u = exp2(f32(mip) - 6.0);
+      let edge = select(span, u * span, u > 0.0 && u < 1.0);
+      if (!(foot >= edge)) {
+        break;
+      }
+      mip = mip + 1u;
+    }
+    return mip;
   }
   var s = foot;
   var mip = 0u;

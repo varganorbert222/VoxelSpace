@@ -1,7 +1,7 @@
 "use strict";
 
 import { Color } from "../math/color.js";
-import { useRetailFrame, retailMipSwitches } from "./retail/schedule.js";
+import { useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import ColorPalette from "../math/colorPalette.js";
 import {
@@ -40,6 +40,7 @@ import {
   mixNearestBilinear,
   mipDdaEps,
   mipLevelAtDistance,
+  mipSwitchDistances,
 } from "../constants/mip.js";
 
 const mipSwitchScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
@@ -323,6 +324,8 @@ export function renderVoxelTexels({
     farClip,
     showDetails,
     lod0Refine,
+    lodSpacingMode,
+    lodSpacing,
   });
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;
@@ -344,7 +347,13 @@ export function renderVoxelTexels({
   const wrap = repeat | 0;
   const fine = lod0Refine | 0;
   const refine = !!lod0Refine;
-  const switches = retailMipSwitches(mips.count, farClip, mipSwitchScratch);
+  const switches = mipSwitchDistances(
+    mips.count,
+    farClip,
+    mipSwitchScratch,
+    lodSpacingMode,
+    lodSpacing
+  );
   const refineSwitches = lod0RefineSwitchDistances(
     lodSpacing,
     lod0RefineCurve,

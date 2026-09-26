@@ -20,6 +20,8 @@ let frame = {
   quality: 1,
   farClip: 2000,
   showDetails: 0,
+  lodSpacingMode: "retail",
+  lodSpacing: 100,
 };
 
 export function retailQualityQ(quality) {
@@ -53,6 +55,9 @@ export function useRetailFrame(params) {
     quality: params.quality | 0,
     farClip: farClip > 1 ? farClip : frame.farClip,
     showDetails: params.showDetails ? 1 : 0,
+    lodSpacingMode: params.lodSpacingMode || frame.lodSpacingMode || "retail",
+    lodSpacing:
+      params.lodSpacing != null ? Number(params.lodSpacing) : frame.lodSpacing,
   };
   return frame;
 }

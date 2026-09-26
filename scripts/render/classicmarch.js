@@ -1,7 +1,7 @@
 "use strict";
 
 import { Color } from "../math/color.js";
-import { useRetailFrame, retailMipSwitches } from "./retail/schedule.js";
+import { useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import {
   CHANNEL_MASK,
@@ -36,6 +36,7 @@ import {
   lod0RefineMipAt,
   lod0RefineSwitchDistances,
   LOD0_REFINE_SWITCH_COUNT,
+  mipSwitchDistances,
   lod0SamplePos,
   easeLodSample,
   mixNearestBilinear,
@@ -146,7 +147,13 @@ function setupClassicLod(params) {
   const bandCount = mips.count;
   const refine = !!params.lod0Refine;
   const zStart = firstBandT(params.nearClip);
-  const switches = retailMipSwitches(bandCount, params.farClip);
+  const switches = mipSwitchDistances(
+    bandCount,
+    params.farClip,
+    null,
+    params.lodSpacingMode,
+    params.lodSpacing
+  );
   const refineSwitches = lod0RefineSwitchDistances(
     params.lodSpacing,
     params.lod0RefineCurve,

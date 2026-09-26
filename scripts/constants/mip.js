@@ -1,6 +1,7 @@
 "use strict";
 
 import { MIN_SAMPLE_DISTANCE, qualityStepDivisor } from "./quality.js";
+import { retailMipSwitches } from "../render/retail/schedule.js";
 
 export const TERRAIN_MIP_KERNEL = 2;
 export const TERRAIN_MIP_MIN_SIZE = 1;
@@ -18,7 +19,8 @@ export const LOD0_REFINE_MAX_STEPS = 65536;
 export const LOD_SPACING_LINEAR = "linear";
 export const LOD_SPACING_DOUBLE = "double";
 export const LOD_SPACING_LOG = "log";
-export const LOD_SPACING_DEFAULT_MODE = LOD_SPACING_LINEAR;
+export const LOD_SPACING_RETAIL = "retail";
+export const LOD_SPACING_DEFAULT_MODE = LOD_SPACING_RETAIL;
 export const LOD_SPACING_DEFAULT_METERS = 100;
 export const LOD0_MAX_FAR_FRACTION = 0.1;
 export const LOD_SPACING_UNUSED = 1e30;
@@ -26,6 +28,7 @@ export const LOD_SPACING_LABEL = Object.freeze({
   linear: "Linear",
   double: "Doubling",
   log: "Logarithmic",
+  retail: "Retail",
 });
 
 export function mipVoxelSize(mip) {
@@ -248,6 +251,9 @@ export function clampMipCountForMap(count, width, height, builtCount) {
 }
 
 export function normalizeLodSpacingMode(mode) {
+  if (mode === LOD_SPACING_RETAIL) {
+    return LOD_SPACING_RETAIL;
+  }
   if (mode === LOD_SPACING_DOUBLE) {
     return LOD_SPACING_DOUBLE;
   }
@@ -337,6 +343,10 @@ export function mipSwitchDistances(mipCount, farClip, out, mode, spacing, capLod
   const dest = out || new Float64Array(switchN);
   const spacingMode = normalizeLodSpacingMode(mode);
   const far = farClip;
+
+  if (spacingMode === LOD_SPACING_RETAIL) {
+    return retailMipSwitches(n, far, dest);
+  }
 
   if ((switchN <= 0) | !(far > 1)) {
     return fillUnusedFrom(dest, 0);

@@ -1,7 +1,7 @@
 ﻿"use strict";
 
 import { Color } from "../math/color.js";
-import { useRetailFrame, retailMipSwitches } from "./retail/schedule.js";
+import { useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import {
   CHANNEL_MASK,
@@ -36,6 +36,7 @@ import {
   lod0RefineMipAt,
   lod0RefineSwitchDistances,
   mipLevelAtDistance,
+  mipSwitchDistances,
 } from "../constants/mip.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
 import {
@@ -252,6 +253,8 @@ export function renderFrustumSpaceColumns({
     showDetails,
     lod0Refine,
     farClip,
+    lodSpacingMode,
+    lodSpacing,
   });
   const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
   const localWidth = (endColumn - startColumn) | 0;
@@ -290,7 +293,13 @@ export function renderFrustumSpaceColumns({
   const bandCount = Math.max(1, Math.min(TERRAIN_MIP_MAX_COUNT, mips.count | 0));
   const zStart = firstBandT(nearClip);
   const lodDistances = lodDistancesScratch;
-  const switches = retailMipSwitches(bandCount, farClip);
+  const switches = mipSwitchDistances(
+    bandCount,
+    farClip,
+    null,
+    lodSpacingMode,
+    lodSpacing
+  );
   fillClassicLodDistances(
     lodDistances,
     zStart,

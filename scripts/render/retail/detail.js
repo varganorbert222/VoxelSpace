@@ -1,6 +1,7 @@
 "use strict";
 
-import { retailBands, retailFrame } from "./schedule.js";
+import { retailFrame, retailMipSwitches } from "./schedule.js";
+import { LOD_SPACING_RETAIL, mipSwitchDistances } from "../../constants/mip.js";
 
 // Df.exe color-transfer LUT. Detail mip colors are averaged in this space,
 // then quantized with the 900 / 2025 / 625 nearest-color weights.
@@ -21,20 +22,20 @@ let nearEnds = [0, 0, 0, 0, 0];
 
 function cachedDetailNearEnds() {
   const frame = retailFrame();
+  const mode = frame.lodSpacingMode || LOD_SPACING_RETAIL;
+  const spacing = frame.lodSpacing;
+  const far = frame.farClip;
   const key =
-    String(frame.width | 0) +
-    ":" +
-    String(frame.fovDeg) +
-    ":" +
-    String(frame.quality | 0) +
-    ":" +
-    String(frame.farClip);
+    String(mode) + ":" + String(spacing) + ":" + String(far);
   if (key !== detailNearKey) {
     detailNearKey = key;
-    const bands = retailBands();
-    const ends = [0, 0, 0, 0, 0];
-    for (let i = 0; i < 5 && i < bands.length; i++) {
-      ends[i] = bands[i].end;
+    const src =
+      mode === LOD_SPACING_RETAIL
+        ? retailMipSwitches(6, far)
+        : mipSwitchDistances(6, far, null, mode, spacing);
+    const ends = [far, far, far, far, far];
+    for (let i = 0; i < 5 && i < src.length; i++) {
+      ends[i] = src[i];
     }
     nearEnds = ends;
   }

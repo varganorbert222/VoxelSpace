@@ -24,8 +24,8 @@
       "default": 5
     },
     "lodSpacingMode": {
-      "values": ["linear", "double", "log"],
-      "default": "linear"
+      "values": ["linear", "double", "log", "retail"],
+      "default": "retail"
     },
     "lodSpacing": {
       "min": 10,
@@ -71,11 +71,11 @@
       "default": true
     },
     "cloudLodCurve": {
-      "values": ["linear", "double", "log"],
+      "values": ["linear", "double", "log", "retail"],
       "default": "double"
     },
     "lod0RefineCurve": {
-      "values": ["linear", "double", "log"],
+      "values": ["linear", "double", "log", "retail"],
       "default": "linear"
     },
     "filterDistance": {
