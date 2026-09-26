@@ -1,12 +1,6 @@
 "use strict";
 
 import { retailFrame, retailLodSpan } from "./schedule.js";
-import {
-  LOD_SPACING_DOUBLE,
-  LOD_SPACING_LOG,
-  LOD_SPACING_RETAIL,
-  normalizeLodSpacingMode,
-} from "../../constants/mip.js";
 
 // Df.exe color-transfer LUT. Detail mip colors are averaged in this space,
 // then quantized with the 900 / 2025 / 625 nearest-color weights.
@@ -40,62 +34,24 @@ function detailSpanMeters() {
   return span * DETAIL_FAR_FRACTION;
 }
 
-function detailEndsForCurve(span, mode) {
+function detailEndsRetail(span) {
   const ends = [0, 0, 0, 0, 0];
   if (!(span > 0)) {
     return ends;
   }
-  if (mode === LOD_SPACING_RETAIL) {
-    for (let i = 0; i < DETAIL_PASS_FACTORS.length; i++) {
-      ends[i] = span * (DETAIL_PASS_FACTORS[i] / DETAIL_PASS_FACTORS[4]);
-    }
-    return ends;
+  for (let i = 0; i < DETAIL_PASS_FACTORS.length; i++) {
+    ends[i] = span * (DETAIL_PASS_FACTORS[i] / DETAIL_PASS_FACTORS[4]);
   }
-  const bands = 4;
-  let t0 = span / bands;
-  if (mode === LOD_SPACING_DOUBLE) {
-    t0 = span / (Math.pow(2, bands) - 1);
-  } else if (mode === LOD_SPACING_LOG) {
-    t0 = Math.pow(span, 1 / bands);
-    if (!(t0 > 0) || !(t0 < span)) {
-      t0 = span / bands;
-    }
-  }
-  const switches = [t0, t0, t0];
-  const switchN = 3;
-  const width = span - t0;
-  if (mode === LOD_SPACING_DOUBLE) {
-    const bits = Math.pow(2, bands - 1) - 1;
-    for (let i = 0; i < switchN; i++) {
-      switches[i] = t0 + (width * (Math.pow(2, i) - 1)) / bits;
-    }
-  } else if (mode === LOD_SPACING_LOG) {
-    const ratio = span / t0;
-    for (let i = 0; i < switchN; i++) {
-      switches[i] = t0 * Math.pow(ratio, i / switchN);
-    }
-  } else {
-    for (let i = 0; i < switchN; i++) {
-      switches[i] = t0 + (width * i) / switchN;
-    }
-  }
-  ends[0] = switches[0];
-  ends[1] = switches[0];
-  ends[2] = switches[1];
-  ends[3] = switches[2];
-  ends[4] = span;
   return ends;
 }
 
 function cachedDetailNearEnds() {
   const frame = retailFrame();
-  const mode = normalizeLodSpacingMode(frame.lodSpacingMode || LOD_SPACING_RETAIL);
   const span = detailSpanMeters();
-  const key =
-    String(mode) + ":" + String(frame.width) + ":" + String(frame.fovDeg) + ":" + String(span);
+  const key = String(frame.width) + ":" + String(frame.fovDeg) + ":" + String(span);
   if (key !== detailNearKey) {
     detailNearKey = key;
-    nearEnds = detailEndsForCurve(span, mode);
+    nearEnds = detailEndsRetail(span);
   }
   return nearEnds;
 }

@@ -270,24 +270,6 @@
           </div>
           <input id="id_mip_count" type="range" autocomplete="off" />
         </div>
-        <div
-          class="control"
-          data-tip="How every LOD band is spaced across the retail descriptor span. That span is the focal Direct5 distance at LOD Bias 0, and it does not follow Distance. Linear: equal bands. Doubling: each band is twice the previous. Logarithmic: log-spaced across the span. Retail: fractions of that span, so Near ends at 1/64. Distance only stops the march. The same curve spaces Show Details inside the retail detail range."
-        >
-          <div class="control-head">
-            <label for="id_lod_spacing_mode">LOD curve</label>
-          </div>
-          <select id="id_lod_spacing_mode" name="lodSpacingMode" autocomplete="off"></select>
-        </div>
-        <div
-          class="control"
-          data-tip="How cloud mip levels step with the projected footprint. Doubling: each coarser level covers twice the span of the one before it, matching the retail cloud scale shift. Linear spaces those levels evenly. Logarithmic clusters the steps. Retail uses the same fractions as terrain LOD: 1/64, 1/32, 1/16, 1/8, 1/4, 1/2 of the footprint span."
-        >
-          <div class="control-head">
-            <label for="id_cloud_lod_curve">Cloud LOD</label>
-          </div>
-          <select id="id_cloud_lod_curve" name="cloudLodCurve" autocomplete="off"></select>
-        </div>
         <div class="control" data-tip="Horizontal field of view in degrees.">
           <div class="control-head">
             <label for="id_fov">FOV</label>

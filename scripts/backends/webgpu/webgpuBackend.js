@@ -431,7 +431,6 @@ class WebGpuBackend {
       {
         gradient: !!host.showSky,
         clouds: !!host.showClouds,
-        lodCurve: host.cloudLodCurveId,
       }
     );
     const bytes = skyPackByteLength(pack, screenH);

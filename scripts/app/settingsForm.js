@@ -24,7 +24,6 @@ import { FOG_RANGE_MIN, FOG_RANGE_STEP } from "../constants/fog.js";
 import { DEFAULT_MAP_SIZE } from "../constants/terrain.js";
 import {
   TERRAIN_MIP_COUNT_MIN,
-  LOD_SPACING_LABEL,
   mipCountMax,
 } from "../constants/mip.js";
 import { initDualRangeElement } from "./rangeSlider.js";
@@ -331,16 +330,6 @@ class SettingsForm {
         },
         persist
       ),
-      lodSpacingMode: initOptionElement(
-        "id_lod_spacing_mode",
-        config.settings.lodSpacingMode,
-        options.lodSpacingMode,
-        (e) => {
-          app.renderer.setOptions({ lodSpacingMode: e.target.value });
-          persist();
-        },
-        LOD_SPACING_LABEL
-      ),
       filterDistance: initRangeElement(
         "id_filter_distance",
         config.settings.filterDistance,
@@ -383,16 +372,6 @@ class SettingsForm {
         app.renderer.setOptions({ showClouds: e.target.checked });
         persist();
       }),
-      cloudLodCurve: initOptionElement(
-        "id_cloud_lod_curve",
-        config.settings.cloudLodCurve,
-        options.cloudLodCurve,
-        (e) => {
-          app.renderer.setOptions({ cloudLodCurve: e.target.value });
-          persist();
-        },
-        LOD_SPACING_LABEL
-      ),
       multithread: initCheckboxElement(
         "id_multithread",
         options.multithread,
@@ -464,14 +443,12 @@ class SettingsForm {
       renderScale,
       fov,
       mipCount,
-      lodSpacingMode,
       filterDistance,
       quality,
       applyFog,
       repeat,
       showSky,
       showClouds,
-      cloudLodCurve,
       multithread,
       map,
       cameraMode,
@@ -500,7 +477,6 @@ class SettingsForm {
     mipCount.step = mipRange.step;
     mipCount.value = options.mipCount;
     updateMipCountValue(options.mipCount, this._app.terrain);
-    lodSpacingMode.value = options.lodSpacingMode;
     filterDistance.value = options.filterDistance;
     updateBoundValue("id_filter_distance", options.filterDistance);
     setDisabled(
@@ -522,9 +498,6 @@ class SettingsForm {
     if (showSky) {
       showSky.checked = !!options.showSky;
       showClouds.checked = !!options.showClouds;
-    }
-    if (cloudLodCurve) {
-      cloudLodCurve.value = options.cloudLodCurve;
     }
     multithread.checked = options.multithread;
     setDisabled(

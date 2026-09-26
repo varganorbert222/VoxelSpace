@@ -69,7 +69,6 @@ export function collectSettings(app) {
     showDetails: options.showDetails,
     showSky: options.showSky,
     showClouds: options.showClouds,
-    cloudLodCurve: options.cloudLodCurve,
     renderScale: app.camera.renderScale,
     filterDistance: options.filterDistance,
     multithread: options.multithread,
@@ -78,7 +77,6 @@ export function collectSettings(app) {
     backend: options.backend,
     debugView: options.debugView,
     mipCount: options.mipCount,
-    lodSpacingMode: options.lodSpacingMode,
     lodSpacing: options.lodSpacing,
     hudChrome: !!app.hudChrome,
     radarOpen: !!app.radarOpen,
@@ -125,11 +123,6 @@ export function sanitizeSettings(data, defaults, bounds) {
     showDetails: boolOr(data.showDetails, defaults.showDetails),
     showSky: boolOr(data.showSky, defaults.showSky),
     showClouds: boolOr(data.showClouds, defaults.showClouds),
-    cloudLodCurve: pickAllowed(
-      data.cloudLodCurve,
-      bounds.cloudLodCurves,
-      defaults.cloudLodCurve
-    ),
     renderScale: VMath.clamp(
       bounds.renderScale.min,
       bounds.renderScale.max,
@@ -149,11 +142,6 @@ export function sanitizeSettings(data, defaults, bounds) {
       bounds.mipCount.min,
       bounds.mipCount.max,
       Math.round(finiteOr(data.mipCount, defaults.mipCount))
-    ),
-    lodSpacingMode: pickAllowed(
-      data.lodSpacingMode,
-      bounds.lodSpacingModes,
-      defaults.lodSpacingMode
     ),
     lodSpacing,
     hudChrome: boolOr(data.hudChrome, defaults.hudChrome),

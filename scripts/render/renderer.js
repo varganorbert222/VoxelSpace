@@ -27,7 +27,6 @@ import {
   clampMipCountForMap,
   clampLodSpacingMeters,
   lod0MaxMeters,
-  normalizeLodSpacingMode,
 } from "../constants/mip.js";
 import {
   FOG_RANGE_DEFAULT_START,
@@ -39,10 +38,6 @@ import {
 } from "../constants/fog.js";
 import { createBackend, listBackends } from "../backends/contract.js";
 import {
-  CLOUD_LOD_DOUBLE,
-  CLOUD_LOD_LINEAR,
-  CLOUD_LOD_LOG,
-  CLOUD_LOD_RETAIL,
   compositeSky,
   createSkyPack,
   ensureSkyPack,
@@ -68,7 +63,6 @@ class Renderer {
     this._showDetails = true;
     this._showSky = true;
     this._showClouds = true;
-    this._cloudLodCurve = "double";
     this._maps = null;
     this._skyPack = null;
     this._skyPending = false;
@@ -143,14 +137,6 @@ class Renderer {
 
   get showClouds() {
     return this._showClouds;
-  }
-
-  get cloudLodCurve() {
-    return this._cloudLodCurve;
-  }
-
-  get cloudLodCurveId() {
-    return this._cloudLodId();
   }
 
   // Per-pixel sky. The march leaves 0 where it does not draw; compositeSky
@@ -257,14 +243,12 @@ class Renderer {
       showDetails: this._showDetails,
       showSky: this._showSky,
       showClouds: this._showClouds,
-      cloudLodCurve: this._cloudLodCurve,
       filterDistance: this._filterDistance,
       algorithm: this._algorithm,
       multithread: this._multithreadWanted,
       backend: this._backendId,
       debugView: this._debugView,
       mipCount: this._mipCount,
-      lodSpacingMode: this._lodSpacingMode,
       lodSpacing: this._clampedLodSpacing(),
     };
   }
@@ -300,9 +284,6 @@ class Renderer {
     if (options.showClouds !== undefined) {
       this._showClouds = !!options.showClouds;
     }
-    if (options.cloudLodCurve !== undefined) {
-      this._cloudLodCurve = normalizeLodSpacingMode(options.cloudLodCurve);
-    }
     if (options.filterDistance !== undefined) {
       const next = clampFilterDistance(options.filterDistance);
       if (next !== this._filterDistance) {
@@ -325,13 +306,6 @@ class Renderer {
       const next = clampMipCount(options.mipCount);
       if (next !== this._mipCount) {
         this._mipCount = next;
-        this.cancelJobs();
-      }
-    }
-    if (options.lodSpacingMode !== undefined) {
-      const next = normalizeLodSpacingMode(options.lodSpacingMode);
-      if (next !== this._lodSpacingMode) {
-        this._lodSpacingMode = next;
         this.cancelJobs();
       }
     }
@@ -400,19 +374,6 @@ class Renderer {
     );
   }
 
-  _cloudLodId() {
-    if (this._cloudLodCurve === "linear") {
-      return CLOUD_LOD_LINEAR;
-    }
-    if (this._cloudLodCurve === "log") {
-      return CLOUD_LOD_LOG;
-    }
-    if (this._cloudLodCurve === "retail") {
-      return CLOUD_LOD_RETAIL;
-    }
-    return CLOUD_LOD_DOUBLE;
-  }
-
   // 0 tells the march "this pixel is unwritten". compositeSky is the only
   // writer of those pixels. Sky off with clouds off is opaque black, and
   // that path does not build a sky color buffer.
@@ -466,7 +427,6 @@ class Renderer {
       {
         gradient: this._showSky,
         clouds: this._showClouds,
-        lodCurve: this._cloudLodId(),
       }
     );
     compositeSky(

@@ -61,7 +61,7 @@ export function useRetailFrame(params) {
       ? Number(params.lodBias)
       : frame.lodBias,
     showDetails: params.showDetails ? 1 : 0,
-    lodSpacingMode: params.lodSpacingMode || frame.lodSpacingMode || "retail",
+    lodSpacingMode: "retail",
     lodSpacing:
       params.lodSpacing != null ? Number(params.lodSpacing) : frame.lodSpacing,
   };

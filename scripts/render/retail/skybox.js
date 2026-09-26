@@ -186,9 +186,7 @@ export function buildCloudMips(image) {
 // that UV with a fixed step. Rolled rows still solve the plane per pixel.
 // Terrain stays below the cloud plane, so from below the terrain hides the
 // clouds and from above the clouds cover every downward ray, terrain included.
-// Cloud mip follows its own curve. Doubling is retail: the mip steps when one
-// pixel covers twice as many texels. Linear and logarithmic space that same
-// span differently.
+// The cloud mip steps when one pixel covers twice as many texels.
 export const SKY_MAGIC = 0x00534b59;
 const HEADER_WORDS = 40;
 const ROW_WORDS = 8;
@@ -208,12 +206,7 @@ const MAX_CLOUD_MIPS = 16;
 const H_CLOUD_COLOR = 30;
 const H_SKY_FLAGS = 31;
 const H_ROW_STEP = 32;
-const H_CLOUD_LOD = 35;
 const SKY_FLAG_GRADIENT = 1;
-export const CLOUD_LOD_LINEAR = 0;
-export const CLOUD_LOD_DOUBLE = 1;
-export const CLOUD_LOD_LOG = 2;
-export const CLOUD_LOD_RETAIL = 3;
 // Retail mode 1: the normalized ray Z is at most 0x100 in Q22.
 const HORIZON_DIR_Z2 = (0x100 / 4194304) ** 2;
 const CLOUD_SCROLL_STEP = (1 << 13) / 65536;
@@ -359,13 +352,6 @@ export function updateSkyPack(pack, view, camera, width, height, skyDraw) {
   words[H_CLOUD_COLOR] = Number.isFinite(sky.cloudColor)
     ? sky.cloudColor
     : packFrame(sky.lightRGB[0], sky.lightRGB[1], sky.lightRGB[2]);
-  const lodCurve = draw.lodCurve | 0;
-  words[H_CLOUD_LOD] =
-    lodCurve === CLOUD_LOD_LINEAR ||
-    lodCurve === CLOUD_LOD_LOG ||
-    lodCurve === CLOUD_LOD_RETAIL
-      ? lodCurve
-      : CLOUD_LOD_DOUBLE;
   const f = view.f;
   const r = view.r;
   const u = view.u;
@@ -390,39 +376,10 @@ export function updateSkyPack(pack, view, camera, width, height, skyDraw) {
   pack.height = height;
 }
 
-function cloudMip(foot, last, curve) {
+function cloudMip(foot, last) {
   const lastMip = last | 0;
   if (!(foot > 1) || lastMip <= 0) {
     return 0;
-  }
-  if ((curve | 0) === CLOUD_LOD_LINEAR) {
-    const span = (1 << lastMip) - 1;
-    let mip = Math.floor(((foot - 1) / span) * lastMip);
-    if (mip < 0) {
-      mip = 0;
-    }
-    return mip > lastMip ? lastMip : mip;
-  }
-  if ((curve | 0) === CLOUD_LOD_LOG) {
-    const denom = Math.log2(lastMip + 1);
-    let mip = Math.floor((Math.log2(Math.log2(foot) + 1) / denom) * lastMip);
-    if (mip < 0) {
-      mip = 0;
-    }
-    return mip > lastMip ? lastMip : mip;
-  }
-  if ((curve | 0) === CLOUD_LOD_RETAIL) {
-    const span = 1 << lastMip;
-    let mip = 0;
-    while (mip < lastMip) {
-      const u = Math.pow(2, mip - 6);
-      const edge = u > 0 && u < 1 ? u * span : span;
-      if (!(foot >= edge)) {
-        break;
-      }
-      mip = (mip + 1) | 0;
-    }
-    return mip;
   }
   let mip = 0;
   let s = foot;
@@ -457,13 +414,13 @@ function cloudFoot(t, dx, dy, dz, ax, ay, az, bx, by, bz) {
   return Math.sqrt(foot2);
 }
 
-function cloudLevelAt(bytes, pack, plane, camU, camV, dx, dy, dz, ax, ay, az, bx, by, bz, curve) {
+function cloudLevelAt(bytes, pack, plane, camU, camV, dx, dy, dz, ax, ay, az, bx, by, bz) {
   if (dz === 0) {
     return 0;
   }
   const t = plane / dz;
   const last = (pack.mips.length - 1) | 0;
-  const mip = cloudMip(cloudFoot(t, dx, dy, dz, ax, ay, az, bx, by, bz), last, curve);
+  const mip = cloudMip(cloudFoot(t, dx, dy, dz, ax, ay, az, bx, by, bz), last);
   const u = (camU + t * dx) / CLOUD_TEXEL_WORLD;
   const v = (camV + t * dy) / CLOUD_TEXEL_WORLD;
   return cloudNearest(bytes, pack, mip, u, v);
@@ -508,7 +465,6 @@ export function compositeSky(buffer32, width, height, pack, overlay) {
   const clouds = (words[H_MIP_COUNT] | 0) > 0;
   const below = clouds && plane > 0;
   const above = clouds && plane < 0 && overlay !== false;
-  const curve = words[H_CLOUD_LOD] | 0;
   if (!gradient && !below && !above) {
     const n = width * height;
     for (let i = 0; i < n; i++) {
@@ -536,7 +492,7 @@ export function compositeSky(buffer32, width, height, pack, overlay) {
     if ((below || above) && sz === 0 && dz !== 0) {
       const t = plane / dz;
       const last = (pack.mips.length - 1) | 0;
-      mip = cloudMip(cloudFoot(t, dx, dy, dz, sx, sy, sz, bx, by, bz), last, curve);
+      mip = cloudMip(cloudFoot(t, dx, dy, dz, sx, sy, sz, bx, by, bz), last);
       cu = (camU + t * dx) / CLOUD_TEXEL_WORLD;
       cv = (camV + t * dy) / CLOUD_TEXEL_WORLD;
       cdu = (t * sx) / CLOUD_TEXEL_WORLD;
@@ -574,8 +530,7 @@ export function compositeSky(buffer32, width, height, pack, overlay) {
                   sz,
                   bx,
                   by,
-                  bz,
-                  curve
+                  bz
                 );
             if (level > 0) {
               color = blendCloud(color, cloudColor, level > 62 ? 62 : level);
@@ -608,8 +563,7 @@ export function compositeSky(buffer32, width, height, pack, overlay) {
                     sz,
                     bx,
                     by,
-                    bz,
-                    curve
+                    bz
                   );
               q = q < 0 ? 0 : q > 62 ? 62 : q;
             }
@@ -634,8 +588,7 @@ export function compositeSky(buffer32, width, height, pack, overlay) {
               sz,
               bx,
               by,
-              bz,
-              curve
+              bz
             );
         if (level > 0) {
           color = blendCloud(color, cloudColor, level > 62 ? 62 : level);

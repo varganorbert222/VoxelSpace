@@ -18,20 +18,11 @@ export const LOD0_REFINE_SWITCH_COUNT = LOD0_REFINE_MIP_COUNT - 1;
 export const MARCH_MAX_STEPS = 16384;
 export const LOD0_REFINE_MAX_STEPS = 65536;
 
-export const LOD_SPACING_LINEAR = "linear";
-export const LOD_SPACING_DOUBLE = "double";
-export const LOD_SPACING_LOG = "log";
 export const LOD_SPACING_RETAIL = "retail";
 export const LOD_SPACING_DEFAULT_MODE = LOD_SPACING_RETAIL;
 export const LOD_SPACING_DEFAULT_METERS = 100;
 export const LOD0_MAX_FAR_FRACTION = 0.1;
 export const LOD_SPACING_UNUSED = 1e30;
-export const LOD_SPACING_LABEL = Object.freeze({
-  linear: "Linear",
-  double: "Doubling",
-  log: "Logarithmic",
-  retail: "Retail",
-});
 
 export function mipVoxelSize(mip) {
   const m = mip | 0;
@@ -62,34 +53,6 @@ export function lod0RefineSubdiv(refineMip) {
 
 export function lod0RefineCellSize(refineMip) {
   return 1 / lod0RefineSubdiv(refineMip);
-}
-
-export function curveFirstSwitch(farClip, levelCount, mode) {
-  const n = Math.max(1, levelCount | 0);
-  const far = Number(farClip);
-  const spacingMode = normalizeLodSpacingMode(mode);
-  if (!(far > 1) || n <= 1) {
-    return far > 0 ? far : 0;
-  }
-  if (spacingMode === LOD_SPACING_RETAIL) {
-    const t = far / 64;
-    return t > 0 && t < far ? t : far;
-  }
-  if (spacingMode === LOD_SPACING_DOUBLE) {
-    return far / (Math.pow(2, n) - 1);
-  }
-  if (spacingMode === LOD_SPACING_LOG) {
-    const t0 = Math.pow(far, 1 / n);
-    if (!(t0 > 0) || !(t0 < far)) {
-      return far / n;
-    }
-    return t0;
-  }
-  return far / n;
-}
-
-export function lod0RefineFirstSpacing(lod0Meters, mode) {
-  return curveFirstSwitch(lod0Meters, LOD0_REFINE_MIP_COUNT, mode);
 }
 
 export function lod0RefineSwitchDistances(lod0Meters, _mode, out) {
@@ -272,19 +235,6 @@ export function clampMipCountForMap(count, width, height, builtCount) {
   return n;
 }
 
-export function normalizeLodSpacingMode(mode) {
-  if (mode === LOD_SPACING_RETAIL) {
-    return LOD_SPACING_RETAIL;
-  }
-  if (mode === LOD_SPACING_DOUBLE) {
-    return LOD_SPACING_DOUBLE;
-  }
-  if (mode === LOD_SPACING_LOG) {
-    return LOD_SPACING_LOG;
-  }
-  return LOD_SPACING_LINEAR;
-}
-
 export function lod0MaxMeters(farClip, minMeters) {
   const lo = minMeters > 0 ? minMeters | 0 : 1;
   const far = Number(farClip);
@@ -308,106 +258,14 @@ export function clampLodSpacingMeters(value, min, max) {
   return n;
 }
 
-function roundLodDistance(x) {
-  if (!(x > 0) || !(x < LOD_SPACING_UNUSED * 0.5)) {
-    return LOD_SPACING_UNUSED;
-  }
-  const n = Math.round(x);
-  if (!(n > 0)) {
-    return LOD_SPACING_UNUSED;
-  }
-  return n;
-}
-
-function fillUnusedFrom(dest, start) {
-  const destLen = dest.length | 0;
-  for (let j = start; (j < destLen) | 0; j = (j + 1) | 0) {
-    dest[j] = LOD_SPACING_UNUSED;
-  }
-  return dest;
-}
-
-function finalizeLodSwitches(dest, switchN, farClip) {
-  const far = farClip;
-  const n = switchN | 0;
-  const maxLast = Math.floor(far) - 1;
-  if ((n <= 0) | !(maxLast >= 1)) {
-    return fillUnusedFrom(dest, 0);
-  }
-  let prev = 0;
-  for (let i = 0; (i < n) | 0; i = (i + 1) | 0) {
-    const remain = (n - 1 - i) | 0;
-    const room = maxLast - remain;
-    let t = dest[i];
-    if (t < LOD_SPACING_UNUSED * 0.5) {
-      t = roundLodDistance(t);
-    } else {
-      t = room;
-    }
-    if (!(t > prev)) {
-      t = (prev + 1) | 0;
-    }
-    if (t > room) {
-      t = room;
-    }
-    if (!(t > prev) || !(t < far)) {
-      return fillUnusedFrom(dest, i);
-    }
-    dest[i] = t;
-    prev = t;
-  }
-  return fillUnusedFrom(dest, n);
-}
-
-export function mipSwitchDistances(mipCount, farClip, out, mode, spacing, capLod0Fraction) {
+export function mipSwitchDistances(mipCount, farClip, out, _mode, _spacing, _capLod0Fraction) {
   const n = clampMipCount(mipCount);
-  const switchN = (n - 1) | 0;
-  const dest = out || new Float64Array(switchN);
-  const spacingMode = normalizeLodSpacingMode(mode);
-  // The curve maps switches across the retail Direct5 span. Render distance
-  // only stops the march.
+  const dest = out || new Float64Array(Math.max(0, (n - 1) | 0));
   void farClip;
-  const far = retailLodSpan();
-
-  if (spacingMode === LOD_SPACING_RETAIL) {
-    return retailMipSwitches(n, far, dest);
-  }
-
-  if ((switchN <= 0) | !(far > 1)) {
-    return fillUnusedFrom(dest, 0);
-  }
-
-  let t0 = curveFirstSwitch(far, n, spacingMode);
-  if (!(t0 > 0) || !(t0 < far)) {
-    t0 = far / Math.max(2, n);
-  }
-  void spacing;
-  void capLod0Fraction;
-  const span = far - t0;
-  const denom = switchN;
-
-  if (spacingMode === LOD_SPACING_DOUBLE) {
-    const bits = Math.pow(2, n - 1) - 1;
-    for (let i = 0; (i < switchN) | 0; i = (i + 1) | 0) {
-      dest[i] = t0 + (span * (Math.pow(2, i) - 1)) / bits;
-    }
-  } else if (spacingMode === LOD_SPACING_LOG) {
-    if ((switchN === 1) | 0) {
-      dest[0] = t0;
-    } else {
-      const ratio = far / t0;
-      const exp = 1 / denom;
-      for (let i = 0; (i < switchN) | 0; i = (i + 1) | 0) {
-        dest[i] = t0 * Math.pow(ratio, i * exp);
-      }
-    }
-  } else {
-    for (let i = 0; (i < switchN) | 0; i = (i + 1) | 0) {
-      dest[i] = t0 + (span * i) / denom;
-    }
-  }
-
-  return finalizeLodSwitches(dest, switchN, far);
+  void _mode;
+  void _spacing;
+  void _capLod0Fraction;
+  return retailMipSwitches(n, retailLodSpan(), dest);
 }
 
 // March start distance. Always the camera near plane — band step / Quality

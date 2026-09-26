@@ -23,10 +23,6 @@
       "step": 1,
       "default": 5
     },
-    "lodSpacingMode": {
-      "values": ["linear", "double", "log", "retail"],
-      "default": "retail"
-    },
     "lodSpacing": {
       "min": 10,
       "max": 800,
@@ -66,10 +62,6 @@
     },
     "showClouds": {
       "default": true
-    },
-    "cloudLodCurve": {
-      "values": ["linear", "double", "log", "retail"],
-      "default": "double"
     },
     "filterDistance": {
       "min": 10,

@@ -96,17 +96,10 @@ class App {
       showSky: !config.settings.showSky || config.settings.showSky.default !== false,
       showClouds:
         !config.settings.showClouds || config.settings.showClouds.default !== false,
-      cloudLodCurve:
-        (config.settings.cloudLodCurve && config.settings.cloudLodCurve.default) ||
-        "double",
       filterDistance: config.settings.filterDistance.default,
       mipCount: config.settings.mipCount
         ? config.settings.mipCount.default
         : TERRAIN_MIP_DEFAULT_COUNT,
-      lodSpacingMode:
-        (config.settings.lodSpacingMode &&
-          config.settings.lodSpacingMode.default) ||
-        "linear",
       lodSpacing:
         config.settings.lodSpacing && config.settings.lodSpacing.default != null
           ? config.settings.lodSpacing.default
@@ -467,7 +460,6 @@ class App {
         showDetails: options.showDetails,
         showSky: options.showSky,
         showClouds: options.showClouds,
-        cloudLodCurve: options.cloudLodCurve,
         renderScale: this.camera.renderScale,
         filterDistance: options.filterDistance,
         multithread: options.multithread,
@@ -476,7 +468,6 @@ class App {
         backend: options.backend,
         debugView: options.debugView,
         mipCount: options.mipCount,
-        lodSpacingMode: options.lodSpacingMode,
         lodSpacing: options.lodSpacing,
         hudChrome: this.hudChrome,
         radarOpen: this.radarOpen,
@@ -496,9 +487,7 @@ class App {
           min: config.settings.mipCount.min,
           max: TERRAIN_MIP_MAX_COUNT,
         },
-        lodSpacingModes: config.settings.lodSpacingMode.values,
         renderScale: config.settings.renderScale,
-        cloudLodCurves: config.settings.cloudLodCurve.values,
         lodSpacing: config.settings.lodSpacing,
       }
     );
@@ -520,14 +509,12 @@ class App {
       showDetails: sanitized.showDetails,
       showSky: sanitized.showSky,
       showClouds: sanitized.showClouds,
-      cloudLodCurve: sanitized.cloudLodCurve,
       filterDistance: sanitized.filterDistance,
       multithread: sanitized.multithread,
       algorithm: sanitized.algorithm,
       backend: sanitized.backend,
       debugView: sanitized.debugView,
       mipCount: sanitized.mipCount,
-      lodSpacingMode: sanitized.lodSpacingMode,
       lodSpacing: sanitized.lodSpacing,
     });
     this.currentMapName = sanitized.map;
