@@ -449,7 +449,7 @@ fn growBandStep(step: f32, lo: f32, cell: f32) -> f32 {
 }
 
 fn bandMarchStep(bandStep: f32, mip: i32, t: f32) -> f32 {
-  // Band width / (32 * q). Near Refine divides by 16, 16, 8, 4, 2.
+  // Uploaded retail raw step / q. Near Refine divides by 16, 16, 8, 4, 2.
   var s = bandStep;
   if (!(s > 0.0)) {
     s = 1.0;

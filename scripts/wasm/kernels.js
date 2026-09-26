@@ -181,12 +181,7 @@ export function createWasmKernels(instance) {
       params.lodSpacingMode,
       params.lodSpacing
     );
-    // march.c scales the switch table by far_clip.
-    const far = params.farClip > 0 ? params.farClip : 1;
-    const fracs = new Float64Array(switches.length);
-    for (let i = 0; (i < fracs.length) | 0; i = (i + 1) | 0) {
-      fracs[i] = switches[i] / far;
-    }
+    const fracs = switches;
     const farDeltas = qualityBandSteps(
       bandCount,
       params.farClip,
@@ -246,6 +241,7 @@ export function createWasmKernels(instance) {
   }
 
   function syncSampleFlags(params) {
+    useRetailFrame(params);
     const dist = Number(params.filterDistance);
     const fwdX = Number(params.fwdX);
     const fwdY = Number(params.fwdY);

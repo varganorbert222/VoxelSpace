@@ -1,12 +1,16 @@
 "use strict";
 
-// Retail descriptor distances. Scan Quality divides the step. LOD Bias stays 0.
-// The step divisor is the shared quality ladder.
+// Retail descriptor distances. Scan Quality divides the step.
+// LOD Bias scales the finished endpoints by 2^(-bias). Bias 0 leaves them put.
+// Render distance does not move the endpoints.
 
 import { qualityStepDivisor } from "../../constants/quality.js";
 
 const FOV_DEG_RAD = 0.01745329;
 const DIVISOR = Math.fround(2.2);
+// Direct5 is factor 512. That endpoint is the 1 of the LOD ladder.
+const DIRECT5_FACTOR = 512;
+export const LOD_BIAS_DEFAULT = 0;
 const NEAR_FACTORS = Object.freeze([0.5, 1, 2, 4, 8]);
 const NEAR_STEPS = Object.freeze([1, 1, 2, 4, 8]);
 const NEAR_SUBDIV = Object.freeze([16, 16, 8, 4, 2]);
@@ -17,6 +21,7 @@ let frame = {
   fovDeg: 90,
   quality: 1,
   farClip: 2000,
+  lodBias: LOD_BIAS_DEFAULT,
   showDetails: 0,
   lodSpacingMode: "retail",
   lodSpacing: 100,
@@ -52,6 +57,9 @@ export function useRetailFrame(params) {
     fovDeg: fovDeg | 0,
     quality: params.quality | 0,
     farClip: farClip > 1 ? farClip : frame.farClip,
+    lodBias: Number.isFinite(Number(params.lodBias))
+      ? Number(params.lodBias)
+      : frame.lodBias,
     showDetails: params.showDetails ? 1 : 0,
     lodSpacingMode: params.lodSpacingMode || frame.lodSpacingMode || "retail",
     lodSpacing:
@@ -90,31 +98,38 @@ export function buildRetailBands(width, fovDeg, quality) {
   return bands;
 }
 
-export function retailDistanceScale(farClip) {
-  const raw = buildRetailBands(frame.width, frame.fovDeg, frame.quality);
-  const span = raw[raw.length - 1].end || 1;
-  const requested = Number(farClip);
-  const far = requested > 1 ? requested : frame.farClip > 1 ? frame.farClip : span;
-  frame = { ...frame, farClip: far };
-  return { raw, scale: far / span, far };
+// 2^(-bias). Bias 0 is the recovered descriptor scale. Positive bias pulls
+// every endpoint closer. It does not change the step divisor.
+export function retailLodBiasScale(lodBias) {
+  const bias = Number(lodBias);
+  const b = Number.isFinite(bias) ? bias : LOD_BIAS_DEFAULT;
+  return Math.pow(2, -b);
+}
+
+// Direct5 end in meters: (focal * 512 / 2.2) * 2^(-bias).
+export function retailLodSpan(lodBias) {
+  const focal = retailFocal(frame.width, frame.fovDeg);
+  const direct5 = (focal * DIRECT5_FACTOR) / DIVISOR;
+  const bias = lodBias == null ? frame.lodBias : lodBias;
+  return direct5 * retailLodBiasScale(bias);
 }
 
 export function retailBands() {
-  const { raw, scale } = retailDistanceScale(frame.farClip);
+  const raw = buildRetailBands(frame.width, frame.fovDeg, frame.quality);
+  const scale = retailLodBiasScale(frame.lodBias);
   return raw.map((band) => ({
     ...band,
     end: band.end * scale,
-    step: band.step * scale,
   }));
 }
 
-// Mip switch i is u * farClip, u = 2^(i-6), while u < 1.
-// Extra levels past 1/2 sit on the last mip out to farClip.
-export function retailMipSwitches(bandCount, farClip, out) {
+// Mip switch i is u * Direct5, u = 2^(i-6), while u < 1.
+// The span is the retail endpoint, not the render distance.
+export function retailMipSwitches(bandCount, spanMeters, out) {
   const levels = Math.max(1, bandCount | 0);
   const switchN = (levels - 1) | 0;
   const dest = out && out.length >= switchN ? out : new Float64Array(switchN);
-  const far = Number(farClip);
+  const far = Number(spanMeters);
   for (let i = 0; i < switchN; i++) {
     const u = Math.pow(2, i - 6);
     if (!(far > 1) || !(u > 0) || !(u < 1)) {
@@ -127,15 +142,26 @@ export function retailMipSwitches(bandCount, farClip, out) {
   return dest.subarray(0, switchN);
 }
 
-// Samples in one mip band at Low. Higher quality multiplies this by q.
-export const QUALITY_SAMPLES_PER_BAND = 32;
+// Retail walks each doubling band with rawStep / q. That is focal / (2 * 2.2)
+// samples at Low, not a fixed 32. 32 was the count while bands were squeezed
+// into Distance, and it left every band about 3.6× sparser than the retail step.
+export function retailSamplesPerBand(quality) {
+  const focal = retailFocal(frame.width, frame.fovDeg);
+  const perLow = focal / (2 * DIVISOR);
+  let samples = perLow * retailQualityQ(quality) * retailLodBiasScale(frame.lodBias);
+  if (!(samples > 0)) {
+    samples = 1;
+  }
+  return samples;
+}
 
-// Step is the band width divided by 32*q. Band edges do not move with quality.
+// Step is the retail raw step divided by q. Band edges stay on the descriptor span.
 export function qualityBandSteps(bandCount, farClip, quality, switches, out) {
   const n = Math.max(1, bandCount | 0);
   const dest = out || new Float64Array(n);
-  const far = Number(farClip) > 1 ? Number(farClip) : 1;
-  const samples = QUALITY_SAMPLES_PER_BAND * retailQualityQ(quality);
+  void farClip;
+  const far = retailLodSpan();
+  const samples = retailSamplesPerBand(quality);
   const swN = switches ? switches.length : 0;
   let start = 0;
   for (let i = 0; i < n; i++) {
@@ -162,9 +188,10 @@ export function qualityBandSteps(bandCount, farClip, quality, switches, out) {
 }
 
 export function retailLodSteps(bandCount, farClip, out) {
-  const far = Number(farClip) > 1 ? Number(farClip) : frame.farClip;
-  const switches = retailMipSwitches(bandCount, far);
-  return qualityBandSteps(bandCount, far, frame.quality, switches, out);
+  void farClip;
+  const span = retailLodSpan();
+  const switches = retailMipSwitches(bandCount, span);
+  return qualityBandSteps(bandCount, span, frame.quality, switches, out);
 }
 
 export function retailStepScale() {

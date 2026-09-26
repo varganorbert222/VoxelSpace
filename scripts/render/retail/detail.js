@@ -1,6 +1,6 @@
 "use strict";
 
-import { retailFrame } from "./schedule.js";
+import { retailFrame, retailLodSpan } from "./schedule.js";
 import {
   LOD_SPACING_DOUBLE,
   LOD_SPACING_LOG,
@@ -20,7 +20,8 @@ const LEVEL_SUBDIV = Object.freeze([16, 8, 4, 2]);
 
 // Retail samples the detail atlas only on the five Near passes
 // (factors 0.5, 1, 2, 4, 8). The last of those ends at factor 8, and the
-// last rendered pass is factor 512, so detail stops at 8/512 of Distance.
+// last rendered pass is factor 512, so detail stops at 8/512 of the
+// descriptor span. Render distance does not move that end.
 const DETAIL_PASS_FACTORS = Object.freeze([0.5, 1, 2, 4, 8]);
 const DETAIL_FAR_FRACTION = 8 / 512;
 
@@ -31,12 +32,12 @@ let state = null;
 let detailNearKey = "";
 let nearEnds = [0, 0, 0, 0, 0];
 
-function detailSpanMeters(farClip) {
-  const far = Number(farClip);
-  if (!(far > 0)) {
+function detailSpanMeters() {
+  const span = retailLodSpan();
+  if (!(span > 0)) {
     return 0;
   }
-  return far * DETAIL_FAR_FRACTION;
+  return span * DETAIL_FAR_FRACTION;
 }
 
 function detailEndsForCurve(span, mode) {
@@ -89,11 +90,12 @@ function detailEndsForCurve(span, mode) {
 function cachedDetailNearEnds() {
   const frame = retailFrame();
   const mode = normalizeLodSpacingMode(frame.lodSpacingMode || LOD_SPACING_RETAIL);
-  const far = frame.farClip;
-  const key = String(mode) + ":" + String(far);
+  const span = detailSpanMeters();
+  const key =
+    String(mode) + ":" + String(frame.width) + ":" + String(frame.fovDeg) + ":" + String(span);
   if (key !== detailNearKey) {
     detailNearKey = key;
-    nearEnds = detailEndsForCurve(detailSpanMeters(far), mode);
+    nearEnds = detailEndsForCurve(span, mode);
   }
   return nearEnds;
 }

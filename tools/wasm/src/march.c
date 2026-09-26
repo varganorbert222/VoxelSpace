@@ -1043,7 +1043,7 @@ WASM_EXPORT void classic_columns(
   }
   lod_distances[0] = z_start;
   for (i = 0; i < g_lod_frac_n; i = (i + 1) | 0) {
-    lod_distances[i + 1] = g_lod_fracs[i] * far_clip;
+    lod_distances[i + 1] = g_lod_fracs[i];
   }
   lod_distances[g_lod_n] = far_clip;
   for (i = 1; i < g_lod_n; i = (i + 1) | 0) {
@@ -1417,7 +1417,7 @@ WASM_EXPORT void frustum_space_columns(
   }
   lod_distances[0] = z_start;
   for (i = 0; i < g_lod_frac_n; i = (i + 1) | 0) {
-    lod_distances[i + 1] = g_lod_fracs[i] * far_clip;
+    lod_distances[i + 1] = g_lod_fracs[i];
   }
   lod_distances[g_lod_n] = far_clip;
   for (i = 1; i < g_lod_n; i = (i + 1) | 0) {

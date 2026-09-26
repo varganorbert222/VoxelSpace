@@ -1,7 +1,7 @@
 "use strict";
 
 import { MIN_SAMPLE_DISTANCE, qualityStepDivisor } from "./quality.js";
-import { retailMipSwitches } from "../render/retail/schedule.js";
+import { retailLodSpan, retailMipSwitches } from "../render/retail/schedule.js";
 
 export const TERRAIN_MIP_KERNEL = 2;
 export const TERRAIN_MIP_MIN_SIZE = 1;
@@ -374,7 +374,10 @@ export function mipSwitchDistances(mipCount, farClip, out, mode, spacing, capLod
   const switchN = (n - 1) | 0;
   const dest = out || new Float64Array(switchN);
   const spacingMode = normalizeLodSpacingMode(mode);
-  const far = farClip;
+  // The curve maps switches across the retail Direct5 span. Render distance
+  // only stops the march.
+  void farClip;
+  const far = retailLodSpan();
 
   if (spacingMode === LOD_SPACING_RETAIL) {
     return retailMipSwitches(n, far, dest);

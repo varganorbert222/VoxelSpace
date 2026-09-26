@@ -272,7 +272,7 @@
         </div>
         <div
           class="control"
-          data-tip="How every LOD band is spaced from the camera out to Distance, including the full-resolution Near band. Linear: equal bands. Doubling: each band is twice the previous. Logarithmic: log-spaced across Distance. Retail: fractions of Distance, so Near ends at 1/64. The same curve spaces Show Details inside the retail detail range, 1/64 of Distance."
+          data-tip="How every LOD band is spaced across the retail descriptor span. That span is the focal Direct5 distance at LOD Bias 0, and it does not follow Distance. Linear: equal bands. Doubling: each band is twice the previous. Logarithmic: log-spaced across the span. Retail: fractions of that span, so Near ends at 1/64. Distance only stops the march. The same curve spaces Show Details inside the retail detail range."
         >
           <div class="control-head">
             <label for="id_lod_spacing_mode">LOD curve</label>
@@ -319,7 +319,7 @@
           <label
             class="check"
             for="id_show_details"
-            data-tip="Show Details samples the detail atlas out to 1/64 of Distance, the end of the retail Near passes. Inside that range the LOD curve spaces the 16×, 8×, 4× and 2× steps. Past it the terrain keeps the base color."
+            data-tip="Show Details samples the detail atlas out to the retail Near end, 1/64 of the descriptor span. Inside that range the LOD curve spaces the 16×, 8×, 4× and 2× steps. Past it the terrain keeps the base color. Distance does not move this range."
           >
             <input id="id_show_details" name="showDetails" type="checkbox" autocomplete="off" checked />
             <span class="check-box" aria-hidden="true"></span>

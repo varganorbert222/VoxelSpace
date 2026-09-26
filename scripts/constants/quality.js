@@ -30,7 +30,7 @@ export const STEP_GROWTH_BY_QUALITY = Object.freeze([
   0, 0.0038, 0.0031, 0.0025, 0.002, 0.0014,
 ]);
 
-// Sample density relative to Low. A mip band takes 32*q samples.
+// Sample density relative to the retail Low step (rawStep / q).
 // The same ladder is used by JS, WASM, and WebGPU.
 export const QUALITY_STEP_DIVISOR = Object.freeze([
   0, 1, 1.25, 1.5, 2, 2.5,
