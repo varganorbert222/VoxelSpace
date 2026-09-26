@@ -9,7 +9,6 @@ export const FRAME_BYTES = WEBGPU_FRAME_BYTES;
 const FLAG_FOG = 1;
 const FLAG_REPEAT = 2;
 const FLAG_DEBUG_SHIFT = 8;
-const FLAG_LOD0_REFINE = 1 << 14;
 const FLAG_SHOW_DETAILS = 1 << 15;
 
 export function createFramePacker() {
@@ -61,9 +60,6 @@ export function packFrame(packer, p) {
   }
   if (p.repeat) {
     flags |= FLAG_REPEAT;
-  }
-  if (p.lod0Refine) {
-    flags |= FLAG_LOD0_REFINE;
   }
   if (p.showDetails) {
     flags |= FLAG_SHOW_DETAILS;

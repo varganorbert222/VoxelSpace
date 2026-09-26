@@ -67,18 +67,9 @@ class JsBackend {
     return this._host.repeat;
   }
 
-  get lod0Refine() {
-    return this._host.lod0Refine;
-  }
-
   get showDetails() {
     return this._host.showDetails;
   }
-
-  get lod0RefineCurve() {
-    return this._host.lod0RefineCurve;
-  }
-
 
   get filterDistance() {
     return this._host.filterDistance;

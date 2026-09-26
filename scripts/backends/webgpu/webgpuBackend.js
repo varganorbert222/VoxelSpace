@@ -478,7 +478,6 @@ class WebGpuBackend {
       quality: camera.quality,
       farClip: camera.farClip,
       showDetails: this._host.showDetails,
-      lod0Refine: this._host.lod0Refine,
       lodSpacingMode: this._host.lodSpacingMode,
       lodSpacing: this._host.lodSpacing,
     });
@@ -505,10 +504,7 @@ class WebGpuBackend {
       this._host.lodSpacing
     );
     const nearEnd = switchDist.length && switchDist[0] > 0 ? switchDist[0] : camera.farClip;
-    const refineSw = lod0RefineSwitchDistances(
-      nearEnd,
-      this._host.lod0RefineCurve
-    );
+    const refineSw = lod0RefineSwitchDistances(nearEnd);
     const switchF32 = new Float32Array(TERRAIN_MIP_MAX_COUNT * 2);
     switchF32.fill(1e30, 0, TERRAIN_MIP_MAX_COUNT);
     switchF32.set(Float32Array.from(switchDist));
@@ -524,7 +520,6 @@ class WebGpuBackend {
       quality: camera.quality,
       farClip: packFar,
       showDetails: this._host.showDetails,
-      lod0Refine: this._host.lod0Refine,
       lodSpacingMode: this._host.lodSpacingMode,
       lodSpacing: this._host.lodSpacing,
     });
@@ -566,7 +561,6 @@ class WebGpuBackend {
       mapShift: maps.mapShift,
       applyFog: this._host.applyFog,
       repeat: this._host.repeat,
-      lod0Refine: this._host.lod0Refine,
       showDetails: this._host.showDetails,
       detailEnd0: detailEnds[0],
       detailEnd1: detailEnds[1],
@@ -652,7 +646,6 @@ class WebGpuBackend {
       quality: camera.quality,
       farClip: this._host.effectiveFarClip,
       showDetails: this._host.showDetails,
-      lod0Refine: this._host.lod0Refine,
       lodSpacingMode: this._host.lodSpacingMode,
       lodSpacing: this._host.lodSpacing,
     });

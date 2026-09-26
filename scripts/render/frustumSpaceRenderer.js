@@ -58,8 +58,6 @@ function frustumSpaceParams(renderer, maps) {
     quality: camera.quality,
     fov: camera.fov,
     showDetails: renderer.showDetails ? 1 : 0,
-    lod0Refine: renderer.lod0Refine ? 1 : 0,
-    lod0RefineCurve: renderer.lod0RefineCurve,
     applyFog: renderer.applyFog,
     fogStart: renderer.fogStart,
     debugView: renderer.debugView,
@@ -87,8 +85,6 @@ function isFrustumSpaceTokenStale(token, renderer) {
     renderer.debugView !== token.debugView ||
     renderer.repeat !== token.repeat ||
     renderer.showDetails !== token.showDetails ||
-    renderer.lod0Refine !== token.lod0Refine ||
-    renderer.lod0RefineCurve !== token.lod0RefineCurve ||
     renderer.filterDistance !== token.filterDistance ||
     renderer.mipCount !== token.mipCount ||
     renderer.lodSpacingMode !== token.lodSpacingMode ||
@@ -182,8 +178,6 @@ class FrustumSpaceRenderer {
       debugView: renderer.debugView,
       repeat: renderer.repeat,
       showDetails: renderer.showDetails,
-      lod0Refine: renderer.lod0Refine,
-      lod0RefineCurve: renderer.lod0RefineCurve,
       filterDistance: renderer.filterDistance,
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,

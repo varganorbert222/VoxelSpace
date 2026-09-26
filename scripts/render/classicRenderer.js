@@ -53,8 +53,6 @@ function classicParams(renderer, maps) {
     fogStart: renderer.fogStart,
     debugView: renderer.debugView,
     repeat: renderer.repeat,
-    lod0Refine: renderer.lod0Refine ? 1 : 0,
-    lod0RefineCurve: renderer.lod0RefineCurve,
     filterDistance: renderer.filterDistance,
     terrainMips: maps.terrainMips,
     mipCount: renderer.mipCount,
@@ -79,8 +77,6 @@ function isClassicTokenStale(token, renderer) {
     renderer.debugView !== token.debugView ||
     renderer.repeat !== token.repeat ||
     renderer.showDetails !== token.showDetails ||
-    renderer.lod0Refine !== token.lod0Refine ||
-    renderer.lod0RefineCurve !== token.lod0RefineCurve ||
     renderer.filterDistance !== token.filterDistance ||
     renderer.mipCount !== token.mipCount ||
     renderer.lodSpacingMode !== token.lodSpacingMode ||
@@ -161,8 +157,6 @@ class ClassicRenderer {
       debugView: renderer.debugView,
       repeat: renderer.repeat,
       showDetails: renderer.showDetails,
-      lod0Refine: renderer.lod0Refine,
-      lod0RefineCurve: renderer.lod0RefineCurve,
       filterDistance: renderer.filterDistance,
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,

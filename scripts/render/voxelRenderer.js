@@ -55,8 +55,6 @@ function voxelParams(renderer, maps) {
     repeat: renderer.repeat,
     showDetails: renderer.showDetails ? 1 : 0,
     filterDistance: renderer.filterDistance,
-    lod0Refine: renderer.lod0Refine ? 1 : 0,
-    lod0RefineCurve: renderer.lod0RefineCurve,
     mipCount: renderer.mipCount,
     lodSpacingMode: renderer.lodSpacingMode,
     lodSpacing: renderer.lodSpacing,
@@ -84,8 +82,6 @@ function isVoxelTokenStale(token, renderer) {
     renderer.repeat !== token.repeat ||
     renderer.showDetails !== token.showDetails ||
     renderer.filterDistance !== token.filterDistance ||
-    renderer.lod0Refine !== token.lod0Refine ||
-    renderer.lod0RefineCurve !== token.lod0RefineCurve ||
     renderer.mipCount !== token.mipCount ||
     renderer.lodSpacingMode !== token.lodSpacingMode ||
     renderer.lodSpacing !== token.lodSpacing ||
@@ -145,8 +141,6 @@ class VoxelRenderer {
       repeat: renderer.repeat,
       showDetails: renderer.showDetails,
       filterDistance: renderer.filterDistance,
-      lod0Refine: renderer.lod0Refine,
-      lod0RefineCurve: renderer.lod0RefineCurve,
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
       lodSpacing: renderer.lodSpacing,

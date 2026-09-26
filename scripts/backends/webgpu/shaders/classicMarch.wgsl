@@ -145,7 +145,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       if (colHidden != 0) {
         if (isOk && (ceilingOnScreen < colHidden)) {
           let useFine = mip == 0;
-          let sampled = classicSampleHeight(plx, ply, mip, flagLod0Refine(flags) && useFine, z);
+          let sampled = classicSampleHeight(plx, ply, mip, flagShowDetails(flags) && useFine, z);
           var hFine = sampled.x;
           let spanFar = mipSpanFarT(z, step, plx, ply, dirX, dirY, mip);
           let yCap = projectSdfYSpan(
@@ -192,7 +192,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
                 plotPacked = encodeIter(sampleN);
               }
             } else if (!fogWhite) {
-              plot = classicSampleColor(plx, ply, mip, flagLod0Refine(flags) && useFine, z);
+              plot = classicSampleColor(plx, ply, mip, flagShowDetails(flags) && useFine, z);
               if (applyFogT) {
                 plot = fogRgb(plot, fogT);
               }

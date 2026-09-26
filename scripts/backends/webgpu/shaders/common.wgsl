@@ -96,12 +96,12 @@ fn flagDebugView(flags: u32) -> u32 {
   return (flags >> 8u) & 3u;
 }
 
-fn flagLod0Refine(flags: u32) -> bool {
-  return (flags & 16384u) != 0u;
+fn flagShowDetails(flags: u32) -> bool {
+  return (flags & 32768u) != 0u;
 }
 
 fn lod0RefineAt(t: f32, mip: i32) -> bool {
-  return (mip <= 0) && flagLod0Refine(frame.mapFlags.w);
+  return mip <= 0;
 }
 
 fn lod0RefineMipAt(t: f32) -> i32 {
@@ -249,14 +249,14 @@ fn terrainSampleHeightPair(tex: texture_2d<u32>, mip: i32, wx: f32, wy: f32, dis
   let useRm = i32(ease.y);
   var sx = wx;
   var sy = wy;
-  if ((useMip == 0) && flagLod0Refine(frame.mapFlags.w)) {
+  if (useMip == 0) {
     let s = lod0RefineCellFromM(useRm);
     sx = (floor(wx / s) + 0.5) * s;
     sy = (floor(wy / s) + 0.5) * s;
   }
   let altitude = frame.tMaxMinDzAltMaxH.z;
   var h: f32;
-  let lerp = flagLod0Refine(frame.mapFlags.w) && (useMip == 0) && (ease.w > 0.0);
+  let lerp = flagShowDetails(frame.mapFlags.w) && (useMip == 0) && (ease.w > 0.0);
   if (!lerp) {
     h = f32(terrainHeightNN(tex, useMip, sx, sy));
   } else {
@@ -287,13 +287,13 @@ fn terrainSampleColor(tex: texture_2d<f32>, mip: i32, wx: f32, wy: f32, dist: f3
   let useRm = i32(ease.y);
   var sx = wx;
   var sy = wy;
-  if ((useMip == 0) && flagLod0Refine(frame.mapFlags.w)) {
+  if (useMip == 0) {
     let s = lod0RefineCellFromM(useRm);
     sx = (floor(wx / s) + 0.5) * s;
     sy = (floor(wy / s) + 0.5) * s;
   }
   let inv = terrainInv(useMip);
-  if ((useMip <= 0) && flagLod0Refine(frame.mapFlags.w) && (ease.w > 0.0)) {
+  if ((useMip <= 0) && flagShowDetails(frame.mapFlags.w) && (ease.w > 0.0)) {
     let wrap = flagRepeat(frame.mapFlags.w);
     let x0 = floor(sx * inv);
     let y0 = floor(sy * inv);

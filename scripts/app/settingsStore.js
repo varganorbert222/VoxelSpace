@@ -66,13 +66,11 @@ export function collectSettings(app) {
     fogStart: options.fogStart,
     fogEnd: options.fogEnd,
     repeat: options.repeat,
-    lod0Refine: options.lod0Refine,
     showDetails: options.showDetails,
     showSky: options.showSky,
     showClouds: options.showClouds,
     cloudLodCurve: options.cloudLodCurve,
     renderScale: app.camera.renderScale,
-    lod0RefineCurve: options.lod0RefineCurve,
     filterDistance: options.filterDistance,
     multithread: options.multithread,
     mode: app.camera.mode,
@@ -124,7 +122,6 @@ export function sanitizeSettings(data, defaults, bounds) {
     fogStart: fog.fogStart,
     fogEnd: fog.fogEnd,
     repeat: boolOr(data.repeat, defaults.repeat),
-    lod0Refine: boolOr(data.lod0Refine, defaults.lod0Refine),
     showDetails: boolOr(data.showDetails, defaults.showDetails),
     showSky: boolOr(data.showSky, defaults.showSky),
     showClouds: boolOr(data.showClouds, defaults.showClouds),
@@ -137,11 +134,6 @@ export function sanitizeSettings(data, defaults, bounds) {
       bounds.renderScale.min,
       bounds.renderScale.max,
       finiteOr(data.renderScale, defaults.renderScale)
-    ),
-    lod0RefineCurve: pickAllowed(
-      data.lod0RefineCurve,
-      bounds.lod0RefineCurves,
-      defaults.lod0RefineCurve
     ),
     filterDistance: VMath.clamp(
       bounds.filterDistance.min,

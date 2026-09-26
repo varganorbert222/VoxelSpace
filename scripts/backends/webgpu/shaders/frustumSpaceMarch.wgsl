@@ -103,7 +103,7 @@ fn frustumShade(
     return packRgba(vec4f(1.0));
   }
   var plot = detailColor(
-    classicSampleColor(px, py, mip, flagLod0Refine(flags) && useFine, repeat, mapHMask, mapWMask),
+    classicSampleColor(px, py, mip, flagShowDetails(flags) && useFine, repeat, mapHMask, mapWMask),
     worldX,
     worldY,
     z
@@ -204,7 +204,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       continue;
     }
     let useFine = (mip == 0) && (t <= filterDist);
-    let doLerp = flagLod0Refine(flags) && useFine;
+    let doLerp = flagShowDetails(flags) && useFine;
     let sampled = classicSampleHeight(pos.x * mipScale, pos.y * mipScale, mip, doLerp, repeat, lodHMask, lodWMask);
     let baseWorld = sampled.x * altScale;
     let addBytes = detailHeightBytesReached(pos.x, pos.y, t, baseWorld, pos.z);

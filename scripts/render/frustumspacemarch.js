@@ -314,7 +314,7 @@ export function renderFrustumSpaceColumns({
   const screenWidthScaler = 1 / screenWidth;
   const mapWMask = (mapW - 1) | 0;
   const mapHMask = (mapH - 1) | 0;
-  const fine = lod0Refine | 0;
+  const fine = showDetails ? 1 : 0;
   const filterDist = filterDistance;
   const wrap = repeat | 0;
   const invH2 = dstToProjPlane === 0 ? 0 : 1 / dstToProjPlane;
@@ -335,7 +335,7 @@ export function renderFrustumSpaceColumns({
   const xnStep = 2 * screenWidthScaler;
   // Same cap as the WebGPU frustum march. A budget that grows with the
   // framebuffer height stops high-resolution columns before the far ridges.
-  const stepBudget = marchMaxSteps(fine);
+  const stepBudget = marchMaxSteps(true);
 
   function shade(wx, wy, offset, hByte, z, fogT, fogWhite, applyFogT, useFine, localI) {
     if (debug) {

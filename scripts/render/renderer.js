@@ -65,7 +65,6 @@ class Renderer {
     this._fogStart = FOG_RANGE_DEFAULT_START;
     this._fogEnd = DEFAULT_FAR_CLIP;
     this._repeat = true;
-    this._lod0Refine = false;
     this._showDetails = true;
     this._showSky = true;
     this._showClouds = true;
@@ -74,7 +73,6 @@ class Renderer {
     this._skyPack = null;
     this._skyPending = false;
     this._waterPending = false;
-    this._lod0RefineCurve = LOD_SPACING_DEFAULT_MODE;
     this._filterDistance = FILTER_DISTANCE_DEFAULT;
     this._debugView = DEBUG_VIEW_COLOR;
     this._algorithm = ALGORITHM_CLASSIC;
@@ -135,10 +133,6 @@ class Renderer {
     return this._repeat;
   }
 
-  get lod0Refine() {
-    return this._lod0Refine;
-  }
-
   get showDetails() {
     return this._showDetails;
   }
@@ -168,11 +162,6 @@ class Renderer {
       isDebugColor(this._debugView)
     );
   }
-
-  get lod0RefineCurve() {
-    return this._lod0RefineCurve;
-  }
-
 
   get filterDistance() {
     return this._filterDistance;
@@ -265,12 +254,10 @@ class Renderer {
       fogStart: this._fogStart,
       fogEnd: this._fogEnd,
       repeat: this._repeat,
-      lod0Refine: this._lod0Refine,
       showDetails: this._showDetails,
       showSky: this._showSky,
       showClouds: this._showClouds,
       cloudLodCurve: this._cloudLodCurve,
-      lod0RefineCurve: this._lod0RefineCurve,
       filterDistance: this._filterDistance,
       algorithm: this._algorithm,
       multithread: this._multithreadWanted,
@@ -300,13 +287,6 @@ class Renderer {
     if (options.repeat !== undefined) {
       this._repeat = options.repeat;
     }
-    if (options.lod0Refine !== undefined) {
-      const next = !!options.lod0Refine;
-      if (next !== this._lod0Refine) {
-        this._lod0Refine = next;
-        this.cancelJobs();
-      }
-    }
     if (options.showDetails !== undefined) {
       const next = !!options.showDetails;
       if (next !== this._showDetails) {
@@ -322,13 +302,6 @@ class Renderer {
     }
     if (options.cloudLodCurve !== undefined) {
       this._cloudLodCurve = normalizeLodSpacingMode(options.cloudLodCurve);
-    }
-    if (options.lod0RefineCurve !== undefined) {
-      const next = normalizeLodSpacingMode(options.lod0RefineCurve);
-      if (next !== this._lod0RefineCurve) {
-        this._lod0RefineCurve = next;
-        this.cancelJobs();
-      }
     }
     if (options.filterDistance !== undefined) {
       const next = clampFilterDistance(options.filterDistance);

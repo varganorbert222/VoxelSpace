@@ -407,9 +407,6 @@ static i32 lod0_subdiv(i32 m) {
 
 static f64 lod0_step(f64 base_step, f64 t) {
   i32 m = 0;
-  if (!g_lod0_refine) {
-    return base_step;
-  }
   while ((m < 4) && (t >= g_refine_sw[m])) {
     m = (m + 1) | 0;
   }
@@ -1437,7 +1434,7 @@ WASM_EXPORT void frustum_space_columns(
      The step cap matches the WebGPU frustum march and does not grow with
      the framebuffer height. */
   {
-    i32 step_budget = g_lod0_refine ? 65536 : 16384;
+    i32 step_budget = 65536;
     for (i32 col = start_column; col < end_column; col = (col + 1) | 0) {
       i32 local_i = (col - start_column) | 0;
       i32 sy = (screen_height - 1) | 0;

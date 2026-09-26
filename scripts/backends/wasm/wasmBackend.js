@@ -96,15 +96,6 @@ class WasmBackend {
     return this._host.repeat;
   }
 
-  get lod0Refine() {
-    return this._host.lod0Refine;
-  }
-
-  get lod0RefineCurve() {
-    return this._host.lod0RefineCurve;
-  }
-
-
   get filterDistance() {
     return this._host.filterDistance;
   }

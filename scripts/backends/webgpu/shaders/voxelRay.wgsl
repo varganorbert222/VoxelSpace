@@ -305,7 +305,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   var mip = lastMip;
   var k = 0u;
   var wasInside = 0;
-  let maxSteps = select(VOXEL_MAX_STEPS, VOXEL_REFINE_MAX_STEPS, flagLod0Refine(frame.mapFlags.w));
+  let maxSteps = VOXEL_REFINE_MAX_STEPS;
   loop {
     if ((s >= farClip) || (k >= maxSteps)) {
       break;

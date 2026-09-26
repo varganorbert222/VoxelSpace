@@ -253,17 +253,15 @@ export function createWasmKernels(instance) {
       params.lodSpacing
     );
     const nearEnd = terrainSw.length && terrainSw[0] > 0 ? terrainSw[0] : params.farClip;
-    const refineSw = lod0RefineSwitchDistances(
-      nearEnd,
-      params.lod0RefineCurve
-    );
+    const show = params.showDetails ? 1 : 0;
+    const refineSw = lod0RefineSwitchDistances(nearEnd, "retail");
     ex.set_sample_flags(
-      params.lod0Refine | 0,
-      params.lod0Refine | 0,
+      show,
+      show,
       Number.isFinite(dist) ? dist : FILTER_DISTANCE_DEFAULT,
       Number.isFinite(fwdX) ? fwdX : 0,
       Number.isFinite(fwdY) ? fwdY : -1,
-      params.lod0Refine | 0,
+      1,
       qualityStepDivisor(params.quality),
       Number(refineSw[0]) || 0,
       Number(refineSw[1]) || 0,
@@ -442,8 +440,8 @@ export function createWasmKernels(instance) {
       hiddenPtr,
       rowPtr,
       debugViewId(params.debugView),
-      params.lod0Refine | 0,
-      params.lod0Refine | 0,
+      params.showDetails ? 1 : 0,
+      params.showDetails ? 1 : 0,
       classicPixelBudget(params.quality)
     );
     copyOutU32(pixelsPtr, params.pixels);
@@ -513,8 +511,8 @@ export function createWasmKernels(instance) {
       coverPtr,
       rowPtr,
       debugViewId(params.debugView),
-      params.lod0Refine | 0,
-      params.lod0Refine | 0
+      params.showDetails ? 1 : 0,
+      params.showDetails ? 1 : 0
     );
     copyOutU32(pixelsPtr, params.pixels);
   }
@@ -571,7 +569,7 @@ export function createWasmKernels(instance) {
       fogFar,
       params.applyFog | 0,
       params.repeat | 0,
-      params.lod0Refine | 0,
+      params.showDetails ? 1 : 0,
       params.fillUnfilled | 0,
       pixelsPtr,
       params.pixelWidth | 0,

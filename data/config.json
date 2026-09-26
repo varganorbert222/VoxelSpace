@@ -58,9 +58,6 @@
     "multithread": {
       "default": true
     },
-    "lod0Refine": {
-      "default": false
-    },
     "showDetails": {
       "default": true
     },
@@ -73,10 +70,6 @@
     "cloudLodCurve": {
       "values": ["linear", "double", "log", "retail"],
       "default": "double"
-    },
-    "lod0RefineCurve": {
-      "values": ["linear", "double", "log", "retail"],
-      "default": "linear"
     },
     "filterDistance": {
       "min": 10,

@@ -309,31 +309,13 @@
         <div class="flag-grid">
           <label
             class="check"
-            for="id_lod0_refine"
-            data-tip="Near Refine. On: height and color interpolation across the near bands. Off: point sample."
-          >
-            <input id="id_lod0_refine" name="lod0refine" type="checkbox" autocomplete="off" />
-            <span class="check-box" aria-hidden="true"></span>
-            Near Refine
-          </label>
-          <label
-            class="check"
             for="id_show_details"
-            data-tip="Show Details samples the detail atlas out to the retail Near end, 1/64 of the descriptor span. Inside that range the LOD curve spaces the 16×, 8×, 4× and 2× steps. Past it the terrain keeps the base color. Distance does not move this range."
+            data-tip="Show Details draws the detail atlas in the retail Near range and interpolates height and color there. Off: point sample, no detail."
           >
             <input id="id_show_details" name="showDetails" type="checkbox" autocomplete="off" checked />
             <span class="check-box" aria-hidden="true"></span>
             Show Details
           </label>
-        </div>
-        <div
-          class="control"
-          data-tip="How the five Near Refine steps are spaced inside the Near band. That band ends at the first LOD switch of the View LOD curve. Linear: equal steps. Doubling: each step is twice the previous. Logarithmic: log-spaced. Retail: the same fractions of the Near band."
-        >
-          <div class="control-head">
-            <label for="id_lod0_refine_curve">Curve</label>
-          </div>
-          <select id="id_lod0_refine_curve" name="lod0RefineCurve" autocomplete="off"></select>
         </div>
       </section>
 

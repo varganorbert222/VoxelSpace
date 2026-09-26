@@ -92,30 +92,20 @@ export function lod0RefineFirstSpacing(lod0Meters, mode) {
   return curveFirstSwitch(lod0Meters, LOD0_REFINE_MIP_COUNT, mode);
 }
 
-export function lod0RefineSwitchDistances(lod0Meters, mode, out) {
+export function lod0RefineSwitchDistances(lod0Meters, _mode, out) {
   const switchN = LOD0_REFINE_SWITCH_COUNT;
   const far = Number(lod0Meters);
   const dest = out && out.length >= switchN ? out : new Float64Array(switchN);
-  if (normalizeLodSpacingMode(mode) === LOD_SPACING_RETAIL) {
-    // 1/16, 1/8, 1/4, 1/2 of the mip-0 end. The fifth band runs to that end.
-    for (let i = 0; (i < switchN) | 0; i = (i + 1) | 0) {
-      const u = Math.pow(2, i - 4);
-      const t = u * far;
-      dest[i] = far > 1 && t > 0 && t < far ? t : far;
-    }
-    if (dest.length === switchN) {
-      return dest;
-    }
-    return dest.subarray(0, switchN);
+  // Retail near ends: 1/16, 1/8, 1/4, 1/2 of the mip-0 end.
+  for (let i = 0; (i < switchN) | 0; i = (i + 1) | 0) {
+    const u = Math.pow(2, i - 4);
+    const t = u * far;
+    dest[i] = far > 1 && t > 0 && t < far ? t : far;
   }
-  return mipSwitchDistances(
-    LOD0_REFINE_MIP_COUNT,
-    far,
-    dest,
-    mode,
-    lod0RefineFirstSpacing(far, mode),
-    false
-  );
+  if (dest.length === switchN) {
+    return dest;
+  }
+  return dest.subarray(0, switchN);
 }
 
 export function lod0RefineMipAt(t, switches) {
@@ -212,8 +202,8 @@ export function easeLodSample(
   return easeScratch;
 }
 
-export function lod0RefineAt(enabled, mip) {
-  return !!enabled && ((mip | 0) === 0);
+export function lod0RefineAt(_enabled, mip) {
+  return (mip | 0) === 0;
 }
 
 export function marchMaxSteps(refine) {

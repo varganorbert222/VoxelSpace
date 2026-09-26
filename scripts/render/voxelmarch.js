@@ -345,7 +345,7 @@ export function renderVoxelTexels({
   const lastMip = (mips.count - 1) | 0;
   const altScale = altitude / HEIGHTMAP_MAX;
   const wrap = repeat | 0;
-  const fine = lod0Refine | 0;
+  const fine = showDetails ? 1 : 0;
   const refine = !!lod0Refine;
   const switches = mipSwitchDistances(
     mips.count,
@@ -380,7 +380,7 @@ export function renderVoxelTexels({
   const lod0Shift = mips.shifts[0];
   const lod0WMask = (mips.widths[0] - 1) | 0;
   const lod0HMask = (mips.heights[0] - 1) | 0;
-  const maxSteps = marchMaxSteps(refine);
+  const maxSteps = marchMaxSteps(true);
   let s0 = nearClip;
   if (!(s0 > 0)) {
     s0 = EPSILON;

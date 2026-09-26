@@ -367,14 +367,6 @@ class SettingsForm {
         app.renderer.setOptions({ repeat: e.target.checked });
         persist();
       }),
-      lod0Refine: initCheckboxElement(
-        "id_lod0_refine",
-        options.lod0Refine,
-        (e) => {
-          app.renderer.setOptions({ lod0Refine: e.target.checked });
-          persist();
-        }
-      ),
       showDetails: initCheckboxElement(
         "id_show_details",
         options.showDetails,
@@ -397,16 +389,6 @@ class SettingsForm {
         options.cloudLodCurve,
         (e) => {
           app.renderer.setOptions({ cloudLodCurve: e.target.value });
-          persist();
-        },
-        LOD_SPACING_LABEL
-      ),
-      lod0RefineCurve: initOptionElement(
-        "id_lod0_refine_curve",
-        config.settings.lod0RefineCurve,
-        options.lod0RefineCurve,
-        (e) => {
-          app.renderer.setOptions({ lod0RefineCurve: e.target.value });
           persist();
         },
         LOD_SPACING_LABEL
@@ -487,8 +469,6 @@ class SettingsForm {
       quality,
       applyFog,
       repeat,
-      lod0Refine,
-      lod0RefineCurve,
       showSky,
       showClouds,
       cloudLodCurve,
@@ -536,7 +516,6 @@ class SettingsForm {
     quality.value = String(camera.quality);
     applyFog.checked = options.applyFog;
     repeat.checked = options.repeat;
-    lod0Refine.checked = !!options.lod0Refine;
     if (this._elements.showDetails) {
       this._elements.showDetails.checked = !!options.showDetails;
     }
@@ -547,7 +526,6 @@ class SettingsForm {
     if (cloudLodCurve) {
       cloudLodCurve.value = options.cloudLodCurve;
     }
-    lod0RefineCurve.value = options.lod0RefineCurve;
     multithread.checked = options.multithread;
     setDisabled(
       multithread,
