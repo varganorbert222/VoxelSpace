@@ -106,13 +106,6 @@ fn voxelColumn(skipMip: i32, ix: i32, iy: i32, cellSize: f32, t: f32, probeZ: f3
     colX = i32(floor(wx));
     colY = i32(floor(wy));
     hFine = f32(terrainHeightAt(heightTex, colX, colY, 0, wrap));
-    var rm = 0;
-    var amp = 0.0;
-    if (lod0RefineAt(t, 0)) {
-      rm = lod0RefineMipAt(t);
-      amp = 1.0;
-    }
-    hFine = applyLod0RefineHeight(hFine, wx, wy, 0, rm, amp);
     let baseWorld = hFine * (altitude / 255.0);
     hFine = hFine + detailHeightBytesReached(wx, wy, t, baseWorld, probeZ);
     hByte = u32(clamp(hFine + 0.5, 0.0, 255.0));

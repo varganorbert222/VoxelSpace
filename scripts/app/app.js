@@ -432,12 +432,12 @@ class App {
 
   resize() {
     const view = this._viewportSize();
-    this.settingsForm.syncRenderScale();
     this.camera.resize(
       this.surface ? this.surface.getCanvas() : document.getElementById(CANVAS_ID),
       view.w,
       view.h
     );
+    this.settingsForm.syncRenderScale();
     this.camera.set({
       topColor: this.terrain.skyColor,
       bottomColor: this.terrain.horizonColor,

@@ -50,16 +50,54 @@ function indexPngs(dirRel) {
   return found;
 }
 
-function resolveRole(gameDir, roleKey, filename, pngs) {
-  const paths = pngs.get(filename.toUpperCase()) || [];
-  for (const folder of foldersForRole(roleKey)) {
-    const prefix = gameDir + "/" + folder + "/";
-    const hit = paths.find((item) => item.startsWith(prefix));
-    if (hit) {
-      return hit;
+function pngIndexed(rel) {
+  const abs = path.join(ROOT, rel);
+  let fd = null;
+  try {
+    fd = fs.openSync(abs, "r");
+    const header = Buffer.alloc(32);
+    if (fs.readSync(fd, header, 0, header.length, 0) < 29) {
+      return false;
+    }
+    if (header.toString("ascii", 12, 16) !== "IHDR") {
+      return false;
+    }
+    return header[25] === 3;
+  } catch (err) {
+    return false;
+  } finally {
+    if (fd != null) {
+      fs.closeSync(fd);
     }
   }
-  return paths[0] || null;
+}
+
+function directChild(rel, prefix) {
+  return !rel.slice(prefix.length).includes("/");
+}
+
+// Detail atlases are palette indices. Delta Force also keeps truecolor copies
+// under detail/color, detail/height, and detail/shading. Those have no indices,
+// so a direct indexed file in the role folder wins.
+function resolveRole(gameDir, roleKey, filename, pngs) {
+  const paths = pngs.get(filename.toUpperCase()) || [];
+  const folders = foldersForRole(roleKey);
+  let fallback = null;
+  for (const folder of folders) {
+    const prefix = gameDir + "/" + folder + "/";
+    for (const item of paths) {
+      if (!item.startsWith(prefix) || !directChild(item, prefix)) {
+        continue;
+      }
+      if (pngIndexed(item)) {
+        return item;
+      }
+      if (!fallback) {
+        fallback = item;
+      }
+    }
+  }
+  return fallback || paths[0] || null;
 }
 
 function titleCase(value) {

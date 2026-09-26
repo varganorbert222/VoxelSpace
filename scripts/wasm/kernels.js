@@ -11,7 +11,7 @@ import {
 import { HEIGHTMAP_MAX } from "../constants/terrain.js";
 import { FILTER_DISTANCE_DEFAULT } from "../constants/sampling.js";
 import { UNFILLED_PIXEL } from "../constants/framebuffer.js";
-import { NON_REPEAT_GROUND_OFFSET } from "../constants/classic.js";
+import { NON_REPEAT_GROUND_OFFSET, classicPixelBudget } from "../constants/classic.js";
 import {
   FOG_SATURATED,
   MIN_SAMPLE_DISTANCE,
@@ -434,7 +434,8 @@ export function createWasmKernels(instance) {
       rowPtr,
       debugViewId(params.debugView),
       params.interpolateHeight | 0,
-      params.filterColor | 0
+      params.filterColor | 0,
+      classicPixelBudget(params.quality)
     );
     copyOutU32(pixelsPtr, params.pixels);
   }

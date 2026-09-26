@@ -186,6 +186,8 @@ export function buildCloudMips(image) {
 // that UV with a fixed step. Rolled rows still solve the plane per pixel.
 // Terrain stays below the cloud plane, so from below the terrain hides the
 // clouds and from above the clouds cover every downward ray, terrain included.
+// A cloud sample is kept only while the plane hit is inside the render
+// distance: the same ray parameter the terrain march compares to far clip.
 export const SKY_MAGIC = 0x00534b59;
 const HEADER_WORDS = 40;
 const ROW_WORDS = 8;
@@ -205,6 +207,7 @@ const MAX_CLOUD_MIPS = 16;
 const H_CLOUD_COLOR = 30;
 const H_SKY_FLAGS = 31;
 const H_ROW_STEP = 32;
+const H_CLOUD_FAR = 35;
 const SKY_FLAG_GRADIENT = 1;
 // Retail mode 1: the normalized ray Z is at most 0x100 in Q22.
 const HORIZON_DIR_Z2 = (0x100 / 4194304) ** 2;
@@ -351,6 +354,7 @@ export function updateSkyPack(pack, view, camera, width, height, skyDraw) {
   words[H_CLOUD_COLOR] = Number.isFinite(sky.cloudColor)
     ? sky.cloudColor
     : packFrame(sky.lightRGB[0], sky.lightRGB[1], sky.lightRGB[2]);
+  f32[H_CLOUD_FAR] = Number.isFinite(camera.farClip) ? camera.farClip : 0;
   const f = view.f;
   const r = view.r;
   const u = view.u;
@@ -410,11 +414,22 @@ function cloudFoot(t, dx, dy, dz, ax, ay, az, bx, by, bz) {
   return Math.sqrt(foot2);
 }
 
-function cloudLevelAt(bytes, pack, plane, camU, camV, dx, dy, dz, ax, ay, az, bx, by, bz) {
+function cloudHit(plane, dz, far) {
   if (dz === 0) {
     return 0;
   }
   const t = plane / dz;
+  if (!(t > 0) || t >= far) {
+    return 0;
+  }
+  return t;
+}
+
+function cloudLevelAt(bytes, pack, plane, camU, camV, dx, dy, dz, ax, ay, az, bx, by, bz, far) {
+  const t = cloudHit(plane, dz, far);
+  if (!(t > 0)) {
+    return 0;
+  }
   const last = (pack.mips.length - 1) | 0;
   const mip = cloudMip(cloudFoot(t, dx, dy, dz, ax, ay, az, bx, by, bz), last);
   const u = (camU + t * dx) / CLOUD_TEXEL_WORLD;
@@ -436,8 +451,9 @@ function blendCloud(color, cloud, level) {
 }
 
 // Fills every pixel still holding the 0 sky marker. With the camera above the
-// cloud plane, clouds are also laid over every downward ray (terrain too),
-// unless overlay is false (debug views).
+// cloud plane, clouds are also laid over every downward ray that meets the
+// plane inside the render distance (terrain too), unless overlay is false
+// (debug views).
 export function compositeSky(buffer32, width, height, pack, overlay) {
   if (!pack || !pack.words || pack.width !== width || pack.height !== height) {
     return;
@@ -460,6 +476,7 @@ export function compositeSky(buffer32, width, height, pack, overlay) {
   const clouds = (words[H_MIP_COUNT] | 0) > 0;
   const below = clouds && plane > 0;
   const above = clouds && plane < 0 && overlay !== false;
+  const far = f32[H_CLOUD_FAR];
   if (!gradient && !below && !above) {
     const fill = black ? 0xff000000 : horizonColor;
     const n = width * height;
@@ -485,15 +502,19 @@ export function compositeSky(buffer32, width, height, pack, overlay) {
     let cv = 0;
     let cdu = 0;
     let cdv = 0;
-    if ((below || above) && sz === 0 && dz !== 0) {
-      const t = plane / dz;
-      const last = (pack.mips.length - 1) | 0;
-      mip = cloudMip(cloudFoot(t, dx, dy, dz, sx, sy, sz, bx, by, bz), last);
-      cu = (camU + t * dx) / CLOUD_TEXEL_WORLD;
-      cv = (camV + t * dy) / CLOUD_TEXEL_WORLD;
-      cdu = (t * sx) / CLOUD_TEXEL_WORLD;
-      cdv = (t * sy) / CLOUD_TEXEL_WORLD;
-      walk = true;
+    let inRange = true;
+    if ((below || above) && sz === 0) {
+      const t = cloudHit(plane, dz, far);
+      inRange = t > 0;
+      if (inRange) {
+        const last = (pack.mips.length - 1) | 0;
+        mip = cloudMip(cloudFoot(t, dx, dy, dz, sx, sy, sz, bx, by, bz), last);
+        cu = (camU + t * dx) / CLOUD_TEXEL_WORLD;
+        cv = (camV + t * dy) / CLOUD_TEXEL_WORLD;
+        cdu = (t * sx) / CLOUD_TEXEL_WORLD;
+        cdv = (t * sy) / CLOUD_TEXEL_WORLD;
+        walk = true;
+      }
     }
     for (let x = 0; x < width; x++, dx += sx, dy += sy, dz += sz) {
       const i = row + x;
@@ -519,7 +540,7 @@ export function compositeSky(buffer32, width, height, pack, overlay) {
             grad = grad < 0 ? 0 : grad > 255 ? 255 : grad;
           }
           let q = 0;
-          if (below) {
+          if (below && inRange) {
             q = walk
               ? cloudNearest(bytes, pack, mip, cu, cv)
               : cloudLevelAt(
@@ -536,17 +557,34 @@ export function compositeSky(buffer32, width, height, pack, overlay) {
                   sz,
                   bx,
                   by,
-                  bz
+                  bz,
+                  far
                 );
             q = q < 0 ? 0 : q > 62 ? 62 : q;
           }
           color = table[q * 256 + grad];
         }
       }
-      if (cover) {
+      if (cover && inRange) {
         const level = walk
           ? cloudNearest(bytes, pack, mip, cu, cv)
-          : cloudLevelAt(bytes, pack, plane, camU, camV, dx, dy, dz, sx, sy, sz, bx, by, bz);
+          : cloudLevelAt(
+              bytes,
+              pack,
+              plane,
+              camU,
+              camV,
+              dx,
+              dy,
+              dz,
+              sx,
+              sy,
+              sz,
+              bx,
+              by,
+              bz,
+              far
+            );
         if (level > 0) {
           color = blendCloud(color, cloudColor, level > 62 ? 62 : level);
         }

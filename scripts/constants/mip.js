@@ -13,7 +13,6 @@ export const LOD0_REFINE_SUBDIV_MIN = 1;
 export const LOD0_REFINE_MIP_COUNT = 5;
 export const LOD0_REFINE_SWITCH_COUNT = LOD0_REFINE_MIP_COUNT - 1;
 export const LOD0_REFINE_CELL = 1 / LOD0_REFINE_SUBDIV;
-export const LOD0_REFINE_NOISE_AMPLITUDE = 1;
 export const MARCH_MAX_STEPS = 16384;
 export const LOD0_REFINE_MAX_STEPS = 65536;
 
@@ -159,7 +158,6 @@ const easeScratch = {
   sampleMip: 0,
   sampleRefineOn: false,
   sampleRefineMip: 0,
-  noiseAmp: 0,
   filterFade: 0,
 };
 
@@ -176,7 +174,6 @@ export function easeLodSample(
   easeScratch.sampleMip = sampleMip;
   easeScratch.sampleRefineOn = sampleRefineOn;
   easeScratch.sampleRefineMip = sampleRefineOn ? refineMip | 0 : 0;
-  easeScratch.noiseAmp = sampleRefineOn ? LOD0_REFINE_NOISE_AMPLITUDE : 0;
   easeScratch.filterFade = sampleMip === 0 ? 1 : 0;
   return easeScratch;
 }
@@ -201,73 +198,6 @@ export function lod0SamplePos(wx, wy, dirX, dirY, refine, refineMip) {
     x: (ix + 0.5) * s,
     y: (iy + 0.5) * s,
   };
-}
-
-function lod0RefineHash(ix, iy) {
-  let n = (Math.imul(ix | 0, 374761393) + Math.imul(iy | 0, 668265263)) | 0;
-  n = Math.imul(n ^ (n >>> 13), 1274126177);
-  return (n ^ (n >>> 16)) >>> 0;
-}
-
-function lod0RefineFineSpan(refineMip) {
-  let m = refineMip | 0;
-  if (m < 0) {
-    m = 0;
-  }
-  if (m > LOD0_REFINE_MIP_COUNT - 1) {
-    m = LOD0_REFINE_MIP_COUNT - 1;
-  }
-  return (1 << m) | 0;
-}
-
-function lod0RefineHashMax(x0, y0, span) {
-  let maxH = 0;
-  const n = span | 0;
-  for (let dy = 0; (dy < n) | 0; dy = (dy + 1) | 0) {
-    for (let dx = 0; (dx < n) | 0; dx = (dx + 1) | 0) {
-      const h = lod0RefineHash((x0 + dx) | 0, (y0 + dy) | 0);
-      if (h > maxH) {
-        maxH = h;
-      }
-    }
-  }
-  return maxH;
-}
-
-export function applyLod0RefineHeight(
-  hFine,
-  wx,
-  wy,
-  dirX,
-  dirY,
-  refine,
-  refineMip,
-  amp
-) {
-  if (!refine) {
-    return hFine;
-  }
-  let a = LOD0_REFINE_NOISE_AMPLITUDE;
-  if (amp != null) {
-    a = Number(amp);
-  }
-  if (!(a > 0)) {
-    return hFine;
-  }
-  const s = lod0RefineCellSize(refineMip);
-  const e = mipDdaEps(s);
-  const span = lod0RefineFineSpan(refineMip);
-  const ix = Math.floor((wx + dirX * e) / s);
-  const iy = Math.floor((wy + dirY * e) / s);
-  const u = lod0RefineHashMax((ix * span) | 0, (iy * span) | 0, span) / 4294967296;
-  let h = hFine + (u - 0.5) * a;
-  if (h < 0) {
-    h = 0;
-  }
-  if (h > 255) {
-    h = 255;
-  }
-  return h;
 }
 
 export function clampMipCount(count) {

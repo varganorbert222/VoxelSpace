@@ -214,36 +214,6 @@ fn terrainColorAt(tex: texture_2d<f32>, ix: i32, iy: i32, mip: i32, wrap: bool) 
   return textureLoad(tex, vec2<i32>(x, y), m);
 }
 
-fn lod0RefineHash(x: i32, y: i32) -> u32 {
-  var n = u32(x) * 374761393u + u32(y) * 668265263u;
-  n = (n ^ (n >> 13u)) * 1274126177u;
-  n = n ^ (n >> 16u);
-  return n;
-}
-
-fn lod0RefineHashMax(x0: i32, y0: i32, span: u32) -> u32 {
-  var maxH = 0u;
-  var dy = 0u;
-  loop {
-    if (dy >= span) {
-      break;
-    }
-    var dx = 0u;
-    loop {
-      if (dx >= span) {
-        break;
-      }
-      let h = lod0RefineHash(x0 + i32(dx), y0 + i32(dy));
-      if (h > maxH) {
-        maxH = h;
-      }
-      dx = dx + 1u;
-    }
-    dy = dy + 1u;
-  }
-  return maxH;
-}
-
 fn bilinearHeight(h00: f32, h10: f32, h01: f32, h11: f32, fx: f32, fy: f32) -> f32 {
   return mix(mix(h00, h10, fx), mix(h01, h11, fx), fy);
 }
@@ -260,35 +230,14 @@ fn lod0RefineCellFromM(m: i32) -> f32 {
 fn easeLodSample(t: f32, wx: f32, wy: f32, mip: i32) -> vec4f {
   let sampleMip = mip;
   var sampleRm = 0;
-  var noise = 0.0;
   var filt = 0.0;
   if (lod0RefineAt(t, sampleMip)) {
     sampleRm = lod0RefineMipAt(t);
-    noise = 1.0;
   }
   if (sampleMip == 0) {
     filt = 1.0;
   }
-  return vec4f(f32(sampleMip), f32(sampleRm), noise, filt);
-}
-
-fn applyLod0RefineHeight(hFine: f32, wx: f32, wy: f32, mip: i32, rm: i32, amp: f32) -> f32 {
-  if ((mip != 0) || !(amp > 0.0) || !flagLod0Refine(frame.mapFlags.w)) {
-    return hFine;
-  }
-  let s = lod0RefineCellFromM(rm);
-  let span = 1u << u32(max(rm, 0));
-  let ix = i32(floor(wx / s));
-  let iy = i32(floor(wy / s));
-  let u = f32(lod0RefineHashMax(ix * i32(span), iy * i32(span), span)) * (1.0 / 4294967296.0);
-  var h = hFine + (u - 0.5) * amp;
-  if (h < 0.0) {
-    h = 0.0;
-  }
-  if (h > 255.0) {
-    h = 255.0;
-  }
-  return h;
+  return vec4f(f32(sampleMip), f32(sampleRm), 0.0, filt);
 }
 
 fn terrainSampleHeightPair(tex: texture_2d<u32>, mip: i32, wx: f32, wy: f32, dist: f32, t: f32) -> vec2f {
@@ -326,7 +275,6 @@ fn terrainSampleHeightPair(tex: texture_2d<u32>, mip: i32, wx: f32, wy: f32, dis
       h = nearest + (h - nearest) * ease.w;
     }
   }
-  h = applyLod0RefineHeight(h, wx, wy, useMip, useRm, ease.z);
   return vec2f(h * (altitude / 255.0), clamp(h + 0.5, 0.0, 255.0));
 }
 

@@ -20,7 +20,7 @@ import {
   isDebugColor,
 } from "../constants/debugView.js";
 import { encodeHeight, encodeIter, encodeUnit } from "./debugEncode.js";
-import { NON_REPEAT_GROUND_OFFSET } from "../constants/classic.js";
+import { NON_REPEAT_GROUND_OFFSET, classicPixelBudget } from "../constants/classic.js";
 import {
   FOG_SATURATED,
   STEP_GROWTH_BY_QUALITY,
@@ -37,7 +37,6 @@ import {
   lod0RefineSwitchDistances,
   LOD0_REFINE_SWITCH_COUNT,
   lod0SamplePos,
-  applyLod0RefineHeight,
   easeLodSample,
   mixNearestBilinear,
   mipInvScale,
@@ -63,6 +62,67 @@ function hiddenYBuffer(width) {
     sampleNScratch = new Int32Array(width);
   }
   return hiddenYScratch;
+}
+
+// First distance at which the terrain ceiling can enter the screen.
+// Above the ceiling, near samples project below the view and must not
+// abort the march.
+function classicCeilingZ(z, ceilingSdf, dst, horizon, screenHeight) {
+  if (!(ceilingSdf > 0) || !(dst > 0)) {
+    return z;
+  }
+  const ySpan = screenHeight - horizon;
+  if (!(ySpan > 1)) {
+    return z;
+  }
+  const zEnter = (ceilingSdf * dst) / ySpan;
+  if (zEnter > z) {
+    return zEnter;
+  }
+  return z;
+}
+
+function cameraClearance(heightMap, camX, camY, camZ, altScale, mapShift, mapW, mapH, wrap) {
+  const wMask = (mapW - 1) | 0;
+  const hMask = (mapH - 1) | 0;
+  const h = heightAt(
+    heightMap,
+    camX | 0,
+    camY | 0,
+    mapShift,
+    wMask,
+    hMask,
+    wrap | 0
+  );
+  const c = camZ - h * altScale;
+  if (c > 0) {
+    return c;
+  }
+  return 0;
+}
+
+// Largest step whose screen Y move stays about one pixel for `clearance`
+// below the camera. Off-screen surfaces are ignored.
+function classicClearanceStep(z, clearance, dst, horizon, screenHeight, pixels) {
+  if (!(clearance > 1) || !(dst > 0) || !(z > 0)) {
+    return 1e30;
+  }
+  let sdf = clearance;
+  const ySpan = screenHeight - horizon;
+  if (ySpan > 1) {
+    const onScreen = (ySpan * z) / dst;
+    if (onScreen < sdf) {
+      sdf = onScreen;
+    }
+  }
+  if (!(sdf > 1)) {
+    return 1e30;
+  }
+  const dz = ((z * z) / (sdf * dst)) * (pixels > 1 ? pixels : 1);
+  if (dz < 1e-3) {
+    return 1e-3;
+  }
+  return dz;
 }
 
 function classicProjectedY(sdf, dst, z, step, plx, ply, col, kLeftX, kLeftY, kDx, kDy, mip, horizon, refine, refineMip) {
@@ -309,6 +369,17 @@ function renderClassicColumnsSampled({
   const ceiling = maxHeight == null ? altitude : maxHeight;
   const ceilingSdf = camZ - ceiling;
   const yGround = camZ + NON_REPEAT_GROUND_OFFSET;
+  let clearance = cameraClearance(
+    heightMap,
+    camX,
+    camY,
+    camZ,
+    altScale,
+    mapShift,
+    mapW,
+    mapH,
+    repeat
+  );
 
   if (fillUnfilled) {
     pixels.fill(UNFILLED_PIXEL, 0, (localWidth * screenHeight) | 0);
@@ -369,14 +440,32 @@ function renderClassicColumnsSampled({
     }
 
     let step = 0;
+    let z = classicCeilingZ(
+      startIndex,
+      ceilingSdf,
+      dstToProjPlane,
+      screenHorizon,
+      screenHeight
+    );
     for (
-      let z = startIndex;
+      ;
       ((z < endIndex) | 0) & ((z < farClip) | 0);
 
     ) {
       const refineHere = lod0RefineAt(refine, mip);
       const refineMip = refineHere ? lod0RefineMipAt(z, refineSwitches) : 0;
       step = fitBandStep(step, bandStepTable, mip, refineHere, refineMip);
+      const screenStep = classicClearanceStep(
+        z,
+        clearance,
+        dstToProjPlane,
+        screenHorizon,
+        screenHeight,
+        classicPixelBudget(quality)
+      );
+      if (step > screenStep) {
+        step = screenStep;
+      }
       const zScale = dstToProjPlane / z;
       const ceilingOnScreen = (ceilingSdf * zScale + screenHorizon) | 0;
       const groundOnScreen = (yGround * zScale + screenHorizon) | 0;
@@ -395,6 +484,7 @@ function renderClassicColumnsSampled({
       let plx = kLeftX * z + camX + dx * startColumn;
       let ply = kLeftY * z + camY + dy * startColumn;
       let sliceOpen = 0;
+      let sliceSdf = 0;
 
       for (
         let i = startColumn;
@@ -415,7 +505,8 @@ function renderClassicColumnsSampled({
           ((ply >= 0) | 0) &
           ((ply <= mapH) | 0);
         const isOk = inside | (repeat | 0);
-        if (!((isOk) & ((ceilingOnScreen >= colHidden) | 0))) {
+        const ceilingBelow = (ceilingOnScreen >= colHidden) | 0;
+        if (!((isOk & ceilingBelow) & ((ceilingSdf <= 0) | 0))) {
           sliceOpen = 1;
         }
 
@@ -475,16 +566,7 @@ function renderClassicColumnsSampled({
                 ease.filterFade
               )
             : nearestH;
-          let hFine = applyLod0RefineHeight(
-            hSample,
-            plx,
-            ply,
-            dirX,
-            dirY,
-            useRefine,
-            useRm,
-            ease.noiseAmp
-          );
+          let hFine = hSample;
           const yCap = classicProjectedY(
             camZ - (hFine + detailElevMax(z)) * altScale,
             dstToProjPlane,
@@ -508,6 +590,9 @@ function renderClassicColumnsSampled({
           const hByte = heightByteFromFine(hFine);
           const terrainHeight = hFine * altScale;
           const terrainSDF = camZ - terrainHeight;
+          if (terrainSDF > sliceSdf) {
+            sliceSdf = terrainSDF;
+          }
           const heightOnScreen = classicProjectedY(
             terrainSDF,
             dstToProjPlane,
@@ -603,6 +688,9 @@ function renderClassicColumnsSampled({
         ply += dy;
       }
 
+      if (sliceSdf > clearance) {
+        clearance = sliceSdf;
+      }
       if (!sliceOpen) {
         break;
       }
@@ -673,6 +761,17 @@ function renderClassicColumnsNearest({
   const ceiling = maxHeight == null ? altitude : maxHeight;
   const ceilingSdf = camZ - ceiling;
   const yGround = camZ + NON_REPEAT_GROUND_OFFSET;
+  let clearance = cameraClearance(
+    heightMap,
+    camX,
+    camY,
+    camZ,
+    altScale,
+    mapShift,
+    mapW,
+    mapH,
+    repeat
+  );
 
   if (fillUnfilled) {
     pixels.fill(UNFILLED_PIXEL, 0, (localWidth * screenHeight) | 0);
@@ -731,14 +830,32 @@ function renderClassicColumnsNearest({
     }
 
     let step = 0;
+    let z = classicCeilingZ(
+      startIndex,
+      ceilingSdf,
+      dstToProjPlane,
+      screenHorizon,
+      screenHeight
+    );
     for (
-      let z = startIndex;
+      ;
       ((z < endIndex) | 0) & ((z < farClip) | 0);
 
     ) {
       const refineHere = lod0RefineAt(refine, mip);
       const refineMip = refineHere ? lod0RefineMipAt(z, refineSwitches) : 0;
       step = fitBandStep(step, bandStepTable, mip, refineHere, refineMip);
+      const screenStep = classicClearanceStep(
+        z,
+        clearance,
+        dstToProjPlane,
+        screenHorizon,
+        screenHeight,
+        classicPixelBudget(quality)
+      );
+      if (step > screenStep) {
+        step = screenStep;
+      }
       const zScale = dstToProjPlane / z;
       const ceilingOnScreen = (ceilingSdf * zScale + screenHorizon) | 0;
       const groundOnScreen = (yGround * zScale + screenHorizon) | 0;
@@ -757,6 +874,7 @@ function renderClassicColumnsNearest({
       let plx = kLeftX * z + camX + dx * startColumn;
       let ply = kLeftY * z + camY + dy * startColumn;
       let sliceOpen = 0;
+      let sliceSdf = 0;
 
       for (
         let i = startColumn;
@@ -777,7 +895,8 @@ function renderClassicColumnsNearest({
           ((ply >= 0) | 0) &
           ((ply <= mapH) | 0);
         const isOk = inside | (repeat | 0);
-        if (!((isOk) & ((ceilingOnScreen >= colHidden) | 0))) {
+        const ceilingBelow = (ceilingOnScreen >= colHidden) | 0;
+        if (!((isOk & ceilingBelow) & ((ceilingSdf <= 0) | 0))) {
           sliceOpen = 1;
         }
 
@@ -836,6 +955,9 @@ function renderClassicColumnsNearest({
           }
           const terrainHeight = hFine * altScale;
           const terrainSDF = camZ - terrainHeight;
+          if (terrainSDF > sliceSdf) {
+            sliceSdf = terrainSDF;
+          }
           const heightOnScreen = classicProjectedY(
             terrainSDF,
             dstToProjPlane,
@@ -907,6 +1029,9 @@ function renderClassicColumnsNearest({
         ply += dy;
       }
 
+      if (sliceSdf > clearance) {
+        clearance = sliceSdf;
+      }
       if (!sliceOpen) {
         break;
       }

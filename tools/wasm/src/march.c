@@ -921,7 +921,8 @@ WASM_EXPORT void classic_columns(
     i32 row_colors_ptr,
     i32 debug_view,
     i32 lerp_height,
-    i32 filter_color) {
+    i32 filter_color,
+    f64 pixel_budget) {
   g_lerp_height = lerp_height ? 1 : 0;
   g_filter_color = filter_color ? 1 : 0;
   i32 do_lerp = g_lerp_height;
@@ -938,6 +939,30 @@ WASM_EXPORT void classic_columns(
   f64 ceiling = g_max_height;
   f64 ceiling_sdf = cam_z - ceiling;
   f64 y_ground = cam_z + T_NON_REPEAT_GROUND;
+  f64 clearance = 0.0;
+  if (g_mip_h[0] && (g_map_w > 0)) {
+    i32 cx = (i32)cam_x;
+    i32 cy = (i32)cam_y;
+    i32 wmask = (g_map_w - 1) | 0;
+    i32 hmask = (g_map_h - 1) | 0;
+    if (cx < 0) {
+      cx = 0;
+    }
+    if (cy < 0) {
+      cy = 0;
+    }
+    if (cx > hmask) {
+      cx = hmask;
+    }
+    if (cy > wmask) {
+      cy = wmask;
+    }
+    f64 under = (f64)g_mip_h[0][((cy << g_map_shift) + cx) | 0] * g_alt_scale;
+    clearance = cam_z - under;
+    if (clearance < 0.0) {
+      clearance = 0.0;
+    }
+  }
   i32 map_w_mask = (g_map_w - 1) | 0;
   i32 map_h_mask = (g_map_h - 1) | 0;
   i32 lod_shift = g_map_shift;
@@ -1036,11 +1061,46 @@ WASM_EXPORT void classic_columns(
       hidden_y[i] = screen_height;
     }
 
-    for (z = start_index; (z < end_index) & (z < far_clip);) {
+    z = start_index;
+    if ((ceiling_sdf > 0.0) & (dst_to_proj > 0.0)) {
+      f64 y_span = (f64)screen_height - screen_horizon;
+      if (y_span > 1.0) {
+        f64 z_enter = ceiling_sdf * dst_to_proj / y_span;
+        if (z < z_enter) {
+          z = z_enter;
+        }
+      }
+    }
+    for (; (z < end_index) & (z < far_clip);) {
       f64 lo;
       f64 cap;
       band_limits(mip, z, &lo, &cap);
       step = fit_step(step, lo, cap);
+      {
+        f64 y_span = (f64)screen_height - screen_horizon;
+        if ((clearance > 1.0) & (z > 0.0)) {
+          f64 sdf_cap = clearance;
+          if (y_span > 1.0) {
+            f64 on_screen = y_span * z / dst_to_proj;
+            if (on_screen < sdf_cap) {
+              sdf_cap = on_screen;
+            }
+          }
+          if (sdf_cap > 1.0) {
+            f64 budget = pixel_budget;
+            if (!(budget > 0.0)) {
+              budget = 1.0;
+            }
+            f64 screen_step = z * z / (sdf_cap * dst_to_proj) * budget;
+            if (screen_step < 0.001) {
+              screen_step = 0.001;
+            }
+            if (step > screen_step) {
+              step = screen_step;
+            }
+          }
+        }
+      }
       f64 z_scale = dst_to_proj / z;
       i32 ceiling_on_screen = (i32)(ceiling_sdf * z_scale + screen_horizon);
       i32 ground_on_screen = (i32)(y_ground * z_scale + screen_horizon);
@@ -1071,7 +1131,7 @@ WASM_EXPORT void classic_columns(
         inside = (plx >= 0.0) & (plx <= (f64)g_map_w) & (ply >= 0.0) &
                  (ply <= (f64)g_map_h);
         is_ok = inside | (repeat | 0);
-        if (!(is_ok & (ceiling_on_screen >= col_hidden))) {
+        if (!((is_ok & (ceiling_on_screen >= col_hidden)) & (ceiling_sdf <= 0.0))) {
           slice_open = 1;
         }
 
@@ -1116,6 +1176,9 @@ WASM_EXPORT void classic_columns(
           }
           f64 terrain_height = h_fine * g_alt_scale;
           f64 terrain_sdf = cam_z - terrain_height;
+          if (terrain_sdf > clearance) {
+            clearance = terrain_sdf;
+          }
           i32 height_on_screen = (i32)(terrain_sdf * z_scale + screen_horizon);
           i32 height_on_screen_bottom = col_hidden;
           u32 plot_color = T_WHITE;

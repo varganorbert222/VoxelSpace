@@ -66,6 +66,11 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let repeat = flagRepeat(flags);
   let lodCount = i32(frame.extraU.y);
   let altScale = altitude / 255.0;
+  let underByte = f32(terrainHeightNN(heightTex, 0, camX, camY));
+  var clearance = camZ - underByte * altScale;
+  if (clearance < 0.0) {
+    clearance = 0.0;
+  }
   let mapWMask = mapW - 1;
   let mapHMask = mapH - 1;
   let ceilingSdf = camZ - maxHeight;
@@ -98,6 +103,15 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
 
     var hiddenY = screenH;
     var z = startIndex;
+    if (ceilingSdf > 0.0) {
+      let ySpan = f32(screenH) - screenHorizon;
+      if (ySpan > 1.0) {
+        let zEnter = ceilingSdf * dst / ySpan;
+        if (z < zEnter) {
+          z = zEnter;
+        }
+      }
+    }
     var n = 0u;
     var step = 0.0;
     let bandStep = lodDeltas[mip];
@@ -109,6 +123,37 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       let lo = bandMarchStep(bandStep, mip, z);
       let cell = mipCellSize(mip, z);
       step = fitBandStep(step, lo, cell);
+      let ySpan = f32(screenH) - screenHorizon;
+      if (clearance > 1.0 && z > 0.0) {
+        var sdfCap = clearance;
+        if (ySpan > 1.0) {
+          let onScreen = ySpan * z / dst;
+          if (onScreen < sdfCap) {
+            sdfCap = onScreen;
+          }
+        }
+        if (sdfCap > 1.0) {
+          var budget = f32(frame.extraU.x);
+          if (budget < 2.0) {
+            budget = 48.0;
+          } else if (budget < 3.0) {
+            budget = 32.0;
+          } else if (budget < 4.0) {
+            budget = 24.0;
+          } else if (budget < 5.0) {
+            budget = 16.0;
+          } else {
+            budget = 8.0;
+          }
+          var screenStep = z * z / (sdfCap * dst) * budget;
+          if (screenStep < 0.001) {
+            screenStep = 0.001;
+          }
+          if (step > screenStep) {
+            step = screenStep;
+          }
+        }
+      }
       let zScale = dst / z;
       let ceilingOnScreen = i32(ceilingSdf * zScale + screenHorizon);
       let groundOnScreen = i32(yGround * zScale + screenHorizon);
@@ -122,7 +167,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       let colHidden = hiddenY;
       let inside = (plx >= 0.0) && (plx <= f32(mapW)) && (ply >= 0.0) && (ply <= f32(mapH));
       let isOk = inside || repeat;
-      if ((colHidden == 0) || (isOk && (ceilingOnScreen >= colHidden))) {
+      let ceilingBelow = ceilingOnScreen >= colHidden;
+      if (colHidden == 0 || (isOk && ceilingBelow && ceilingSdf <= 0.0)) {
         break;
       }
       if (colHidden != 0) {
@@ -144,6 +190,9 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
           let hByte = u32(clamp(hFine + 0.5, 0.0, 255.0));
           let terrainHeight = hFine * altScale;
           let terrainSdf = camZ - terrainHeight;
+          if (terrainSdf > clearance) {
+            clearance = terrainSdf;
+          }
           let heightOnScreen = projectSdfYSpan(
             terrainSdf,
             dst,

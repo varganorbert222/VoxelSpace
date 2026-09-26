@@ -4,6 +4,7 @@
 const SKY_MAGIC: u32 = 0x00534b59u;
 const SKY_HORIZON_DIR_Z: f32 = 0.00006103515625;
 const SKY_ROW_STEP: u32 = 32u;
+const SKY_CLOUD_FAR: u32 = 35u;
 
 fn skyWord(i: u32) -> u32 {
   return skyRows[min(i, arrayLength(&skyRows) - 1u)];
@@ -55,6 +56,10 @@ const CLOUD_TEXEL_WORLD: f32 = 8.0;
 fn skyCloudLevel(o: u32, dir: vec3f) -> f32 {
   let plane = skyF(9u);
   let t = plane / dir.z;
+  // Same ray parameter as the terrain far clip (Render Distance).
+  if (!(t > 0.0) || t >= skyF(SKY_CLOUD_FAR)) {
+    return 0.0;
+  }
   let a = vec3f(skyF(o + 3u), skyF(o + 4u), skyF(o + 5u));
   let b = vec3f(skyF(SKY_ROW_STEP), skyF(SKY_ROW_STEP + 1u), skyF(SKY_ROW_STEP + 2u));
   let pa = t * (a.xy - dir.xy * (a.z / dir.z)) / CLOUD_TEXEL_WORLD;
@@ -122,7 +127,8 @@ fn skyBlendCloud(color: u32, cloud: u32, level: f32) -> u32 {
 }
 
 // Paints the 0 sky marker and, with the camera above the cloud plane, lays
-// the clouds over every downward ray (terrain included).
+// the clouds over every downward ray that meets the plane inside the render
+// distance (terrain included).
 fn skyComposite(x: i32, y: i32, color: u32) -> u32 {
   var out = color;
   if (out == 0u) {

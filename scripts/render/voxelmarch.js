@@ -29,10 +29,8 @@ import { isDebugColor } from "../constants/debugView.js";
 import { encodeCameraSample } from "./debugEncode.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
 import {
-  LOD0_REFINE_NOISE_AMPLITUDE,
   LOD0_REFINE_SWITCH_COUNT,
   TERRAIN_MIP_MAX_COUNT,
-  applyLod0RefineHeight,
   lod0RefineAt,
   lod0RefineMipAt,
   lod0RefineSwitchDistances,
@@ -422,18 +420,7 @@ export function renderVoxelTexels({
         lod0HMask,
         wrap
       );
-      const refineHere = lod0RefineAt(refine, 0);
-      const refineMip = refineHere ? lod0RefineMipAt(t, refineSwitches) : 0;
-      let hFine = applyLod0RefineHeight(
-        nearestH,
-        wx,
-        wy,
-        0,
-        0,
-        refineHere,
-        refineMip,
-        LOD0_REFINE_NOISE_AMPLITUDE
-      );
+      let hFine = nearestH;
       const bump = detailElevMax(t) * altScale;
       if (probeZ <= hFine * altScale + bump) {
         hFine += detailHeightAdd(wx, wy, t);

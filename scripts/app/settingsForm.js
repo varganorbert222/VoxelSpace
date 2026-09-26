@@ -64,6 +64,24 @@ function formatRangeValue(id, value) {
   return String(value);
 }
 
+function formatRenderScale(scale, width, height) {
+  const n = Number(scale);
+  const scaleText = Number.isFinite(n) ? n.toFixed(1) : String(scale);
+  const w = width | 0;
+  const h = height | 0;
+  if ((w > 0) | 0 && (h > 0) | 0) {
+    return scaleText + " · " + w + "×" + h;
+  }
+  return scaleText;
+}
+
+function updateRenderScaleValue(scale, width, height) {
+  const label = document.querySelector('[data-for="id_render_scale"]');
+  if (label) {
+    label.textContent = formatRenderScale(scale, width, height);
+  }
+}
+
 function updateFogRangeValue(start, end) {
   const label = document.querySelector('[data-for="id_fog_range"]');
   if (label) {
@@ -134,6 +152,9 @@ function initRangeElement(id, rangeConfig, value, onInput, onChange) {
   element.addEventListener("input", (e) => {
     if (onInput) {
       onInput(e);
+    }
+    if (id === "id_render_scale" || id === "id_mip_count") {
+      return;
     }
     updateBoundValue(id, e.target.value);
   });
@@ -308,6 +329,7 @@ class SettingsForm {
           const value = parseFloat(e.target.value);
           app.camera.set({ renderScale: value });
           app.resize();
+          updateRenderScaleValue(value, app.camera.width, app.camera.height);
           persist();
         },
         persist
@@ -535,7 +557,7 @@ class SettingsForm {
       Number.isFinite(options.fogEnd) ? options.fogEnd : camera.farClip
     );
     renderScale.value = camera.renderScale;
-    updateBoundValue("id_render_scale", camera.renderScale);
+    updateRenderScaleValue(camera.renderScale, camera.width, camera.height);
     fov.value = camera.fov;
     updateBoundValue("id_fov", camera.fov);
     const mipRange = mipCountRange(this._app.terrain);
@@ -617,8 +639,9 @@ class SettingsForm {
     if (!this._elements || !this._elements.renderScale) {
       return;
     }
-    this._elements.renderScale.value = this._app.camera.renderScale;
-    updateBoundValue("id_render_scale", this._app.camera.renderScale);
+    const camera = this._app.camera;
+    this._elements.renderScale.value = camera.renderScale;
+    updateRenderScaleValue(camera.renderScale, camera.width, camera.height);
   }
 }
 

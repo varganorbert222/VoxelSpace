@@ -16077,15 +16077,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -16208,15 +16208,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -16335,15 +16335,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -16462,15 +16462,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -16593,15 +16593,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -16724,15 +16724,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -16851,15 +16851,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -16978,15 +16978,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -17109,15 +17109,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -17236,15 +17236,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -17363,15 +17363,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -17478,15 +17478,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -17589,15 +17589,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -17716,15 +17716,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -17843,15 +17843,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -17970,15 +17970,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -18093,15 +18093,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -18208,15 +18208,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -18319,15 +18319,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -18446,15 +18446,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -18573,15 +18573,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -18700,15 +18700,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -18831,15 +18831,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -18958,15 +18958,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -19085,15 +19085,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS02",
@@ -19216,15 +19216,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -19331,15 +19331,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -19442,15 +19442,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -19569,15 +19569,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -19696,15 +19696,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS03",
@@ -19823,15 +19823,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS03",
@@ -19950,15 +19950,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -20065,15 +20065,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -20176,15 +20176,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -20303,15 +20303,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -20430,15 +20430,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -20557,15 +20557,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -20672,15 +20672,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -20783,15 +20783,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -20914,15 +20914,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -21041,15 +21041,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -21168,15 +21168,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -21295,15 +21295,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -21422,15 +21422,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -21553,15 +21553,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -21680,15 +21680,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -21807,15 +21807,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -21934,15 +21934,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -22061,15 +22061,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -22176,15 +22176,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -22287,15 +22287,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -22414,15 +22414,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -22541,15 +22541,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -22656,15 +22656,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -22767,15 +22767,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -22898,15 +22898,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -23025,15 +23025,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -23152,15 +23152,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -23279,15 +23279,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -23406,15 +23406,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -23521,15 +23521,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -23632,15 +23632,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -23763,15 +23763,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -23890,15 +23890,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -24017,15 +24017,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -24144,15 +24144,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -24259,15 +24259,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -24370,15 +24370,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS03",
@@ -24497,15 +24497,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -24628,15 +24628,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -24755,15 +24755,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -24882,15 +24882,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -25009,15 +25009,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -25136,15 +25136,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -25263,15 +25263,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -25378,15 +25378,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -25489,15 +25489,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -25620,15 +25620,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -25747,15 +25747,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -25874,15 +25874,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -26001,15 +26001,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -26128,15 +26128,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -26255,15 +26255,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -26382,15 +26382,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -26505,15 +26505,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -26620,15 +26620,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -26731,15 +26731,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -26862,15 +26862,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -26989,15 +26989,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -27120,15 +27120,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -27247,15 +27247,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -27374,15 +27374,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -27501,15 +27501,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -27628,15 +27628,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -27755,15 +27755,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -27886,15 +27886,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -28013,15 +28013,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -28140,15 +28140,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -28267,15 +28267,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -28394,15 +28394,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -28521,15 +28521,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -28636,15 +28636,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -28747,15 +28747,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -28874,15 +28874,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -29001,15 +29001,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -29128,15 +29128,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -29255,15 +29255,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -29382,15 +29382,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -29509,15 +29509,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -29636,15 +29636,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -29763,15 +29763,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -29890,15 +29890,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -30017,15 +30017,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -30128,15 +30128,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -30247,15 +30247,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -30374,15 +30374,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -30501,15 +30501,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -30628,15 +30628,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -30755,15 +30755,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -30882,15 +30882,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -31009,15 +31009,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -31136,15 +31136,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -31263,15 +31263,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -31394,15 +31394,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -31521,15 +31521,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -31652,15 +31652,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -31779,15 +31779,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -31906,15 +31906,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -32033,15 +32033,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -32160,15 +32160,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -32287,15 +32287,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -32414,15 +32414,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -32541,15 +32541,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -32668,15 +32668,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -32795,15 +32795,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -32926,15 +32926,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -33053,15 +33053,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -33168,15 +33168,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -33279,15 +33279,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -33394,15 +33394,15 @@
         },
         "detailColor": {
           "name": "SNIP_C",
-          "src": "maps/deltaforce/detail/color/SNIP_C.png"
+          "src": "maps/deltaforce/detail/SNIP_C.png"
         },
         "detailElevation": {
           "name": "SNIP_D",
-          "src": "maps/deltaforce/detail/height/SNIP_D.png"
+          "src": "maps/deltaforce/detail/SNIP_D.png"
         },
         "detailShade": {
           "name": "SNIP_S",
-          "src": "maps/deltaforce/detail/shading/SNIP_S.png"
+          "src": "maps/deltaforce/detail/SNIP_S.png"
         },
         "sky": {
           "name": "CLOUDS06",
