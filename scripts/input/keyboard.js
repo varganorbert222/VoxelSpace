@@ -67,9 +67,6 @@ function detectSettingHotkey(input, e) {
     case SettingChar.DEBUG_VIEW:
       if (!e.repeat) input._toggleDebugView = true;
       break;
-    case SettingChar.ENV_ATLAS:
-      if (!e.repeat) input._toggleDebugOverlay = true;
-      break;
     case SettingChar.FOG:
       if (!e.repeat) input._toggleFog = true;
       break;
@@ -87,9 +84,6 @@ function detectSettingHotkey(input, e) {
       break;
     case SettingChar.DISTANCE:
       input._nudgeDistance += dir;
-      break;
-    case SettingChar.STEP:
-      input._nudgeStepDivisor += dir;
       break;
     case SettingChar.FOV:
       input._nudgeFov += dir;

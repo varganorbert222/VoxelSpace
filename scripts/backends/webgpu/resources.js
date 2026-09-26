@@ -101,33 +101,8 @@ export function copyTarget(encoder, src, dst, width, height) {
   );
 }
 
-export function copyTargetToLayer(encoder, src, dst, width, height, layer) {
-  encoder.copyTextureToTexture(
-    { texture: src },
-    { texture: dst, origin: { x: 0, y: 0, z: layer } },
-    { width: width, height: height, depthOrArrayLayers: 1 }
-  );
-}
-
-export function createCubeArray(device, size, format) {
-  const n = size < 1 ? 1 : size;
-  return device.createTexture({
-    size: { width: n, height: n, depthOrArrayLayers: 6 },
-    format: format,
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-  });
-}
-
 export function createScreenTarget(device, width, height) {
   return createStorageTarget(device, width, height, "r32uint");
-}
-
-export function createPanoColorTarget(device, width, height) {
-  return createStorageTarget(device, width, height, "r32uint");
-}
-
-export function createPanoDepthTarget(device, width, height) {
-  return createStorageTarget(device, width, height, "r32float");
 }
 
 export function uploadTexels(device, texture, data, width, height, bytesPerTexel, mipLevel) {

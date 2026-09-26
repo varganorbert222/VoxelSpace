@@ -87,12 +87,6 @@ class Input {
     return pressed;
   }
 
-  get consumeToggleDebugOverlay() {
-    const pressed = this._toggleDebugOverlay;
-    this._toggleDebugOverlay = false;
-    return pressed;
-  }
-
   get consumeToggleFog() {
     const pressed = this._toggleFog;
     this._toggleFog = false;
@@ -135,11 +129,6 @@ class Input {
     return n;
   }
 
-  get consumeNudgeStepDivisor() {
-    const n = this._nudgeStepDivisor;
-    this._nudgeStepDivisor = 0;
-    return n;
-  }
 
   get consumeNudgeFov() {
     const n = this._nudgeFov;
@@ -176,7 +165,6 @@ class Input {
     this._toggleRenderAlgorithm = false;
     this._toggleRenderBackend = false;
     this._toggleDebugView = false;
-    this._toggleDebugOverlay = false;
     this._toggleFog = false;
     this._toggleRepeat = false;
     this._toggleThreads = false;
@@ -184,7 +172,6 @@ class Input {
     this._cycleCamera = false;
     this._setQuality = 0;
     this._nudgeDistance = 0;
-    this._nudgeStepDivisor = 0;
     this._nudgeFov = 0;
     this._flyLook = true;
     this._rollEnabled = false;

@@ -5,13 +5,15 @@ import { Color } from "../math/color.js";
 import { isDebugColor } from "../constants/debugView.js";
 
 function voxelKernel(renderer) {
-  if (renderer.showDetails) {
+  const kernels = renderer.kernels;
+  if (!kernels) {
     return renderVoxelTexels;
   }
-  return (
-    (renderer.kernels && renderer.kernels.renderVoxelTexels) ||
-    renderVoxelTexels
-  );
+  const fn = kernels.renderVoxelTexels;
+  if (typeof fn !== "function") {
+    throw new Error("WASM backend missing renderVoxelTexels");
+  }
+  return fn;
 }
 
 function voxelParams(renderer, maps) {
@@ -57,7 +59,6 @@ function voxelParams(renderer, maps) {
     filterDistance: renderer.filterDistance,
     lod0Refine: renderer.lod0Refine ? 1 : 0,
     lod0RefineCurve: renderer.lod0RefineCurve,
-    stepDivisor: renderer.stepDivisor,
     mipCount: renderer.mipCount,
     lodSpacingMode: renderer.lodSpacingMode,
     lodSpacing: renderer.lodSpacing,
@@ -86,10 +87,10 @@ function isVoxelTokenStale(token, renderer) {
     renderer.repeat !== token.repeat ||
     renderer.interpolateHeight !== token.interpolateHeight ||
     renderer.filterColor !== token.filterColor ||
+    renderer.showDetails !== token.showDetails ||
     renderer.filterDistance !== token.filterDistance ||
     renderer.lod0Refine !== token.lod0Refine ||
     renderer.lod0RefineCurve !== token.lod0RefineCurve ||
-    renderer.stepDivisor !== token.stepDivisor ||
     renderer.mipCount !== token.mipCount ||
     renderer.lodSpacingMode !== token.lodSpacingMode ||
     renderer.lodSpacing !== token.lodSpacing ||
@@ -149,14 +150,13 @@ class VoxelRenderer {
       repeat: renderer.repeat,
       interpolateHeight: renderer.interpolateHeight,
       filterColor: renderer.filterColor,
+      showDetails: renderer.showDetails,
       filterDistance: renderer.filterDistance,
       lod0Refine: renderer.lod0Refine,
       lod0RefineCurve: renderer.lod0RefineCurve,
-      stepDivisor: renderer.stepDivisor,
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
       lodSpacing: renderer.lodSpacing,
-      showDetails: renderer.showDetails ? 1 : 0,
       camX: camera.posX,
       camY: camera.posY,
       camZ: camera.posZ,

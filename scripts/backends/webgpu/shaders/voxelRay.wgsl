@@ -93,7 +93,7 @@ struct VoxelColumn {
   colY: i32,
 }
 
-fn voxelColumn(skipMip: i32, ix: i32, iy: i32, cellSize: f32, t: f32) -> VoxelColumn {
+fn voxelColumn(skipMip: i32, ix: i32, iy: i32, cellSize: f32, t: f32, probeZ: f32) -> VoxelColumn {
   let wrap = flagRepeat(frame.mapFlags.w);
   let altitude = frame.tMaxMinDzAltMaxH.z;
   var colX = ix;
@@ -113,12 +113,15 @@ fn voxelColumn(skipMip: i32, ix: i32, iy: i32, cellSize: f32, t: f32) -> VoxelCo
       amp = 1.0;
     }
     hFine = applyLod0RefineHeight(hFine, wx, wy, 0, rm, amp);
-    hFine = hFine + detailHeightBytes(wx, wy, t);
+    let baseWorld = hFine * (altitude / 255.0);
+    hFine = hFine + detailHeightBytesReached(wx, wy, t, baseWorld, probeZ);
     hByte = u32(clamp(hFine + 0.5, 0.0, 255.0));
   } else {
     let wx = (f32(ix) + 0.5) * cellSize;
     let wy = (f32(iy) + 0.5) * cellSize;
-    hFine = f32(terrainHeightAt(heightTex, ix, iy, skipMip, wrap)) + detailHeightBytes(wx, wy, t);
+    hFine = f32(terrainHeightAt(heightTex, ix, iy, skipMip, wrap));
+    let baseWorld = hFine * (altitude / 255.0);
+    hFine = hFine + detailHeightBytesReached(wx, wy, t, baseWorld, probeZ);
     hByte = u32(clamp(hFine + 0.5, 0.0, 255.0));
   }
   var h = hFine * (altitude / 255.0);
@@ -236,7 +239,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let camCell = mipCellSize(0, s0);
   let camIx = i32(floor(cam.x / camCell));
   let camIy = i32(floor(cam.y / camCell));
-  let camCol = voxelColumn(0, camIx, camIy, camCell, s0);
+  let camCol = voxelColumn(0, camIx, camIy, camCell, s0, cam.z);
   let camInside = wrap || ((cam.x >= 0.0) && (cam.x < mapW) && (cam.y >= 0.0) && (cam.y < mapH));
   let hCamByte = camCol.hByte;
   let hCamW = camCol.h;
@@ -348,7 +351,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let zExitV = cam.z + dir.z * sExit;
     let zLo = min(zEnter, zExitV);
     let zHi = max(zEnter, zExitV);
-    let col = voxelColumn(mip, ix, iy, cellSize, s);
+    let col = voxelColumn(mip, ix, iy, cellSize, s, zLo);
     let hMax = col.h;
     let occEps = max(1e-3, max(abs(zEnter), abs(zExitV)) * 1e-5);
     let stepE = max(cellSize * 1e-4, 1e-6);

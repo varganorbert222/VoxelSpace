@@ -49,6 +49,20 @@ static i32 g_lod0_refine;
 static i32 g_step_divisor;
 static f64 g_refine_sw[4];
 
+static i32 g_detail_on;
+static f64 g_detail_ends[5];
+static i32 g_detail_light[3];
+static u8 *g_detail_char;
+static i32 g_detail_char_w;
+static i32 g_detail_char_h;
+static u32 *g_detail_mips[4];
+static u8 *g_detail_pal;
+static f64 g_detail_pack_x;
+static f64 g_detail_pack_y;
+static f64 g_detail_pack_dist;
+static u32 g_detail_pack_val;
+static i32 g_detail_pack_valid;
+
 static f64 *g_tan_min;
 static i32 g_tan_len;
 static i16 *g_yhit;
@@ -473,6 +487,237 @@ WASM_EXPORT void set_fog_range(f64 fog_start) {
   T_FOG_START = fog_start;
 }
 
+WASM_EXPORT void set_detail_maps(
+    i32 char_ptr,
+    i32 char_w,
+    i32 char_h,
+    i32 mip0,
+    i32 mip1,
+    i32 mip2,
+    i32 mip3,
+    i32 pal_ptr) {
+  g_detail_char = char_ptr ? (u8 *)char_ptr : 0;
+  g_detail_char_w = char_w;
+  g_detail_char_h = char_h;
+  g_detail_mips[0] = mip0 ? (u32 *)mip0 : 0;
+  g_detail_mips[1] = mip1 ? (u32 *)mip1 : 0;
+  g_detail_mips[2] = mip2 ? (u32 *)mip2 : 0;
+  g_detail_mips[3] = mip3 ? (u32 *)mip3 : 0;
+  g_detail_pal = pal_ptr ? (u8 *)pal_ptr : 0;
+  g_detail_pack_valid = 0;
+}
+
+WASM_EXPORT void set_detail_frame(
+    i32 show,
+    f64 e0,
+    f64 e1,
+    f64 e2,
+    f64 e3,
+    f64 e4,
+    i32 light_r,
+    i32 light_g,
+    i32 light_b) {
+  g_detail_on = show && g_detail_char && g_detail_mips[0] && g_detail_pal ? 1 : 0;
+  g_detail_ends[0] = e0;
+  g_detail_ends[1] = e1;
+  g_detail_ends[2] = e2;
+  g_detail_ends[3] = e3;
+  g_detail_ends[4] = e4;
+  g_detail_light[0] = light_r;
+  g_detail_light[1] = light_g;
+  g_detail_light[2] = light_b;
+  g_detail_pack_valid = 0;
+}
+
+static i32 detail_wrap_floor(f64 v, i32 size) {
+  i32 n = size;
+  i32 i;
+  if (n <= 0) {
+    return 0;
+  }
+  i = (i32)__builtin_floor(v);
+  i %= n;
+  if (i < 0) {
+    i += n;
+  }
+  return i;
+}
+
+static i32 detail_level_at(f64 dist) {
+  f64 far_end;
+  i32 band;
+  if (!g_detail_on) {
+    return -1;
+  }
+  far_end = g_detail_ends[4];
+  if (!(far_end > 0.0) || dist > far_end) {
+    return -1;
+  }
+  band = 0;
+  while (band < 4 && dist > g_detail_ends[band]) {
+    band = (band + 1) | 0;
+  }
+  if (band <= 1) {
+    return 0;
+  }
+  if (band == 2) {
+    return 1;
+  }
+  if (band == 3) {
+    return 2;
+  }
+  return 3;
+}
+
+static i32 detail_in_range(f64 dist) {
+  return detail_level_at(dist) >= 0;
+}
+
+static f64 detail_elev_max(f64 dist) {
+  return detail_in_range(dist) ? (127.0 / 32.0) : 0.0;
+}
+
+static u32 sample_detail_packed(f64 x, f64 y, f64 dist) {
+  i32 level;
+  i32 subdiv;
+  i32 ix;
+  i32 iy;
+  i32 tile;
+  i32 cx;
+  i32 cy;
+  i32 last;
+  i32 idx;
+  u32 *mip;
+  f64 fx;
+  f64 fy;
+  if (g_detail_pack_valid && x == g_detail_pack_x && y == g_detail_pack_y &&
+      dist == g_detail_pack_dist) {
+    return g_detail_pack_val;
+  }
+  level = detail_level_at(dist);
+  if (level < 0) {
+    g_detail_pack_valid = 0;
+    return 0;
+  }
+  mip = g_detail_mips[level];
+  if (!mip || !g_detail_char) {
+    g_detail_pack_valid = 0;
+    return 0;
+  }
+  ix = detail_wrap_floor(x, g_detail_char_w);
+  iy = detail_wrap_floor(y, g_detail_char_h);
+  tile = g_detail_char[(iy * g_detail_char_w + ix) | 0] | 0;
+  subdiv = 16 >> level;
+  if (subdiv < 1) {
+    subdiv = 1;
+  }
+  fx = x - __builtin_floor(x);
+  fy = y - __builtin_floor(y);
+  last = (subdiv - 1) | 0;
+  cx = (i32)__builtin_floor(fx * (f64)subdiv);
+  cy = (i32)__builtin_floor(fy * (f64)subdiv);
+  if (cx < 0) {
+    cx = 0;
+  }
+  if (cy < 0) {
+    cy = 0;
+  }
+  if (cx > last) {
+    cx = last;
+  }
+  if (cy > last) {
+    cy = last;
+  }
+  idx = ((tile * subdiv + cy) * subdiv + cx) | 0;
+  g_detail_pack_x = x;
+  g_detail_pack_y = y;
+  g_detail_pack_dist = dist;
+  g_detail_pack_val = mip[idx];
+  g_detail_pack_valid = 1;
+  return g_detail_pack_val;
+}
+
+static f64 detail_height_add(f64 x, f64 y, f64 dist) {
+  u32 packed;
+  u32 elev;
+  if (!detail_in_range(dist)) {
+    return 0.0;
+  }
+  packed = sample_detail_packed(x, y, dist);
+  elev = (packed >> 16) & 255u;
+  if (elev < 128u) {
+    return 0.0;
+  }
+  return ((f64)(elev - 128u)) / 32.0;
+}
+
+static i32 detail_shade_byte(i32 base, i32 light, i32 shade) {
+  i32 out;
+  if (shade == 0 || shade == 128) {
+    return base;
+  }
+  out = base;
+  if (shade <= 64) {
+    out = base + ((base * shade) >> 7);
+  } else if (shade < 128) {
+    out = (base * shade) >> 7;
+  } else if (shade < 192) {
+    out = base + (((light - base) * (shade - 128)) >> 7);
+  } else {
+    out = base + (((base - light) * (256 - shade)) >> 7);
+  }
+  if (out < 0) {
+    return 0;
+  }
+  if (out > 255) {
+    return 255;
+  }
+  return out;
+}
+
+static u32 apply_detail(u32 color, f64 x, f64 y, f64 dist) {
+  u32 packed;
+  i32 shade;
+  i32 ci;
+  i32 r;
+  i32 g;
+  i32 b;
+  i32 a;
+  if (!detail_in_range(dist) || !g_detail_pal) {
+    return color;
+  }
+  packed = sample_detail_packed(x, y, dist);
+  shade = (i32)((packed >> 8) & 255u);
+  ci = (i32)(packed & 255u);
+  a = (i32)((color >> (u32)T_SHIFT_A) & (u32)T_CHAN_MASK);
+  if (shade == 0) {
+    if (!ci) {
+      return color;
+    }
+    return ((u32)a << (u32)T_SHIFT_A) |
+           ((u32)g_detail_pal[(ci << 2)] << (u32)T_SHIFT_R) |
+           ((u32)g_detail_pal[(ci << 2) + 1] << (u32)T_SHIFT_G) |
+           (u32)g_detail_pal[(ci << 2) + 2];
+  }
+  r = detail_shade_byte(
+      (i32)((color >> (u32)T_SHIFT_R) & (u32)T_CHAN_MASK),
+      g_detail_light[0],
+      shade);
+  g = detail_shade_byte(
+      (i32)((color >> (u32)T_SHIFT_G) & (u32)T_CHAN_MASK),
+      g_detail_light[1],
+      shade);
+  b = detail_shade_byte(
+      (i32)(color & (u32)T_CHAN_MASK), g_detail_light[2], shade);
+  if (ci) {
+    r = (r >> 1) + ((i32)g_detail_pal[(ci << 2)] >> 1);
+    g = (g >> 1) + ((i32)g_detail_pal[(ci << 2) + 1] >> 1);
+    b = (b >> 1) + ((i32)g_detail_pal[(ci << 2) + 2] >> 1);
+  }
+  return ((u32)a << (u32)T_SHIFT_A) | ((u32)r << (u32)T_SHIFT_R) |
+         ((u32)g << (u32)T_SHIFT_G) | (u32)b;
+}
+
 WASM_EXPORT void set_map_info(
     i32 map_w,
     i32 map_h,
@@ -743,11 +988,8 @@ WASM_EXPORT void classic_columns(
   }
 
   z_start = near_clip;
-  if (deltas[0] > z_start) {
-    z_start = deltas[0];
-  }
-  if (T_MIN_SAMPLE > z_start) {
-    z_start = T_MIN_SAMPLE;
+  if (!(z_start > 0.0)) {
+    z_start = 0.0;
   }
   lod_distances[0] = z_start;
   for (i = 0; i < g_lod_frac_n; i = (i + 1) | 0) {
@@ -864,6 +1106,14 @@ WASM_EXPORT void classic_columns(
             h_byte_sv = height_map[nn_off];
             h_fine = (f64)h_byte_sv;
           }
+          {
+            f64 bump = detail_elev_max(z);
+            f64 y_cap_sdf = cam_z - (h_fine + bump) * g_alt_scale;
+            i32 y_cap = (i32)(y_cap_sdf * z_scale + screen_horizon);
+            if (y_cap < col_hidden) {
+              h_fine += detail_height_add(plx, ply, z);
+            }
+          }
           f64 terrain_height = h_fine * g_alt_scale;
           f64 terrain_sdf = cam_z - terrain_height;
           i32 height_on_screen = (i32)(terrain_sdf * z_scale + screen_horizon);
@@ -899,6 +1149,9 @@ WASM_EXPORT void classic_columns(
                                   1,
                                   nn_off)
                             : color_map[nn_off];
+            if (detail_in_range(z)) {
+              plot_color = apply_detail(plot_color, plx, ply, z);
+            }
             if (apply_fog_t) {
               plot_color = fog_pack(plot_color, fog_t);
             }
@@ -941,532 +1194,7 @@ WASM_EXPORT void classic_columns(
   }
 }
 
-static void fill_sky_slice(u32 *pixels, i32 local_width, i32 height) {
-  i32 y;
-  i32 x;
-  for (y = 0; y < height; y = (y + 1) | 0) {
-    u32 color = (y < g_sky_len) ? g_sky[y] : T_WHITE;
-    i32 row = (y * local_width) | 0;
-    for (x = 0; x < local_width; x = (x + 1) | 0) {
-      pixels[row + x] = color;
-    }
-  }
-}
 
-WASM_EXPORT void pano_columns(
-    i32 start_px,
-    i32 end_px,
-    i32 width,
-    i32 height,
-    f64 cam_x,
-    f64 cam_y,
-    f64 cam_z,
-    f64 t0,
-    f64 step0,
-    f64 step_growth,
-    f64 t_stop,
-    f64 dir_x0,
-    f64 dir_y0,
-    f64 rot_c,
-    f64 rot_s,
-    f64 dh_ground,
-    f64 clip_z,
-    i32 repeat,
-    i32 pixels_ptr,
-    i32 horizon_ptr,
-    i32 depth_ptr,
-    f64 switch_t0,
-    f64 switch_t1,
-    f64 step_cap0,
-    f64 step_cap1,
-    f64 step_cap2,
-    f64 inv0,
-    f64 inv1,
-    f64 inv2,
-    i32 height_ptr,
-    i32 iter_ptr,
-    i32 lerp_height,
-    i32 filter_color) {
-  g_lerp_height = lerp_height ? 1 : 0;
-  g_filter_color = filter_color ? 1 : 0;
-  i32 do_lerp = g_lerp_height;
-  i32 do_filter = g_filter_color;
-  u32 *pixels = (u32 *)pixels_ptr;
-  i32 *horizon = (i32 *)horizon_ptr;
-  float *depth = depth_ptr ? (float *)depth_ptr : 0;
-  u32 *height_buf = height_ptr ? (u32 *)height_ptr : 0;
-  u32 *iter_buf = iter_ptr ? (u32 *)iter_ptr : 0;
-  i32 local_width = (end_px - start_px) | 0;
-  i32 last_row = (height - 1) | 0;
-  f64 tan_last = (g_tan_min && last_row < g_tan_len) ? g_tan_min[last_row] : 0.0;
-  f64 abs_ground = dh_ground < 0.0 ? -dh_ground : dh_ground;
-  f64 dir_x = dir_x0;
-  f64 dir_y = dir_y0;
-  f64 mip_switch_t[3];
-  f64 mip_inv[3];
-  i32 last_mip;
-  i32 px;
-
-  mip_switch_t[0] = switch_t0 > 0.0 ? switch_t0 : 1e300;
-  mip_switch_t[1] = switch_t1 > mip_switch_t[0] ? switch_t1 : 1e300;
-  mip_switch_t[2] = 1e300;
-  mip_inv[0] = inv0;
-  mip_inv[1] = inv1;
-  mip_inv[2] = inv2;
-  last_mip = (g_mip_count - 1) | 0;
-
-  fill_sky_slice(pixels, local_width, height);
-  {
-    i32 nfill = (local_width * height) | 0;
-    if (depth) {
-      __builtin_memset(depth, 0, (unsigned)nfill * sizeof(float));
-    }
-    if (height_buf) {
-      __builtin_memset(height_buf, 0, (unsigned)nfill * sizeof(u32));
-    }
-    if (iter_buf) {
-      __builtin_memset(iter_buf, 0, (unsigned)nfill * sizeof(u32));
-    }
-  }
-
-  for (px = start_px; px < end_px; px = (px + 1) | 0) {
-    i32 local_x = (px - start_px) | 0;
-    i32 H = height;
-    f64 t = t0;
-    f64 step = step0;
-    i32 was_inside = 0;
-    i32 mip = 0;
-    f64 step_cap = step_cap0;
-    f64 t_stop_col = t_stop;
-    i32 k = 0;
-    horizon[local_x] = H;
-
-    while (t < t_stop_col) {
-      i32 sealed;
-      f64 tan_h;
-      f64 wx;
-      f64 wy;
-      k = (k + 1) | 0;
-      if (H == 0) {
-        break;
-      }
-      while ((mip < last_mip) && (mip < 2) && t >= mip_switch_t[mip]) {
-        mip = (mip + 1) | 0;
-        step *= T_MIP_STEP_SCALE;
-        step_cap = mip == 1 ? step_cap1 : step_cap2;
-        if (step_cap > 0.0 && step > step_cap) {
-          step = step_cap;
-        }
-      }
-
-      sealed = (H != height) | 0;
-      tan_h = sealed && H < g_tan_len ? g_tan_min[H] : 0.0;
-      if (sealed) {
-        f64 z_ray = cam_z + t * tan_h;
-        if (tan_h >= 0.0) {
-          if (g_max_height < z_ray - T_EPSILON) {
-            break;
-          }
-          if (tan_h > T_EPSILON) {
-            f64 t_ceil = (g_max_height - cam_z) / tan_h;
-            if (t_ceil < t_stop_col) {
-              t_stop_col = t_ceil;
-            }
-            if (t >= t_stop_col) {
-              break;
-            }
-          } else if (g_max_height < cam_z - T_EPSILON) {
-            break;
-          }
-        } else if (z_ray > g_max_height + T_EPSILON) {
-          f64 t_enter = (g_max_height - cam_z) / tan_h;
-          if (t_enter >= t_stop_col) {
-            break;
-          }
-          if (t_enter > t + T_EPSILON) {
-            t = t_enter;
-            continue;
-          }
-        }
-      }
-
-      wx = cam_x + dir_x * t;
-      wy = cam_y + dir_y * t;
-
-      if (!repeat) {
-        i32 inside = (wx >= 0.0) & (wx < (f64)g_map_w) & (wy >= 0.0) &
-                     (wy < (f64)g_map_h);
-        if (!inside) {
-          if (was_inside) {
-            break;
-          }
-          t += step;
-          step += step_growth;
-          if (step_cap > 0.0 && step > step_cap) {
-            step = step_cap;
-          }
-          if (!(step > 0.0)) {
-            step = step0 > 0.0 ? step0 : 1.0;
-          }
-          continue;
-        }
-        was_inside = 1;
-      }
-
-      {
-        i32 inv_mip = mip > 2 ? 2 : mip;
-        f64 inv = mip_inv[inv_mip];
-        f64 sx = wx * inv;
-        f64 sy = wy * inv;
-        i32 shift = g_mip_sh[mip];
-        i32 wmask = g_mip_wmask[mip];
-        i32 hmask = g_mip_hmask[mip];
-        i32 nn_off =
-            ((((i32)sy & wmask) << shift) + ((i32)sx & hmask)) | 0;
-        u32 h_byte_sv;
-        f64 h_fine;
-        i32 lerp = (mip == 0) && do_lerp &&
-                   (t * (dir_x * g_fwd_x + dir_y * g_fwd_y) <= g_filter_distance);
-        if (lerp) {
-          h_fine = sample_sv_height(
-              g_mip_h[mip],
-              sx,
-              sy,
-              wmask,
-              hmask,
-              shift,
-              repeat,
-              1,
-              &h_byte_sv,
-              &nn_off);
-        } else {
-          h_byte_sv = g_mip_h[mip][nn_off];
-          h_fine = (f64)h_byte_sv;
-        }
-        f64 h = h_fine * g_alt_scale;
-        i32 offset = nn_off;
-        f64 dh;
-        f64 abs_s;
-        f64 s_hat;
-        i32 idx;
-        i32 y_hit;
-        if (sealed && h < cam_z + t * tan_h - T_EPSILON) {
-          t += step;
-          step += step_growth;
-          if (step_cap > 0.0 && step > step_cap) {
-            step = step_cap;
-          }
-          if (!(step > 0.0)) {
-            step = step0 > 0.0 ? step0 : 1.0;
-          }
-          continue;
-        }
-        dh = h - cam_z;
-        abs_s = dh < 0.0 ? -dh : dh;
-        s_hat = dh / (t + abs_s);
-        idx = (i32)((s_hat + 1.0) * T_YHIT_SCALE);
-        if (idx < 0) {
-          idx = 0;
-        }
-        if (idx > T_YHIT_LAST) {
-          idx = T_YHIT_LAST;
-        }
-        y_hit = g_yhit[idx];
-        if (y_hit < 0) {
-          y_hit = 0;
-        }
-        if (y_hit >= height) {
-          y_hit = (height - 1) | 0;
-        }
-        if (y_hit < H) {
-          i32 y_bottom = H;
-          f64 tan_g = dh_ground / t;
-          i32 y_ground;
-          if (tan_g > tan_last) {
-            f64 s_hat_g = dh_ground / (t + abs_ground);
-            i32 g_idx = (i32)((s_hat_g + 1.0) * T_YHIT_SCALE);
-            if (g_idx < 0) {
-              g_idx = 0;
-            }
-            if (g_idx > T_YHIT_LAST) {
-              g_idx = T_YHIT_LAST;
-            }
-            y_ground = g_yhit[g_idx];
-          } else {
-            y_ground = height;
-          }
-          if (y_ground < y_bottom) {
-            y_bottom = y_ground;
-          }
-          if (y_hit < y_bottom) {
-            u32 color =
-                ((mip == 0) && do_filter &&
-                 (t * (dir_x * g_fwd_x + dir_y * g_fwd_y) <= g_filter_distance))
-                    ? sample_sv_color(
-                          g_mip_c[mip],
-                          sx,
-                          sy,
-                          wmask,
-                          hmask,
-                          shift,
-                          repeat,
-                          1,
-                          offset)
-                    : g_mip_c[mip][offset];
-            f64 dist = wasm_sqrt(t * t + dh * dh);
-            i32 y;
-            if (height_buf || iter_buf) {
-              u32 h_byte = height_buf ? h_byte_sv : 0;
-              for (y = y_hit; y < y_bottom; y = (y + 1) | 0) {
-                i32 pix = (y * local_width + local_x) | 0;
-                pixels[pix] = color;
-                if (depth) {
-                  depth[pix] = (float)dist;
-                }
-                if (height_buf) {
-                  height_buf[pix] = h_byte;
-                }
-                if (iter_buf) {
-                  iter_buf[pix] = (u32)k;
-                }
-              }
-            } else {
-              for (y = y_hit; y < y_bottom; y = (y + 1) | 0) {
-                i32 pix = (y * local_width + local_x) | 0;
-                pixels[pix] = color;
-                if (depth) {
-                  depth[pix] = (float)dist;
-                }
-              }
-            }
-          }
-          H = y_hit;
-          horizon[local_x] = H;
-        }
-      }
-
-      t += step;
-      step += step_growth;
-      if (step_cap > 0.0 && step > step_cap) {
-        step = step_cap;
-      }
-      if (!(step > 0.0)) {
-        step = step0 > 0.0 ? step0 : 1.0;
-      }
-    }
-
-    {
-      f64 next_x = dir_x * rot_c + dir_y * rot_s;
-      f64 next_y = dir_y * rot_c - dir_x * rot_s;
-      dir_x = next_x;
-      dir_y = next_y;
-    }
-  }
-  (void)clip_z;
-  (void)width;
-}
-
-static f64 atan2_lut(f64 y, f64 x) {
-  f64 ax = x < 0.0 ? -x : x;
-  f64 ay = y < 0.0 ? -y : y;
-  f64 ang;
-  i32 last = T_ATAN_LAST;
-  if (ay > ax) {
-    if (ay < T_EPSILON) {
-      ang = 0.0;
-    } else {
-      i32 idx = (i32)((ax / ay) * (f64)last);
-      if (idx > last) {
-        idx = last;
-      }
-      ang = T_HALF_PI - g_atan[idx];
-    }
-  } else if (ax < T_EPSILON) {
-    ang = 0.0;
-  } else {
-    i32 idx = (i32)((ay / ax) * (f64)last);
-    if (idx > last) {
-      idx = last;
-    }
-    ang = g_atan[idx];
-  }
-  if (x < 0.0) {
-    ang = T_PI - ang;
-  }
-  if (y < 0.0) {
-    ang = -ang;
-  }
-  return ang;
-}
-
-static i32 yhit_from_hat(f64 s_hat, i16 *table) {
-  i32 idx = (i32)((s_hat + 1.0) * T_YHIT_SCALE);
-  if (idx < 0) {
-    idx = 0;
-  }
-  if (idx > T_YHIT_LAST) {
-    idx = T_YHIT_LAST;
-  }
-  return table[idx];
-}
-
-WASM_EXPORT void pano_view_columns(
-    i32 start_column,
-    i32 end_column,
-    i32 screen_width,
-    i32 screen_height,
-    i32 pano_w,
-    i32 pano_h,
-    f64 fov_y,
-    f64 dst_to_proj,
-    f64 tan_half_y_in,
-    f64 near_clip,
-    f64 far_clip,
-    i32 apply_fog,
-    i32 fill_unfilled,
-    i32 pixels_ptr,
-    i32 pixel_width,
-    i32 pano_ptr,
-    i32 depth_ptr,
-    f64 right_x,
-    f64 right_y,
-    f64 right_z,
-    f64 up_x,
-    f64 up_y,
-    f64 up_z,
-    f64 fwd_x,
-    f64 fwd_y,
-    f64 fwd_z,
-    i32 height_ptr,
-    i32 iter_ptr,
-    i32 debug_view) {
-  u32 *pixels = (u32 *)pixels_ptr;
-  u32 *panorama = (u32 *)pano_ptr;
-  float *depth_buf = (float *)depth_ptr;
-  u32 *height_buf = height_ptr ? (u32 *)height_ptr : 0;
-  u32 *iter_buf = iter_ptr ? (u32 *)iter_ptr : 0;
-  i32 debug = debug_view | 0;
-  i32 stride = pixel_width;
-  i32 pano_last = (pano_h - 1) | 0;
-  i32 sy;
-  f64 aspect = (f64)screen_width / (f64)screen_height;
-  f64 tan_half_y = tan_half_y_in;
-  f64 tan_half_x;
-  f64 inv_w;
-  f64 inv_h;
-  f64 fog_range;
-  f64 inv_fog;
-  i32 use_fog;
-  f64 d_cam_x;
-  f64 cam_x0;
-  f64 px_scale;
-  f64 rdx;
-  f64 rdy;
-  f64 rdz;
-  (void)fov_y;
-  (void)dst_to_proj;
-
-  if (fill_unfilled) {
-    i32 n = (((end_column - start_column) | 0) * screen_height) | 0;
-    i32 i;
-    for (i = 0; i < n; i = (i + 1) | 0) {
-      pixels[i] = T_UNFILLED;
-    }
-  }
-
-  if (!(tan_half_y > 0.0) && dst_to_proj > 0.0) {
-    tan_half_y = ((f64)screen_height * T_HALF) / dst_to_proj;
-  }
-  tan_half_x = tan_half_y * aspect;
-  inv_w = 1.0 / (f64)screen_width;
-  inv_h = 1.0 / (f64)screen_height;
-  fog_range = far_clip - T_FOG_START;
-  inv_fog = fog_range == 0.0 ? 0.0 : 1.0 / fog_range;
-  use_fog = apply_fog | 0;
-  d_cam_x = T_NDC_SCALE * tan_half_x * inv_w;
-  cam_x0 = (((f64)start_column + T_PIXEL_CENTER) * inv_w * T_NDC_SCALE - 1.0) *
-           tan_half_x;
-  px_scale = (f64)pano_w * T_INV_TWO_PI;
-  rdx = right_x * d_cam_x;
-  rdy = right_y * d_cam_x;
-  rdz = right_z * d_cam_x;
-
-  for (sy = 0; sy < screen_height; sy = (sy + 1) | 0) {
-    f64 cam_y = (1.0 - ((f64)sy + T_PIXEL_CENTER) * inv_h * T_NDC_SCALE) * tan_half_y;
-    i32 row = (sy * stride) | 0;
-    f64 view_len2_base = cam_y * cam_y + 1.0;
-    f64 cam_x = cam_x0;
-    f64 dx = right_x * cam_x0 + up_x * cam_y + fwd_x;
-    f64 dy = right_y * cam_x0 + up_y * cam_y + fwd_y;
-    f64 dz = right_z * cam_x0 + up_z * cam_y + fwd_z;
-    i32 sx;
-    i32 local_x;
-    for (sx = start_column, local_x = 0; sx < end_column;
-         sx = (sx + 1) | 0, local_x = (local_x + 1) | 0) {
-      f64 inv_view_len = 1.0 / wasm_sqrt(cam_x * cam_x + view_len2_base);
-      i32 py = yhit_from_hat(dz * inv_view_len, g_yhit_sin);
-      f64 theta;
-      i32 px;
-      i32 dest;
-      i32 pano_idx;
-      float dist;
-      if (py < 0) {
-        py = 0;
-      }
-      if (py > pano_last) {
-        py = pano_last;
-      }
-      theta = atan2_lut(-dx, -dy);
-      px = (i32)(theta * px_scale + (f64)pano_w);
-      if (px >= pano_w) {
-        px = (px - pano_w) | 0;
-      }
-      if (px < 0) {
-        px = (px + pano_w) | 0;
-      }
-      dest = (row + local_x) | 0;
-      pano_idx = (py * pano_w + px) | 0;
-      dist = depth_buf[pano_idx];
-      if (debug) {
-        f64 view_z = (f64)dist * inv_view_len;
-        u32 h_byte = height_buf ? height_buf[pano_idx] : 0;
-        u32 it = iter_buf ? iter_buf[pano_idx] : 0;
-        if (debug == DEBUG_HEIGHT) {
-          pixels[dest] = dist <= 0.0f ? pack_named(0, 0, 0) : encode_height(h_byte);
-        } else if (debug == DEBUG_DEPTH) {
-          pixels[dest] =
-              dist <= 0.0f ? pack_named(0, 0, 0)
-                           : encode_unit(far_clip > 0.0 ? view_z / far_clip : 0.0);
-        } else {
-          pixels[dest] = encode_iter((i32)it);
-        }
-      } else if (dist <= 0.0f) {
-        pixels[dest] = panorama[pano_idx];
-      } else {
-        f64 view_z = (f64)dist * inv_view_len;
-        if (((use_fog ^ 1) | 0) & ((view_z >= far_clip) | (view_z < near_clip))) {
-          pixels[dest] = (py < g_sky_len) ? g_sky[py] : T_WHITE;
-        } else if (use_fog) {
-          f64 fog_t =
-              fog_range == 0.0 ? T_FOG_SAT : (view_z - T_FOG_START) * inv_fog;
-          if (fog_t >= T_FOG_SAT) {
-            pixels[dest] = T_WHITE;
-          } else if (fog_t > 0.0) {
-            pixels[dest] = fog_pack(panorama[pano_idx], fog_t);
-          } else {
-            pixels[dest] = panorama[pano_idx];
-          }
-        } else {
-          pixels[dest] = panorama[pano_idx];
-        }
-      }
-      cam_x += d_cam_x;
-      dx += rdx;
-      dy += rdy;
-      dz += rdz;
-    }
-  }
-}
 
 #define FS_DRIFT_SPAN_TEXELS 1.0
 #define FS_ROW_LIMIT 1.0e9
@@ -1478,6 +1206,8 @@ static u32 fs_terrain_color(
     u32 *color_map,
     f64 plx,
     f64 ply,
+    f64 world_x,
+    f64 world_y,
     i32 offset,
     i32 use_fine,
     i32 do_filter,
@@ -1513,6 +1243,9 @@ static u32 fs_terrain_color(
              ? sample_sv_color(
                    color_map, plx, ply, wmask, hmask, shift, wrap, 1, offset)
              : color_map[offset];
+  if (detail_in_range(z)) {
+    plot = apply_detail(plot, world_x, world_y, z);
+  }
   if (apply_fog_t) {
     plot = fog_pack(plot, fog_t);
   }
@@ -1622,11 +1355,8 @@ WASM_EXPORT void frustum_space_columns(
     deltas[i + 1] = g_lod_deltas[i];
   }
   z_start = near_clip;
-  if (deltas[0] > z_start) {
-    z_start = deltas[0];
-  }
-  if (T_MIN_SAMPLE > z_start) {
-    z_start = T_MIN_SAMPLE;
+  if (!(z_start > 0.0)) {
+    z_start = 0.0;
   }
   lod_distances[0] = z_start;
   for (i = 0; i < g_lod_frac_n; i = (i + 1) | 0) {
@@ -1742,6 +1472,12 @@ WASM_EXPORT void frustum_space_columns(
         h_fine = sample_sv_height(
             lod_height_map, wx * lod_scale, wy * lod_scale, lod_w_mask, lod_h_mask,
             lod_shift, wrap, fine_lerp, &h_byte, &nn_off);
+        {
+          f64 bump = detail_elev_max(t) * g_alt_scale;
+          if (wz < h_fine * g_alt_scale + bump) {
+            h_fine += detail_height_add(wx, wy, t);
+          }
+        }
         if (sample_ok) {
           g_sample_n[local_i] = (g_sample_n[local_i] + 1) | 0;
         }
@@ -1758,9 +1494,9 @@ WASM_EXPORT void frustum_space_columns(
           fog_white = use_fog & (fog_t >= T_FOG_SAT);
           apply_fog_t = use_fog & (fog_t > 0.0) & (fog_white ^ 1);
           plot = fs_terrain_color(
-              lod_color_map, wx * lod_scale, wy * lod_scale, nn_off, use_fine ? 1 : 0,
-              do_filter, wrap, lod_w_mask, lod_h_mask, lod_shift, t, far_clip, fog_t,
-              fog_white, apply_fog_t, debug, h_byte,
+              lod_color_map, wx * lod_scale, wy * lod_scale, wx, wy, nn_off,
+              use_fine ? 1 : 0, do_filter, wrap, lod_w_mask, lod_h_mask, lod_shift,
+              t, far_clip, fog_t, fog_white, apply_fog_t, debug, h_byte,
               sample_ok ? g_sample_n[local_i] : guard);
           pixels[(sy * stride + local_i) | 0] = plot;
           sy = (sy - 1) | 0;

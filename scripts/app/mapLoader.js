@@ -139,7 +139,6 @@ export function loadMap(app, mapName) {
     if (app.radar) {
       app.radar.invalidate();
     }
-    app.renderer.invalidatePanorama();
     app.camera.set({
       topColor: app.terrain.skyColor,
       bottomColor: app.terrain.horizonColor,

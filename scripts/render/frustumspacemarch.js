@@ -1,8 +1,8 @@
 ﻿"use strict";
 
 import { Color } from "../math/color.js";
-import { useRetailFrame } from "./retail/schedule.js";
-import { applyDetail, detailHeightAdd, detailInRange } from "./retail/detail.js";
+import { useRetailFrame, retailLodSteps } from "./retail/schedule.js";
+import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import {
   CHANNEL_MASK,
   CHANNEL_MAX,
@@ -30,7 +30,6 @@ import {
   bandMarchStep,
   fitBandStep,
   growBandStep,
-  bandSteps,
   fillClassicLodDistances,
   firstBandT,
   lod0RefineAt,
@@ -47,7 +46,7 @@ import {
 } from "../constants/quality.js";
 
 // One ray per column, matching the retail terrain pass. LOD cell size sets
-// the step; Step divides it. On a heightfield hit the row is painted, the
+// the step; Quality divides the retail band step. On a heightfield hit the row is painted, the
 // ray rewinds one step, and the row cursor moves up. The next test continues
 // from that point. A miss only advances the ray. Spec is Y-up; this project
 // is Z-up (X, Y map, Z altitude).
@@ -239,7 +238,6 @@ export function renderFrustumSpaceColumns({
   filterColor,
   filterDistance = FILTER_DISTANCE_DEFAULT,
   mipCount = TERRAIN_MIP_MAX_COUNT,
-  stepDivisor,
   lodSpacingMode,
   lodSpacing,
   pixels,
@@ -297,8 +295,8 @@ export function renderFrustumSpaceColumns({
   );
   const deltas = deltasScratch;
   const bandCount = Math.max(1, Math.min(TERRAIN_MIP_MAX_COUNT, mips.count | 0));
-  bandSteps(bandCount, stepDivisor, deltas);
-  const zStart = firstBandT(nearClip, deltas);
+  retailLodSteps(bandCount, farClip, deltas);
+  const zStart = firstBandT(nearClip);
   const lodDistances = lodDistancesScratch;
   const switches = mipSwitchDistances(
     bandCount,
@@ -450,7 +448,8 @@ export function renderFrustumSpaceColumns({
             wrap
           )
         : nearestH;
-      if (detailInRange(t)) {
+      const bump = detailElevMax(t) * altScale;
+      if (wz < hFine * altScale + bump) {
         hFine += detailHeightAdd(wx, wy, t);
       }
       if (countIter) {

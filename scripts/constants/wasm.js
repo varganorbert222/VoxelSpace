@@ -13,8 +13,6 @@ export const WASM_EXPORT_SET_TUNABLES = "set_tunables";
 export const WASM_EXPORT_SET_FOG_RANGE = "set_fog_range";
 export const WASM_EXPORT_CLASSIC_COLUMNS = "classic_columns";
 export const WASM_EXPORT_FRUSTUM_SPACE_COLUMNS = "frustum_space_columns";
-export const WASM_EXPORT_PANO_COLUMNS = "pano_columns";
-export const WASM_EXPORT_PANO_VIEW_COLUMNS = "pano_view_columns";
 export const WASM_EXPORT_MEMORY = "memory";
 
 export const WASM_ALIGN = 8;

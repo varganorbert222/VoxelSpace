@@ -6,15 +6,15 @@ import { isDebugColor } from "../constants/debugView.js";
 import { canShareBuffers, ensureU32 } from "./sharedBuffers.js";
 
 function frustumSpaceKernel(renderer) {
-  if (renderer.showDetails) {
+  const kernels = renderer.kernels;
+  if (!kernels) {
     return renderFrustumSpaceColumns;
   }
-  return (
-    (!renderer.useJsFrustumSpace &&
-      renderer.kernels &&
-      renderer.kernels.renderFrustumSpaceColumns) ||
-    renderFrustumSpaceColumns
-  );
+  const fn = kernels.renderFrustumSpaceColumns;
+  if (typeof fn !== "function") {
+    throw new Error("WASM backend missing renderFrustumSpaceColumns");
+  }
+  return fn;
 }
 
 function frustumSpaceParams(renderer, maps) {
@@ -69,7 +69,6 @@ function frustumSpaceParams(renderer, maps) {
     filterColor: renderer.filterColor ? 1 : 0,
     filterDistance: renderer.filterDistance,
     mipCount: renderer.mipCount,
-    stepDivisor: renderer.stepDivisor,
     lodSpacingMode: renderer.lodSpacingMode,
     lodSpacing: renderer.lodSpacing,
     panoMips: maps.panoMips,
@@ -93,9 +92,9 @@ function isFrustumSpaceTokenStale(token, renderer) {
     renderer.repeat !== token.repeat ||
     renderer.interpolateHeight !== token.interpolateHeight ||
     renderer.filterColor !== token.filterColor ||
+    renderer.showDetails !== token.showDetails ||
     renderer.filterDistance !== token.filterDistance ||
     renderer.mipCount !== token.mipCount ||
-    renderer.stepDivisor !== token.stepDivisor ||
     renderer.lodSpacingMode !== token.lodSpacingMode ||
     renderer.lodSpacing !== token.lodSpacing ||
     camera.minDeltaZ !== token.minDeltaZ ||
@@ -185,9 +184,9 @@ class FrustumSpaceRenderer {
       repeat: renderer.repeat,
       interpolateHeight: renderer.interpolateHeight,
       filterColor: renderer.filterColor,
+      showDetails: renderer.showDetails,
       filterDistance: renderer.filterDistance,
       mipCount: renderer.mipCount,
-      stepDivisor: renderer.stepDivisor,
       lodSpacingMode: renderer.lodSpacingMode,
       lodSpacing: renderer.lodSpacing,
       minDeltaZ: camera.minDeltaZ,
@@ -230,7 +229,7 @@ class FrustumSpaceRenderer {
 
   async render(terrain) {
     const renderer = this._renderer;
-    if (renderer.useWorkers() && !renderer.useJsFrustumSpace) {
+    if (renderer.useWorkers()) {
       const ok = await this.renderMulti(terrain);
       if (ok) {
         renderer.writeToContext();

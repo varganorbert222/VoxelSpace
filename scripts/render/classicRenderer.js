@@ -6,13 +6,15 @@ import { isDebugColor } from "../constants/debugView.js";
 import { canShareBuffers, ensureU32 } from "./sharedBuffers.js";
 
 function classicKernel(renderer) {
-  if (renderer.showDetails) {
+  const kernels = renderer.kernels;
+  if (!kernels) {
     return renderClassicColumns;
   }
-  return (
-    (renderer.kernels && renderer.kernels.renderClassicColumns) ||
-    renderClassicColumns
-  );
+  const fn = kernels.renderClassicColumns;
+  if (typeof fn !== "function") {
+    throw new Error("WASM backend missing renderClassicColumns");
+  }
+  return fn;
 }
 
 function classicParams(renderer, maps) {
@@ -56,7 +58,6 @@ function classicParams(renderer, maps) {
     filterColor: renderer.filterColor ? 1 : 0,
     lod0Refine: renderer.lod0Refine ? 1 : 0,
     lod0RefineCurve: renderer.lod0RefineCurve,
-    stepDivisor: renderer.stepDivisor,
     filterDistance: renderer.filterDistance,
     panoMips: maps.panoMips,
     terrainMips: maps.terrainMips || maps.panoMips,
@@ -83,9 +84,9 @@ function isClassicTokenStale(token, renderer) {
     renderer.repeat !== token.repeat ||
     renderer.interpolateHeight !== token.interpolateHeight ||
     renderer.filterColor !== token.filterColor ||
+    renderer.showDetails !== token.showDetails ||
     renderer.lod0Refine !== token.lod0Refine ||
     renderer.lod0RefineCurve !== token.lod0RefineCurve ||
-    renderer.stepDivisor !== token.stepDivisor ||
     renderer.filterDistance !== token.filterDistance ||
     renderer.mipCount !== token.mipCount ||
     renderer.lodSpacingMode !== token.lodSpacingMode ||
@@ -164,9 +165,9 @@ class ClassicRenderer {
       repeat: renderer.repeat,
       interpolateHeight: renderer.interpolateHeight,
       filterColor: renderer.filterColor,
+      showDetails: renderer.showDetails,
       lod0Refine: renderer.lod0Refine,
       lod0RefineCurve: renderer.lod0RefineCurve,
-      stepDivisor: renderer.stepDivisor,
       filterDistance: renderer.filterDistance,
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,

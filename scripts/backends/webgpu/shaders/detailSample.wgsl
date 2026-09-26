@@ -57,6 +57,23 @@ fn detailHeightBytes(wx: f32, wy: f32, dist: f32) -> f32 {
   return f32(elev - 128u) / 32.0;
 }
 
+// Retail skips the detail map until the coarse height says the sample can
+// meet the surface. A bump is at most (255 - 128) / 32 height bytes.
+fn detailElevMaxBytes(dist: f32) -> f32 {
+  if (detailLevelAt(dist) < 0) {
+    return 0.0;
+  }
+  return 127.0 / 32.0;
+}
+
+fn detailHeightBytesReached(wx: f32, wy: f32, dist: f32, baseWorld: f32, probeZ: f32) -> f32 {
+  let cap = baseWorld + detailElevMaxBytes(dist) * (frame.tMaxMinDzAltMaxH.z / 255.0);
+  if (probeZ > cap) {
+    return 0.0;
+  }
+  return detailHeightBytes(wx, wy, dist);
+}
+
 fn detailShadeByte(base: i32, light: i32, shade: i32) -> i32 {
   if (shade == 0 || shade == 128) {
     return base;

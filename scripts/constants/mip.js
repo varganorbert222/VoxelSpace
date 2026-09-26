@@ -13,9 +13,6 @@ export const LOD0_REFINE_SUBDIV_MIN = 1;
 export const LOD0_REFINE_MIP_COUNT = 5;
 export const LOD0_REFINE_SWITCH_COUNT = LOD0_REFINE_MIP_COUNT - 1;
 export const LOD0_REFINE_CELL = 1 / LOD0_REFINE_SUBDIV;
-export const STEP_DIVISOR_MIN = 1;
-export const STEP_DIVISOR_MAX = 5;
-export const STEP_DIVISOR_DEFAULT = 3;
 export const LOD0_REFINE_NOISE_AMPLITUDE = 1;
 export const MARCH_MAX_STEPS = 16384;
 export const LOD0_REFINE_MAX_STEPS = 65536;
@@ -146,20 +143,6 @@ export function marchCellSize(mip, refine, refineMip) {
     return refine ? lod0RefineCellSize(refineMip) : 1;
   }
   return mipVoxelSize(mip);
-}
-
-export function clampStepDivisor(value) {
-  let n = Math.round(Number(value));
-  if (!(n >= STEP_DIVISOR_MIN)) {
-    n = STEP_DIVISOR_DEFAULT;
-  }
-  if (n < STEP_DIVISOR_MIN) {
-    n = STEP_DIVISOR_MIN;
-  }
-  if (n > STEP_DIVISOR_MAX) {
-    n = STEP_DIVISOR_MAX;
-  }
-  return n;
 }
 
 export function mixNearestBilinear(nearest, bilinear, fade) {
@@ -471,29 +454,12 @@ export function mipSwitchDistances(mipCount, farClip, out, mode, spacing, capLod
   return finalizeLodSwitches(dest, switchN, far);
 }
 
-// One step per LOD. The mip cell sets the length (1 m, then 2, 4, 8, …).
-// Step divides that cell, so a higher Step samples the same LOD more densely.
-export function bandSteps(bandCount, divisor, out) {
-  const n = clampMipCount(bandCount);
-  const dest = out || new Float64Array(n);
-  const d = clampStepDivisor(divisor);
-  for (let i = 0; (i < n) | 0; i = (i + 1) | 0) {
-    dest[i] = mipVoxelSize(i) / d;
-  }
-  return dest;
-}
-
-export function firstBandT(nearClip, steps) {
+// March start distance. Always the camera near plane — band step / Quality
+// only set stride, never the first sample.
+export function firstBandT(nearClip) {
   let t = Number(nearClip);
   if (!(t > 0)) {
     t = 0;
-  }
-  const s0 = steps && steps[0] > 0 ? steps[0] : MIN_SAMPLE_DISTANCE;
-  if (s0 > t) {
-    t = s0;
-  }
-  if (MIN_SAMPLE_DISTANCE > t) {
-    t = MIN_SAMPLE_DISTANCE;
   }
   return t;
 }

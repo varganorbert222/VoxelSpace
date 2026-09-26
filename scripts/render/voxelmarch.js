@@ -2,7 +2,7 @@
 
 import { Color } from "../math/color.js";
 import { useRetailFrame } from "./retail/schedule.js";
-import { applyDetail, detailHeightAdd, detailInRange } from "./retail/detail.js";
+import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import ColorPalette from "../math/colorPalette.js";
 import {
   CHANNEL_MASK,
@@ -18,11 +18,13 @@ import {
 } from "../constants/framebuffer.js";
 import { HEIGHTMAP_MAX, GROUND_HEIGHT } from "../constants/terrain.js";
 import { FOG_SATURATED } from "../constants/quality.js";
-import { DEG_TO_RAD, EPSILON, HALF } from "../constants/vmath.js";
 import {
-  PIXEL_CENTER,
+  DEG_TO_RAD,
+  EPSILON,
+  HALF,
   NDC_SCALE,
-} from "../constants/panoramaViewer.js";
+  PIXEL_CENTER,
+} from "../constants/vmath.js";
 import { isDebugColor } from "../constants/debugView.js";
 import { encodeCameraSample } from "./debugEncode.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
@@ -315,7 +317,6 @@ export function renderVoxelTexels({
   mipCount,
   lod0Refine,
   lod0RefineCurve,
-  stepDivisor,
   lodSpacingMode,
   lodSpacing,
   quality = 1,
@@ -406,7 +407,7 @@ export function renderVoxelTexels({
     };
   }
 
-  function columnAt(ix, iy, skipMip, cellSize, t) {
+  function columnAt(ix, iy, skipMip, cellSize, t, probeZ) {
     if ((skipMip | 0) <= 0) {
       const wx = (ix + HALF) * cellSize;
       const wy = (iy + HALF) * cellSize;
@@ -433,7 +434,8 @@ export function renderVoxelTexels({
         refineMip,
         LOD0_REFINE_NOISE_AMPLITUDE
       );
-      if (detailInRange(t)) {
+      const bump = detailElevMax(t) * altScale;
+      if (probeZ <= hFine * altScale + bump) {
         hFine += detailHeightAdd(wx, wy, t);
       }
       let h = hFine * altScale;
@@ -460,7 +462,11 @@ export function renderVoxelTexels({
         (mips.widths[skipMip] - 1) | 0,
         (mips.heights[skipMip] - 1) | 0,
         wrap
-      ) + (detailInRange(t) ? detailHeightAdd(wx, wy, t) : 0);
+      );
+    const bump = detailElevMax(t) * altScale;
+    if (probeZ <= hFine * altScale + bump) {
+      hFine += detailHeightAdd(wx, wy, t);
+    }
     let hByte = (hFine + HALF) | 0;
     if ((hByte < 0) | 0) {
       hByte = 0;
@@ -569,7 +575,7 @@ export function renderVoxelTexels({
     const camCell = marchCellSize(0, camRefine, camRefineMip);
     const camIx = Math.floor(camX / camCell) | 0;
     const camIy = Math.floor(camY / camCell) | 0;
-    const camCol = columnAt(camIx, camIy, 0, camCell, s0);
+    const camCol = columnAt(camIx, camIy, 0, camCell, s0, camZ);
     const hCam = camCol.hByte;
     const hCamW = camCol.h;
     const camInsideMap =
@@ -673,7 +679,7 @@ export function renderVoxelTexels({
       const zExitV = camZ + dirZ * sExit;
       const zLo = zEnter < zExitV ? zEnter : zExitV;
       const zHi = zEnter > zExitV ? zEnter : zExitV;
-      const col = columnAt(ix, iy, mip, cellSize, s);
+      const col = columnAt(ix, iy, mip, cellSize, s, zLo);
       const hMax = col.h;
       if (zHi < GROUND_HEIGHT) {
         s = sExit;

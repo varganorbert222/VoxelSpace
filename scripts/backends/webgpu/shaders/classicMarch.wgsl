@@ -16,7 +16,6 @@ fn classicSampleHeight(plx: f32, ply: f32, mip: i32, lerp: bool, z: f32) -> vec2
   if (altitude > 0.0) {
     hFine = sampled.x * (255.0 / altitude);
   }
-  hFine = hFine + detailHeightBytes(plx, ply, z);
   return vec2f(hFine, clamp(hFine + 0.5, 0.0, 255.0));
 }
 
@@ -130,14 +129,26 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         if (isOk && (ceilingOnScreen < colHidden)) {
           let useFine = mip == 0;
           let sampled = classicSampleHeight(plx, ply, mip, flagHeightLerp(flags) && useFine, z);
-          let hByte = u32(sampled.y);
-          let terrainHeight = sampled.x * altScale;
+          var hFine = sampled.x;
+          let spanFar = mipSpanFarT(z, step, plx, ply, dirX, dirY, mip);
+          let yCap = projectSdfYSpan(
+            camZ - (hFine + detailElevMaxBytes(z)) * altScale,
+            dst,
+            z,
+            spanFar,
+            screenHorizon
+          );
+          if (yCap < colHidden) {
+            hFine = hFine + detailHeightBytes(plx, ply, z);
+          }
+          let hByte = u32(clamp(hFine + 0.5, 0.0, 255.0));
+          let terrainHeight = hFine * altScale;
           let terrainSdf = camZ - terrainHeight;
           let heightOnScreen = projectSdfYSpan(
             terrainSdf,
             dst,
             z,
-            mipSpanFarT(z, step, plx, ply, dirX, dirY, mip),
+            spanFar,
             screenHorizon
           );
           var heightOnScreenBottom = colHidden;
@@ -145,28 +156,28 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
             heightOnScreenBottom = groundOnScreen;
           }
           sampleN = sampleN + 1u;
-          var plot = vec4f(1.0);
-          var plotPacked = packRgba(plot);
-          if (debugView != DEBUG_COLOR) {
-            if (debugView == DEBUG_HEIGHT) {
-              plotPacked = encodeHeight(hByte);
-            } else if (debugView == DEBUG_DEPTH) {
-              var t = 0.0;
-              if (farClip > 0.0) {
-                t = z / farClip;
-              }
-              plotPacked = encodeUnit(t);
-            } else {
-              plotPacked = encodeIter(sampleN);
-            }
-          } else if (!fogWhite) {
-            plot = classicSampleColor(plx, ply, mip, flagColorFilter(flags) && useFine, z);
-            if (applyFogT) {
-              plot = fogRgb(plot, fogT);
-            }
-            plotPacked = packRgba(plot);
-          }
           if (heightOnScreen < colHidden) {
+            var plot = vec4f(1.0);
+            var plotPacked = packRgba(plot);
+            if (debugView != DEBUG_COLOR) {
+              if (debugView == DEBUG_HEIGHT) {
+                plotPacked = encodeHeight(hByte);
+              } else if (debugView == DEBUG_DEPTH) {
+                var t = 0.0;
+                if (farClip > 0.0) {
+                  t = z / farClip;
+                }
+                plotPacked = encodeUnit(t);
+              } else {
+                plotPacked = encodeIter(sampleN);
+              }
+            } else if (!fogWhite) {
+              plot = classicSampleColor(plx, ply, mip, flagColorFilter(flags) && useFine, z);
+              if (applyFogT) {
+                plot = fogRgb(plot, fogT);
+              }
+              plotPacked = packRgba(plot);
+            }
             var ytop = heightOnScreen;
             if (ytop < 0) {
               ytop = 0;

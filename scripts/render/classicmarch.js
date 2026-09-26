@@ -1,8 +1,8 @@
 "use strict";
 
 import { Color } from "../math/color.js";
-import { useRetailFrame } from "./retail/schedule.js";
-import { applyDetail, detailHeightAdd, detailInRange } from "./retail/detail.js";
+import { useRetailFrame, retailLodSteps } from "./retail/schedule.js";
+import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import {
   CHANNEL_MASK,
   CHANNEL_MAX,
@@ -28,7 +28,6 @@ import {
 } from "../constants/quality.js";
 import {
   TERRAIN_MIP_MAX_COUNT,
-  bandSteps,
   fitBandStep,
   growBandStep,
   fillClassicLodDistances,
@@ -88,8 +87,8 @@ function setupClassicLod(params) {
   );
   const bandCount = mips.count;
   const refine = !!params.lod0Refine;
-  const steps = bandSteps(bandCount, params.stepDivisor, bandStepsScratch);
-  const zStart = firstBandT(params.nearClip, steps);
+  const steps = retailLodSteps(bandCount, params.farClip, bandStepsScratch);
+  const zStart = firstBandT(params.nearClip);
   const switches = mipSwitchDistances(
     bandCount,
     params.farClip,
@@ -284,7 +283,6 @@ function renderClassicColumnsSampled({
   filterColor,
   lod0Refine,
   lod0RefineCurve,
-  stepDivisor,
   filterDistance = FILTER_DISTANCE_DEFAULT,
   pixels,
   pixelWidth,
@@ -331,7 +329,6 @@ function renderClassicColumnsSampled({
     lodSpacing: lodSpacing,
     lod0Refine: lod0Refine,
     lod0RefineCurve: lod0RefineCurve,
-    stepDivisor: stepDivisor,
   });
   const mips = lodState.mips;
   const bandCount = lodState.bandCount;
@@ -488,7 +485,24 @@ function renderClassicColumnsSampled({
             useRm,
             ease.noiseAmp
           );
-          if (detailInRange(z)) {
+          const yCap = classicProjectedY(
+            camZ - (hFine + detailElevMax(z)) * altScale,
+            dstToProjPlane,
+            z,
+            step,
+            plx,
+            ply,
+            i,
+            kLeftX,
+            kLeftY,
+            kDx,
+            kDy,
+            useMip,
+            screenHorizon,
+            useRefine,
+            useRm
+          );
+          if ((yCap < colHidden) | 0) {
             hFine += detailHeightAdd(plx, ply, z);
           }
           const hByte = heightByteFromFine(hFine);
@@ -519,33 +533,23 @@ function renderClassicColumnsSampled({
             }
           }
 
-          let plotColor = Color.WHITE;
-          if (debug) {
-            if (countIter) {
-              sampleN[localI] = (sampleN[localI] + 1) | 0;
-            }
-            if (debugView === DEBUG_VIEW_HEIGHT) {
-              plotColor = encodeHeight(hByte);
-            } else if (debugView === DEBUG_VIEW_DEPTH) {
-              plotColor = encodeUnit(farClip > 0 ? z / farClip : 0);
-            } else if (countIter) {
-              plotColor = encodeIter(sampleN[localI]);
-            }
-          } else if (!fogWhite) {
-            plotColor = doFilter
-              ? ease.filterFade >= 1
-                ? sampleColorFiltered(
-                    useColor,
-                    sx,
-                    sy,
-                    useShift,
-                    useWMask,
-                    useHMask,
-                    repeat | 0
-                  )
-                : lerpPacked(
-                    useColor[offset],
-                    sampleColorFiltered(
+          if ((heightOnScreen < colHidden) | 0) {
+            let plotColor = Color.WHITE;
+            if (debug) {
+              if (countIter) {
+                sampleN[localI] = (sampleN[localI] + 1) | 0;
+              }
+              if (debugView === DEBUG_VIEW_HEIGHT) {
+                plotColor = encodeHeight(hByte);
+              } else if (debugView === DEBUG_VIEW_DEPTH) {
+                plotColor = encodeUnit(farClip > 0 ? z / farClip : 0);
+              } else if (countIter) {
+                plotColor = encodeIter(sampleN[localI]);
+              }
+            } else if (!fogWhite) {
+              plotColor = doFilter
+                ? ease.filterFade >= 1
+                  ? sampleColorFiltered(
                       useColor,
                       sx,
                       sy,
@@ -553,27 +557,36 @@ function renderClassicColumnsSampled({
                       useWMask,
                       useHMask,
                       repeat | 0
-                    ),
-                    (ease.filterFade * 256) | 0
-                  )
-              : useColor[offset];
-            if (detailInRange(z)) {
-              plotColor = applyDetail(plotColor, plx, ply, z);
+                    )
+                  : lerpPacked(
+                      useColor[offset],
+                      sampleColorFiltered(
+                        useColor,
+                        sx,
+                        sy,
+                        useShift,
+                        useWMask,
+                        useHMask,
+                        repeat | 0
+                      ),
+                      (ease.filterFade * 256) | 0
+                    )
+                : useColor[offset];
+              if (detailInRange(z)) {
+                plotColor = applyDetail(plotColor, plx, ply, z);
+              }
+              if (applyFogT) {
+                const a = (plotColor >>> SHIFT_ALPHA) & CHANNEL_MASK;
+                const r = (plotColor >>> SHIFT_RED) & CHANNEL_MASK;
+                const g = (plotColor >>> SHIFT_GREEN) & CHANNEL_MASK;
+                const b = plotColor & CHANNEL_MASK;
+                plotColor =
+                  ((a + (CHANNEL_MAX - a) * fogT) << SHIFT_ALPHA) |
+                  ((r + (CHANNEL_MAX - r) * fogT) << SHIFT_RED) |
+                  ((g + (CHANNEL_MAX - g) * fogT) << SHIFT_GREEN) |
+                  (b + (CHANNEL_MAX - b) * fogT);
+              }
             }
-            if (applyFogT) {
-              const a = (plotColor >>> SHIFT_ALPHA) & CHANNEL_MASK;
-              const r = (plotColor >>> SHIFT_RED) & CHANNEL_MASK;
-              const g = (plotColor >>> SHIFT_GREEN) & CHANNEL_MASK;
-              const b = plotColor & CHANNEL_MASK;
-              plotColor =
-                ((a + (CHANNEL_MAX - a) * fogT) << SHIFT_ALPHA) |
-                ((r + (CHANNEL_MAX - r) * fogT) << SHIFT_RED) |
-                ((g + (CHANNEL_MAX - g) * fogT) << SHIFT_GREEN) |
-                (b + (CHANNEL_MAX - b) * fogT);
-            }
-          }
-
-          if ((heightOnScreen < colHidden) | 0) {
             drawVerticalLine(
               pixels,
               stride,
@@ -643,7 +656,6 @@ function renderClassicColumnsNearest({
   lodSpacing,
   lod0Refine,
   lod0RefineCurve,
-  stepDivisor,
 }) {
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;
@@ -681,7 +693,6 @@ function renderClassicColumnsNearest({
     lodSpacing: lodSpacing,
     lod0Refine: lod0Refine,
     lod0RefineCurve: lod0RefineCurve,
-    stepDivisor: stepDivisor,
   });
   const mips = lodState.mips;
   const bandCount = lodState.bandCount;
@@ -803,7 +814,24 @@ function renderClassicColumnsNearest({
               ((sx | 0) & useHMask)) |
             0;
           let hFine = useHeight[offset];
-          if (detailInRange(z)) {
+          const yCap = classicProjectedY(
+            camZ - (hFine + detailElevMax(z)) * altScale,
+            dstToProjPlane,
+            z,
+            step,
+            plx,
+            ply,
+            i,
+            kLeftX,
+            kLeftY,
+            kDx,
+            kDy,
+            useMip,
+            screenHorizon,
+            refineHere,
+            refineMip
+          );
+          if ((yCap < colHidden) | 0) {
             hFine += detailHeightAdd(plx, ply, z);
           }
           const terrainHeight = hFine * altScale;
@@ -833,37 +861,36 @@ function renderClassicColumnsNearest({
             }
           }
 
-          let plotColor = Color.WHITE;
-          if (debug) {
-            if (countIter) {
-              sampleN[localI] = (sampleN[localI] + 1) | 0;
-            }
-            if (debugView === DEBUG_VIEW_HEIGHT) {
-              plotColor = encodeHeight(useHeight[offset]);
-            } else if (debugView === DEBUG_VIEW_DEPTH) {
-              plotColor = encodeUnit(farClip > 0 ? z / farClip : 0);
-            } else if (countIter) {
-              plotColor = encodeIter(sampleN[localI]);
-            }
-          } else if (!fogWhite) {
-            plotColor = useColor[offset];
-            if (detailInRange(z)) {
-              plotColor = applyDetail(plotColor, plx, ply, z);
-            }
-            if (applyFogT) {
-              const a = (plotColor >>> SHIFT_ALPHA) & CHANNEL_MASK;
-              const r = (plotColor >>> SHIFT_RED) & CHANNEL_MASK;
-              const g = (plotColor >>> SHIFT_GREEN) & CHANNEL_MASK;
-              const b = plotColor & CHANNEL_MASK;
-              plotColor =
-                ((a + (CHANNEL_MAX - a) * fogT) << SHIFT_ALPHA) |
-                ((r + (CHANNEL_MAX - r) * fogT) << SHIFT_RED) |
-                ((g + (CHANNEL_MAX - g) * fogT) << SHIFT_GREEN) |
-                (b + (CHANNEL_MAX - b) * fogT);
-            }
-          }
-
           if ((heightOnScreen < colHidden) | 0) {
+            let plotColor = Color.WHITE;
+            if (debug) {
+              if (countIter) {
+                sampleN[localI] = (sampleN[localI] + 1) | 0;
+              }
+              if (debugView === DEBUG_VIEW_HEIGHT) {
+                plotColor = encodeHeight(heightByteFromFine(hFine));
+              } else if (debugView === DEBUG_VIEW_DEPTH) {
+                plotColor = encodeUnit(farClip > 0 ? z / farClip : 0);
+              } else if (countIter) {
+                plotColor = encodeIter(sampleN[localI]);
+              }
+            } else if (!fogWhite) {
+              plotColor = useColor[offset];
+              if (detailInRange(z)) {
+                plotColor = applyDetail(plotColor, plx, ply, z);
+              }
+              if (applyFogT) {
+                const a = (plotColor >>> SHIFT_ALPHA) & CHANNEL_MASK;
+                const r = (plotColor >>> SHIFT_RED) & CHANNEL_MASK;
+                const g = (plotColor >>> SHIFT_GREEN) & CHANNEL_MASK;
+                const b = plotColor & CHANNEL_MASK;
+                plotColor =
+                  ((a + (CHANNEL_MAX - a) * fogT) << SHIFT_ALPHA) |
+                  ((r + (CHANNEL_MAX - r) * fogT) << SHIFT_RED) |
+                  ((g + (CHANNEL_MAX - g) * fogT) << SHIFT_GREEN) |
+                  (b + (CHANNEL_MAX - b) * fogT);
+              }
+            }
             drawVerticalLine(
               pixels,
               stride,

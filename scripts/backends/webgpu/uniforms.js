@@ -9,8 +9,6 @@ export const FRAME_BYTES = WEBGPU_FRAME_BYTES;
 const FLAG_FOG = 1;
 const FLAG_REPEAT = 2;
 const FLAG_DEBUG_SHIFT = 8;
-const FLAG_OVERLAY = 1 << 10;
-const FLAG_OVERLAY_CUBE = 1 << 11;
 const FLAG_HEIGHT_LERP = 1 << 12;
 const FLAG_COLOR_FILTER = 1 << 13;
 const FLAG_LOD0_REFINE = 1 << 14;
@@ -49,7 +47,7 @@ export function packFrame(packer, p) {
   f[18] = p.nearClip;
   f[19] = p.farClip;
   f[20] = p.tMax;
-  f[21] = p.stepDivisor;
+  f[21] = p.qualityQ;
   f[22] = p.altitude;
   f[23] = p.maxHeight;
   u[24] = p.screenWidth | 0;
@@ -79,12 +77,6 @@ export function packFrame(packer, p) {
     flags |= FLAG_SHOW_DETAILS;
   }
   flags |= ((p.debugViewId | 0) & 3) << FLAG_DEBUG_SHIFT;
-  if (p.debugOverlay) {
-    flags |= FLAG_OVERLAY;
-  }
-  if (p.debugOverlayCube) {
-    flags |= FLAG_OVERLAY_CUBE;
-  }
   u[31] = flags;
   const sky = unpackToVec4(p.skyColor);
   f[32] = sky[0];

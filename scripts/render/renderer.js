@@ -27,8 +27,6 @@ import {
   clampMipCountForMap,
   clampLodSpacingMeters,
   lod0MaxMeters,
-  clampStepDivisor,
-  STEP_DIVISOR_DEFAULT,
   normalizeLodSpacingMode,
 } from "../constants/mip.js";
 import {
@@ -79,10 +77,8 @@ class Renderer {
     this._skyMarker = null;
     this._flatSkyRows = null;
     this._lod0RefineCurve = LOD_SPACING_DEFAULT_MODE;
-    this._stepDivisor = STEP_DIVISOR_DEFAULT;
     this._filterDistance = FILTER_DISTANCE_DEFAULT;
     this._debugView = DEBUG_VIEW_COLOR;
-    this._debugOverlay = false;
     this._algorithm = ALGORITHM_CLASSIC;
     this._multithread = DEFAULT_MULTITHREAD;
     this._multithreadWanted = DEFAULT_MULTITHREAD;
@@ -177,9 +173,6 @@ class Renderer {
     return this._lod0RefineCurve;
   }
 
-  get stepDivisor() {
-    return this._stepDivisor;
-  }
 
   get filterDistance() {
     return this._filterDistance;
@@ -187,10 +180,6 @@ class Renderer {
 
   get debugView() {
     return this._debugView;
-  }
-
-  get debugOverlay() {
-    return this._debugOverlay;
   }
 
   get algorithm() {
@@ -235,7 +224,6 @@ class Renderer {
     if (next !== this._lodSpacing) {
       this._lodSpacing = next;
       this.cancelJobs();
-      this.invalidatePanorama();
     }
     return this._lodSpacing;
   }
@@ -244,7 +232,6 @@ class Renderer {
     const next = clampMipCountForMap(this._mipCount, width, height, builtCount);
     if (next !== this._mipCount) {
       this._mipCount = next;
-      this.invalidatePanorama();
     }
     return this._mipCount;
   }
@@ -255,7 +242,6 @@ class Renderer {
     }
     if (this._algorithm !== value) {
       this.cancelJobs();
-      this.invalidatePanorama();
     }
     this._algorithm = value;
   }
@@ -288,13 +274,11 @@ class Renderer {
       showSkyGradient: this._showSkyGradient,
       showClouds: this._showClouds,
       lod0RefineCurve: this._lod0RefineCurve,
-      stepDivisor: this._stepDivisor,
       filterDistance: this._filterDistance,
       algorithm: this._algorithm,
       multithread: this._multithreadWanted,
       backend: this._backendId,
       debugView: this._debugView,
-      debugOverlay: this._debugOverlay,
       mipCount: this._mipCount,
       lodSpacingMode: this._lodSpacingMode,
       lodSpacing: this._clampedLodSpacing(),
@@ -323,14 +307,12 @@ class Renderer {
       const next = !!options.interpolateHeight;
       if (next !== this._interpolateHeight) {
         this._interpolateHeight = next;
-        this.invalidatePanorama();
       }
     }
     if (options.filterColor !== undefined) {
       const next = !!options.filterColor;
       if (next !== this._filterColor) {
         this._filterColor = next;
-        this.invalidatePanorama();
       }
     }
     if (options.nearRefine !== undefined || options.lod0Refine !== undefined) {
@@ -343,7 +325,6 @@ class Renderer {
         this._interpolateHeight = next;
         this._filterColor = next;
         this.cancelJobs();
-        this.invalidatePanorama();
       }
     }
     if (options.showDetails !== undefined) {
@@ -351,7 +332,6 @@ class Renderer {
       if (next !== this._showDetails) {
         this._showDetails = next;
         this.cancelJobs();
-        this.invalidatePanorama();
       }
     }
     if (options.showSky !== undefined) {
@@ -368,29 +348,16 @@ class Renderer {
       if (next !== this._lod0RefineCurve) {
         this._lod0RefineCurve = next;
         this.cancelJobs();
-        this.invalidatePanorama();
-      }
-    }
-    if (options.stepDivisor !== undefined) {
-      const next = clampStepDivisor(options.stepDivisor);
-      if (next !== this._stepDivisor) {
-        this._stepDivisor = next;
-        this.cancelJobs();
-        this.invalidatePanorama();
       }
     }
     if (options.filterDistance !== undefined) {
       const next = clampFilterDistance(options.filterDistance);
       if (next !== this._filterDistance) {
         this._filterDistance = next;
-        this.invalidatePanorama();
       }
     }
     if (options.debugView !== undefined) {
       this._debugView = options.debugView;
-    }
-    if (options.debugOverlay !== undefined) {
-      this._debugOverlay = !!options.debugOverlay;
     }
     if (options.multithread !== undefined) {
       this.multithread = options.multithread;
@@ -406,7 +373,6 @@ class Renderer {
       if (next !== this._mipCount) {
         this._mipCount = next;
         this.cancelJobs();
-        this.invalidatePanorama();
       }
     }
     if (options.lodSpacingMode !== undefined) {
@@ -414,7 +380,6 @@ class Renderer {
       if (next !== this._lodSpacingMode) {
         this._lodSpacingMode = next;
         this.cancelJobs();
-        this.invalidatePanorama();
       }
     }
     if (options.lodSpacing !== undefined) {
@@ -426,7 +391,6 @@ class Renderer {
       if (next !== this._lodSpacing) {
         this._lodSpacing = next;
         this.cancelJobs();
-        this.invalidatePanorama();
       }
     }
   }
@@ -453,12 +417,6 @@ class Renderer {
     this.cancelJobs();
     if (this._backend && this._backend.resize) {
       this._backend.resize(this._surface);
-    }
-  }
-
-  invalidatePanorama() {
-    if (this._backend) {
-      this._backend.invalidatePanorama();
     }
   }
 
@@ -684,7 +642,6 @@ class Renderer {
         console.warn("Render runtime dispose failed:", err);
       }
     }
-    this.invalidatePanorama();
     if (this._backend.resize) {
       await this._backend.resize(this._surface);
     }

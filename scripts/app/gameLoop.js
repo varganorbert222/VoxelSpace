@@ -6,7 +6,6 @@ import config from "../../data/config.json" with { type: "json" };
 import { cycleAvailableBackend } from "../backends/contract.js";
 import { usesWorkers } from "../constants/backend.js";
 import { algorithmsForBackend } from "../constants/algorithm.js";
-import { envOverlayAllowed } from "../constants/debugView.js";
 import VMath from "../math/vmath.js";
 
 function cycleValue(values, current) {
@@ -49,14 +48,6 @@ function applySettingsHotkeys(app) {
     });
     app.persistAndSync();
   }
-  if (app.input.consumeToggleDebugOverlay) {
-    if (envOverlayAllowed(app.renderer.algorithm)) {
-      app.renderer.setOptions({
-        debugOverlay: !app.renderer.debugOverlay,
-      });
-      app.persistAndSync();
-    }
-  }
   if (app.input.consumeToggleFog) {
     app.renderer.setOptions({ applyFog: !app.renderer.applyFog });
     app.persistAndSync();
@@ -98,17 +89,6 @@ function applySettingsHotkeys(app) {
     app.camera.set({ farClip: nextFar });
     app.renderer.syncFogToFarClip(prevFar, nextFar);
     app.renderer.clampLodSpacingToFarClip();
-    app.persistAndSync();
-  }
-  const nudgeStep = app.input.consumeNudgeStepDivisor;
-  if (nudgeStep) {
-    app.renderer.setOptions({
-      stepDivisor: nudgeRange(
-        app.renderer.stepDivisor,
-        nudgeStep,
-        config.settings.stepDivisor
-      ),
-    });
     app.persistAndSync();
   }
   const nudgeFov = app.input.consumeNudgeFov;

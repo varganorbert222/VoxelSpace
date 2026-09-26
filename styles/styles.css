@@ -1234,8 +1234,8 @@ body.cam-orbital .stick.orbit-only {
   letter-spacing: 0.14em;
 }
 
-body.classic .pano-only,
-body.frustum-space .pano-only {
+body.classic .freelook-only,
+body.frustum-space .freelook-only {
   display: none;
 }
 
@@ -1408,15 +1408,6 @@ body.frustum-space .pano-only {
 
 .performance-alert-btn:active {
   transform: translate(1px, 1px);
-}
-
-body.classic .pano-only {
-  display: none;
-}
-
-body.classic .env-only,
-body.voxel .env-only {
-  display: none;
 }
 
 @media (pointer: coarse), (hover: none) {

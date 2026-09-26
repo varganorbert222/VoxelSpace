@@ -22,9 +22,7 @@ import {
 } from "./settingsStore.js";
 import {
   ALGORITHM_CLASSIC,
-  ALGORITHM_CUBEMAP,
   ALGORITHM_FRUSTUM_SPACE,
-  ALGORITHM_PANORAMA,
   ALGORITHM_VOXEL,
   isAlgorithmAllowed,
   usesFreeLook,
@@ -93,7 +91,6 @@ class App {
       backend: config.settings.renderBackends.default || BACKEND_JS,
       algorithm: config.settings.renderAlgorithms.default || ALGORITHM_CLASSIC,
       debugView: config.settings.debugViews.default || DEBUG_VIEW_COLOR,
-      debugOverlay: !!config.settings.debugOverlay.default,
       interpolateHeight:
         !!(config.settings.nearRefine && config.settings.nearRefine.default),
       filterColor:
@@ -118,11 +115,6 @@ class App {
         (config.settings.lod0RefineCurve &&
           config.settings.lod0RefineCurve.default) ||
         "linear",
-      stepDivisor:
-        config.settings.stepDivisor &&
-        config.settings.stepDivisor.default != null
-          ? config.settings.stepDivisor.default
-          : 3,
       filterDistance: config.settings.filterDistance.default,
       mipCount: config.settings.mipCount
         ? config.settings.mipCount.default
@@ -231,8 +223,6 @@ class App {
       "frustum-space",
       algorithm === ALGORITHM_FRUSTUM_SPACE
     );
-    document.body.classList.toggle("panorama", algorithm === ALGORITHM_PANORAMA);
-    document.body.classList.toggle("cubemap", algorithm === ALGORITHM_CUBEMAP);
     document.body.classList.toggle("voxel", algorithm === ALGORITHM_VOXEL);
     if (prev !== algorithm) {
       this.resize();
@@ -500,14 +490,12 @@ class App {
         showClouds: options.showClouds,
         renderScale: this.camera.renderScale,
         lod0RefineCurve: options.lod0RefineCurve,
-        stepDivisor: options.stepDivisor,
         filterDistance: options.filterDistance,
         multithread: options.multithread,
         map: this.currentMapName,
         algorithm: options.algorithm,
         backend: options.backend,
         debugView: options.debugView,
-        debugOverlay: options.debugOverlay,
         mipCount: options.mipCount,
         lodSpacingMode: options.lodSpacingMode,
         lodSpacing: options.lodSpacing,
@@ -518,7 +506,6 @@ class App {
         renderDistance: config.settings.renderDistance,
         fogRange: config.settings.fogRange,
         filterDistance: config.settings.filterDistance,
-        stepDivisor: config.settings.stepDivisor,
         fov: config.settings.fov,
         qualities: config.settings.quality.values.map(Number),
         modes: config.settings.cameraModes.values,
@@ -563,13 +550,11 @@ class App {
       showSkyGradient: sanitized.showSkyGradient,
       showClouds: sanitized.showClouds,
       lod0RefineCurve: sanitized.lod0RefineCurve,
-      stepDivisor: sanitized.stepDivisor,
       filterDistance: sanitized.filterDistance,
       multithread: sanitized.multithread,
       algorithm: sanitized.algorithm,
       backend: sanitized.backend,
       debugView: sanitized.debugView,
-      debugOverlay: sanitized.debugOverlay,
       mipCount: sanitized.mipCount,
       lodSpacingMode: sanitized.lodSpacingMode,
       lodSpacing: sanitized.lodSpacing,

@@ -52,24 +52,6 @@ export async function createPipelines(device, canvasFormat, onStatus) {
   } catch (err) {
     console.warn("frustumSpaceMarch compile failed:", err);
   }
-  const genMod = await loadCompute(device, "panoGenerate", "panoramaGenerate.wgsl", onStatus, [
-    "detailBindMips2.wgsl",
-    "detailSample.wgsl",
-  ]);
-  const viewMod = await loadCompute(device, "panoView", "panoramaView.wgsl", onStatus);
-  const cubeGenMod = await loadCompute(device, "cubeGenerate", "cubemapGenerate.wgsl", onStatus, [
-    "detailBindMips1.wgsl",
-    "detailSample.wgsl",
-  ]);
-  const cubePolarMod = await loadCompute(device, "cubePolar", "cubemapPolar.wgsl", onStatus, [
-    "detailBindMips1.wgsl",
-    "detailSample.wgsl",
-  ]);
-  const cubeFillMod = await loadCompute(device, "cubeFill", "cubemapFill.wgsl", onStatus);
-  const cubeStitchMod = await loadCompute(device, "cubeStitch", "cubemapStitch.wgsl", onStatus);
-  const cubeViewMod = await loadCompute(device, "cubeView", "cubemapView.wgsl", onStatus);
-  const overlayPanoMod = await loadCompute(device, "overlayPano", "debugOverlay.wgsl", onStatus);
-  const overlayCubeMod = await loadCompute(device, "overlayCube", "debugOverlayCube.wgsl", onStatus);
   const voxelMod = await loadCompute(device, "voxelRay", "voxelRay.wgsl", onStatus, [
     "detailBindMips1.wgsl",
     "detailSample.wgsl",
@@ -131,16 +113,6 @@ export async function createPipelines(device, canvasFormat, onStatus) {
     ],
   });
 
-  const panoLutLayout = device.createBindGroupLayout({
-    label: "panoLut",
-    entries: [
-      { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
-      { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
-      { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
-      { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
-    ],
-  });
-
   const mipsLayout = device.createBindGroupLayout({
     label: "mips",
     entries: [
@@ -150,51 +122,6 @@ export async function createPipelines(device, canvasFormat, onStatus) {
       { binding: 3, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
       { binding: 4, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
       { binding: 5, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
-    ],
-  });
-
-  const panoOutLayout = device.createBindGroupLayout({
-    label: "panoOut",
-    entries: [
-      {
-        binding: 0,
-        visibility: GPUShaderStage.COMPUTE,
-        storageTexture: { access: "write-only", format: "r32uint", viewDimension: "2d" },
-      },
-      {
-        binding: 1,
-        visibility: GPUShaderStage.COMPUTE,
-        storageTexture: { access: "write-only", format: "r32float", viewDimension: "2d" },
-      },
-      {
-        binding: 2,
-        visibility: GPUShaderStage.COMPUTE,
-        storageTexture: { access: "write-only", format: "r32uint", viewDimension: "2d" },
-      },
-      {
-        binding: 3,
-        visibility: GPUShaderStage.COMPUTE,
-        storageTexture: { access: "write-only", format: "r32uint", viewDimension: "2d" },
-      },
-    ],
-  });
-
-  const viewLutLayout = device.createBindGroupLayout({
-    label: "viewLut",
-    entries: [
-      { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
-      { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
-      { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
-    ],
-  });
-
-  const panoSampleLayout = device.createBindGroupLayout({
-    label: "panoSample",
-    entries: [
-      { binding: 0, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
-      { binding: 1, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "unfilterable-float" } },
-      { binding: 2, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
-      { binding: 3, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "uint" } },
     ],
   });
 
@@ -213,39 +140,6 @@ export async function createPipelines(device, canvasFormat, onStatus) {
     label: "blit",
     entries: [
       { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "uint" } },
-    ],
-  });
-
-  const cubeSampleLayout = device.createBindGroupLayout({
-    label: "cubeSample",
-    entries: [
-      {
-        binding: 0,
-        visibility: GPUShaderStage.COMPUTE,
-        texture: { sampleType: "uint", viewDimension: "2d-array" },
-      },
-      {
-        binding: 1,
-        visibility: GPUShaderStage.COMPUTE,
-        texture: { sampleType: "unfilterable-float", viewDimension: "2d-array" },
-      },
-      {
-        binding: 2,
-        visibility: GPUShaderStage.COMPUTE,
-        texture: { sampleType: "uint", viewDimension: "2d-array" },
-      },
-      {
-        binding: 3,
-        visibility: GPUShaderStage.COMPUTE,
-        texture: { sampleType: "uint", viewDimension: "2d-array" },
-      },
-    ],
-  });
-
-  const cubeSkyLayout = device.createBindGroupLayout({
-    label: "cubeSky",
-    entries: [
-      { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
     ],
   });
 
@@ -320,78 +214,6 @@ export async function createPipelines(device, canvasFormat, onStatus) {
     console.warn("frustumSpace pipeline failed:", err);
   }
 
-  const genPipe = device.createComputePipeline({
-    label: "panoGen",
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [frameLayout, panoLutLayout, mipsLayout, panoOutLayout],
-    }),
-    compute: { module: genMod, entryPoint: "main" },
-  });
-
-  const viewPipe = device.createComputePipeline({
-    label: "panoView",
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [frameLayout, viewLutLayout, panoSampleLayout, viewOutLayout],
-    }),
-    compute: { module: viewMod, entryPoint: "main" },
-  });
-
-  const cubeGenPipe = device.createComputePipeline({
-    label: "cubeGen",
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [frameLayout, mipsLayout, panoOutLayout],
-    }),
-    compute: { module: cubeGenMod, entryPoint: "main" },
-  });
-
-  const cubePolarPipe = device.createComputePipeline({
-    label: "cubePolar",
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [frameLayout, mipsLayout, panoOutLayout],
-    }),
-    compute: { module: cubePolarMod, entryPoint: "main" },
-  });
-
-  const cubeFillPipe = device.createComputePipeline({
-    label: "cubeFill",
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [frameLayout, panoOutLayout],
-    }),
-    compute: { module: cubeFillMod, entryPoint: "main" },
-  });
-
-  const cubeStitchPipe = device.createComputePipeline({
-    label: "cubeStitch",
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [frameLayout, cubeSampleLayout, panoOutLayout],
-    }),
-    compute: { module: cubeStitchMod, entryPoint: "main" },
-  });
-
-  const cubeViewPipe = device.createComputePipeline({
-    label: "cubeView",
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [frameLayout, cubeSampleLayout, viewOutLayout, cubeSkyLayout],
-    }),
-    compute: { module: cubeViewMod, entryPoint: "main" },
-  });
-
-  const overlayPanoPipe = device.createComputePipeline({
-    label: "overlayPano",
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [frameLayout, panoSampleLayout, viewOutLayout],
-    }),
-    compute: { module: overlayPanoMod, entryPoint: "overlayPano" },
-  });
-
-  const overlayCubePipe = device.createComputePipeline({
-    label: "overlayCube",
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [frameLayout, cubeSampleLayout, viewOutLayout],
-    }),
-    compute: { module: overlayCubeMod, entryPoint: "overlayCube" },
-  });
-
   const voxelPipe = device.createComputePipeline({
     label: "voxelRay",
     layout: device.createPipelineLayout({
@@ -417,15 +239,6 @@ export async function createPipelines(device, canvasFormat, onStatus) {
   return {
     classic: classicPipe,
     frustumSpace: frustumSpacePipe,
-    generate: genPipe,
-    view: viewPipe,
-    cubeGenerate: cubeGenPipe,
-    cubePolar: cubePolarPipe,
-    cubeFill: cubeFillPipe,
-    cubeStitch: cubeStitchPipe,
-    cubeView: cubeViewPipe,
-    overlayPano: overlayPanoPipe,
-    overlayCube: overlayCubePipe,
     voxel: voxelPipe,
     skyComposite: skyCompositePipe,
     blit: blitPipe,
@@ -434,14 +247,8 @@ export async function createPipelines(device, canvasFormat, onStatus) {
       classicTables: classicTablesLayout,
       maps: mapsLayout,
       classicOut: classicOutLayout,
-      panoLut: panoLutLayout,
       mips: mipsLayout,
-      panoOut: panoOutLayout,
-      viewLut: viewLutLayout,
-      panoSample: panoSampleLayout,
       viewOut: viewOutLayout,
-      cubeSample: cubeSampleLayout,
-      cubeSky: cubeSkyLayout,
       skyComposite: skyCompositeLayout,
       blit: blitLayout,
     },

@@ -12,6 +12,9 @@ const FORWARD_LUT = new Uint8Array(
 
 const LEVEL_SUBDIV = Object.freeze([16, 8, 4, 2]);
 
+// Retail detail elevation is (byte - 128) / 32, so a bump never exceeds this.
+export const DETAIL_ELEV_MAX = 127 / 32;
+
 let state = null;
 let detailNearKey = "";
 let nearEnds = [0, 0, 0, 0, 0];
@@ -257,6 +260,11 @@ export function prepareRetailDetail(retail) {
 export function bindRetailMaps(maps) {
   const retail = maps && maps.retail ? maps.retail : null;
   state = retail ? prepareRetailDetail(retail) : null;
+  packedValid = 0;
+}
+
+export function retailDetailState() {
+  return state && state.detailReady ? state : null;
 }
 
 function lightBytes() {
@@ -305,9 +313,19 @@ function wrapFloor(v, size) {
   return i;
 }
 
+let packedX = 0;
+let packedY = 0;
+let packedDist = 0;
+let packedValue = 0;
+let packedValid = 0;
+
 function samplePacked(x, y, distance) {
+  if (packedValid && x === packedX && y === packedY && distance === packedDist) {
+    return packedValue;
+  }
   const level = detailLevel(distance);
   if (level < 0) {
+    packedValid = 0;
     return null;
   }
   const character = state.characterIndex;
@@ -334,9 +352,19 @@ function samplePacked(x, y, distance) {
   const mip = state.detailMips[level];
   const idx = ((tile * subdiv + cy) * subdiv + cx) | 0;
   if (idx < 0 || idx >= mip.length) {
+    packedValid = 0;
     return null;
   }
-  return mip[idx] >>> 0;
+  packedX = x;
+  packedY = y;
+  packedDist = distance;
+  packedValue = mip[idx] >>> 0;
+  packedValid = 1;
+  return packedValue;
+}
+
+export function detailElevMax(distance) {
+  return detailInRange(distance) ? DETAIL_ELEV_MAX : 0;
 }
 
 function shadeChannel(base, light, shade) {

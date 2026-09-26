@@ -9,7 +9,6 @@ import { syncDebugLegend } from "./debugLegend.js";
 import {
   DEBUG_VIEW_COLOR,
   DEBUG_VIEW_LABEL,
-  envOverlayAllowed,
 } from "../constants/debugView.js";
 import {
   QUALITY_LABEL,
@@ -18,7 +17,6 @@ import {
   isUltraQualityAllowed,
 } from "../constants/quality.js";
 import {
-  ALGORITHM_VOXEL,
   isAlgorithmAllowed,
 } from "../constants/algorithm.js";
 import { listBackends } from "../backends/contract.js";
@@ -53,9 +51,6 @@ function formatRangeValue(id, value) {
   }
   if (id === "id_filter_distance") {
     return Math.round(n) + " m";
-  }
-  if (id === "id_step_divisor") {
-    return String(Math.round(n));
   }
   if (id === "id_lod_spacing") {
     return Math.round(n) + " m";
@@ -326,17 +321,6 @@ class SettingsForm {
         },
         persist
       ),
-      stepDivisor: initRangeElement(
-        "id_step_divisor",
-        config.settings.stepDivisor,
-        options.stepDivisor,
-        (e) => {
-          app.renderer.setOptions({
-            stepDivisor: parseInt(e.target.value, 10),
-          });
-        },
-        persist
-      ),
       mipCount: initRangeElement(
         "id_mip_count",
         mipCountRange(app.terrain),
@@ -505,18 +489,6 @@ class SettingsForm {
         },
         DEBUG_VIEW_LABEL
       ),
-      debugOverlay: initCheckboxElement(
-        "id_debug_overlay",
-        options.debugOverlay,
-        (e) => {
-          if (!envOverlayAllowed(app.renderer.algorithm)) {
-            e.target.checked = false;
-            return;
-          }
-          app.renderer.setOptions({ debugOverlay: e.target.checked });
-          persist();
-        }
-      ),
     };
     this.sync();
   }
@@ -532,7 +504,6 @@ class SettingsForm {
       fogRange,
       renderScale,
       fov,
-      stepDivisor,
       mipCount,
       lodSpacingMode,
       lodSpacing,
@@ -551,7 +522,6 @@ class SettingsForm {
       algorithm,
       backend,
       debugView,
-      debugOverlay,
     } = this._elements;
     renderDistance.value = camera.farClip;
     updateBoundValue("id_render_distance", camera.farClip);
@@ -568,16 +538,6 @@ class SettingsForm {
     updateBoundValue("id_render_scale", camera.renderScale);
     fov.value = camera.fov;
     updateBoundValue("id_fov", camera.fov);
-    stepDivisor.min = config.settings.stepDivisor.min;
-    stepDivisor.max = config.settings.stepDivisor.max;
-    stepDivisor.step = config.settings.stepDivisor.step;
-    stepDivisor.value = options.stepDivisor;
-    setDisabled(
-      stepDivisor,
-      options.algorithm === ALGORITHM_VOXEL,
-      "Step divisor is not used by the Voxel algorithm."
-    );
-    updateBoundValue("id_step_divisor", options.stepDivisor);
     const mipRange = mipCountRange(this._app.terrain);
     mipCount.min = mipRange.min;
     mipCount.max = mipRange.max;
@@ -640,13 +600,6 @@ class SettingsForm {
     algorithm.value = options.algorithm;
     backend.value = options.backend;
     debugView.value = options.debugView || DEBUG_VIEW_COLOR;
-    const overlayOk = envOverlayAllowed(options.algorithm);
-    setDisabled(
-      debugOverlay,
-      !overlayOk,
-      "Debug overlay is only available for panorama and cubemap algorithms."
-    );
-    debugOverlay.checked = overlayOk && !!options.debugOverlay;
     setChip("id_hud_map", mapChipLabel(this._app.currentMapName));
     setChip("id_hud_algorithm", options.algorithm);
     setChip("id_hud_backend", BACKEND_CHIP[options.backend] || options.backend);

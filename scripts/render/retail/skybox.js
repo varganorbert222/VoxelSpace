@@ -288,7 +288,7 @@ export function skyView(camera, height, perspective, retailBlack = !perspective)
       r: [camera.rightX * tx, camera.rightY * tx, camera.rightZ * tx],
       u: [camera.upX * invDst, camera.upY * invDst, camera.upZ * invDst],
       horizon: height * 0.5,
-      // camera.pitch sign differs between Euler and panorama look; the
+      // camera.pitch sign differs between Euler and free look; the
       // forward vector does not.
       pitchDeg: (Math.asin(Math.max(-1, Math.min(1, camera.fwdZ))) * 180) / Math.PI,
       retailBlack,

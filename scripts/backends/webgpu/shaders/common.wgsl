@@ -65,31 +65,6 @@ const PI: f32 = 3.141592653589793;
 const SKY_PALETTE_STEPS: f32 = 24.0;
 const SKY_PALETTE_T_MAX: f32 = 23.0 / 24.0;
 const SKY_ZENITH_POWER: f32 = 2.75;
-const CUBE_FACE_C = array<vec3f, 6>(
-  vec3f(1.0, 0.0, 0.0),
-  vec3f(-1.0, 0.0, 0.0),
-  vec3f(0.0, 1.0, 0.0),
-  vec3f(0.0, -1.0, 0.0),
-  vec3f(0.0, 0.0, 1.0),
-  vec3f(0.0, 0.0, -1.0)
-);
-const CUBE_FACE_U = array<vec3f, 6>(
-  vec3f(0.0, -1.0, 0.0),
-  vec3f(0.0, 1.0, 0.0),
-  vec3f(1.0, 0.0, 0.0),
-  vec3f(-1.0, 0.0, 0.0),
-  vec3f(1.0, 0.0, 0.0),
-  vec3f(1.0, 0.0, 0.0)
-);
-const CUBE_FACE_V = array<vec3f, 6>(
-  vec3f(0.0, 0.0, 1.0),
-  vec3f(0.0, 0.0, 1.0),
-  vec3f(0.0, 0.0, 1.0),
-  vec3f(0.0, 0.0, 1.0),
-  vec3f(0.0, 1.0, 0.0),
-  vec3f(0.0, -1.0, 0.0)
-);
-
 fn skyPaletteT(linearT: f32) -> f32 {
   var t = clamp(linearT, 0.0, 1.0);
   t = pow(t, SKY_ZENITH_POWER);
@@ -103,46 +78,10 @@ fn skyLinearFromHat(hat: f32) -> f32 {
   return (2.0 * acos(clamp(hat, -1.0, 1.0))) / PI;
 }
 
-fn skyLutIndexFromHat(hat: f32, height: i32) -> u32 {
-  let last = u32(max(height, 1) - 1);
-  var idx = u32(skyLinearFromHat(hat) * f32(height) * 0.5);
-  if (idx > last) {
-    idx = last;
-  }
-  return idx;
-}
-
 fn skyColorFromHat(hat: f32, sky: vec4f, horizon: vec4f) -> vec4f {
   let t = skyPaletteT(skyLinearFromHat(hat));
   let idx = min(u32(t * SKY_PALETTE_STEPS), 23u);
   return mix(sky, horizon, f32(idx) / SKY_PALETTE_STEPS);
-}
-
-fn cubePixelUV(i: i32, n: i32) -> f32 {
-  return (2.0 * (f32(i) + 0.5)) / f32(n) - 1.0;
-}
-
-fn cubeDirFromTexel(face: i32, i: i32, j: i32, n: i32) -> vec3f {
-  let u = cubePixelUV(i, n);
-  let v = -cubePixelUV(j, n);
-  var fi = face;
-  if (fi < 0) {
-    fi = 0;
-  }
-  if (fi > 5) {
-    fi = 5;
-  }
-  let k = u32(fi);
-  return CUBE_FACE_C[k] + CUBE_FACE_U[k] * u + CUBE_FACE_V[k] * v;
-}
-
-fn skyColorFromDir(dir: vec3f, sky: vec4f, horizon: vec4f) -> vec4f {
-  let len = length(dir);
-  var hat = 0.0;
-  if (len > 1e-6) {
-    hat = dir.z / len;
-  }
-  return skyColorFromHat(hat, sky, horizon);
 }
 
 fn flagFog(flags: u32) -> bool {
@@ -155,14 +94,6 @@ fn flagRepeat(flags: u32) -> bool {
 
 fn flagDebugView(flags: u32) -> u32 {
   return (flags >> 8u) & 3u;
-}
-
-fn flagOverlay(flags: u32) -> bool {
-  return (flags & 1024u) != 0u;
-}
-
-fn flagOverlayCube(flags: u32) -> bool {
-  return (flags & 2048u) != 0u;
 }
 
 fn flagHeightLerp(flags: u32) -> bool {
@@ -528,15 +459,15 @@ fn terrainSamplePos(wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32, t: f32) ->
   return vec2f(wx + dirX * e, wy + dirY * e);
 }
 
-fn stepDivisor() -> f32 {
-  var d = frame.tMaxMinDzAltMaxH.y;
-  if (d < 1.0) {
-    d = 3.0;
+fn qualityQ() -> f32 {
+  var q = frame.tMaxMinDzAltMaxH.y;
+  if (q < 1.0) {
+    q = 1.0;
   }
-  if (d > 5.0) {
-    d = 5.0;
+  if (q > 5.0) {
+    q = 5.0;
   }
-  return d;
+  return q;
 }
 
 fn fitBandStep(step: f32, lo: f32, cell: f32) -> f32 {
@@ -566,13 +497,13 @@ fn bandMarchStep(bandStep: f32, mip: i32, t: f32) -> f32 {
   }
   var s = bandStep;
   if (!(s > 0.0)) {
-    s = cell / stepDivisor();
+    s = cell / qualityQ();
   }
   if (cell < base) {
     s = s * (cell / base);
   }
   if (!(s > 0.0)) {
-    s = cell / stepDivisor();
+    s = cell / qualityQ();
   }
   return s;
 }
@@ -642,100 +573,3 @@ fn encodeCamera(debugView: u32, dist: f32, heightByte: u32, iter: u32, viewZ: f3
   return encodeIter(iter);
 }
 
-const OVERLAY_BORDER: i32 = 2;
-const OVERLAY_SHADOW: i32 = 4;
-const OVERLAY_PAD: i32 = 6;
-const CUBE_NET_GAP: i32 = 8;
-const OVERLAY_KIND_SKIP: u32 = 0u;
-const OVERLAY_KIND_SHADOW: u32 = 1u;
-const OVERLAY_KIND_FILL: u32 = 2u;
-const OVERLAY_KIND_HI: u32 = 3u;
-const OVERLAY_KIND_LO: u32 = 4u;
-const OVERLAY_KIND_CONTENT: u32 = 5u;
-
-fn overlayHudBg() -> u32 {
-  return packRgba(vec4f(18.0 / 255.0, 22.0 / 255.0, 12.0 / 255.0, 1.0));
-}
-
-fn overlayHudHi() -> u32 {
-  return packRgba(vec4f(212.0 / 255.0, 224.0 / 255.0, 106.0 / 255.0, 1.0));
-}
-
-fn overlayHudLo() -> u32 {
-  return packRgba(vec4f(58.0 / 255.0, 64.0 / 255.0, 32.0 / 255.0, 1.0));
-}
-
-fn overlayHudShadow() -> u32 {
-  return packRgba(vec4f(0.0, 0.0, 0.0, 1.0));
-}
-
-fn overlayKindColor(kind: u32) -> u32 {
-  if (kind == OVERLAY_KIND_SHADOW) {
-    return overlayHudShadow();
-  }
-  if (kind == OVERLAY_KIND_FILL) {
-    return overlayHudBg();
-  }
-  if (kind == OVERLAY_KIND_HI) {
-    return overlayHudHi();
-  }
-  if (kind == OVERLAY_KIND_LO) {
-    return overlayHudLo();
-  }
-  return overlayHudBg();
-}
-
-fn overlayPixelKind(dx: i32, dy: i32, fullW: i32, fullH: i32) -> u32 {
-  let panelW = fullW - OVERLAY_SHADOW;
-  let panelH = fullH - OVERLAY_SHADOW;
-  if ((dx >= 0) && (dx < panelW) && (dy >= 0) && (dy < panelH)) {
-    if ((dx >= panelW - OVERLAY_BORDER) || (dy >= panelH - OVERLAY_BORDER)) {
-      return OVERLAY_KIND_LO;
-    }
-    if ((dx < OVERLAY_BORDER) || (dy < OVERLAY_BORDER)) {
-      return OVERLAY_KIND_HI;
-    }
-    let inset = OVERLAY_BORDER + OVERLAY_PAD;
-    if ((dx >= inset) && (dy >= inset) && (dx < panelW - inset) && (dy < panelH - inset)) {
-      return OVERLAY_KIND_CONTENT;
-    }
-    return OVERLAY_KIND_FILL;
-  }
-  if ((dx >= OVERLAY_SHADOW) && (dx < fullW) && (dy >= OVERLAY_SHADOW) && (dy < fullH)) {
-    return OVERLAY_KIND_SHADOW;
-  }
-  return OVERLAY_KIND_SKIP;
-}
-
-fn overlaySunkenBevel(lx: i32, ly: i32, w: i32, h: i32) -> u32 {
-  if ((lx >= w - OVERLAY_BORDER) || (ly >= h - OVERLAY_BORDER)) {
-    return OVERLAY_KIND_HI;
-  }
-  if ((lx < OVERLAY_BORDER) || (ly < OVERLAY_BORDER)) {
-    return OVERLAY_KIND_LO;
-  }
-  return OVERLAY_KIND_SKIP;
-}
-
-fn encodeAtlas(debugView: u32, color: u32, dist: f32, heightByte: u32, iter: u32, farClip: f32) -> u32 {
-  if (debugView == DEBUG_COLOR) {
-    return color;
-  }
-  if (debugView == DEBUG_HEIGHT) {
-    if (dist <= 0.0) {
-      return packRgba(vec4f(0.0, 0.0, 0.0, 1.0));
-    }
-    return encodeHeight(heightByte);
-  }
-  if (debugView == DEBUG_DEPTH) {
-    if (dist <= 0.0) {
-      return packRgba(vec4f(0.0, 0.0, 0.0, 1.0));
-    }
-    var t = 0.0;
-    if (farClip > 0.0) {
-      t = dist / farClip;
-    }
-    return encodeUnit(t);
-  }
-  return encodeIter(iter);
-}

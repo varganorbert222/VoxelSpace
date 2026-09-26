@@ -205,7 +205,9 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let useFine = (mip == 0) && (t <= filterDist);
     let doLerp = flagHeightLerp(flags) && useFine;
     let sampled = classicSampleHeight(pos.x * mipScale, pos.y * mipScale, mip, doLerp, repeat, lodHMask, lodWMask);
-    let hFine = sampled.x + detailHeightBytes(pos.x, pos.y, t);
+    let baseWorld = sampled.x * altScale;
+    let addBytes = detailHeightBytesReached(pos.x, pos.y, t, baseWorld, pos.z);
+    let hFine = sampled.x + addBytes;
     sampleN = sampleN + 1u;
     if (pos.z < hFine * altScale) {
       let fogT = fogAmount(t, fogStart, fogEnd);

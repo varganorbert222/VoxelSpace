@@ -6,7 +6,7 @@ import {
 } from "../constants/main.js";
 import { BACKEND_JS } from "../constants/backend.js";
 import { clampFogRange } from "../constants/fog.js";
-import { clampStepDivisor, lod0MaxMeters } from "../constants/mip.js";
+import { lod0MaxMeters } from "../constants/mip.js";
 import VMath from "../math/vmath.js";
 
 function finiteOr(value, fallback) {
@@ -36,13 +36,17 @@ function migratePersisted(data) {
     return { ...data, version: SETTINGS_STORAGE_VERSION, multithread: true };
   }
   if (data.version === 4) {
-    return {
+    data = {
       ...data,
-      version: SETTINGS_STORAGE_VERSION,
+      version: 5,
       nearRefine:
         typeof data.nearRefine === "boolean" ? data.nearRefine : !!data.lod0Refine,
       showDetails: typeof data.showDetails === "boolean" ? data.showDetails : true,
     };
+  }
+  if (data.version === 5) {
+    const { stepDivisor, ...rest } = data;
+    return { ...rest, version: SETTINGS_STORAGE_VERSION };
   }
   return data;
 }
@@ -92,14 +96,12 @@ export function collectSettings(app) {
     showClouds: options.showClouds,
     renderScale: app.camera.renderScale,
     lod0RefineCurve: options.lod0RefineCurve,
-    stepDivisor: options.stepDivisor,
     filterDistance: options.filterDistance,
     multithread: options.multithread,
     mode: app.camera.mode,
     algorithm: options.algorithm,
     backend: options.backend,
     debugView: options.debugView,
-    debugOverlay: options.debugOverlay,
     mipCount: options.mipCount,
     lodSpacingMode: options.lodSpacingMode,
     lodSpacing: options.lodSpacing,
@@ -167,13 +169,6 @@ export function sanitizeSettings(data, defaults, bounds) {
       bounds.lod0RefineCurves,
       defaults.lod0RefineCurve
     ),
-    stepDivisor: clampStepDivisor(
-      data.stepDivisor != null
-        ? data.stepDivisor
-        : data.lod0RefineSamples != null
-          ? data.lod0RefineSamples
-          : defaults.stepDivisor
-    ),
     filterDistance: VMath.clamp(
       bounds.filterDistance.min,
       bounds.filterDistance.max,
@@ -184,7 +179,6 @@ export function sanitizeSettings(data, defaults, bounds) {
     algorithm: pickAllowed(data.algorithm, bounds.algorithms, defaults.algorithm),
     backend: pickAllowed(data.backend, bounds.backends, defaults.backend),
     debugView: pickAllowed(data.debugView, bounds.debugViews, defaults.debugView),
-    debugOverlay: boolOr(data.debugOverlay, defaults.debugOverlay),
     mipCount: VMath.clamp(
       bounds.mipCount.min,
       bounds.mipCount.max,

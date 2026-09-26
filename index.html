@@ -153,7 +153,7 @@
       <section class="hud-section">
         <h2 class="hud-section-title"><span>02</span> Engine</h2>
         <div class="control-grid">
-          <div class="control" data-tip="Classic: column voxel space. Frustum-space: view-Z slices with real pitch. Panorama: 360° equirect. Cubemap: 6-face environment, cached like panorama. Voxel: per-pixel 3D column raycast, max-mip empty skip, no cache.">
+          <div class="control" data-tip="Classic: column voxel space. Frustum-space: view-Z slices with real pitch. Voxel: per-pixel 3D column raycast, max-mip empty skip.">
             <div class="control-head">
               <label for="id_algorithmselector">Algorithm</label>
             </div>
@@ -183,7 +183,7 @@
               <option value="">Please select runtime</option>
             </select>
           </div>
-          <div class="control" data-tip="Low to Very-high on any engine. Ultra is desktop WebGPU only: finer march and a larger panorama.">
+          <div class="control" data-tip="Sample density inside each distance band. Low matches the retail scan step. Higher Quality uses a shorter step; it does not change band edges or Render scale.">
             <div class="control-head">
               <label for="id_quality">Quality</label>
             </div>
@@ -259,16 +259,6 @@
             <span class="control-value" data-for="id_filter_distance"></span>
           </div>
           <input id="id_filter_distance" type="range" autocomplete="off" />
-        </div>
-        <div
-          class="control"
-          data-tip="Samples per LOD cell. The step is that cell divided by this value: LOD 0 is 1 m, or the refine cell, and each coarser LOD doubles the cell. Higher is denser and slower."
-        >
-          <div class="control-head">
-            <label for="id_step_divisor">Step</label>
-            <span class="control-value" data-for="id_step_divisor"></span>
-          </div>
-          <input id="id_step_divisor" type="range" autocomplete="off" aria-keyshortcuts="Z Shift+Z" />
         </div>
         <div
           class="control"
@@ -352,7 +342,7 @@
         <h2 class="hud-section-title"><span>05</span> Debug</h2>
         <div
           class="control"
-          data-tip="Color is the production picture. Height / Depth / Iterations recolor the camera view and the env atlas. A floating key next to the radar explains the scale."
+          data-tip="Color is the production picture. Height / Depth / Iterations recolor the camera view. A floating key next to the radar explains the scale."
         >
           <div class="control-head">
             <label for="id_debugview">Debug view</label>
@@ -360,23 +350,6 @@
           <select id="id_debugview" name="DebugView" autocomplete="off" aria-keyshortcuts="V">
             <option value="">Please select debug view</option>
           </select>
-        </div>
-        <div class="flag-grid">
-          <label
-            class="check"
-            for="id_debug_overlay"
-            data-tip="Unwrapped panorama or cubemap atlas. Uses the same debug view as the 3D picture. Hidden on classic and frustum-space."
-          >
-            <input
-              id="id_debug_overlay"
-              name="debugoverlay"
-              type="checkbox"
-              autocomplete="off"
-              aria-keyshortcuts="N"
-            />
-            <span class="check-box" aria-hidden="true"></span>
-            Env atlas
-          </label>
         </div>
       </section>
 
@@ -441,17 +414,15 @@
           <div><dt>Arrows</dt><dd>Look</dd></div>
           <div><dt>R F</dt><dd>Up / down</dd></div>
           <div><dt>Space Ctrl</dt><dd>Up / down</dd></div>
-          <div class="pano-only"><dt>Q E</dt><dd>Roll</dd></div>
+          <div class="freelook-only"><dt>Q E</dt><dd>Roll</dd></div>
           <div><dt>M</dt><dd>Cycle map</dd></div>
           <div><dt>L</dt><dd>Cycle algorithm</dd></div>
           <div><dt>B</dt><dd>Cycle runtime</dd></div>
           <div><dt>1-5</dt><dd>Quality</dd></div>
           <div><dt>C</dt><dd>Cycle camera</dd></div>
           <div><dt>I Shift+I</dt><dd>Distance</dd></div>
-          <div><dt>Z Shift+Z</dt><dd>Step</dd></div>
           <div><dt>O Shift+O</dt><dd>FOV</dd></div>
           <div><dt>V</dt><dd>Cycle debug view</dd></div>
-          <div class="env-only"><dt>N</dt><dd>Toggle env atlas</dd></div>
           <div><dt>G</dt><dd>Toggle fog</dd></div>
           <div><dt>P</dt><dd>Toggle repeat</dd></div>
           <div><dt>T</dt><dd>Toggle threads</dd></div>
@@ -469,7 +440,7 @@
           <div class="fly-only"><dt>R Stick</dt><dd>Look</dd></div>
           <div class="orbit-only"><dt>R Stick</dt><dd>Orbit</dd></div>
           <div class="fly-only"><dt>Up Down</dt><dd>Altitude</dd></div>
-          <div class="pano-only fly-only"><dt>Roll</dt><dd>Bank left / right</dd></div>
+          <div class="freelook-only fly-only"><dt>Roll</dt><dd>Bank left / right</dd></div>
           <div><dt>Radar</dt><dd>Tap map to hide</dd></div>
           <div><dt>Handle</dt><dd>Open / close menu</dd></div>
         </dl>
@@ -504,7 +475,7 @@
         </div>
       </div>
       <div class="touch-cluster touch-cluster--right">
-        <div id="id_touch_roll" class="touch-btns pano-only fly-only">
+        <div id="id_touch_roll" class="touch-btns freelook-only fly-only">
           <button type="button" id="id_btn_roll_left">L</button>
           <button type="button" id="id_btn_roll_right">R</button>
         </div>

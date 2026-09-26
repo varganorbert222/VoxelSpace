@@ -2,14 +2,10 @@
 
 import ClassicRenderer from "../../render/classicRenderer.js";
 import FrustumSpaceRenderer from "../../render/frustumSpaceRenderer.js";
-import PanoramaRenderer from "../../render/panoramaRenderer.js";
-import CubemapRenderer from "../../render/cubemapRenderer.js";
 import VoxelRenderer from "../../render/voxelRenderer.js";
 import WorkerPool from "../../render/workerPool.js";
 import {
-  ALGORITHM_CUBEMAP,
   ALGORITHM_FRUSTUM_SPACE,
-  ALGORITHM_PANORAMA,
   ALGORITHM_VOXEL,
 } from "../../constants/algorithm.js";
 import { BACKEND_JS } from "../../constants/backend.js";
@@ -27,8 +23,6 @@ class JsBackend {
     this._host = null;
     this._classic = null;
     this._frustumSpace = null;
-    this._panorama = null;
-    this._cubemap = null;
     this._voxel = null;
     this._pool = null;
     this._maps = null;
@@ -38,8 +32,6 @@ class JsBackend {
     this._host = ctx.renderer;
     this._classic = new ClassicRenderer(this);
     this._frustumSpace = new FrustumSpaceRenderer(this);
-    this._panorama = new PanoramaRenderer(this);
-    this._cubemap = new CubemapRenderer(this);
     this._voxel = new VoxelRenderer(this);
   }
 
@@ -99,9 +91,6 @@ class JsBackend {
     return this._host.lod0RefineCurve;
   }
 
-  get stepDivisor() {
-    return this._host.stepDivisor;
-  }
 
   get filterDistance() {
     return this._host.filterDistance;
@@ -121,10 +110,6 @@ class JsBackend {
 
   get debugView() {
     return this._host.debugView;
-  }
-
-  get debugOverlay() {
-    return this._host.debugOverlay;
   }
 
   get algorithm() {
@@ -179,22 +164,9 @@ class JsBackend {
     this.cancelJobs();
   }
 
-  invalidatePanorama() {
-    if (this._panorama) {
-      this._panorama.invalidate();
-    }
-    if (this._cubemap) {
-      this._cubemap.invalidate();
-    }
-  }
-
   async render(frame) {
     bindRetailMaps(this._maps);
-    if (frame.algorithm === ALGORITHM_PANORAMA) {
-      await this._panorama.render(frame.terrain);
-    } else if (frame.algorithm === ALGORITHM_CUBEMAP) {
-      await this._cubemap.render(frame.terrain);
-    } else if (frame.algorithm === ALGORITHM_FRUSTUM_SPACE) {
+    if (frame.algorithm === ALGORITHM_FRUSTUM_SPACE) {
       await this._frustumSpace.render(frame.terrain);
     } else if (frame.algorithm === ALGORITHM_VOXEL) {
       await this._voxel.render(frame.terrain);
@@ -211,8 +183,6 @@ class JsBackend {
     }
     this._classic = null;
     this._frustumSpace = null;
-    this._panorama = null;
-    this._cubemap = null;
     this._voxel = null;
     this._host = null;
     this._maps = null;
