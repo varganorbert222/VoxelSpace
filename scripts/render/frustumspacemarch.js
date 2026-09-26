@@ -27,7 +27,7 @@ import { encodeHeight, encodeIter, encodeUnit } from "./debugEncode.js";
 import {
   LOD0_REFINE_SWITCH_COUNT,
   TERRAIN_MIP_MAX_COUNT,
-  bandMarchStep,
+  marchMaxSteps,
   fitBandStep,
   growBandStep,
   fillClassicLodDistances,
@@ -330,22 +330,9 @@ export function renderFrustumSpaceColumns({
   const lastMip = (bandCount - 1) | 0;
   const rowBase = screenHorizon - 0.5;
   const xnStep = 2 * screenWidthScaler;
-  let stepBudget = (screenHeight + 64) | 0;
-  for (let m = 0; (m < bandCount) | 0; m = (m + 1) | 0) {
-    const bandWidth = lodDistances[m + 1] - lodDistances[m];
-    const refineHere = lod0RefineAt(lod0Refine, m);
-    const refineMip = refineHere
-      ? lod0RefineMipAt(lodDistances[m], refineSwitches)
-      : 0;
-    const bandStep = bandMarchStep(m, refineHere, refineMip, quality);
-    const s = bandStep > 0 ? bandStep : 1;
-    if (bandWidth > 0) {
-      stepBudget = (stepBudget + Math.ceil(bandWidth / s)) | 0;
-    }
-  }
-  if ((stepBudget > 2000000) | 0) {
-    stepBudget = 2000000;
-  }
+  // Same cap as the WebGPU frustum march. A budget that grows with the
+  // framebuffer height stops high-resolution columns before the far ridges.
+  const stepBudget = marchMaxSteps(fine);
 
   function shade(wx, wy, offset, hByte, z, fogT, fogWhite, applyFogT, useFine, localI) {
     if (debug) {

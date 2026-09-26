@@ -1,7 +1,12 @@
 "use strict";
 
-import { retailFrame, retailMipSwitches } from "./schedule.js";
-import { LOD_SPACING_RETAIL, mipSwitchDistances } from "../../constants/mip.js";
+import { retailFrame } from "./schedule.js";
+import {
+  LOD_SPACING_DOUBLE,
+  LOD_SPACING_LOG,
+  LOD_SPACING_RETAIL,
+  normalizeLodSpacingMode,
+} from "../../constants/mip.js";
 
 // Df.exe color-transfer LUT. Detail mip colors are averaged in this space,
 // then quantized with the 900 / 2025 / 625 nearest-color weights.
@@ -13,6 +18,12 @@ const FORWARD_LUT = new Uint8Array(
 
 const LEVEL_SUBDIV = Object.freeze([16, 8, 4, 2]);
 
+// Retail samples the detail atlas only on the five Near passes
+// (factors 0.5, 1, 2, 4, 8). The last of those ends at factor 8, and the
+// last rendered pass is factor 512, so detail stops at 8/512 of Distance.
+const DETAIL_PASS_FACTORS = Object.freeze([0.5, 1, 2, 4, 8]);
+const DETAIL_FAR_FRACTION = 8 / 512;
+
 // Retail detail elevation is (byte - 128) / 32, so a bump never exceeds this.
 export const DETAIL_ELEV_MAX = 127 / 32;
 
@@ -20,24 +31,69 @@ let state = null;
 let detailNearKey = "";
 let nearEnds = [0, 0, 0, 0, 0];
 
+function detailSpanMeters(farClip) {
+  const far = Number(farClip);
+  if (!(far > 0)) {
+    return 0;
+  }
+  return far * DETAIL_FAR_FRACTION;
+}
+
+function detailEndsForCurve(span, mode) {
+  const ends = [0, 0, 0, 0, 0];
+  if (!(span > 0)) {
+    return ends;
+  }
+  if (mode === LOD_SPACING_RETAIL) {
+    for (let i = 0; i < DETAIL_PASS_FACTORS.length; i++) {
+      ends[i] = span * (DETAIL_PASS_FACTORS[i] / DETAIL_PASS_FACTORS[4]);
+    }
+    return ends;
+  }
+  const bands = 4;
+  let t0 = span / bands;
+  if (mode === LOD_SPACING_DOUBLE) {
+    t0 = span / (Math.pow(2, bands) - 1);
+  } else if (mode === LOD_SPACING_LOG) {
+    t0 = Math.pow(span, 1 / bands);
+    if (!(t0 > 0) || !(t0 < span)) {
+      t0 = span / bands;
+    }
+  }
+  const switches = [t0, t0, t0];
+  const switchN = 3;
+  const width = span - t0;
+  if (mode === LOD_SPACING_DOUBLE) {
+    const bits = Math.pow(2, bands - 1) - 1;
+    for (let i = 0; i < switchN; i++) {
+      switches[i] = t0 + (width * (Math.pow(2, i) - 1)) / bits;
+    }
+  } else if (mode === LOD_SPACING_LOG) {
+    const ratio = span / t0;
+    for (let i = 0; i < switchN; i++) {
+      switches[i] = t0 * Math.pow(ratio, i / switchN);
+    }
+  } else {
+    for (let i = 0; i < switchN; i++) {
+      switches[i] = t0 + (width * i) / switchN;
+    }
+  }
+  ends[0] = switches[0];
+  ends[1] = switches[0];
+  ends[2] = switches[1];
+  ends[3] = switches[2];
+  ends[4] = span;
+  return ends;
+}
+
 function cachedDetailNearEnds() {
   const frame = retailFrame();
-  const mode = frame.lodSpacingMode || LOD_SPACING_RETAIL;
-  const spacing = frame.lodSpacing;
+  const mode = normalizeLodSpacingMode(frame.lodSpacingMode || LOD_SPACING_RETAIL);
   const far = frame.farClip;
-  const key =
-    String(mode) + ":" + String(spacing) + ":" + String(far);
+  const key = String(mode) + ":" + String(far);
   if (key !== detailNearKey) {
     detailNearKey = key;
-    const src =
-      mode === LOD_SPACING_RETAIL
-        ? retailMipSwitches(6, far)
-        : mipSwitchDistances(6, far, null, mode, spacing);
-    const ends = [far, far, far, far, far];
-    for (let i = 0; i < 5 && i < src.length; i++) {
-      ends[i] = src[i];
-    }
-    nearEnds = ends;
+    nearEnds = detailEndsForCurve(detailSpanMeters(far), mode);
   }
   return nearEnds;
 }

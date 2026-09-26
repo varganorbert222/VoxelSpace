@@ -1434,28 +1434,11 @@ WASM_EXPORT void frustum_space_columns(
   xn0 = ((f64)start_column + 0.5) * xn_step - 1.0;
 
   /* One ray per column. The LOD cell sets the step and Step divides it.
-     The first hit paints this row, rewinds one step, and moves up a row. */
+     The first hit paints this row, rewinds one step, and moves up a row.
+     The step cap matches the WebGPU frustum march and does not grow with
+     the framebuffer height. */
   {
-    i32 step_budget = (screen_height + 64) | 0;
-    i32 band;
-    for (band = 0; band < g_lod_n; band = (band + 1) | 0) {
-      f64 width = lod_distances[band + 1] - lod_distances[band];
-      f64 cell = (f64)(1 << band);
-      f64 s;
-      if (g_lod0_refine && (band == 0)) {
-        cell = lod0_step(1.0, 0.0);
-      }
-      s = cell / step_divisor();
-      if (!(s > 0.0)) {
-        s = cell > 0.0 ? cell : 1.0;
-      }
-      if (width > 0.0) {
-        step_budget = (step_budget + (i32)(width / s) + 1) | 0;
-      }
-    }
-    if (step_budget > 2000000) {
-      step_budget = 2000000;
-    }
+    i32 step_budget = g_lod0_refine ? 65536 : 16384;
     for (i32 col = start_column; col < end_column; col = (col + 1) | 0) {
       i32 local_i = (col - start_column) | 0;
       i32 sy = (screen_height - 1) | 0;
