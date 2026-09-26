@@ -154,8 +154,9 @@ function setupClassicLod(params) {
     params.lodSpacingMode,
     params.lodSpacing
   );
+  const nearEnd = switches.length && switches[0] > 0 ? switches[0] : params.farClip;
   const refineSwitches = lod0RefineSwitchDistances(
-    params.lodSpacing,
+    nearEnd,
     params.lod0RefineCurve,
     lod0RefineSwitchScratch
   );

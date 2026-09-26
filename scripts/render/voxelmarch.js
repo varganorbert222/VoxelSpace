@@ -354,8 +354,9 @@ export function renderVoxelTexels({
     lodSpacingMode,
     lodSpacing
   );
+  const nearEnd = switches.length && switches[0] > 0 ? switches[0] : farClip;
   const refineSwitches = lod0RefineSwitchDistances(
-    lodSpacing,
+    nearEnd,
     lod0RefineCurve,
     lod0RefineSwitchScratch
   );

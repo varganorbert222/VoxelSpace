@@ -244,8 +244,16 @@ export function createWasmKernels(instance) {
     const dist = Number(params.filterDistance);
     const fwdX = Number(params.fwdX);
     const fwdY = Number(params.fwdY);
+    const terrainSw = mipSwitchDistances(
+      params.mipCount,
+      params.farClip,
+      null,
+      params.lodSpacingMode,
+      params.lodSpacing
+    );
+    const nearEnd = terrainSw.length && terrainSw[0] > 0 ? terrainSw[0] : params.farClip;
     const refineSw = lod0RefineSwitchDistances(
-      params.lodSpacing,
+      nearEnd,
       params.lod0RefineCurve
     );
     ex.set_sample_flags(

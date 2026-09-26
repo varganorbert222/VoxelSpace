@@ -321,8 +321,9 @@ export function renderFrustumSpaceColumns({
   let shadeHMask = mapHMask;
   let shadeInvScale = 1;
 
+  const nearEnd = switches.length && switches[0] > 0 ? switches[0] : farClip;
   const refineSwitches = lod0RefineSwitchDistances(
-    lodSpacing,
+    nearEnd,
     lod0RefineCurve,
     lod0RefineSwitchScratch
   );

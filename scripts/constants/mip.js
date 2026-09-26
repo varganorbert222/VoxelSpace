@@ -65,12 +65,16 @@ export function lod0RefineCellSize(refineMip) {
   return 1 / lod0RefineSubdiv(refineMip);
 }
 
-export function lod0RefineFirstSpacing(lod0Meters, mode) {
-  const far = Number(lod0Meters);
-  const n = LOD0_REFINE_MIP_COUNT;
+export function curveFirstSwitch(farClip, levelCount, mode) {
+  const n = Math.max(1, levelCount | 0);
+  const far = Number(farClip);
   const spacingMode = normalizeLodSpacingMode(mode);
-  if (!(far > 0)) {
-    return 1;
+  if (!(far > 1) || n <= 1) {
+    return far > 0 ? far : 0;
+  }
+  if (spacingMode === LOD_SPACING_RETAIL) {
+    const t = far / 64;
+    return t > 0 && t < far ? t : far;
   }
   if (spacingMode === LOD_SPACING_DOUBLE) {
     return far / (Math.pow(2, n) - 1);
@@ -83,6 +87,10 @@ export function lod0RefineFirstSpacing(lod0Meters, mode) {
     return t0;
   }
   return far / n;
+}
+
+export function lod0RefineFirstSpacing(lod0Meters, mode) {
+  return curveFirstSwitch(lod0Meters, LOD0_REFINE_MIP_COUNT, mode);
 }
 
 export function lod0RefineSwitchDistances(lod0Meters, mode, out) {
@@ -352,15 +360,12 @@ export function mipSwitchDistances(mipCount, farClip, out, mode, spacing, capLod
     return fillUnusedFrom(dest, 0);
   }
 
-  const byMips = Math.max(1, (Math.floor(far) - switchN) | 0);
-  const maxT0 =
-    capLod0Fraction === false
-      ? byMips
-      : Math.min(byMips, lod0MaxMeters(far, 1));
-  let t0 = clampLodSpacingMeters(spacing, 1, maxT0);
-  if (!(t0 < far)) {
-    t0 = maxT0;
+  let t0 = curveFirstSwitch(far, n, spacingMode);
+  if (!(t0 > 0) || !(t0 < far)) {
+    t0 = far / Math.max(2, n);
   }
+  void spacing;
+  void capLod0Fraction;
   const span = far - t0;
   const denom = switchN;
 

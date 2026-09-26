@@ -25,7 +25,6 @@ import { DEFAULT_MAP_SIZE } from "../constants/terrain.js";
 import {
   TERRAIN_MIP_COUNT_MIN,
   LOD_SPACING_LABEL,
-  lod0MaxMeters,
   mipCountMax,
 } from "../constants/mip.js";
 import { initDualRangeElement } from "./rangeSlider.js";
@@ -50,9 +49,6 @@ function formatRangeValue(id, value) {
     return String(Math.round(n));
   }
   if (id === "id_filter_distance") {
-    return Math.round(n) + " m";
-  }
-  if (id === "id_lod_spacing") {
     return Math.round(n) + " m";
   }
   if (id === "id_fov") {
@@ -95,22 +91,6 @@ function updateBoundValue(id, value) {
   if (label) {
     label.textContent = formatRangeValue(id, value);
   }
-}
-
-function syncLod0Slider(el, farClip, renderer) {
-  const lod0Min = config.settings.lodSpacing.min;
-  const lod0Max = lod0MaxMeters(farClip, lod0Min);
-  el.min = lod0Min;
-  el.max = lod0Max;
-  el.step = config.settings.lodSpacing.step;
-  el.disabled = false;
-  renderer.setOptions({
-    lodSpacing: Math.min(Number(el.value), lod0Max),
-  });
-  const spacing = Math.min(renderer.lodSpacing, lod0Max);
-  el.value = spacing;
-  updateBoundValue("id_lod_spacing", spacing);
-  return spacing;
 }
 
 function mipCountRange(terrain) {
@@ -291,10 +271,6 @@ class SettingsForm {
           fog.setMax(next);
           fog.setValues(app.renderer.fogStart, app.renderer.fogEnd);
           updateFogRangeValue(app.renderer.fogStart, app.renderer.fogEnd);
-          const step = this._elements.lodSpacing;
-          if (step) {
-            syncLod0Slider(step, next, app.renderer);
-          }
           this.sync();
         },
         persist
@@ -364,22 +340,6 @@ class SettingsForm {
           persist();
         },
         LOD_SPACING_LABEL
-      ),
-      lodSpacing: initRangeElement(
-        "id_lod_spacing",
-        {
-          min: config.settings.lodSpacing.min,
-          max: lod0MaxMeters(camera.farClip, config.settings.lodSpacing.min),
-          step: config.settings.lodSpacing.step,
-        },
-        options.lodSpacing,
-        (e) => {
-          app.renderer.setOptions({
-            lodSpacing: parseInt(e.target.value, 10),
-          });
-          e.target.value = app.renderer.lodSpacing;
-        },
-        persist
       ),
       filterDistance: initRangeElement(
         "id_filter_distance",
@@ -523,7 +483,6 @@ class SettingsForm {
       fov,
       mipCount,
       lodSpacingMode,
-      lodSpacing,
       filterDistance,
       quality,
       applyFog,
@@ -562,7 +521,6 @@ class SettingsForm {
     mipCount.value = options.mipCount;
     updateMipCountValue(options.mipCount, this._app.terrain);
     lodSpacingMode.value = options.lodSpacingMode;
-    syncLod0Slider(lodSpacing, camera.farClip, this._app.renderer);
     filterDistance.value = options.filterDistance;
     updateBoundValue("id_filter_distance", options.filterDistance);
     setDisabled(

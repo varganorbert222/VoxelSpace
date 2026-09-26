@@ -504,8 +504,9 @@ class WebGpuBackend {
       this._host.lodSpacingMode,
       this._host.lodSpacing
     );
+    const nearEnd = switchDist.length && switchDist[0] > 0 ? switchDist[0] : camera.farClip;
     const refineSw = lod0RefineSwitchDistances(
-      this._host.lodSpacing,
+      nearEnd,
       this._host.lod0RefineCurve
     );
     const switchF32 = new Float32Array(TERRAIN_MIP_MAX_COUNT * 2);

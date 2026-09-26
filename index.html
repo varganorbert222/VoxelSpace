@@ -252,7 +252,7 @@
         <div
           class="control"
           hidden
-          data-tip="Kept for saved settings. Height interp and color filter now follow LOD 0 instead of this range."
+          data-tip="Kept for saved settings. The renderer no longer uses this range."
         >
           <div class="control-head">
             <label for="id_filter_distance">Filter range</label>
@@ -272,22 +272,12 @@
         </div>
         <div
           class="control"
-          data-tip="How coarser LOD levels are spaced out to Distance. Linear: equal remaining range. Doubling: each remaining band is twice the previous. Logarithmic: log-spaced from LOD 0 to Distance. Retail: fixed fractions of Distance, 1/64, 1/32, 1/16, 1/8, 1/4, 1/2. The same curve spaces the detail atlas."
+          data-tip="How every LOD band is spaced from the camera out to Distance, including the full-resolution Near band. Linear: equal bands. Doubling: each band is twice the previous. Logarithmic: log-spaced across Distance. Retail: fractions of Distance, so Near ends at 1/64. The same curve spaces the detail atlas."
         >
           <div class="control-head">
             <label for="id_lod_spacing_mode">LOD curve</label>
           </div>
           <select id="id_lod_spacing_mode" name="lodSpacingMode" autocomplete="off"></select>
-        </div>
-        <div
-          class="control"
-          data-tip="How far full-resolution LOD 0 lasts, in meters. Coarser levels start here and follow the LOD curve out to Distance. Always at most 10% of Distance. Retail ignores this and uses fractions of Distance."
-        >
-          <div class="control-head">
-            <label for="id_lod_spacing">LOD 0</label>
-            <span class="control-value" data-for="id_lod_spacing"></span>
-          </div>
-          <input id="id_lod_spacing" type="range" autocomplete="off" />
         </div>
         <div
           class="control"
@@ -338,7 +328,7 @@
         </div>
         <div
           class="control"
-          data-tip="How the five LOD 0 refine mips are spaced from the camera out to the LOD 0 distance. Linear: equal bands. Doubling: each band is twice the previous. Logarithmic: log-spaced. Retail: the same fractions of the LOD 0 distance as the terrain Retail curve. Independent of the View LOD curve."
+          data-tip="How the five Near Refine steps are spaced inside the Near band. That band ends at the first LOD switch of the View LOD curve. Linear: equal steps. Doubling: each step is twice the previous. Logarithmic: log-spaced. Retail: the same fractions of the Near band."
         >
           <div class="control-head">
             <label for="id_lod0_refine_curve">Curve</label>
