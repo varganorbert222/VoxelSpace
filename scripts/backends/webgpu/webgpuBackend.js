@@ -8,7 +8,7 @@ import {
 } from "../../constants/algorithm.js";
 import { debugViewId, isDebugColor } from "../../constants/debugView.js";
 import { STEP_GROWTH_BY_QUALITY, qualityIndex } from "../../constants/quality.js";
-import { useRetailFrame, retailLodSteps, retailStepScale } from "../../render/retail/schedule.js";
+import { useRetailFrame, retailMipSwitches, retailStepScale } from "../../render/retail/schedule.js";
 import { detailNearEnds, prepareRetailDetail } from "../../render/retail/detail.js";
 import {
   createSkyPack,
@@ -25,11 +25,9 @@ import { Color } from "../../math/color.js";
 import ColorPalette from "../../math/colorPalette.js";
 import {
   TERRAIN_MIP_MAX_COUNT,
-  bandStepAt,
   fillClassicLodDistances,
   firstBandT,
   mipInvScale,
-  mipSwitchDistances,
   lod0RefineSwitchDistances,
 } from "../../constants/mip.js";
 import { resolveTerrainMips } from "../../terrain/mipChain.js";
@@ -496,25 +494,14 @@ class WebGpuBackend {
       this._host.mipCount
     );
     const mipCount = mips.count;
-    const switchDist = mipSwitchDistances(
-      mipCount,
-      camera.farClip,
-      null,
-      this._host.lodSpacingMode,
-      this._host.lodSpacing
-    );
+    const switchDist = retailMipSwitches(mipCount, camera.farClip);
     const refineSw = lod0RefineSwitchDistances(
       this._host.lodSpacing,
       this._host.lod0RefineCurve
     );
-    const steps = retailLodSteps(mipCount, camera.farClip);
-    // [0, 16): mip switch distances, [16, 32): band steps per mip.
     const switchF32 = new Float32Array(TERRAIN_MIP_MAX_COUNT * 2);
     switchF32.fill(1e30, 0, TERRAIN_MIP_MAX_COUNT);
     switchF32.set(Float32Array.from(switchDist));
-    for (let m = 0; (m < TERRAIN_MIP_MAX_COUNT) | 0; m = (m + 1) | 0) {
-      switchF32[TERRAIN_MIP_MAX_COUNT + m] = bandStepAt(steps, m);
-    }
     writeBuffer(this._device, this._mipSwitchBuf, switchF32);
     const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
     const t0 = firstBandT(camera.nearClip);
@@ -666,20 +653,10 @@ class WebGpuBackend {
       this._host.mipCount
     );
     const bandCount = mips.count;
-    const deltasAll = retailLodSteps(bandCount, this._host.effectiveFarClip);
     const deltas = new Float32Array(TERRAIN_MIP_MAX_COUNT);
-    for (let i = 0; (i < bandCount) | 0; i = (i + 1) | 0) {
-      deltas[i] = deltasAll[i];
-    }
     const zStart = firstBandT(camera.nearClip);
     const far = this._host.effectiveFarClip;
-    const switches = mipSwitchDistances(
-      bandCount,
-      far,
-      null,
-      this._host.lodSpacingMode,
-      this._host.lodSpacing
-    );
+    const switches = retailMipSwitches(bandCount, far);
     const lodDistances = new Float32Array(32);
     fillClassicLodDistances(lodDistances, zStart, far, switches, bandCount);
     const offsets = new Uint32Array(TERRAIN_MIP_MAX_COUNT);

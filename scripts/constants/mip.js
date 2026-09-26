@@ -462,6 +462,37 @@ export function fillClassicLodDistances(out, zStart, farClip, switches, bandCoun
   return n;
 }
 
+export function mipDdaDelta(wx, wy, dirX, dirY, cellSize) {
+  const s = cellSize > 0 ? cellSize : 1;
+  const ix = Math.floor(wx / s);
+  const iy = Math.floor(wy / s);
+  let tMaxX = 1e30;
+  let tMaxY = 1e30;
+  if (dirX > 0) {
+    tMaxX = ((ix + 1) * s - wx) / dirX;
+  } else if (dirX < 0) {
+    tMaxX = (ix * s - wx) / dirX;
+  }
+  if (dirY > 0) {
+    tMaxY = ((iy + 1) * s - wy) / dirY;
+  } else if (dirY < 0) {
+    tMaxY = (iy * s - wy) / dirY;
+  }
+  let dt = tMaxX < tMaxY ? tMaxX : tMaxY;
+  if (!(dt > 0)) {
+    dt = 0;
+  }
+  return dt;
+}
+
+export function mipCellFarT(t, wx, wy, dirX, dirY, cellSize) {
+  const dt = mipDdaDelta(wx, wy, dirX, dirY, cellSize);
+  if (dt > 0) {
+    return t + dt;
+  }
+  return t + mipDdaEps(cellSize);
+}
+
 export function mipDdaEps(cellSize) {
   const e = cellSize * TERRAIN_MIP_DDA_EPS;
   if (e > 1e-6) {

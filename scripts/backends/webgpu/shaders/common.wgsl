@@ -339,6 +339,14 @@ fn mipDdaDelta(wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32, t: f32) -> f32 
   return dt;
 }
 
+fn gridDdaFarT(t: f32, wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32) -> f32 {
+  let dt = mipDdaDelta(wx, wy, dirX, dirY, mip, t);
+  if (dt > 0.0) {
+    return t + dt;
+  }
+  return t + mipDdaEps(mipCellSize(mip, t));
+}
+
 fn mipCellFarT(t: f32, wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32) -> f32 {
   if (mip <= 0 && !lod0RefineAt(t, mip)) {
     return t;

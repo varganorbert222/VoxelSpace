@@ -109,6 +109,25 @@ function scaledEnd(raw, index, scale) {
   return raw[Math.min(index, raw.length - 1)].end * scale;
 }
 
+// Mip switch i is u * farClip, u = 2^(i-6), while u < 1.
+// Extra levels past 1/2 sit on the last mip out to farClip.
+export function retailMipSwitches(bandCount, farClip, out) {
+  const levels = Math.max(1, bandCount | 0);
+  const switchN = (levels - 1) | 0;
+  const dest = out && out.length >= switchN ? out : new Float64Array(switchN);
+  const far = Number(farClip);
+  for (let i = 0; i < switchN; i++) {
+    const u = Math.pow(2, i - 6);
+    if (!(far > 1) || !(u > 0) || !(u < 1)) {
+      dest[i] = far;
+      continue;
+    }
+    const t = u * far;
+    dest[i] = t > 0 && t < far ? t : far;
+  }
+  return dest.subarray(0, switchN);
+}
+
 export function retailLodSteps(bandCount, farClip, out) {
   const n = Math.max(1, bandCount | 0);
   const dest = out || new Float64Array(n);
