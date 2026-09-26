@@ -1,7 +1,7 @@
 "use strict";
 
 import { Color } from "../math/color.js";
-import { useRetailFrame } from "./retail/schedule.js";
+import { qualityBandSteps, useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import {
   CHANNEL_MASK,
@@ -20,16 +20,11 @@ import {
   isDebugColor,
 } from "../constants/debugView.js";
 import { encodeHeight, encodeIter, encodeUnit } from "./debugEncode.js";
-import { NON_REPEAT_GROUND_OFFSET, classicPixelBudget } from "../constants/classic.js";
-import {
-  FOG_SATURATED,
-  STEP_GROWTH_BY_QUALITY,
-  qualityIndex,
-} from "../constants/quality.js";
+import { NON_REPEAT_GROUND_OFFSET } from "../constants/classic.js";
+import { FOG_SATURATED } from "../constants/quality.js";
 import {
   TERRAIN_MIP_MAX_COUNT,
-  fitBandStep,
-  growBandStep,
+  bandStepAt,
   fillClassicLodDistances,
   firstBandT,
   lod0RefineAt,
@@ -49,6 +44,7 @@ import { resolveTerrainMips } from "../terrain/mipChain.js";
 let hiddenYScratch = new Int32Array(1);
 let sampleNScratch = new Int32Array(1);
 const lodDistancesScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT + 1);
+const bandStepsScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
 const lod0RefineSwitchScratch = new Float64Array(LOD0_REFINE_SWITCH_COUNT);
 const mipWMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
 const mipHMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
@@ -100,30 +96,6 @@ function cameraClearance(heightMap, camX, camY, camZ, altScale, mapShift, mapW, 
   return 0;
 }
 
-// Largest step whose screen Y move stays about one pixel for `clearance`
-// below the camera. Off-screen surfaces are ignored.
-function classicClearanceStep(z, clearance, dst, horizon, screenHeight, pixels) {
-  if (!(clearance > 1) || !(dst > 0) || !(z > 0)) {
-    return 1e30;
-  }
-  let sdf = clearance;
-  const ySpan = screenHeight - horizon;
-  if (ySpan > 1) {
-    const onScreen = (ySpan * z) / dst;
-    if (onScreen < sdf) {
-      sdf = onScreen;
-    }
-  }
-  if (!(sdf > 1)) {
-    return 1e30;
-  }
-  const dz = ((z * z) / (sdf * dst)) * (pixels > 1 ? pixels : 1);
-  if (dz < 1e-3) {
-    return 1e-3;
-  }
-  return dz;
-}
-
 function classicProjectedY(sdf, dst, z, step, plx, ply, col, kLeftX, kLeftY, kDx, kDy, mip, horizon, refine, refineMip) {
   return projectSdfYSpan(
     sdf,
@@ -154,6 +126,13 @@ function setupClassicLod(params) {
     params.lodSpacingMode,
     params.lodSpacing
   );
+  const steps = qualityBandSteps(
+    bandCount,
+    params.farClip,
+    params.quality,
+    switches,
+    bandStepsScratch
+  );
   const nearEnd = switches.length && switches[0] > 0 ? switches[0] : params.farClip;
   const refineSwitches = lod0RefineSwitchDistances(
     nearEnd,
@@ -175,6 +154,7 @@ function setupClassicLod(params) {
     mips: mips,
     bandCount: bandCount,
     refine: refine,
+    steps: steps,
     lodSpacing: params.lodSpacing,
     refineSwitches: refineSwitches,
     mipSwitches: switches,
@@ -394,11 +374,12 @@ function renderClassicColumnsSampled({
     lodSpacing: lodSpacing,
     lod0Refine: lod0Refine,
     lod0RefineCurve: lod0RefineCurve,
+    quality: quality,
   });
   const mips = lodState.mips;
   const bandCount = lodState.bandCount;
   const refine = lodState.refine;
-  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
+  const bandSteps = lodState.steps;
   const refineSwitches = lodState.refineSwitches;
   const mipSwitches = lodState.mipSwitches;
   const lod0Far = lodState.lodSpacing;
@@ -446,18 +427,7 @@ function renderClassicColumnsSampled({
     ) {
       const refineHere = lod0RefineAt(refine, mip);
       const refineMip = refineHere ? lod0RefineMipAt(z, refineSwitches) : 0;
-      step = fitBandStep(step, mip, refineHere, refineMip, quality);
-      const screenStep = classicClearanceStep(
-        z,
-        clearance,
-        dstToProjPlane,
-        screenHorizon,
-        screenHeight,
-        classicPixelBudget(quality)
-      );
-      if (step > screenStep) {
-        step = screenStep;
-      }
+      step = bandStepAt(bandSteps, mip);
       const zScale = dstToProjPlane / z;
       const ceilingOnScreen = (ceilingSdf * zScale + screenHorizon) | 0;
       const groundOnScreen = (yGround * zScale + screenHorizon) | 0;
@@ -687,14 +657,6 @@ function renderClassicColumnsSampled({
         break;
       }
       z = z + step;
-      step = growBandStep(
-        step,
-        mip,
-        refineHere,
-        refineMip,
-        stepGrowth,
-        quality
-      );
     }
   }
 }
@@ -782,11 +744,12 @@ function renderClassicColumnsNearest({
     lodSpacing: lodSpacing,
     lod0Refine: lod0Refine,
     lod0RefineCurve: lod0RefineCurve,
+    quality: quality,
   });
   const mips = lodState.mips;
   const bandCount = lodState.bandCount;
   const refine = lodState.refine;
-  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
+  const bandSteps = lodState.steps;
   const refineSwitches = lodState.refineSwitches;
   const mipSwitches = lodState.mipSwitches;
   const lod0Far = lodState.lodSpacing;
@@ -833,18 +796,7 @@ function renderClassicColumnsNearest({
     ) {
       const refineHere = lod0RefineAt(refine, mip);
       const refineMip = refineHere ? lod0RefineMipAt(z, refineSwitches) : 0;
-      step = fitBandStep(step, mip, refineHere, refineMip, quality);
-      const screenStep = classicClearanceStep(
-        z,
-        clearance,
-        dstToProjPlane,
-        screenHorizon,
-        screenHeight,
-        classicPixelBudget(quality)
-      );
-      if (step > screenStep) {
-        step = screenStep;
-      }
+      step = bandStepAt(bandSteps, mip);
       const zScale = dstToProjPlane / z;
       const ceilingOnScreen = (ceilingSdf * zScale + screenHorizon) | 0;
       const groundOnScreen = (yGround * zScale + screenHorizon) | 0;
@@ -1025,14 +977,6 @@ function renderClassicColumnsNearest({
         break;
       }
       z = z + step;
-      step = growBandStep(
-        step,
-        mip,
-        refineHere,
-        refineMip,
-        stepGrowth,
-        quality
-      );
     }
   }
 }

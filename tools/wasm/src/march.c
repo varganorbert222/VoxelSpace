@@ -409,6 +409,24 @@ static f64 lod0_step(f64 base_step, f64 t) {
   return base_step * (1.0 / (f64)subdiv);
 }
 
+static f64 band_step_at(i32 mip) {
+  i32 m = mip;
+  if (m < 0) {
+    m = 0;
+  }
+  if (g_lod_delta_n <= 0) {
+    return 1.0;
+  }
+  if (m >= g_lod_delta_n) {
+    m = (g_lod_delta_n - 1) | 0;
+  }
+  f64 s = g_lod_deltas[m];
+  if (!(s > 0.0)) {
+    s = 1.0;
+  }
+  return s;
+}
+
 static f64 step_divisor(void) {
   if (!(g_step_divisor >= 1.0)) {
     return 1.0;
@@ -1009,6 +1027,8 @@ WASM_EXPORT void classic_columns(
 
   (void)min_delta_z;
   (void)step_scale;
+  (void)step_growth;
+  (void)pixel_budget;
 
   z_start = near_clip;
   if (!(z_start > 0.0)) {
@@ -1070,35 +1090,7 @@ WASM_EXPORT void classic_columns(
       }
     }
     for (; (z < end_index) & (z < far_clip);) {
-      f64 lo;
-      f64 cap;
-      band_limits(mip, z, &lo, &cap);
-      step = fit_step(step, lo, cap);
-      {
-        f64 y_span = (f64)screen_height - screen_horizon;
-        if ((clearance > 1.0) & (z > 0.0)) {
-          f64 sdf_cap = clearance;
-          if (y_span > 1.0) {
-            f64 on_screen = y_span * z / dst_to_proj;
-            if (on_screen < sdf_cap) {
-              sdf_cap = on_screen;
-            }
-          }
-          if (sdf_cap > 1.0) {
-            f64 budget = pixel_budget;
-            if (!(budget > 0.0)) {
-              budget = 1.0;
-            }
-            f64 screen_step = z * z / (sdf_cap * dst_to_proj) * budget;
-            if (screen_step < 0.001) {
-              screen_step = 0.001;
-            }
-            if (step > screen_step) {
-              step = screen_step;
-            }
-          }
-        }
-      }
+      step = band_step_at(mip);
       f64 z_scale = dst_to_proj / z;
       i32 ceiling_on_screen = (i32)(ceiling_sdf * z_scale + screen_horizon);
       i32 ground_on_screen = (i32)(y_ground * z_scale + screen_horizon);
@@ -1247,10 +1239,6 @@ WASM_EXPORT void classic_columns(
         break;
       }
       z = z + step;
-      step = step + step_growth * cap;
-      if (step > cap) {
-        step = cap;
-      }
     }
   }
 }
@@ -1412,6 +1400,7 @@ WASM_EXPORT void frustum_space_columns(
 
   (void)min_delta_z;
   (void)step_scale;
+  (void)step_growth;
   z_start = near_clip;
   if (!(z_start > 0.0)) {
     z_start = 0.0;
@@ -1448,8 +1437,6 @@ WASM_EXPORT void frustum_space_columns(
       f64 xn = ((f64)col + 0.5) * xn_step - 1.0;
       while ((sy >= 0) & (t < far_clip) & (guard < step_budget)) {
         i32 mip = 0;
-        f64 lo;
-        f64 cap;
         f64 yn;
         f64 bx;
         f64 by;
@@ -1483,8 +1470,7 @@ WASM_EXPORT void frustum_space_columns(
         if (mip < 0) {
           mip = 0;
         }
-        band_limits(mip, t, &lo, &cap);
-        step = fit_step(step, lo, cap);
+        step = band_step_at(mip);
         yn = (row_base - (f64)sy) * inv_h2;
         bx = fwd_x + xn * tan_half_fov_x * right_x + yn * up_x;
         by = fwd_y + xn * tan_half_fov_x * right_y + yn * up_y;
@@ -1498,10 +1484,6 @@ WASM_EXPORT void frustum_space_columns(
         inside = (wx >= 0.0) & (wx <= (f64)g_map_w) & (wy >= 0.0) & (wy <= (f64)g_map_h);
         if (!inside && !wrap) {
           t = t + step;
-          step = step + step_growth * cap;
-          if (step > cap) {
-            step = cap;
-          }
           continue;
         }
         lod_height_map = g_mip_h[mip];
@@ -1549,10 +1531,6 @@ WASM_EXPORT void frustum_space_columns(
           }
         } else {
           t = t + step;
-          step = step + step_growth * cap;
-          if (step > cap) {
-            step = cap;
-          }
         }
       }
     }

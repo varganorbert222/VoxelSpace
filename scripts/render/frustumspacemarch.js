@@ -1,7 +1,7 @@
 ﻿"use strict";
 
 import { Color } from "../math/color.js";
-import { useRetailFrame } from "./retail/schedule.js";
+import { qualityBandSteps, useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import {
   CHANNEL_MASK,
@@ -28,8 +28,7 @@ import {
   LOD0_REFINE_SWITCH_COUNT,
   TERRAIN_MIP_MAX_COUNT,
   marchMaxSteps,
-  fitBandStep,
-  growBandStep,
+  bandStepAt,
   fillClassicLodDistances,
   firstBandT,
   lod0RefineAt,
@@ -39,20 +38,17 @@ import {
   mipSwitchDistances,
 } from "../constants/mip.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
-import {
-  FOG_SATURATED,
-  STEP_GROWTH_BY_QUALITY,
-  qualityIndex,
-} from "../constants/quality.js";
+import { FOG_SATURATED } from "../constants/quality.js";
 
-// One ray per column, matching the retail terrain pass. LOD cell size sets
-// the step; Quality divides the retail band step. On a heightfield hit the row is painted, the
+// One ray per column. The step is the mip-band width divided by 32*q.
+// On a heightfield hit the row is painted, the
 // ray rewinds one step, and the row cursor moves up. The next test continues
 // from that point. A miss only advances the ray. Spec is Y-up; this project
 // is Z-up (X, Y map, Z altitude).
 
 let sampleNScratch = new Int32Array(1);
 const lodDistancesScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT + 1);
+const bandStepsScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
 const lod0RefineSwitchScratch = new Float64Array(LOD0_REFINE_SWITCH_COUNT);
 let sampleNCapacity = 1;
 
@@ -256,7 +252,6 @@ export function renderFrustumSpaceColumns({
     lodSpacingMode,
     lodSpacing,
   });
-  const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;
   const fogRange = farClip - fogStart;
@@ -306,6 +301,13 @@ export function renderFrustumSpaceColumns({
     farClip,
     switches,
     bandCount
+  );
+  const bandSteps = qualityBandSteps(
+    bandCount,
+    farClip,
+    quality,
+    switches,
+    bandStepsScratch
   );
 
   const screenWidthScaler = 1 / screenWidth;
@@ -384,7 +386,7 @@ export function renderFrustumSpaceColumns({
       const mip = mipLevelAtDistance(t, switches, lastMip);
       const refineHere = lod0RefineAt(lod0Refine, mip);
       const refineMip = refineHere ? lod0RefineMipAt(t, refineSwitches) : 0;
-      step = fitBandStep(step, mip, refineHere, refineMip, quality);
+      step = bandStepAt(bandSteps, mip);
       const yn = (rowBase - sy) * invH2;
       const bx = fwdX + xn * tanHalfFovX * rightX + yn * upX;
       const by = fwdY + xn * tanHalfFovX * rightY + yn * upY;
@@ -402,7 +404,6 @@ export function renderFrustumSpaceColumns({
         ((wy <= mapH) | 0);
       if (!(inside | wrap)) {
         t = t + step;
-        step = growBandStep(step, mip, refineHere, refineMip, stepGrowth, quality);
         continue;
       }
       shadeInvScale = 1 / (1 << mip);
@@ -479,7 +480,6 @@ export function renderFrustumSpaceColumns({
         t = prev > zStart ? prev : zStart;
       } else {
         t = t + step;
-        step = growBandStep(step, mip, refineHere, refineMip, stepGrowth, quality);
       }
     }
   }

@@ -8,7 +8,7 @@ import {
 } from "../../constants/algorithm.js";
 import { debugViewId, isDebugColor } from "../../constants/debugView.js";
 import { STEP_GROWTH_BY_QUALITY, qualityIndex } from "../../constants/quality.js";
-import { useRetailFrame, retailStepScale } from "../../render/retail/schedule.js";
+import { qualityBandSteps, useRetailFrame, retailStepScale } from "../../render/retail/schedule.js";
 import { detailNearEnds, prepareRetailDetail } from "../../render/retail/detail.js";
 import {
   createSkyPack,
@@ -679,6 +679,13 @@ class WebGpuBackend {
     );
     const lodDistances = new Float32Array(32);
     fillClassicLodDistances(lodDistances, zStart, far, switches, bandCount);
+    const bandSteps = qualityBandSteps(
+      bandCount,
+      far,
+      camera.quality,
+      switches
+    );
+    deltas.set(bandSteps.subarray(0, Math.min(bandSteps.length, deltas.length)));
     const offsets = new Uint32Array(TERRAIN_MIP_MAX_COUNT);
     offsets.fill(1);
     writeBuffer(this._device, this._offsetBuf, offsets);

@@ -1,6 +1,6 @@
 ﻿@group(0) @binding(0) var<uniform> frame: Frame;
 @group(1) @binding(0) var<storage, read> pixelOffsets: array<u32, 8>;
-@group(1) @binding(1) var<storage, read> lodDeltas: array<f32, 8>;
+@group(1) @binding(1) var<storage, read> lodDeltas: array<f32, 16>;
 @group(1) @binding(2) var<storage, read> lodDistances: array<f32, 16>;
 @group(2) @binding(0) var heightTex: texture_2d<u32>;
 @group(2) @binding(1) var colorTex: texture_2d<f32>;
@@ -191,9 +191,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let mipScale = exp2(-f32(mip));
     let lodWMask = (mapW >> u32(max(mip, 0))) - 1;
     let lodHMask = (mapH >> u32(max(mip, 0))) - 1;
-    let lo = max(bandMarchStep(lodDeltas[mip], mip, t), 1.0e-4);
-    let cell = mipCellSize(mip, t);
-    step = fitBandStep(step, lo, cell);
+    step = max(bandMarchStep(lodDeltas[mip], mip, t), 1.0e-4);
     let yn = (rowBase - f32(sy)) * invH2;
     let dir = fwd + right * (xn * tanHalfX) + up * yn;
     let pos = cam + dir * t;
@@ -203,7 +201,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let inside = ((pos.x >= 0.0) && (pos.x <= mapWf) && (pos.y >= 0.0) && (pos.y <= mapHf)) || repeat;
     if (!inside) {
       t = t + step;
-      step = growBandStep(step, lo, cell);
       continue;
     }
     let useFine = (mip == 0) && (t <= filterDist);
@@ -244,7 +241,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       t = select(t0, prev, prev > t0);
     } else {
       t = t + step;
-      step = growBandStep(step, lo, cell);
     }
   }
 }

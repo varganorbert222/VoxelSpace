@@ -12,8 +12,6 @@ const NEAR_STEPS = Object.freeze([1, 1, 2, 4, 8]);
 const NEAR_SUBDIV = Object.freeze([16, 16, 8, 4, 2]);
 const DIRECT_COUNT = 6;
 
-const SAMPLES_PER_BAND = 32;
-
 let frame = {
   width: 1024,
   fovDeg: 90,
@@ -110,10 +108,6 @@ export function retailBands() {
   }));
 }
 
-function scaledEnd(raw, index, scale) {
-  return raw[Math.min(index, raw.length - 1)].end * scale;
-}
-
 // Mip switch i is u * farClip, u = 2^(i-6), while u < 1.
 // Extra levels past 1/2 sit on the last mip out to farClip.
 export function retailMipSwitches(bandCount, farClip, out) {
@@ -133,27 +127,44 @@ export function retailMipSwitches(bandCount, farClip, out) {
   return dest.subarray(0, switchN);
 }
 
-export function retailLodSteps(bandCount, farClip, out) {
+// Samples in one mip band at Low. Higher quality multiplies this by q.
+export const QUALITY_SAMPLES_PER_BAND = 32;
+
+// Step is the band width divided by 32*q. Band edges do not move with quality.
+export function qualityBandSteps(bandCount, farClip, quality, switches, out) {
   const n = Math.max(1, bandCount | 0);
   const dest = out || new Float64Array(n);
-  const { raw, scale, far } = retailDistanceScale(farClip);
-  const q = retailQualityQ(frame.quality);
-  const budget = SAMPLES_PER_BAND * q;
+  const far = Number(farClip) > 1 ? Number(farClip) : 1;
+  const samples = QUALITY_SAMPLES_PER_BAND * retailQualityQ(quality);
+  const swN = switches ? switches.length : 0;
+  let start = 0;
   for (let i = 0; i < n; i++) {
-    const bandIndex = i === 0 ? 0 : Math.min(4 + i - 1, raw.length - 1);
-    const start = i === 0 ? 0 : scaledEnd(raw, 4 + i - 1, scale);
-    const end =
-      i === n - 1 ? far : Math.min(far, scaledEnd(raw, 4 + i, scale));
-    const width = Math.max(end - start, 1e-3);
-    const scaled = raw[bandIndex].step * scale;
-    const floor = width / budget;
-    let step = scaled > floor ? scaled : floor;
-    if (step > width) {
+    let end = far;
+    if (i < n - 1) {
+      const edge = i < swN ? Number(switches[i]) : far;
+      end = edge > start && edge < far ? edge : far;
+    }
+    const width = end > start ? end - start : 0;
+    let step = samples > 0 ? width / samples : width;
+    if (!(step > 0)) {
+      step = width > 0 ? width : 1e-3;
+    }
+    if (width > 0 && step > width) {
       step = width;
     }
     dest[i] = step;
+    start = end;
   }
-  return dest;
+  if (dest.length === n) {
+    return dest;
+  }
+  return dest.subarray(0, n);
+}
+
+export function retailLodSteps(bandCount, farClip, out) {
+  const far = Number(farClip) > 1 ? Number(farClip) : frame.farClip;
+  const switches = retailMipSwitches(bandCount, far);
+  return qualityBandSteps(bandCount, far, frame.quality, switches, out);
 }
 
 export function retailStepScale() {

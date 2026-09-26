@@ -26,7 +26,7 @@ import {
   mipSwitchDistances,
 } from "../constants/mip.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
-import { useRetailFrame } from "../render/retail/schedule.js";
+import { qualityBandSteps, useRetailFrame } from "../render/retail/schedule.js";
 import { detailNearEnds, retailDetailState } from "../render/retail/detail.js";
 import {
   DEG_TO_RAD,
@@ -174,7 +174,6 @@ export function createWasmKernels(instance) {
     }
     const offsets = new Int32Array(bandCount);
     offsets.fill(1);
-    const farDeltas = new Float64Array(0);
     const switches = mipSwitchDistances(
       bandCount,
       params.farClip,
@@ -188,6 +187,12 @@ export function createWasmKernels(instance) {
     for (let i = 0; (i < fracs.length) | 0; i = (i + 1) | 0) {
       fracs[i] = switches[i] / far;
     }
+    const farDeltas = qualityBandSteps(
+      bandCount,
+      params.farClip,
+      params.quality,
+      switches
+    );
     copyBytes(memory, classicSlot.offPtr, offsets);
     copyBytes(memory, classicSlot.delPtr, farDeltas);
     copyBytes(memory, classicSlot.fracPtr, fracs);
