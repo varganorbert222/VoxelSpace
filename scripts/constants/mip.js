@@ -1,6 +1,6 @@
 "use strict";
 
-import { MIN_SAMPLE_DISTANCE } from "./quality.js";
+import { MIN_SAMPLE_DISTANCE, qualityStepDivisor } from "./quality.js";
 
 export const TERRAIN_MIP_KERNEL = 2;
 export const TERRAIN_MIP_MIN_SIZE = 1;
@@ -395,18 +395,27 @@ export function bandStepAt(steps, mip) {
   return s > 0 ? s : MIN_SAMPLE_DISTANCE;
 }
 
-export function bandMarchStep(steps, mip, refine, refineMip) {
-  const base = mipVoxelSize(mip);
+// Smallest march step at this mip: one mip cell divided by Quality.
+// The step never exceeds the cell, so a band stride cannot skip voxels.
+export function bandStepFloor(mip, refine, refineMip, quality) {
   const cell = marchCellSize(mip, refine, refineMip);
-  const s = bandStepAt(steps, mip);
-  if ((cell < base) & (base > 0)) {
-    return (s * cell) / base;
+  const q = qualityStepDivisor(quality);
+  let lo = cell / q;
+  if (!(lo > 0)) {
+    lo = cell > 0 ? cell : MIN_SAMPLE_DISTANCE;
   }
-  return s;
+  if (lo > cell) {
+    lo = cell;
+  }
+  return lo;
 }
 
-export function fitBandStep(step, steps, mip, refine, refineMip) {
-  const lo = bandMarchStep(steps, mip, refine, refineMip);
+export function bandMarchStep(mip, refine, refineMip, quality) {
+  return bandStepFloor(mip, refine, refineMip, quality);
+}
+
+export function fitBandStep(step, mip, refine, refineMip, quality) {
+  const lo = bandStepFloor(mip, refine, refineMip, quality);
   const cell = marchCellSize(mip, refine, refineMip);
   const hi = cell > lo ? cell : lo;
   let s = Number(step);
@@ -419,14 +428,14 @@ export function fitBandStep(step, steps, mip, refine, refineMip) {
   return s;
 }
 
-export function growBandStep(step, steps, mip, refine, refineMip, growth) {
+export function growBandStep(step, mip, refine, refineMip, growth, quality) {
   const cell = marchCellSize(mip, refine, refineMip);
   const g = Number(growth);
   let s = Number(step);
   if (g > 0) {
     s = s + g * cell;
   }
-  return fitBandStep(s, steps, mip, refine, refineMip);
+  return fitBandStep(s, mip, refine, refineMip, quality);
 }
 
 export function fillClassicLodDistances(out, zStart, farClip, switches, bandCount) {

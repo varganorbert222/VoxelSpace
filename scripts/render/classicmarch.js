@@ -1,7 +1,7 @@
 "use strict";
 
 import { Color } from "../math/color.js";
-import { useRetailFrame, retailLodSteps } from "./retail/schedule.js";
+import { useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import {
   CHANNEL_MASK,
@@ -49,7 +49,6 @@ import { resolveTerrainMips } from "../terrain/mipChain.js";
 let hiddenYScratch = new Int32Array(1);
 let sampleNScratch = new Int32Array(1);
 const lodDistancesScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT + 1);
-const bandStepsScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
 const lod0RefineSwitchScratch = new Float64Array(LOD0_REFINE_SWITCH_COUNT);
 const mipWMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
 const mipHMaskScratch = new Int32Array(TERRAIN_MIP_MAX_COUNT);
@@ -147,7 +146,6 @@ function setupClassicLod(params) {
   );
   const bandCount = mips.count;
   const refine = !!params.lod0Refine;
-  const steps = retailLodSteps(bandCount, params.farClip, bandStepsScratch);
   const zStart = firstBandT(params.nearClip);
   const switches = mipSwitchDistances(
     bandCount,
@@ -176,7 +174,6 @@ function setupClassicLod(params) {
     mips: mips,
     bandCount: bandCount,
     refine: refine,
-    steps: steps,
     lodSpacing: params.lodSpacing,
     refineSwitches: refineSwitches,
     mipSwitches: switches,
@@ -400,7 +397,6 @@ function renderClassicColumnsSampled({
   const mips = lodState.mips;
   const bandCount = lodState.bandCount;
   const refine = lodState.refine;
-  const bandStepTable = lodState.steps;
   const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
   const refineSwitches = lodState.refineSwitches;
   const mipSwitches = lodState.mipSwitches;
@@ -449,7 +445,7 @@ function renderClassicColumnsSampled({
     ) {
       const refineHere = lod0RefineAt(refine, mip);
       const refineMip = refineHere ? lod0RefineMipAt(z, refineSwitches) : 0;
-      step = fitBandStep(step, bandStepTable, mip, refineHere, refineMip);
+      step = fitBandStep(step, mip, refineHere, refineMip, quality);
       const screenStep = classicClearanceStep(
         z,
         clearance,
@@ -692,11 +688,11 @@ function renderClassicColumnsSampled({
       z = z + step;
       step = growBandStep(
         step,
-        bandStepTable,
         mip,
         refineHere,
         refineMip,
-        stepGrowth
+        stepGrowth,
+        quality
       );
     }
   }
@@ -789,7 +785,6 @@ function renderClassicColumnsNearest({
   const mips = lodState.mips;
   const bandCount = lodState.bandCount;
   const refine = lodState.refine;
-  const bandStepTable = lodState.steps;
   const stepGrowth = STEP_GROWTH_BY_QUALITY[qualityIndex(quality)];
   const refineSwitches = lodState.refineSwitches;
   const mipSwitches = lodState.mipSwitches;
@@ -837,7 +832,7 @@ function renderClassicColumnsNearest({
     ) {
       const refineHere = lod0RefineAt(refine, mip);
       const refineMip = refineHere ? lod0RefineMipAt(z, refineSwitches) : 0;
-      step = fitBandStep(step, bandStepTable, mip, refineHere, refineMip);
+      step = fitBandStep(step, mip, refineHere, refineMip, quality);
       const screenStep = classicClearanceStep(
         z,
         clearance,
@@ -1031,11 +1026,11 @@ function renderClassicColumnsNearest({
       z = z + step;
       step = growBandStep(
         step,
-        bandStepTable,
         mip,
         refineHere,
         refineMip,
-        stepGrowth
+        stepGrowth,
+        quality
       );
     }
   }

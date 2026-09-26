@@ -1,7 +1,7 @@
 ﻿"use strict";
 
 import { Color } from "../math/color.js";
-import { useRetailFrame, retailLodSteps } from "./retail/schedule.js";
+import { useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import {
   CHANNEL_MASK,
@@ -52,7 +52,6 @@ import {
 // is Z-up (X, Y map, Z altitude).
 
 let sampleNScratch = new Int32Array(1);
-const deltasScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT);
 const lodDistancesScratch = new Float64Array(TERRAIN_MIP_MAX_COUNT + 1);
 const lod0RefineSwitchScratch = new Float64Array(LOD0_REFINE_SWITCH_COUNT);
 let sampleNCapacity = 1;
@@ -289,9 +288,7 @@ export function renderFrustumSpaceColumns({
     mapShift,
     mipCount
   );
-  const deltas = deltasScratch;
   const bandCount = Math.max(1, Math.min(TERRAIN_MIP_MAX_COUNT, mips.count | 0));
-  retailLodSteps(bandCount, farClip, deltas);
   const zStart = firstBandT(nearClip);
   const lodDistances = lodDistancesScratch;
   const switches = mipSwitchDistances(
@@ -337,7 +334,7 @@ export function renderFrustumSpaceColumns({
     const refineMip = refineHere
       ? lod0RefineMipAt(lodDistances[m], refineSwitches)
       : 0;
-    const bandStep = bandMarchStep(deltas, m, refineHere, refineMip);
+    const bandStep = bandMarchStep(m, refineHere, refineMip, quality);
     const s = bandStep > 0 ? bandStep : 1;
     if (bandWidth > 0) {
       stepBudget = (stepBudget + Math.ceil(bandWidth / s)) | 0;
@@ -397,7 +394,7 @@ export function renderFrustumSpaceColumns({
       const mip = mipLevelAtDistance(t, switches, lastMip);
       const refineHere = lod0RefineAt(lod0Refine, mip);
       const refineMip = refineHere ? lod0RefineMipAt(t, refineSwitches) : 0;
-      step = fitBandStep(step, deltas, mip, refineHere, refineMip);
+      step = fitBandStep(step, mip, refineHere, refineMip, quality);
       const yn = (rowBase - sy) * invH2;
       const bx = fwdX + xn * tanHalfFovX * rightX + yn * upX;
       const by = fwdY + xn * tanHalfFovX * rightY + yn * upY;
@@ -415,7 +412,7 @@ export function renderFrustumSpaceColumns({
         ((wy <= mapH) | 0);
       if (!(inside | wrap)) {
         t = t + step;
-        step = growBandStep(step, deltas, mip, refineHere, refineMip, stepGrowth);
+        step = growBandStep(step, mip, refineHere, refineMip, stepGrowth, quality);
         continue;
       }
       shadeInvScale = 1 / (1 << mip);
@@ -492,7 +489,7 @@ export function renderFrustumSpaceColumns({
         t = prev > zStart ? prev : zStart;
       } else {
         t = t + step;
-        step = growBandStep(step, deltas, mip, refineHere, refineMip, stepGrowth);
+        step = growBandStep(step, mip, refineHere, refineMip, stepGrowth, quality);
       }
     }
   }

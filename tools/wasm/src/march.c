@@ -46,7 +46,7 @@ static f64 g_filter_distance = 500.0;
 static f64 g_fwd_x = 0.0;
 static f64 g_fwd_y = -1.0;
 static i32 g_lod0_refine;
-static i32 g_step_divisor;
+static f64 g_step_divisor;
 static f64 g_refine_sw[4];
 
 static i32 g_detail_on;
@@ -391,8 +391,8 @@ static __attribute__((always_inline)) u32 sample_sv_color(
       y - y0);
 }
 
-/* LOD 0 refine cell is 1, 1/2, 1/4, 1/8, 1/16. The stored band step is the
-   1 m cell divided by Step, so the refine step is that times the cell. */
+/* LOD 0 refine cell is 1, 1/2, 1/4, 1/8, 1/16. Quality divides that cell.
+   The step stays inside [cell / quality, cell]. */
 static f64 lod0_step(f64 base_step, f64 t) {
   i32 m = 0;
   i32 subdiv;
@@ -409,8 +409,18 @@ static f64 lod0_step(f64 base_step, f64 t) {
   return base_step * (1.0 / (f64)subdiv);
 }
 
+static f64 step_divisor(void) {
+  if (!(g_step_divisor >= 1.0)) {
+    return 1.0;
+  }
+  if (g_step_divisor > 2.5) {
+    return 2.5;
+  }
+  return g_step_divisor;
+}
+
 static void band_limits(i32 mip, f64 t, f64 *lo, f64 *cap) {
-  f64 div = g_step_divisor > 0 ? (f64)g_step_divisor : 3.0;
+  f64 div = step_divisor();
   f64 cell;
   if (g_lod0_refine && (mip == 0)) {
     cell = lod0_step(1.0, t);
@@ -444,15 +454,15 @@ WASM_EXPORT void set_sample_flags(
     f64 fwd_x,
     f64 fwd_y,
     i32 lod0_refine,
-    i32 step_divisor,
+    f64 step_divisor,
     f64 refine_sw0,
     f64 refine_sw1,
     f64 refine_sw2,
     f64 refine_sw3) {
-  if (step_divisor < 1) {
-    g_step_divisor = 3;
-  } else if (step_divisor > 5) {
-    g_step_divisor = 5;
+  if (!(step_divisor >= 1.0)) {
+    g_step_divisor = 1.0;
+  } else if (step_divisor > 2.5) {
+    g_step_divisor = 2.5;
   } else {
     g_step_divisor = step_divisor;
   }
@@ -960,7 +970,6 @@ WASM_EXPORT void classic_columns(
   i32 lod;
   i32 i;
   i32 n;
-  f64 deltas[16];
   f64 lod_distances[17];
   f64 z_start;
   f64 screen_width_scaler;
@@ -998,10 +1007,8 @@ WASM_EXPORT void classic_columns(
     }
   }
 
-  deltas[0] = min_delta_z * step_scale;
-  for (i = 0; i < g_lod_delta_n; i = (i + 1) | 0) {
-    deltas[i + 1] = g_lod_deltas[i];
-  }
+  (void)min_delta_z;
+  (void)step_scale;
 
   z_start = near_clip;
   if (!(z_start > 0.0)) {
@@ -1030,7 +1037,7 @@ WASM_EXPORT void classic_columns(
     f64 start_index = lod_distances[lod - 1];
     f64 end_index = lod_distances[lod];
     i32 px_offset = g_pixel_offsets[lod - 1];
-    f64 step = deltas[lod - 1];
+    f64 step = 0.0;
     f64 z;
     i32 mip = (lod - 1) | 0;
     f64 lod_scale;
@@ -1366,7 +1373,6 @@ WASM_EXPORT void frustum_space_columns(
   i32 lod;
   i32 i;
   i32 n;
-  f64 deltas[16];
   f64 lod_distances[17];
   f64 z_start;
   f64 screen_width_scaler;
@@ -1404,10 +1410,8 @@ WASM_EXPORT void frustum_space_columns(
     }
   }
 
-  deltas[0] = min_delta_z * step_scale;
-  for (i = 0; i < g_lod_delta_n; i = (i + 1) | 0) {
-    deltas[i + 1] = g_lod_deltas[i];
-  }
+  (void)min_delta_z;
+  (void)step_scale;
   z_start = near_clip;
   if (!(z_start > 0.0)) {
     z_start = 0.0;
@@ -1436,12 +1440,14 @@ WASM_EXPORT void frustum_space_columns(
     i32 band;
     for (band = 0; band < g_lod_n; band = (band + 1) | 0) {
       f64 width = lod_distances[band + 1] - lod_distances[band];
-      f64 s = deltas[band];
+      f64 cell = (f64)(1 << band);
+      f64 s;
       if (g_lod0_refine && (band == 0)) {
-        s = lod0_step(s, 0.0);
+        cell = lod0_step(1.0, 0.0);
       }
+      s = cell / step_divisor();
       if (!(s > 0.0)) {
-        s = 1.0;
+        s = cell > 0.0 ? cell : 1.0;
       }
       if (width > 0.0) {
         step_budget = (step_budget + (i32)(width / s) + 1) | 0;

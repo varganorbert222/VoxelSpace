@@ -46,6 +46,12 @@ export const STEP_GROWTH_BY_QUALITY = Object.freeze([
   0, 0.0038, 0.0031, 0.0025, 0.002, 0.0014,
 ]);
 
+// March step is the mip cell divided by this factor. Low is one sample per
+// cell. The same ladder is used by JS, WASM, and WebGPU.
+export const QUALITY_STEP_DIVISOR = Object.freeze([
+  0, 1, 1.25, 1.5, 2, 2.5,
+]);
+
 export function qualityIndex(quality) {
   let q = quality | 0;
   if ((q < 1) | 0) {
@@ -55,6 +61,10 @@ export function qualityIndex(quality) {
     q = QUALITY_ULTRA;
   }
   return q;
+}
+
+export function qualityStepDivisor(quality) {
+  return QUALITY_STEP_DIVISOR[qualityIndex(quality)];
 }
 
 export const MIN_SAMPLE_DISTANCE = 0.5;

@@ -431,21 +431,19 @@ fn growBandStep(step: f32, lo: f32, cell: f32) -> f32 {
 
 fn bandMarchStep(bandStep: f32, mip: i32, t: f32) -> f32 {
   let cell = mipCellSize(mip, t);
-  var base = 1.0;
-  if (mip > 0) {
-    base = exp2(f32(mip));
+  var lo = cell / qualityQ();
+  if (!(lo > 0.0)) {
+    lo = cell;
   }
-  var s = bandStep;
-  if (!(s > 0.0)) {
-    s = cell / qualityQ();
+  if (lo > cell) {
+    lo = cell;
   }
-  if (cell < base) {
-    s = s * (cell / base);
+  // The uploaded band stride stays bound. Quality, not that stride, sets
+  // the floor: one mip cell divided by the quality divisor.
+  if (bandStep < 0.0) {
+    lo = bandStep;
   }
-  if (!(s > 0.0)) {
-    s = cell / qualityQ();
-  }
-  return s;
+  return lo;
 }
 
 const DEBUG_COLOR: u32 = 0u;

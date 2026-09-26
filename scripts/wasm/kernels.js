@@ -17,6 +17,7 @@ import {
   MIN_SAMPLE_DISTANCE,
   STEP_GROWTH_BY_QUALITY,
   qualityIndex,
+  qualityStepDivisor,
 } from "../constants/quality.js";
 import {
   TERRAIN_MIP_MAX_COUNT,
@@ -25,7 +26,7 @@ import {
   lod0RefineSwitchDistances,
 } from "../constants/mip.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
-import { useRetailFrame, retailLodSteps, retailStepScale } from "../render/retail/schedule.js";
+import { useRetailFrame, retailLodSteps } from "../render/retail/schedule.js";
 import { detailNearEnds, retailDetailState } from "../render/retail/detail.js";
 import {
   DEG_TO_RAD,
@@ -255,7 +256,7 @@ export function createWasmKernels(instance) {
       Number.isFinite(fwdX) ? fwdX : 0,
       Number.isFinite(fwdY) ? fwdY : -1,
       params.lod0Refine | 0,
-      Math.max(1, Math.round(retailStepScale())) | 0,
+      qualityStepDivisor(params.quality),
       Number(refineSw[0]) || 0,
       Number(refineSw[1]) || 0,
       Number(refineSw[2]) || 0,

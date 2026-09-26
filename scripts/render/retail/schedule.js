@@ -1,7 +1,9 @@
 "use strict";
 
 // Retail descriptor distances. Scan Quality divides the step. LOD Bias stays 0.
-// Low matches retail q = 1. Higher project qualities are denser.
+// The step divisor is the shared quality ladder.
+
+import { qualityStepDivisor } from "../../constants/quality.js";
 
 const FOV_DEG_RAD = 0.01745329;
 const DIVISOR = Math.fround(2.2);
@@ -9,8 +11,6 @@ const NEAR_FACTORS = Object.freeze([0.5, 1, 2, 4, 8]);
 const NEAR_STEPS = Object.freeze([1, 1, 2, 4, 8]);
 const NEAR_SUBDIV = Object.freeze([16, 16, 8, 4, 2]);
 const DIRECT_COUNT = 6;
-
-const QUALITY_Q = Object.freeze([0, 1, 1.25, 1.5, 2, 2.5]);
 
 const SAMPLES_PER_BAND = 32;
 
@@ -23,14 +23,7 @@ let frame = {
 };
 
 export function retailQualityQ(quality) {
-  let q = quality | 0;
-  if (q < 1) {
-    q = 1;
-  }
-  if (q >= QUALITY_Q.length) {
-    q = QUALITY_Q.length - 1;
-  }
-  return QUALITY_Q[q];
+  return qualityStepDivisor(quality);
 }
 
 export function retailFocal(width, fovDeg) {
