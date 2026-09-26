@@ -10,8 +10,10 @@ export const TERRAIN_MIP_MAX_COUNT = 16;
 export const TERRAIN_MIP_DEFAULT_COUNT = 5;
 export const TERRAIN_MIP_DDA_EPS = 1e-4;
 export const LOD0_REFINE_SUBDIV = 16;
-export const LOD0_REFINE_SUBDIV_MIN = 1;
+export const LOD0_REFINE_SUBDIV_MIN = 2;
 export const LOD0_REFINE_MIP_COUNT = 5;
+// Retail near bands: 16, 16, 8, 4, 2 times the mip-0 band step.
+const LOD0_NEAR_SUBDIV = Object.freeze([16, 16, 8, 4, 2]);
 export const LOD0_REFINE_SWITCH_COUNT = LOD0_REFINE_MIP_COUNT - 1;
 export const MARCH_MAX_STEPS = 16384;
 export const LOD0_REFINE_MAX_STEPS = 65536;
@@ -48,17 +50,14 @@ export function mipInvScale(mip) {
 
 export function lod0RefineSubdiv(refineMip) {
   const m = refineMip | 0;
+  const last = (LOD0_NEAR_SUBDIV.length - 1) | 0;
   if (m <= 0) {
-    return LOD0_REFINE_SUBDIV;
+    return LOD0_NEAR_SUBDIV[0];
   }
-  if (m >= LOD0_REFINE_MIP_COUNT) {
-    return LOD0_REFINE_SUBDIV_MIN;
+  if (m >= last) {
+    return LOD0_NEAR_SUBDIV[last];
   }
-  const s = LOD0_REFINE_SUBDIV >> m;
-  if (s < LOD0_REFINE_SUBDIV_MIN) {
-    return LOD0_REFINE_SUBDIV_MIN;
-  }
-  return s;
+  return LOD0_NEAR_SUBDIV[m];
 }
 
 export function lod0RefineCellSize(refineMip) {
@@ -94,12 +93,25 @@ export function lod0RefineFirstSpacing(lod0Meters, mode) {
 }
 
 export function lod0RefineSwitchDistances(lod0Meters, mode, out) {
-  const n = LOD0_REFINE_MIP_COUNT;
+  const switchN = LOD0_REFINE_SWITCH_COUNT;
   const far = Number(lod0Meters);
+  const dest = out && out.length >= switchN ? out : new Float64Array(switchN);
+  if (normalizeLodSpacingMode(mode) === LOD_SPACING_RETAIL) {
+    // 1/16, 1/8, 1/4, 1/2 of the mip-0 end. The fifth band runs to that end.
+    for (let i = 0; (i < switchN) | 0; i = (i + 1) | 0) {
+      const u = Math.pow(2, i - 4);
+      const t = u * far;
+      dest[i] = far > 1 && t > 0 && t < far ? t : far;
+    }
+    if (dest.length === switchN) {
+      return dest;
+    }
+    return dest.subarray(0, switchN);
+  }
   return mipSwitchDistances(
-    n,
+    LOD0_REFINE_MIP_COUNT,
     far,
-    out,
+    dest,
     mode,
     lod0RefineFirstSpacing(far, mode),
     false
@@ -152,6 +164,18 @@ export function marchCellSize(mip, refine, refineMip) {
     return refine ? lod0RefineCellSize(refineMip) : 1;
   }
   return mipVoxelSize(mip);
+}
+
+// Near Refine shortens the band step by the 1/16…1 cell. Far mips stay put.
+export function nearMarchStep(bandStep, mip, refine, refineMip) {
+  let s = Number(bandStep);
+  if (!(s > 0)) {
+    s = MIN_SAMPLE_DISTANCE;
+  }
+  if ((mip | 0) <= 0 && refine) {
+    s = s * lod0RefineCellSize(refineMip);
+  }
+  return s;
 }
 
 export function mixNearestBilinear(nearest, bilinear, fade) {

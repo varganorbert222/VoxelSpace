@@ -25,6 +25,7 @@ import { FOG_SATURATED } from "../constants/quality.js";
 import {
   TERRAIN_MIP_MAX_COUNT,
   bandStepAt,
+  nearMarchStep,
   fillClassicLodDistances,
   firstBandT,
   lod0RefineAt,
@@ -427,7 +428,7 @@ function renderClassicColumnsSampled({
     ) {
       const refineHere = lod0RefineAt(refine, mip);
       const refineMip = refineHere ? lod0RefineMipAt(z, refineSwitches) : 0;
-      step = bandStepAt(bandSteps, mip);
+      step = nearMarchStep(bandStepAt(bandSteps, mip), mip, refineHere, refineMip);
       const zScale = dstToProjPlane / z;
       const ceilingOnScreen = (ceilingSdf * zScale + screenHorizon) | 0;
       const groundOnScreen = (yGround * zScale + screenHorizon) | 0;
@@ -796,7 +797,7 @@ function renderClassicColumnsNearest({
     ) {
       const refineHere = lod0RefineAt(refine, mip);
       const refineMip = refineHere ? lod0RefineMipAt(z, refineSwitches) : 0;
-      step = bandStepAt(bandSteps, mip);
+      step = nearMarchStep(bandStepAt(bandSteps, mip), mip, refineHere, refineMip);
       const zScale = dstToProjPlane / z;
       const ceilingOnScreen = (ceilingSdf * zScale + screenHorizon) | 0;
       const groundOnScreen = (yGround * zScale + screenHorizon) | 0;

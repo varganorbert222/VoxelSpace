@@ -29,6 +29,7 @@ import {
   TERRAIN_MIP_MAX_COUNT,
   marchMaxSteps,
   bandStepAt,
+  nearMarchStep,
   fillClassicLodDistances,
   firstBandT,
   lod0RefineAt,
@@ -386,7 +387,7 @@ export function renderFrustumSpaceColumns({
       const mip = mipLevelAtDistance(t, switches, lastMip);
       const refineHere = lod0RefineAt(lod0Refine, mip);
       const refineMip = refineHere ? lod0RefineMipAt(t, refineSwitches) : 0;
-      step = bandStepAt(bandSteps, mip);
+      step = nearMarchStep(bandStepAt(bandSteps, mip), mip, refineHere, refineMip);
       const yn = (rowBase - sy) * invH2;
       const bx = fwdX + xn * tanHalfFovX * rightX + yn * upX;
       const by = fwdY + xn * tanHalfFovX * rightY + yn * upY;

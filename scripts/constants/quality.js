@@ -1,7 +1,5 @@
 "use strict";
 
-import { BACKEND_WEBGPU } from "./backend.js";
-
 export const QUALITY_LOW = 1;
 export const QUALITY_MEDIUM = 2;
 export const QUALITY_HIGH = 3;
@@ -16,22 +14,8 @@ export const QUALITY_LABEL = Object.freeze({
   [QUALITY_ULTRA]: "Ultra",
 });
 
-export function isMobileClient() {
-  if (typeof navigator === "undefined") {
-    return false;
-  }
-  if (navigator.userAgentData && navigator.userAgentData.mobile === true) {
-    return true;
-  }
-  const ua = navigator.userAgent || "";
-  if (/Android|iPhone|iPad|iPod/i.test(ua)) {
-    return true;
-  }
-  return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
-}
-
-export function isUltraQualityAllowed(backend) {
-  return backend === BACKEND_WEBGPU && !isMobileClient();
+export function isUltraQualityAllowed(_backend) {
+  return true;
 }
 
 export function clampQualityForContext(quality, backend) {

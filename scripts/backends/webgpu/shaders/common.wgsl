@@ -121,9 +121,21 @@ fn lod0RefineMipAt(t: f32) -> i32 {
   return m;
 }
 
+fn lod0RefineSubdivAt(m: i32) -> u32 {
+  if (m <= 1) {
+    return 16u;
+  }
+  if (m == 2) {
+    return 8u;
+  }
+  if (m == 3) {
+    return 4u;
+  }
+  return 2u;
+}
+
 fn lod0RefineCellAt(t: f32) -> f32 {
-  let subdiv = max(16u >> u32(lod0RefineMipAt(t)), 1u);
-  return 1.0 / f32(subdiv);
+  return 1.0 / f32(lod0RefineSubdivAt(lod0RefineMipAt(t)));
 }
 
 fn wrapOrClamp(v: i32, mask: i32, wrap: bool) -> i32 {
@@ -215,8 +227,7 @@ fn bilinearColor(c00: vec4f, c10: vec4f, c01: vec4f, c11: vec4f, fx: f32, fy: f3
 }
 
 fn lod0RefineCellFromM(m: i32) -> f32 {
-  let subdiv = max(16u >> u32(max(m, 0)), 1u);
-  return 1.0 / f32(subdiv);
+  return 1.0 / f32(lod0RefineSubdivAt(max(m, 0)));
 }
 
 fn easeLodSample(t: f32, wx: f32, wy: f32, mip: i32) -> vec4f {
@@ -438,12 +449,15 @@ fn growBandStep(step: f32, lo: f32, cell: f32) -> f32 {
 }
 
 fn bandMarchStep(bandStep: f32, mip: i32, t: f32) -> f32 {
-  // Band width / (32 * q), uploaded per mip. Quality does not move the edge.
-  if (bandStep > 0.0) {
-    return bandStep;
+  // Band width / (32 * q). Near Refine divides by 16, 16, 8, 4, 2.
+  var s = bandStep;
+  if (!(s > 0.0)) {
+    s = 1.0;
   }
-  let cell = mipCellSize(mip, t);
-  return cell / qualityQ();
+  if (lod0RefineAt(t, mip)) {
+    s = s * lod0RefineCellAt(t);
+  }
+  return s;
 }
 
 const DEBUG_COLOR: u32 = 0u;

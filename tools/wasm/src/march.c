@@ -391,22 +391,29 @@ static __attribute__((always_inline)) u32 sample_sv_color(
       y - y0);
 }
 
-/* LOD 0 refine cell is 1, 1/2, 1/4, 1/8, 1/16. Quality divides that cell.
-   The step stays inside [cell / quality, cell]. */
+/* Retail near bands are 16, 16, 8, 4, 2 times denser than the mip-0 step. */
+static i32 lod0_subdiv(i32 m) {
+  if (m <= 1) {
+    return 16;
+  }
+  if (m == 2) {
+    return 8;
+  }
+  if (m == 3) {
+    return 4;
+  }
+  return 2;
+}
+
 static f64 lod0_step(f64 base_step, f64 t) {
   i32 m = 0;
-  i32 subdiv;
   if (!g_lod0_refine) {
     return base_step;
   }
   while ((m < 4) && (t >= g_refine_sw[m])) {
     m = (m + 1) | 0;
   }
-  subdiv = 16 >> m;
-  if (subdiv < 1) {
-    subdiv = 1;
-  }
-  return base_step * (1.0 / (f64)subdiv);
+  return base_step * (1.0 / (f64)lod0_subdiv(m));
 }
 
 static f64 band_step_at(i32 mip) {
@@ -1091,6 +1098,9 @@ WASM_EXPORT void classic_columns(
     }
     for (; (z < end_index) & (z < far_clip);) {
       step = band_step_at(mip);
+      if (mip == 0) {
+        step = lod0_step(step, z);
+      }
       f64 z_scale = dst_to_proj / z;
       i32 ceiling_on_screen = (i32)(ceiling_sdf * z_scale + screen_horizon);
       i32 ground_on_screen = (i32)(y_ground * z_scale + screen_horizon);
@@ -1471,6 +1481,9 @@ WASM_EXPORT void frustum_space_columns(
           mip = 0;
         }
         step = band_step_at(mip);
+        if (mip == 0) {
+          step = lod0_step(step, t);
+        }
         yn = (row_base - (f64)sy) * inv_h2;
         bx = fwd_x + xn * tan_half_fov_x * right_x + yn * up_x;
         by = fwd_y + xn * tan_half_fov_x * right_y + yn * up_y;
