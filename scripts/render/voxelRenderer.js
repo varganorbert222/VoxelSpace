@@ -19,7 +19,6 @@ function voxelKernel(renderer) {
 function voxelParams(renderer, maps) {
   const camera = renderer.camera;
   const frameBuffer = renderer.frameBuffer;
-  const fov = camera.calculateFov();
   return {
     heightMap: maps.heightMap,
     colorMap: maps.colorMap,
@@ -54,8 +53,7 @@ function voxelParams(renderer, maps) {
     fogEnd: renderer.fogEnd,
     debugView: renderer.debugView,
     repeat: renderer.repeat,
-    interpolateHeight: renderer.interpolateHeight ? 1 : 0,
-    filterColor: renderer.filterColor ? 1 : 0,
+    showDetails: renderer.showDetails ? 1 : 0,
     filterDistance: renderer.filterDistance,
     lod0Refine: renderer.lod0Refine ? 1 : 0,
     lod0RefineCurve: renderer.lod0RefineCurve,
@@ -64,8 +62,7 @@ function voxelParams(renderer, maps) {
     lodSpacing: renderer.lodSpacing,
     skyColor: renderer.skyFill(maps.skyColor),
     horizonColor: renderer.skyFill(camera.bottomColor),
-    panoMips: maps.panoMips,
-    terrainMips: maps.terrainMips || maps.panoMips,
+    terrainMips: maps.terrainMips,
     mapsGeneration: maps.generation,
   };
 }
@@ -85,8 +82,6 @@ function isVoxelTokenStale(token, renderer) {
     renderer.fogEnd !== token.fogEnd ||
     renderer.debugView !== token.debugView ||
     renderer.repeat !== token.repeat ||
-    renderer.interpolateHeight !== token.interpolateHeight ||
-    renderer.filterColor !== token.filterColor ||
     renderer.showDetails !== token.showDetails ||
     renderer.filterDistance !== token.filterDistance ||
     renderer.lod0Refine !== token.lod0Refine ||
@@ -148,8 +143,6 @@ class VoxelRenderer {
       fogEnd: renderer.fogEnd,
       debugView: renderer.debugView,
       repeat: renderer.repeat,
-      interpolateHeight: renderer.interpolateHeight,
-      filterColor: renderer.filterColor,
       showDetails: renderer.showDetails,
       filterDistance: renderer.filterDistance,
       lod0Refine: renderer.lod0Refine,

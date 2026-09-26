@@ -137,7 +137,7 @@ function classicProjectedY(sdf, dst, z, step, plx, ply, col, kLeftX, kLeftY, kDx
 
 function setupClassicLod(params) {
   const mips = resolveTerrainMips(
-    params.terrainMips || params.panoMips,
+    params.terrainMips,
     params.heightMap,
     params.colorMap,
     params.mapW,
@@ -339,8 +339,6 @@ function renderClassicColumnsSampled({
   fogStart = 0,
   debugView,
   repeat,
-  interpolateHeight,
-  filterColor,
   lod0Refine,
   lod0RefineCurve,
   filterDistance = FILTER_DISTANCE_DEFAULT,
@@ -348,7 +346,6 @@ function renderClassicColumnsSampled({
   pixelWidth,
   fillUnfilled,
   terrainMips,
-  panoMips,
   mipCount,
   lodSpacingMode,
   lodSpacing,
@@ -387,7 +384,6 @@ function renderClassicColumnsSampled({
 
   const lodState = setupClassicLod({
     terrainMips: terrainMips,
-    panoMips: panoMips,
     heightMap: heightMap,
     colorMap: colorMap,
     mapW: mapW,
@@ -412,8 +408,7 @@ function renderClassicColumnsSampled({
   const lodDistances = lodDistancesScratch;
 
   const screenWidthScaler = 1 / screenWidth;
-  const lerpH = interpolateHeight | 0;
-  const filterC = filterColor | 0;
+  const fine = lod0Refine | 0;
   const kRightX = cosAngle * tanHalfFovX;
   const kRightY = -sinAngle * tanHalfFovX;
   const kLeftX = -sinAngle - kRightX;
@@ -547,9 +542,9 @@ function renderClassicColumnsSampled({
             ((((sy | 0) & useWMask) << useShift) +
               ((sx | 0) & useHMask)) |
             0;
-          const doLerp = lerpH & ((useMip | 0) === 0);
+          const doLerp = fine & ((useMip | 0) === 0);
           const doFilter =
-            filterC & ((useMip | 0) === 0) & (ease.filterFade > 0);
+            fine & ((useMip | 0) === 0) & (ease.filterFade > 0);
           const nearestH = useHeight[offset];
           const hSample = doLerp
             ? mixNearestBilinear(
@@ -738,7 +733,6 @@ function renderClassicColumnsNearest({
   pixelWidth,
   fillUnfilled,
   terrainMips,
-  panoMips,
   mipCount,
   lodSpacingMode,
   lodSpacing,
@@ -779,7 +773,6 @@ function renderClassicColumnsNearest({
 
   const lodState = setupClassicLod({
     terrainMips: terrainMips,
-    panoMips: panoMips,
     heightMap: heightMap,
     colorMap: colorMap,
     mapW: mapW,
@@ -1050,11 +1043,7 @@ function renderClassicColumnsNearest({
 
 export function renderClassicColumns(params) {
   useRetailFrame(params);
-  if (
-    (params.interpolateHeight | 0) |
-    (params.filterColor | 0) |
-    (params.lod0Refine | 0)
-  ) {
+  if (params.lod0Refine | 0) {
     return renderClassicColumnsSampled(params);
   }
   return renderClassicColumnsNearest(params);

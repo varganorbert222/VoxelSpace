@@ -12,13 +12,6 @@ import { prepareRetailDetail } from "../render/retail/detail.js";
 
 const BYTE_HEIGHT_SCALE = 0.25;
 
-function imageOf(image) {
-  if (!image) {
-    return null;
-  }
-  return { data: image.data, width: image.width, height: image.height };
-}
-
 function indexedPlane(image) {
   if (!image || !image.indices) {
     return null;

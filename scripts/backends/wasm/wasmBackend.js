@@ -47,8 +47,8 @@ class WasmBackend {
     return this._kernels;
   }
 
-  get nearRefine() {
-    return this._host.nearRefine;
+  get retailSkyPass() {
+    return this._host.retailSkyPass;
   }
 
   get showDetails() {
@@ -94,14 +94,6 @@ class WasmBackend {
 
   get repeat() {
     return this._host.repeat;
-  }
-
-  get interpolateHeight() {
-    return this._host.interpolateHeight;
-  }
-
-  get filterColor() {
-    return this._host.filterColor;
   }
 
   get lod0Refine() {

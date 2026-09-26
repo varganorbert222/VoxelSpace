@@ -242,15 +242,6 @@ static inline f64 wasm_floor(f64 x) {
   return t - 1.0;
 }
 
-static inline f64 wasm_ceil(f64 x) {
-  i32 i = (i32)x;
-  f64 t = (f64)i;
-  if (x <= 0.0 || t == x) {
-    return t;
-  }
-  return t + 1.0;
-}
-
 static inline u8 height_at_sv(u8 *map, i32 x, i32 y, i32 wmask, i32 hmask, i32 shift, i32 wrap) {
   if (wrap) {
     y &= wmask;

@@ -222,7 +222,6 @@ export function renderFrustumSpaceColumns({
   tanHalfFovX,
   fov = 0,
   showDetails = 0,
-  nearRefine = 0,
   lod0Refine = 0,
   lod0RefineCurve,
   dstToProjPlane,
@@ -234,8 +233,6 @@ export function renderFrustumSpaceColumns({
   fogStart = 0,
   debugView,
   repeat,
-  interpolateHeight,
-  filterColor,
   filterDistance = FILTER_DISTANCE_DEFAULT,
   mipCount = TERRAIN_MIP_MAX_COUNT,
   lodSpacingMode,
@@ -255,7 +252,6 @@ export function renderFrustumSpaceColumns({
     fov,
     quality,
     showDetails,
-    nearRefine,
     lod0Refine,
     farClip,
   });
@@ -316,8 +312,7 @@ export function renderFrustumSpaceColumns({
   const screenWidthScaler = 1 / screenWidth;
   const mapWMask = (mapW - 1) | 0;
   const mapHMask = (mapH - 1) | 0;
-  const lerpH = interpolateHeight | 0;
-  const filterC = filterColor | 0;
+  const fine = lod0Refine | 0;
   const filterDist = filterDistance;
   const wrap = repeat | 0;
   const invH2 = dstToProjPlane === 0 ? 0 : 1 / dstToProjPlane;
@@ -369,7 +364,7 @@ export function renderFrustumSpaceColumns({
       return Color.WHITE;
     }
     let plotColor =
-      filterC & useFine
+      fine & useFine
         ? sampleColorFiltered(
             shadeColorMap,
             wx * shadeInvScale,
@@ -436,7 +431,7 @@ export function renderFrustumSpaceColumns({
         0;
       const nearestH = mips.heightMaps[mip][offset];
       const useFine = ((mip | 0) === 0) & ((t <= filterDist) | 0);
-      const doLerp = lerpH & useFine;
+      const doLerp = fine & useFine;
       let hFine = doLerp
         ? sampleHeightBilinear(
             mips.heightMaps[mip],

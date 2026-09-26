@@ -58,16 +58,7 @@
     "multithread": {
       "default": true
     },
-    "interpolateHeight": {
-      "default": true
-    },
-    "filterColor": {
-      "default": true
-    },
     "lod0Refine": {
-      "default": false
-    },
-    "nearRefine": {
       "default": false
     },
     "showDetails": {
@@ -76,11 +67,12 @@
     "showSky": {
       "default": true
     },
-    "showSkyGradient": {
-      "default": true
-    },
     "showClouds": {
       "default": true
+    },
+    "cloudLodCurve": {
+      "values": ["linear", "double", "log"],
+      "default": "double"
     },
     "lod0RefineCurve": {
       "values": ["linear", "double", "log"],

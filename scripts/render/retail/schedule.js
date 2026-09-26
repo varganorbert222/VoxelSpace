@@ -20,7 +20,6 @@ let frame = {
   quality: 1,
   farClip: 2000,
   showDetails: 0,
-  nearRefine: 0,
 };
 
 export function retailQualityQ(quality) {
@@ -61,7 +60,6 @@ export function useRetailFrame(params) {
     quality: params.quality | 0,
     farClip: farClip > 1 ? farClip : frame.farClip,
     showDetails: params.showDetails ? 1 : 0,
-    nearRefine: params.nearRefine || params.lod0Refine ? 1 : 0,
   };
   return frame;
 }
@@ -116,38 +114,6 @@ export function retailBands() {
 
 function scaledEnd(raw, index, scale) {
   return raw[Math.min(index, raw.length - 1)].end * scale;
-}
-
-export function retailNearSwitches(farClip) {
-  const { raw, scale } = retailDistanceScale(farClip);
-  return [
-    scaledEnd(raw, 1, scale),
-    scaledEnd(raw, 2, scale),
-    scaledEnd(raw, 3, scale),
-    scaledEnd(raw, 4, scale),
-  ];
-}
-
-export function retailMipSwitches(bandCount, farClip, out) {
-  const n = Math.max(0, (bandCount | 0) - 1);
-  const dest = out || new Float64Array(n);
-  const { raw, scale, far } = retailDistanceScale(farClip);
-  let prev = 0;
-  for (let i = 0; i < n; i++) {
-    let t = scaledEnd(raw, 4 + i, scale);
-    if (!(t > prev)) {
-      t = prev + far / (n + 1);
-    }
-    if (t >= far) {
-      t = far * ((i + 1) / (n + 1));
-    }
-    if (!(t > prev)) {
-      t = prev + far / (n + 1);
-    }
-    dest[i] = t;
-    prev = t;
-  }
-  return dest;
 }
 
 export function retailLodSteps(bandCount, farClip, out) {

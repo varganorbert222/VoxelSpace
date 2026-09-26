@@ -142,7 +142,7 @@ export function createWasmKernels(instance) {
     const frame = useRetailFrame(params);
     ensureTables();
     const mips = resolveTerrainMips(
-      params.terrainMips || params.panoMips,
+      params.terrainMips,
       params.heightMap,
       params.colorMap,
       params.mapW,
@@ -249,8 +249,8 @@ export function createWasmKernels(instance) {
       params.lod0RefineCurve
     );
     ex.set_sample_flags(
-      params.interpolateHeight | 0,
-      params.filterColor | 0,
+      params.lod0Refine | 0,
+      params.lod0Refine | 0,
       Number.isFinite(dist) ? dist : FILTER_DISTANCE_DEFAULT,
       Number.isFinite(fwdX) ? fwdX : 0,
       Number.isFinite(fwdY) ? fwdY : -1,
@@ -337,7 +337,7 @@ export function createWasmKernels(instance) {
         ? params.mapsGeneration
         : heightMap;
     const mips = resolveTerrainMips(
-      params.terrainMips || params.panoMips,
+      params.terrainMips,
       heightMap,
       colorMap,
       mapW,
@@ -433,8 +433,8 @@ export function createWasmKernels(instance) {
       hiddenPtr,
       rowPtr,
       debugViewId(params.debugView),
-      params.interpolateHeight | 0,
-      params.filterColor | 0,
+      params.lod0Refine | 0,
+      params.lod0Refine | 0,
       classicPixelBudget(params.quality)
     );
     copyOutU32(pixelsPtr, params.pixels);
@@ -446,7 +446,7 @@ export function createWasmKernels(instance) {
     syncDetail(params);
     syncFogRange(params);
     const mips = resolveTerrainMips(
-      params.terrainMips || params.panoMips,
+      params.terrainMips,
       params.heightMap,
       params.colorMap,
       params.mapW,
@@ -504,8 +504,8 @@ export function createWasmKernels(instance) {
       coverPtr,
       rowPtr,
       debugViewId(params.debugView),
-      params.interpolateHeight | 0,
-      params.filterColor | 0
+      params.lod0Refine | 0,
+      params.lod0Refine | 0
     );
     copyOutU32(pixelsPtr, params.pixels);
   }
@@ -516,7 +516,7 @@ export function createWasmKernels(instance) {
     syncDetail(params);
     syncFogRange(params);
     const mips = resolveTerrainMips(
-      params.terrainMips || params.panoMips,
+      params.terrainMips,
       params.heightMap,
       params.colorMap,
       params.mapW,
@@ -562,7 +562,7 @@ export function createWasmKernels(instance) {
       fogFar,
       params.applyFog | 0,
       params.repeat | 0,
-      params.filterColor | 0,
+      params.lod0Refine | 0,
       params.fillUnfilled | 0,
       pixelsPtr,
       params.pixelWidth | 0,

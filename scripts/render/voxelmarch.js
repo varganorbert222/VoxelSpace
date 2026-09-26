@@ -302,8 +302,6 @@ export function renderVoxelTexels({
   fogEnd,
   debugView,
   repeat,
-  interpolateHeight,
-  filterColor,
   filterDistance,
   skyColor,
   horizonColor,
@@ -311,7 +309,6 @@ export function renderVoxelTexels({
   pixelWidth,
   fillUnfilled,
   terrainMips,
-  panoMips,
   mipCount,
   lod0Refine,
   lod0RefineCurve,
@@ -335,7 +332,7 @@ export function renderVoxelTexels({
   }
   const skyLut = getSkyLut(skyColor, horizonColor, screenHeight);
   const mips = resolveTerrainMips(
-    terrainMips || panoMips,
+    terrainMips,
     heightMap,
     colorMap,
     mapW,
@@ -346,8 +343,7 @@ export function renderVoxelTexels({
   const lastMip = (mips.count - 1) | 0;
   const altScale = altitude / HEIGHTMAP_MAX;
   const wrap = repeat | 0;
-  const lerpH = interpolateHeight | 0;
-  const filterC = filterColor | 0;
+  const fine = lod0Refine | 0;
   const refine = !!lod0Refine;
   const switches = mipSwitchDistances(
     mips.count,
@@ -471,7 +467,7 @@ export function renderVoxelTexels({
   function hitColor(hx, hy, dirX, dirY, t, colX, colY, skipMip) {
     if ((skipMip | 0) <= 0) {
       const lod = lod0SampleXY(hx, hy, dirX, dirY, t);
-      const base = filterC
+      const base = fine
         ? sampleColorFiltered(
             lod0C,
             lod.sx,

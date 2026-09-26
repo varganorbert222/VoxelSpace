@@ -28,10 +28,6 @@ class Surface {
     return this._canvas;
   }
 
-  getFrameBuffer() {
-    return this._frameBuffer;
-  }
-
   _rebindInput() {
     if (this._input && this._input.setCanvas) {
       this._input.setCanvas(this._canvas);

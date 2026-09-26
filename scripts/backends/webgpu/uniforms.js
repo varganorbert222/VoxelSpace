@@ -9,8 +9,6 @@ export const FRAME_BYTES = WEBGPU_FRAME_BYTES;
 const FLAG_FOG = 1;
 const FLAG_REPEAT = 2;
 const FLAG_DEBUG_SHIFT = 8;
-const FLAG_HEIGHT_LERP = 1 << 12;
-const FLAG_COLOR_FILTER = 1 << 13;
 const FLAG_LOD0_REFINE = 1 << 14;
 const FLAG_SHOW_DETAILS = 1 << 15;
 
@@ -63,12 +61,6 @@ export function packFrame(packer, p) {
   }
   if (p.repeat) {
     flags |= FLAG_REPEAT;
-  }
-  if (p.interpolateHeight) {
-    flags |= FLAG_HEIGHT_LERP;
-  }
-  if (p.filterColor) {
-    flags |= FLAG_COLOR_FILTER;
   }
   if (p.lod0Refine) {
     flags |= FLAG_LOD0_REFINE;

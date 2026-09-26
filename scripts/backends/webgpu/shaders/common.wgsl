@@ -96,14 +96,6 @@ fn flagDebugView(flags: u32) -> u32 {
   return (flags >> 8u) & 3u;
 }
 
-fn flagHeightLerp(flags: u32) -> bool {
-  return (flags & 4096u) != 0u;
-}
-
-fn flagColorFilter(flags: u32) -> bool {
-  return (flags & 8192u) != 0u;
-}
-
 fn flagLod0Refine(flags: u32) -> bool {
   return (flags & 16384u) != 0u;
 }
@@ -253,7 +245,7 @@ fn terrainSampleHeightPair(tex: texture_2d<u32>, mip: i32, wx: f32, wy: f32, dis
   }
   let altitude = frame.tMaxMinDzAltMaxH.z;
   var h: f32;
-  let lerp = flagHeightLerp(frame.mapFlags.w) && (useMip == 0) && (ease.w > 0.0);
+  let lerp = flagLod0Refine(frame.mapFlags.w) && (useMip == 0) && (ease.w > 0.0);
   if (!lerp) {
     h = f32(terrainHeightNN(tex, useMip, sx, sy));
   } else {
@@ -290,7 +282,7 @@ fn terrainSampleColor(tex: texture_2d<f32>, mip: i32, wx: f32, wy: f32, dist: f3
     sy = (floor(wy / s) + 0.5) * s;
   }
   let inv = terrainInv(useMip);
-  if ((useMip <= 0) && flagColorFilter(frame.mapFlags.w) && (ease.w > 0.0)) {
+  if ((useMip <= 0) && flagLod0Refine(frame.mapFlags.w) && (ease.w > 0.0)) {
     let wrap = flagRepeat(frame.mapFlags.w);
     let x0 = floor(sx * inv);
     let y0 = floor(sy * inv);

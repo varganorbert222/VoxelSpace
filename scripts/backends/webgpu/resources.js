@@ -83,24 +83,6 @@ export function createStorageTarget(device, width, height, format) {
   );
 }
 
-export function createSampleTarget(device, width, height, format) {
-  return createTexture(
-    device,
-    width,
-    height,
-    format,
-    GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
-  );
-}
-
-export function copyTarget(encoder, src, dst, width, height) {
-  encoder.copyTextureToTexture(
-    { texture: src },
-    { texture: dst },
-    { width: width, height: height }
-  );
-}
-
 export function createScreenTarget(device, width, height) {
   return createStorageTarget(device, width, height, "r32uint");
 }

@@ -409,15 +409,9 @@ class SettingsForm {
       }),
       lod0Refine: initCheckboxElement(
         "id_lod0_refine",
-        options.nearRefine,
+        options.lod0Refine,
         (e) => {
-          const enabled = e.target.checked;
-          app.renderer.setOptions({
-            nearRefine: enabled,
-            lod0Refine: enabled,
-            interpolateHeight: enabled,
-            filterColor: enabled,
-          });
+          app.renderer.setOptions({ lod0Refine: e.target.checked });
           persist();
         }
       ),
@@ -432,23 +426,24 @@ class SettingsForm {
       showSky: initCheckboxElement("id_show_sky", options.showSky, (e) => {
         app.renderer.setOptions({ showSky: e.target.checked });
         persist();
-        this.sync();
       }),
-      showSkyGradient: initCheckboxElement(
-        "id_show_sky_gradient",
-        options.showSkyGradient,
-        (e) => {
-          app.renderer.setOptions({ showSkyGradient: e.target.checked });
-          persist();
-        }
-      ),
       showClouds: initCheckboxElement("id_show_clouds", options.showClouds, (e) => {
         app.renderer.setOptions({ showClouds: e.target.checked });
         persist();
       }),
+      cloudLodCurve: initOptionElement(
+        "id_cloud_lod_curve",
+        config.settings.cloudLodCurve,
+        options.cloudLodCurve,
+        (e) => {
+          app.renderer.setOptions({ cloudLodCurve: e.target.value });
+          persist();
+        },
+        LOD_SPACING_LABEL
+      ),
       lod0RefineCurve: initOptionElement(
         "id_lod0_refine_curve",
-        config.settings.lod0RefineCurve || config.settings.lodSpacingMode,
+        config.settings.lod0RefineCurve,
         options.lod0RefineCurve,
         (e) => {
           app.renderer.setOptions({ lod0RefineCurve: e.target.value });
@@ -536,8 +531,8 @@ class SettingsForm {
       lod0Refine,
       lod0RefineCurve,
       showSky,
-      showSkyGradient,
       showClouds,
+      cloudLodCurve,
       multithread,
       map,
       cameraMode,
@@ -583,21 +578,16 @@ class SettingsForm {
     quality.value = String(camera.quality);
     applyFog.checked = options.applyFog;
     repeat.checked = options.repeat;
-    lod0Refine.checked = !!options.nearRefine;
+    lod0Refine.checked = !!options.lod0Refine;
     if (this._elements.showDetails) {
       this._elements.showDetails.checked = !!options.showDetails;
     }
     if (showSky) {
       showSky.checked = !!options.showSky;
-      showSkyGradient.checked = !!options.showSkyGradient;
       showClouds.checked = !!options.showClouds;
-      const skyOn = !!options.showSky;
-      setDisabled(
-        showSkyGradient,
-        !skyOn,
-        "Turn Sky on to use the gradient."
-      );
-      setDisabled(showClouds, !skyOn, "Turn Sky on to draw clouds.");
+    }
+    if (cloudLodCurve) {
+      cloudLodCurve.value = options.cloudLodCurve;
     }
     lod0RefineCurve.value = options.lod0RefineCurve;
     multithread.checked = options.multithread;

@@ -4,7 +4,6 @@ import {
   SETTINGS_STORAGE_KEY,
   SETTINGS_STORAGE_VERSION,
 } from "../constants/main.js";
-import { BACKEND_JS } from "../constants/backend.js";
 import { clampFogRange } from "../constants/fog.js";
 import { lod0MaxMeters } from "../constants/mip.js";
 import VMath from "../math/vmath.js";
@@ -26,27 +25,8 @@ function migratePersisted(data) {
   if (!data || typeof data !== "object") {
     return null;
   }
-  if (data.version === 1) {
-    data = { ...data, version: 2, backend: BACKEND_JS };
-  }
-  if (data.version === 2) {
-    return { ...data, version: SETTINGS_STORAGE_VERSION };
-  }
-  if (data.version === 3) {
-    return { ...data, version: SETTINGS_STORAGE_VERSION, multithread: true };
-  }
-  if (data.version === 4) {
-    data = {
-      ...data,
-      version: 5,
-      nearRefine:
-        typeof data.nearRefine === "boolean" ? data.nearRefine : !!data.lod0Refine,
-      showDetails: typeof data.showDetails === "boolean" ? data.showDetails : true,
-    };
-  }
-  if (data.version === 5) {
-    const { stepDivisor, ...rest } = data;
-    return { ...rest, version: SETTINGS_STORAGE_VERSION };
+  if (data.version !== SETTINGS_STORAGE_VERSION) {
+    return null;
   }
   return data;
 }
@@ -86,14 +66,11 @@ export function collectSettings(app) {
     fogStart: options.fogStart,
     fogEnd: options.fogEnd,
     repeat: options.repeat,
-    interpolateHeight: options.interpolateHeight,
-    filterColor: options.filterColor,
-    lod0Refine: options.nearRefine,
-    nearRefine: options.nearRefine,
+    lod0Refine: options.lod0Refine,
     showDetails: options.showDetails,
     showSky: options.showSky,
-    showSkyGradient: options.showSkyGradient,
     showClouds: options.showClouds,
+    cloudLodCurve: options.cloudLodCurve,
     renderScale: app.camera.renderScale,
     lod0RefineCurve: options.lod0RefineCurve,
     filterDistance: options.filterDistance,
@@ -134,10 +111,6 @@ export function sanitizeSettings(data, defaults, bounds) {
     lodSpacingMax,
     Math.round(finiteOr(data.lodSpacing, defaults.lodSpacing))
   );
-  const nearRefine = boolOr(
-    data.nearRefine != null ? data.nearRefine : data.lod0Refine,
-    defaults.nearRefine != null ? defaults.nearRefine : defaults.lod0Refine
-  );
   return {
     farClip,
     fov: VMath.clamp(
@@ -151,14 +124,15 @@ export function sanitizeSettings(data, defaults, bounds) {
     fogStart: fog.fogStart,
     fogEnd: fog.fogEnd,
     repeat: boolOr(data.repeat, defaults.repeat),
-    interpolateHeight: nearRefine,
-    filterColor: nearRefine,
-    lod0Refine: nearRefine,
-    nearRefine,
+    lod0Refine: boolOr(data.lod0Refine, defaults.lod0Refine),
     showDetails: boolOr(data.showDetails, defaults.showDetails),
     showSky: boolOr(data.showSky, defaults.showSky),
-    showSkyGradient: boolOr(data.showSkyGradient, defaults.showSkyGradient),
     showClouds: boolOr(data.showClouds, defaults.showClouds),
+    cloudLodCurve: pickAllowed(
+      data.cloudLodCurve,
+      bounds.cloudLodCurves,
+      defaults.cloudLodCurve
+    ),
     renderScale: VMath.clamp(
       bounds.renderScale.min,
       bounds.renderScale.max,

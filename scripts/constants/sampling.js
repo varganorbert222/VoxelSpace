@@ -17,7 +17,3 @@ export function clampFilterDistance(value) {
   }
   return n;
 }
-
-export function xyClipDistance(t, dirX, dirY, fwdX, fwdY) {
-  return t * (dirX * fwdX + dirY * fwdY);
-}

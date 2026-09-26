@@ -49,18 +49,14 @@ function classicParams(renderer, maps) {
     quality: camera.quality,
     fov: camera.fov,
     showDetails: renderer.showDetails ? 1 : 0,
-    nearRefine: renderer.nearRefine ? 1 : 0,
     applyFog: renderer.applyFog,
     fogStart: renderer.fogStart,
     debugView: renderer.debugView,
     repeat: renderer.repeat,
-    interpolateHeight: renderer.interpolateHeight ? 1 : 0,
-    filterColor: renderer.filterColor ? 1 : 0,
     lod0Refine: renderer.lod0Refine ? 1 : 0,
     lod0RefineCurve: renderer.lod0RefineCurve,
     filterDistance: renderer.filterDistance,
-    panoMips: maps.panoMips,
-    terrainMips: maps.terrainMips || maps.panoMips,
+    terrainMips: maps.terrainMips,
     mipCount: renderer.mipCount,
     lodSpacingMode: renderer.lodSpacingMode,
     lodSpacing: renderer.lodSpacing,
@@ -82,8 +78,6 @@ function isClassicTokenStale(token, renderer) {
     renderer.fogStart !== token.fogStart ||
     renderer.debugView !== token.debugView ||
     renderer.repeat !== token.repeat ||
-    renderer.interpolateHeight !== token.interpolateHeight ||
-    renderer.filterColor !== token.filterColor ||
     renderer.showDetails !== token.showDetails ||
     renderer.lod0Refine !== token.lod0Refine ||
     renderer.lod0RefineCurve !== token.lod0RefineCurve ||
@@ -115,12 +109,13 @@ class ClassicRenderer {
     const maps = terrain.exportMaps();
     const params = classicParams(this._renderer, maps);
     const frameBuffer = this._renderer.frameBuffer;
+    const pending = this._renderer.retailSkyPass;
     const extras = {
       pixels: frameBuffer.buffer32bit,
       pixelWidth: frameBuffer.width,
-      fillUnfilled: 0,
+      fillUnfilled: pending ? 1 : 0,
     };
-    if (this._renderer.kernels) {
+    if (this._renderer.kernels && !pending) {
       const height = frameBuffer.height | 0;
       if ((this._rowColors.length < height) | 0) {
         this._rowColors = ensureU32(this._rowColors, height, canShareBuffers());
@@ -140,17 +135,19 @@ class ClassicRenderer {
     const pool = renderer.ensurePool();
     pool.initMaps(maps);
     this._fillBackground();
-    const height = renderer.frameBuffer.height | 0;
-    if ((this._rowColors.length < height) | 0) {
-      this._rowColors = ensureU32(this._rowColors, height, canShareBuffers());
-    }
-    const rowColors = renderer.frameBuffer.copySkyRowColors(this._rowColors);
-    if (!isDebugColor(renderer.debugView)) {
-      renderer.frameBuffer.fill(Color.BLACK);
-      rowColors.fill(Color.BLACK);
-    }
     const params = classicParams(renderer, maps);
-    params.rowColors = rowColors;
+    if (!renderer.retailSkyPass) {
+      const height = renderer.frameBuffer.height | 0;
+      if ((this._rowColors.length < height) | 0) {
+        this._rowColors = ensureU32(this._rowColors, height, canShareBuffers());
+      }
+      const rowColors = renderer.frameBuffer.copySkyRowColors(this._rowColors);
+      if (!isDebugColor(renderer.debugView)) {
+        renderer.frameBuffer.fill(Color.BLACK);
+        rowColors.fill(Color.BLACK);
+      }
+      params.rowColors = rowColors;
+    }
     const camera = renderer.camera;
     const token = {
       algorithm: renderer.algorithm,
@@ -163,8 +160,6 @@ class ClassicRenderer {
       fogStart: renderer.fogStart,
       debugView: renderer.debugView,
       repeat: renderer.repeat,
-      interpolateHeight: renderer.interpolateHeight,
-      filterColor: renderer.filterColor,
       showDetails: renderer.showDetails,
       lod0Refine: renderer.lod0Refine,
       lod0RefineCurve: renderer.lod0RefineCurve,

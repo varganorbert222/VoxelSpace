@@ -160,7 +160,3 @@ export function buildTerrainMips(heightMap, colorMap, width, height, mapShift) {
     invScales: invScales,
   };
 }
-
-export function buildPanoMips(heightMap, colorMap, width, height, mapShift) {
-  return buildTerrainMips(heightMap, colorMap, width, height, mapShift);
-}

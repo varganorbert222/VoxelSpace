@@ -28,7 +28,6 @@ const workerState = {
   maxHeight: 0,
   maxSlope: 0,
   mapsGeneration: 0,
-  panoMips: null,
   terrainMips: null,
 };
 
@@ -52,12 +51,6 @@ async function setKernelBackend(backend) {
   renderClassicColumns = renderClassicColumnsJs;
   renderFrustumSpaceColumns = renderFrustumSpaceColumnsJs;
   renderVoxelTexels = renderVoxelTexelsJs;
-}
-
-function refuseCrossBackend(job) {
-  if (kernelBackend === BACKEND_WASM) {
-    throw new Error(job + " has no WASM kernel");
-  }
 }
 
 function initMaps(msg) {
@@ -94,7 +87,7 @@ function initMaps(msg) {
       }
     }
   }
-  workerState.panoMips = {
+  workerState.terrainMips = {
     count: mipCount > 0 ? mipCount : heightMaps.length,
     heightMaps: heightMaps,
     colorMaps: colorMaps,
@@ -102,7 +95,6 @@ function initMaps(msg) {
     heights: msg.mipHeights || [workerState.mapH],
     shifts: msg.mipShifts || [workerState.mapShift],
   };
-  workerState.terrainMips = workerState.panoMips;
   if (msg.retail) {
     bindRetailMaps({ retail: msg.retail });
   }
@@ -128,8 +120,7 @@ function renderClassic(msg) {
     altitude: workerState.altitude,
     maxHeight: workerState.maxHeight,
     mapsGeneration: workerState.mapsGeneration,
-    panoMips: workerState.panoMips,
-    terrainMips: workerState.terrainMips || workerState.panoMips,
+    terrainMips: workerState.terrainMips,
     startColumn: msg.startColumn,
     endColumn: msg.endColumn,
     screenWidth: msg.screenWidth,
@@ -151,8 +142,6 @@ function renderClassic(msg) {
     fogStart: msg.fogStart,
     debugView: msg.debugView,
     repeat: msg.repeat,
-    interpolateHeight: msg.interpolateHeight,
-    filterColor: msg.filterColor,
     lod0Refine: msg.lod0Refine,
     lod0RefineCurve: msg.lod0RefineCurve,
     retailWidth: msg.retailWidth,
@@ -165,7 +154,7 @@ function renderClassic(msg) {
     fwdY: msg.fwdY,
     pixels,
     pixelWidth: localWidth,
-    fillUnfilled: rowColors ? 0 : 1,
+    fillUnfilled: 0,
     rowColors: rowColors || null,
   });
   self.postMessage(
@@ -200,9 +189,8 @@ function renderFrustumSpace(msg) {
     altitude: workerState.altitude,
     maxHeight: workerState.maxHeight,
     maxSlope: workerState.maxSlope,
-    terrainMips: workerState.terrainMips || workerState.panoMips,
+    terrainMips: workerState.terrainMips,
     mapsGeneration: workerState.mapsGeneration,
-    panoMips: workerState.panoMips,
     startColumn: msg.startColumn,
     endColumn: msg.endColumn,
     screenWidth: msg.screenWidth,
@@ -231,8 +219,6 @@ function renderFrustumSpace(msg) {
     fogStart: msg.fogStart,
     debugView: msg.debugView,
     repeat: msg.repeat,
-    interpolateHeight: msg.interpolateHeight,
-    filterColor: msg.filterColor,
     filterDistance: msg.filterDistance,
     lod0Refine: msg.lod0Refine,
     lod0RefineCurve: msg.lod0RefineCurve,
@@ -241,7 +227,7 @@ function renderFrustumSpace(msg) {
     lodSpacing: msg.lodSpacing,
     pixels,
     pixelWidth: localWidth,
-    fillUnfilled: rowColors ? 0 : 1,
+    fillUnfilled: 0,
     rowColors: rowColors || null,
   });
   self.postMessage(
@@ -269,8 +255,7 @@ function renderVoxel(msg) {
     altitude: workerState.altitude,
     maxHeight: workerState.maxHeight,
     mapsGeneration: workerState.mapsGeneration,
-    panoMips: workerState.panoMips,
-    terrainMips: workerState.terrainMips || workerState.panoMips,
+    terrainMips: workerState.terrainMips,
     startColumn: msg.startColumn,
     endColumn: msg.endColumn,
     screenWidth: msg.screenWidth,
@@ -297,8 +282,6 @@ function renderVoxel(msg) {
     fogEnd: msg.fogEnd,
     debugView: msg.debugView,
     repeat: msg.repeat,
-    interpolateHeight: msg.interpolateHeight,
-    filterColor: msg.filterColor,
     filterDistance: msg.filterDistance,
     lod0Refine: msg.lod0Refine,
     lod0RefineCurve: msg.lod0RefineCurve,
@@ -310,7 +293,7 @@ function renderVoxel(msg) {
     horizonColor: msg.horizonColor,
     pixels,
     pixelWidth: localWidth,
-    fillUnfilled: 1,
+    fillUnfilled: 0,
   });
   self.postMessage(
     {

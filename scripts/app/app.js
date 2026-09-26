@@ -91,30 +91,17 @@ class App {
       backend: config.settings.renderBackends.default || BACKEND_JS,
       algorithm: config.settings.renderAlgorithms.default || ALGORITHM_CLASSIC,
       debugView: config.settings.debugViews.default || DEBUG_VIEW_COLOR,
-      interpolateHeight:
-        !!(config.settings.nearRefine && config.settings.nearRefine.default),
-      filterColor:
-        !!(config.settings.nearRefine && config.settings.nearRefine.default),
-      lod0Refine:
-        !!(config.settings.nearRefine
-          ? config.settings.nearRefine.default
-          : config.settings.lod0Refine && config.settings.lod0Refine.default),
-      nearRefine:
-        !!(config.settings.nearRefine
-          ? config.settings.nearRefine.default
-          : config.settings.lod0Refine && config.settings.lod0Refine.default),
+      lod0Refine: !!(config.settings.lod0Refine && config.settings.lod0Refine.default),
       showDetails:
         !config.settings.showDetails || config.settings.showDetails.default !== false,
       showSky: !config.settings.showSky || config.settings.showSky.default !== false,
-      showSkyGradient:
-        !config.settings.showSkyGradient ||
-        config.settings.showSkyGradient.default !== false,
       showClouds:
         !config.settings.showClouds || config.settings.showClouds.default !== false,
+      cloudLodCurve:
+        (config.settings.cloudLodCurve && config.settings.cloudLodCurve.default) ||
+        "double",
       lod0RefineCurve:
-        (config.settings.lod0RefineCurve &&
-          config.settings.lod0RefineCurve.default) ||
-        "linear",
+        config.settings.lod0RefineCurve.default || "linear",
       filterDistance: config.settings.filterDistance.default,
       mipCount: config.settings.mipCount
         ? config.settings.mipCount.default
@@ -480,14 +467,11 @@ class App {
         fogStart: options.fogStart,
         fogEnd: options.fogEnd,
         repeat: options.repeat,
-        interpolateHeight: options.interpolateHeight,
-        filterColor: options.filterColor,
-        lod0Refine: options.nearRefine,
-        nearRefine: options.nearRefine,
+        lod0Refine: options.lod0Refine,
         showDetails: options.showDetails,
         showSky: options.showSky,
-        showSkyGradient: options.showSkyGradient,
         showClouds: options.showClouds,
+        cloudLodCurve: options.cloudLodCurve,
         renderScale: this.camera.renderScale,
         lod0RefineCurve: options.lod0RefineCurve,
         filterDistance: options.filterDistance,
@@ -519,10 +503,8 @@ class App {
         },
         lodSpacingModes: config.settings.lodSpacingMode.values,
         renderScale: config.settings.renderScale,
-        lod0RefineCurves:
-          (config.settings.lod0RefineCurve &&
-            config.settings.lod0RefineCurve.values) ||
-          config.settings.lodSpacingMode.values,
+        lod0RefineCurves: config.settings.lod0RefineCurve.values,
+        cloudLodCurves: config.settings.cloudLodCurve.values,
         lodSpacing: config.settings.lodSpacing,
       }
     );
@@ -541,14 +523,11 @@ class App {
       fogStart: sanitized.fogStart,
       fogEnd: sanitized.fogEnd,
       repeat: sanitized.repeat,
-      interpolateHeight: sanitized.interpolateHeight,
-      filterColor: sanitized.filterColor,
-      lod0Refine: sanitized.nearRefine,
-      nearRefine: sanitized.nearRefine,
+      lod0Refine: sanitized.lod0Refine,
       showDetails: sanitized.showDetails,
       showSky: sanitized.showSky,
-      showSkyGradient: sanitized.showSkyGradient,
       showClouds: sanitized.showClouds,
+      cloudLodCurve: sanitized.cloudLodCurve,
       lod0RefineCurve: sanitized.lod0RefineCurve,
       filterDistance: sanitized.filterDistance,
       multithread: sanitized.multithread,

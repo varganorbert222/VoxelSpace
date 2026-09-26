@@ -289,6 +289,15 @@
           </div>
           <input id="id_lod_spacing" type="range" autocomplete="off" />
         </div>
+        <div
+          class="control"
+          data-tip="How cloud mip levels step with distance. Doubling is retail: each coarser level covers twice the span of the one before it. Linear spaces those levels evenly. Logarithmic clusters the steps."
+        >
+          <div class="control-head">
+            <label for="id_cloud_lod_curve">Cloud LOD</label>
+          </div>
+          <select id="id_cloud_lod_curve" name="cloudLodCurve" autocomplete="off"></select>
+        </div>
         <div class="control" data-tip="Horizontal field of view in degrees.">
           <div class="control-head">
             <label for="id_fov">FOV</label>
@@ -372,15 +381,10 @@
             <span class="check-box" aria-hidden="true"></span>
             Repeat
           </label>
-          <label class="check" for="id_show_sky" data-tip="Retail sky. Off uses the simple two-color sky and skips the per-pixel sky pass.">
+          <label class="check" for="id_show_sky" data-tip="Sky gradient from the mission palette. Off paints black and skips the gradient. Clouds still draw when Clouds is on.">
             <input id="id_show_sky" name="showsky" type="checkbox" autocomplete="off" checked />
             <span class="check-box" aria-hidden="true"></span>
             Sky
-          </label>
-          <label class="check" for="id_show_sky_gradient" data-tip="Sky color ramp from the mission palette. Off paints a flat horizon color.">
-            <input id="id_show_sky_gradient" name="showskygradient" type="checkbox" autocomplete="off" checked />
-            <span class="check-box" aria-hidden="true"></span>
-            Gradient
           </label>
           <label class="check" for="id_show_clouds" data-tip="Cloud plane. Off skips the cloud mip lookup and the overlay on terrain.">
             <input id="id_show_clouds" name="showclouds" type="checkbox" autocomplete="off" checked />

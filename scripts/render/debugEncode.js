@@ -84,23 +84,3 @@ export function encodeCameraSample(debugView, dist, heightByte, iter, viewZ, far
   }
   return encodeIter(iter);
 }
-
-export function encodeAtlasSample(debugView, color, dist, heightByte, iter, farClip) {
-  if (isDebugColor(debugView)) {
-    return color >>> 0;
-  }
-  if (debugView === DEBUG_VIEW_HEIGHT) {
-    if ((dist <= 0) | 0) {
-      return Color.BLACK;
-    }
-    return encodeHeight(heightByte);
-  }
-  if (debugView === DEBUG_VIEW_DEPTH) {
-    if ((dist <= 0) | 0) {
-      return Color.BLACK;
-    }
-    const t = farClip > 0 ? dist / farClip : 0;
-    return encodeUnit(t);
-  }
-  return encodeIter(iter);
-}

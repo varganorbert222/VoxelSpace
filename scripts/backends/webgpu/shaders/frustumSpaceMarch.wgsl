@@ -103,7 +103,7 @@ fn frustumShade(
     return packRgba(vec4f(1.0));
   }
   var plot = detailColor(
-    classicSampleColor(px, py, mip, flagColorFilter(flags) && useFine, repeat, mapHMask, mapWMask),
+    classicSampleColor(px, py, mip, flagLod0Refine(flags) && useFine, repeat, mapHMask, mapWMask),
     worldX,
     worldY,
     z
@@ -131,7 +131,11 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     }
     var sky = 0u;
     if (debugView == DEBUG_COLOR) {
-      sky = skyColorAt(x, y);
+      if (skyPacked()) {
+        sky = skyUnfilledColor();
+      } else {
+        sky = skyColorAt(x, y);
+      }
     }
     textureStore(outTex, vec2<i32>(x, y), vec4<u32>(sky, 0u, 0u, 0u));
     y = y + 1;
@@ -203,7 +207,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       continue;
     }
     let useFine = (mip == 0) && (t <= filterDist);
-    let doLerp = flagHeightLerp(flags) && useFine;
+    let doLerp = flagLod0Refine(flags) && useFine;
     let sampled = classicSampleHeight(pos.x * mipScale, pos.y * mipScale, mip, doLerp, repeat, lodHMask, lodWMask);
     let baseWorld = sampled.x * altScale;
     let addBytes = detailHeightBytesReached(pos.x, pos.y, t, baseWorld, pos.z);

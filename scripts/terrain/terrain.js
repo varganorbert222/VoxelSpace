@@ -129,7 +129,6 @@ class Terrain {
       generation: this._mapsGeneration,
       terrainMips: buildTerrainMips(heights, colors, w, h, this._mapShift),
     };
-    this._exportedMaps.panoMips = this._exportedMaps.terrainMips;
     return this._exportedMaps;
   }
 

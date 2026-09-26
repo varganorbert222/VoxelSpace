@@ -67,20 +67,8 @@ class JsBackend {
     return this._host.repeat;
   }
 
-  get interpolateHeight() {
-    return this._host.interpolateHeight;
-  }
-
-  get filterColor() {
-    return this._host.filterColor;
-  }
-
   get lod0Refine() {
     return this._host.lod0Refine;
-  }
-
-  get nearRefine() {
-    return this._host.nearRefine;
   }
 
   get showDetails() {
@@ -110,6 +98,10 @@ class JsBackend {
 
   get debugView() {
     return this._host.debugView;
+  }
+
+  get retailSkyPass() {
+    return this._host.retailSkyPass;
   }
 
   get algorithm() {

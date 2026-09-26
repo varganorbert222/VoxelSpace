@@ -23,10 +23,6 @@ export function usesFreeLook(algorithm) {
   return algorithm === ALGORITHM_VOXEL;
 }
 
-export function usesHorizonHack(algorithm) {
-  return algorithm === ALGORITHM_CLASSIC;
-}
-
 export function usesFrustumLook(algorithm) {
   return algorithm === ALGORITHM_FRUSTUM_SPACE;
 }

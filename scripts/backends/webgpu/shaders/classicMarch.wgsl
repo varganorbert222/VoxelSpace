@@ -41,7 +41,11 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     }
     var sky = 0u;
     if (debugView == DEBUG_COLOR) {
-      sky = skyColorAt(x, y);
+      if (skyPacked()) {
+        sky = skyUnfilledColor();
+      } else {
+        sky = skyColorAt(x, y);
+      }
     }
     textureStore(outTex, vec2<i32>(x, y), vec4<u32>(sky, 0u, 0u, 0u));
     y = y + 1;
@@ -174,7 +178,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       if (colHidden != 0) {
         if (isOk && (ceilingOnScreen < colHidden)) {
           let useFine = mip == 0;
-          let sampled = classicSampleHeight(plx, ply, mip, flagHeightLerp(flags) && useFine, z);
+          let sampled = classicSampleHeight(plx, ply, mip, flagLod0Refine(flags) && useFine, z);
           var hFine = sampled.x;
           let spanFar = mipSpanFarT(z, step, plx, ply, dirX, dirY, mip);
           let yCap = projectSdfYSpan(
@@ -221,7 +225,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
                 plotPacked = encodeIter(sampleN);
               }
             } else if (!fogWhite) {
-              plot = classicSampleColor(plx, ply, mip, flagColorFilter(flags) && useFine, z);
+              plot = classicSampleColor(plx, ply, mip, flagLod0Refine(flags) && useFine, z);
               if (applyFogT) {
                 plot = fogRgb(plot, fogT);
               }

@@ -12,7 +12,6 @@ export const LOD0_REFINE_SUBDIV = 16;
 export const LOD0_REFINE_SUBDIV_MIN = 1;
 export const LOD0_REFINE_MIP_COUNT = 5;
 export const LOD0_REFINE_SWITCH_COUNT = LOD0_REFINE_MIP_COUNT - 1;
-export const LOD0_REFINE_CELL = 1 / LOD0_REFINE_SUBDIV;
 export const MARCH_MAX_STEPS = 16384;
 export const LOD0_REFINE_MAX_STEPS = 65536;
 
@@ -235,11 +234,6 @@ export function mipCountMax(width, height) {
   return log;
 }
 
-export function mipCountDefault(width, height) {
-  const max = mipCountMax(width, height);
-  return ((TERRAIN_MIP_COUNT_MIN + max) >> 1) | 0;
-}
-
 export function clampMipCountForMap(count, width, height, builtCount) {
   const max = mipCountMax(width, height);
   let n = clampMipCount(count);
@@ -459,56 +453,12 @@ export function fillClassicLodDistances(out, zStart, farClip, switches, bandCoun
   return n;
 }
 
-export function mipDdaDelta(wx, wy, dirX, dirY, cellSize) {
-  const s = cellSize;
-  const ix = Math.floor(wx / s);
-  const iy = Math.floor(wy / s);
-  let tMaxX = 1e30;
-  let tMaxY = 1e30;
-  if (dirX > 0) {
-    tMaxX = ((ix + 1) * s - wx) / dirX;
-  } else if (dirX < 0) {
-    tMaxX = (ix * s - wx) / dirX;
-  }
-  if (dirY > 0) {
-    tMaxY = ((iy + 1) * s - wy) / dirY;
-  } else if (dirY < 0) {
-    tMaxY = (iy * s - wy) / dirY;
-  }
-  let dt = tMaxX < tMaxY ? tMaxX : tMaxY;
-  if (!(dt > 0)) {
-    dt = 0;
-  }
-  return dt;
-}
-
 export function mipDdaEps(cellSize) {
   const e = cellSize * TERRAIN_MIP_DDA_EPS;
   if (e > 1e-6) {
     return e;
   }
   return 1e-6;
-}
-
-export function mipTexelFloor(wx, wy, mip, dirX, dirY) {
-  const s = mipVoxelSize(mip);
-  const e = mipDdaEps(s);
-  return {
-    ix: Math.floor((wx + dirX * e) / s),
-    iy: Math.floor((wy + dirY * e) / s),
-  };
-}
-
-export function mipCellFarT(t, wx, wy, dirX, dirY, mip, refine, refineMip) {
-  if (((mip | 0) <= 0) & !refine) {
-    return t;
-  }
-  const dt = mipDdaDelta(wx, wy, dirX, dirY, marchCellSize(mip, refine, refineMip));
-  const tFar = t + dt;
-  if (tFar > t) {
-    return tFar;
-  }
-  return t;
 }
 
 export function mipSpanFarT(t, step, wx, wy, dirX, dirY, mip, refine, refineMip) {

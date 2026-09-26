@@ -27,7 +27,3 @@ export function instantiateMarch() {
     });
   return pending;
 }
-
-export function resetMarchInstance() {
-  pending = null;
-}

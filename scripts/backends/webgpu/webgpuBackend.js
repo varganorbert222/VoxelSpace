@@ -185,7 +185,7 @@ class WebGpuBackend {
       return;
     }
     const mips = resolveTerrainMips(
-      maps.terrainMips || maps.panoMips,
+      maps.terrainMips,
       maps.heightMap,
       maps.colorMap,
       maps.width,
@@ -367,8 +367,8 @@ class WebGpuBackend {
     return !!(this._skyPack && this._pipes && this._pipes.skyComposite);
   }
 
-  // A detailed retail sky writes the 0 marker and the composite pass paints
-  // the gradient and clouds. Otherwise the host fill is a flat color.
+  // Retail sky leaves 0 for the composite pass. Otherwise the caller color,
+  // or black when Sky is off.
   _skyFill(color) {
     if (!this._retailSkyActive()) {
       return color;
@@ -408,18 +408,13 @@ class WebGpuBackend {
   _writeSky(screenW, screenH, horizon, camera, perspective, retailBlack) {
     const pack = this._skyPack;
     const host = this._host;
-    const detailed =
-      pack &&
-      host.showSky &&
-      (host.showSkyGradient || host.showClouds);
-    if (!detailed) {
-      if (pack && host.showSky) {
-        const flat = host.skyFill(camera.topColor);
-        if (!this._flatSkyRows || this._flatSkyRows.length !== screenH) {
-          this._flatSkyRows = new Uint32Array(screenH);
+    if (!pack) {
+      if (!host.showSky) {
+        if (!this._blackSkyRows || this._blackSkyRows.length !== screenH) {
+          this._blackSkyRows = new Uint32Array(screenH);
+          this._blackSkyRows.fill(0xff000000);
         }
-        this._flatSkyRows.fill(flat);
-        this._writeSkyRows(this._flatSkyRows);
+        this._writeSkyRows(this._blackSkyRows);
         return;
       }
       this._writeSkyRows(
@@ -435,8 +430,9 @@ class WebGpuBackend {
       screenW,
       screenH,
       {
-        gradient: !!host.showSkyGradient,
+        gradient: !!host.showSky,
         clouds: !!host.showClouds,
+        lodCurve: host.cloudLodCurveId,
       }
     );
     const bytes = skyPackByteLength(pack, screenH);
@@ -491,7 +487,7 @@ class WebGpuBackend {
     const dst = camera.calculateProjPlane();
     const horizon = camera.calculateHorizon(dst);
     const mips = resolveTerrainMips(
-      maps && (maps.terrainMips || maps.panoMips),
+      maps && maps.terrainMips,
       maps && maps.heightMap,
       maps && maps.colorMap,
       maps && maps.width,
@@ -571,8 +567,6 @@ class WebGpuBackend {
       mapShift: maps.mapShift,
       applyFog: this._host.applyFog,
       repeat: this._host.repeat,
-      interpolateHeight: this._host.interpolateHeight,
-      filterColor: this._host.filterColor,
       lod0Refine: this._host.lod0Refine,
       showDetails: this._host.showDetails,
       detailEnd0: detailEnds[0],
@@ -663,7 +657,7 @@ class WebGpuBackend {
     });
     const maps = this._maps;
     const mips = resolveTerrainMips(
-      maps && (maps.terrainMips || maps.panoMips),
+      maps && maps.terrainMips,
       maps && maps.heightMap,
       maps && maps.colorMap,
       maps && maps.width,
@@ -824,16 +818,10 @@ class WebGpuBackend {
 
   _dispatchSkyComposite(encoder, screenW, screenH) {
     const host = this._host;
-    if (!this._retailSkyActive() || !host.showSky || !isDebugColor(host.debugView)) {
+    if (!this._retailSkyActive() || !isDebugColor(host.debugView)) {
       return;
     }
-    if (!host.showSkyGradient && !host.showClouds) {
-      return;
-    }
-    const selfPainted =
-      host.algorithm === ALGORITHM_CLASSIC ||
-      host.algorithm === ALGORITHM_FRUSTUM_SPACE;
-    if (selfPainted && !host.showClouds) {
+    if (!host.showSky && !host.showClouds) {
       return;
     }
     const bind = this._cachedBind("skyComposite", () =>

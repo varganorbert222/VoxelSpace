@@ -31,20 +31,6 @@ export function allocU32(length, shared) {
   return new Uint32Array(length);
 }
 
-export function allocI32(length, shared) {
-  if (shared) {
-    return new Int32Array(new SharedArrayBuffer(length * 4));
-  }
-  return new Int32Array(length);
-}
-
-export function allocF32(length, shared) {
-  if (shared) {
-    return new Float32Array(new SharedArrayBuffer(length * 4));
-  }
-  return new Float32Array(length);
-}
-
 export function ensureU32(view, length, shared) {
   if (view && view.length >= length && isShared(view) === !!shared) {
     return view;
