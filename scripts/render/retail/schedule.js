@@ -132,8 +132,9 @@ export function retailNearEnd(lodBias) {
   return retailLodSpan(lodBias) * (8 / DIRECT5_FACTOR);
 }
 
-// Mip switch i ends Direct mip i: factor (16 << i) = span * 2^(i-5), while that
-// fraction is still inside Direct5. The span is the retail endpoint, not Distance.
+// Mip switch i ends Direct mip i, while the edge is still inside Direct5.
+// There is no band boundary at Direct5 or beyond it. The last LOD keeps its
+// step and mip until Render Distance stops the ray.
 export function retailMipSwitches(bandCount, spanMeters, out) {
   const levels = Math.max(1, bandCount | 0);
   const switchN = (levels - 1) | 0;
@@ -142,19 +143,19 @@ export function retailMipSwitches(bandCount, spanMeters, out) {
   for (let i = 0; i < switchN; i++) {
     const u = Math.pow(2, i - 5);
     if (!(far > 1) || !(u > 0) || !(u < 1)) {
-      dest[i] = far;
+      dest[i] = Number.POSITIVE_INFINITY;
       continue;
     }
     const t = u * far;
-    dest[i] = t > 0 && t < far ? t : far;
+    dest[i] = t > 0 && t < far ? t : Number.POSITIVE_INFINITY;
   }
   return dest.subarray(0, switchN);
 }
 
-// Direct mip i walks (1 << i) meters at Low. That is the retail raw step
-// (16 << i) divided by 16 scan steps per meter, then by q. Mip 0 is Direct0's
-// 1 m; the five Near passes divide it by 16, 16, 8, 4, 2 until factor 8.
-// The tail keeps its own step. Distance does not stretch it.
+// Direct mip i walks (1 << i) meters at Low, capped at Direct5 (mip 5, 32 m).
+// That is the retail raw step divided by 16 scan steps per meter, then by q.
+// Mip 0 is Direct0's 1 m; the five Near passes divide it until factor 8.
+// Past the last band the same step continues. Distance only stops the ray.
 export function qualityBandSteps(bandCount, farClip, quality, switches, out) {
   const n = Math.max(1, bandCount | 0);
   const dest = out || new Float64Array(n);
@@ -163,8 +164,8 @@ export function qualityBandSteps(bandCount, farClip, quality, switches, out) {
   const q = retailQualityQ(quality);
   const div = q > 0 ? q : 1;
   for (let i = 0; i < n; i++) {
-    const raw = Math.pow(2, i);
-    dest[i] = raw / div;
+    const level = i > 5 ? 5 : i;
+    dest[i] = Math.pow(2, level) / div;
   }
   if (dest.length === n) {
     return dest;

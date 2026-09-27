@@ -1063,6 +1063,9 @@ WASM_EXPORT void classic_columns(
     if (lod_distances[i] < lod_distances[i - 1]) {
       lod_distances[i] = lod_distances[i - 1];
     }
+    if (lod_distances[i] > far_clip) {
+      lod_distances[i] = far_clip;
+    }
   }
 
   screen_width_scaler = 1.0 / (f64)screen_width;
@@ -1436,6 +1439,9 @@ WASM_EXPORT void frustum_space_columns(
   for (i = 1; i < g_lod_n; i = (i + 1) | 0) {
     if (lod_distances[i] < lod_distances[i - 1]) {
       lod_distances[i] = lod_distances[i - 1];
+    }
+    if (lod_distances[i] > far_clip) {
+      lod_distances[i] = far_clip;
     }
   }
   screen_width_scaler = 1.0 / (f64)screen_width;
