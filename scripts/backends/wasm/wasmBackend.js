@@ -112,6 +112,10 @@ class WasmBackend {
     return this._host.lodSpacing;
   }
 
+  get lodBias() {
+    return this._host.lodBias;
+  }
+
   get debugView() {
     return this._host.debugView;
   }

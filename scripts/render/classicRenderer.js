@@ -58,6 +58,7 @@ function classicParams(renderer, maps) {
     mipCount: renderer.mipCount,
     lodSpacingMode: renderer.lodSpacingMode,
     lodSpacing: renderer.lodSpacing,
+    lodBias: renderer.lodBias,
     mapsGeneration: maps.generation,
   };
 }
@@ -81,6 +82,7 @@ function isClassicTokenStale(token, renderer) {
     renderer.mipCount !== token.mipCount ||
     renderer.lodSpacingMode !== token.lodSpacingMode ||
     renderer.lodSpacing !== token.lodSpacing ||
+    renderer.lodBias !== token.lodBias ||
     camera.posX !== token.camX ||
     camera.posY !== token.camY ||
     camera.posZ !== token.camZ
@@ -161,6 +163,7 @@ class ClassicRenderer {
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
       lodSpacing: renderer.lodSpacing,
+    lodBias: renderer.lodBias,
       camX: camera.posX,
       camY: camera.posY,
       camZ: camera.posZ,

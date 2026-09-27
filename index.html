@@ -270,6 +270,26 @@
           </div>
           <input id="id_mip_count" type="range" autocomplete="off" />
         </div>
+        <div
+          class="control"
+          data-tip="Retail LOD bias. Band endpoints scale by 2 to the power of minus this value. 0 keeps the retail distances. Range is -2 to 3 in steps of 0.25."
+        >
+          <div class="control-head">
+            <label for="id_lod_bias">LOD Quality</label>
+            <span class="control-value" data-for="id_lod_bias"></span>
+          </div>
+          <input id="id_lod_bias" type="range" autocomplete="off" />
+        </div>
+        <div
+          class="control"
+          data-tip="Cloud LOD bias. Mip bands scale by 2 to the power of minus this value. 0 keeps the 4096 m, 8192 m, 16384 m switches at FOV 90. Range is -2 to 3 in steps of 0.25."
+        >
+          <div class="control-head">
+            <label for="id_cloud_lod_bias">Cloud LOD Bias</label>
+            <span class="control-value" data-for="id_cloud_lod_bias"></span>
+          </div>
+          <input id="id_cloud_lod_bias" type="range" autocomplete="off" />
+        </div>
         <div class="control" data-tip="Horizontal field of view in degrees.">
           <div class="control-head">
             <label for="id_fov">FOV</label>
@@ -370,8 +390,8 @@
           <div><dt>Shift</dt><dd>Faster</dd></div>
           <div><dt>Click</dt><dd>Mouse look</dd></div>
           <div><dt>Arrows</dt><dd>Look</dd></div>
-          <div><dt>R F</dt><dd>Up / down</dd></div>
-          <div><dt>Space Ctrl</dt><dd>Up / down</dd></div>
+          <div class="altitude-only"><dt>R F</dt><dd>Up / down</dd></div>
+          <div class="altitude-only"><dt>Space Ctrl</dt><dd>Up / down</dd></div>
           <div class="freelook-only"><dt>Q E</dt><dd>Roll</dd></div>
           <div><dt>M</dt><dd>Cycle map</dd></div>
           <div><dt>L</dt><dd>Cycle algorithm</dd></div>
@@ -397,7 +417,7 @@
           <div class="orbit-only"><dt>L Stick</dt><dd>Zoom</dd></div>
           <div class="fly-only"><dt>R Stick</dt><dd>Look</dd></div>
           <div class="orbit-only"><dt>R Stick</dt><dd>Orbit</dd></div>
-          <div class="fly-only"><dt>Up Down</dt><dd>Altitude</dd></div>
+          <div class="fly-only altitude-only"><dt>Up Down</dt><dd>Altitude</dd></div>
           <div class="freelook-only fly-only"><dt>Roll</dt><dd>Bank left / right</dd></div>
           <div><dt>Radar</dt><dd>Tap map to hide</dd></div>
           <div><dt>Handle</dt><dd>Open / close menu</dd></div>
@@ -427,7 +447,7 @@
         <div id="id_stick_zoom" class="stick stick--zoom orbit-only" aria-label="Zoom">
           <div class="stick-knob"></div>
         </div>
-        <div id="id_touch_alt" class="touch-btns fly-only">
+        <div id="id_touch_alt" class="touch-btns fly-only altitude-only">
           <button type="button" id="id_btn_up">Up</button>
           <button type="button" id="id_btn_down">Down</button>
         </div>

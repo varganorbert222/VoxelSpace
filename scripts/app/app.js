@@ -42,6 +42,8 @@ import {
   TERRAIN_MIP_MAX_COUNT,
 } from "../constants/mip.js";
 import { CANVAS_ID, VIEWPORT_ID, SPAWN_HEIGHT_OFFSET } from "../constants/main.js";
+import { MODE_WALK } from "../constants/camera.js";
+import { groundEyeZ } from "../camera/walkController.js";
 import { HALF } from "../constants/vmath.js";
 
 class App {
@@ -100,6 +102,14 @@ class App {
       mipCount: config.settings.mipCount
         ? config.settings.mipCount.default
         : TERRAIN_MIP_DEFAULT_COUNT,
+      lodBias:
+        config.settings.lodBias && config.settings.lodBias.default != null
+          ? config.settings.lodBias.default
+          : 0,
+      cloudLodBias:
+        config.settings.cloudLodBias && config.settings.cloudLodBias.default != null
+          ? config.settings.cloudLodBias.default
+          : 0,
       lodSpacing:
         config.settings.lodSpacing && config.settings.lodSpacing.default != null
           ? config.settings.lodSpacing.default
@@ -160,11 +170,16 @@ class App {
     if (!this.camera || !this.terrain) {
       return;
     }
+    const posX = this.terrain.width * HALF;
+    const posY = this.terrain.height * HALF;
     this.camera.set({
       mode,
-      posX: this.terrain.width * HALF,
-      posY: this.terrain.height * HALF,
-      posZ: this.terrain.altitude + SPAWN_HEIGHT_OFFSET,
+      posX,
+      posY,
+      posZ:
+        mode === MODE_WALK
+          ? groundEyeZ(this.terrain, posX, posY)
+          : this.terrain.altitude + SPAWN_HEIGHT_OFFSET,
     });
     this.persistAndSync();
   }
@@ -468,6 +483,8 @@ class App {
         backend: options.backend,
         debugView: options.debugView,
         mipCount: options.mipCount,
+        lodBias: options.lodBias,
+        cloudLodBias: options.cloudLodBias,
         lodSpacing: options.lodSpacing,
         hudChrome: this.hudChrome,
         radarOpen: this.radarOpen,
@@ -487,6 +504,8 @@ class App {
           min: config.settings.mipCount.min,
           max: TERRAIN_MIP_MAX_COUNT,
         },
+        lodBias: config.settings.lodBias,
+        cloudLodBias: config.settings.cloudLodBias,
         renderScale: config.settings.renderScale,
         lodSpacing: config.settings.lodSpacing,
       }
@@ -515,6 +534,8 @@ class App {
       backend: sanitized.backend,
       debugView: sanitized.debugView,
       mipCount: sanitized.mipCount,
+      lodBias: sanitized.lodBias,
+      cloudLodBias: sanitized.cloudLodBias,
       lodSpacing: sanitized.lodSpacing,
     });
     this.currentMapName = sanitized.map;

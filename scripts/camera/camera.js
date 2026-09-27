@@ -7,11 +7,13 @@ import {
 } from "./projection.js";
 import { applyFly } from "./flyController.js";
 import { applyOrbit, finishOrbitLook } from "./orbitController.js";
+import { applyWalk } from "./walkController.js";
 import { lookAt, rebuildBasisFromEuler } from "./basis.js";
 import VMath from "../math/vmath.js";
 import {
   MODE_FLY,
   MODE_ORBITAL,
+  MODE_WALK,
   DEFAULT_NEAR_CLIP,
   DEFAULT_FAR_CLIP,
   DEFAULT_POS_X,
@@ -326,16 +328,22 @@ class Camera {
   }
 
   move(dt, input, terrain) {
-    input.setFlyLook(this._mode === MODE_FLY);
-    input.setRollEnabled(this._panoramaLook);
+    const walking = this._mode === MODE_WALK;
+    input.setFlyLook(this._mode === MODE_FLY || walking);
+    input.setRollEnabled(this._panoramaLook && !walking);
     if (this._mode === MODE_FLY) {
       applyFly(dt, input, this);
+    } else if (walking) {
+      applyWalk(dt, input, this, terrain);
     } else if (this._mode === MODE_ORBITAL) {
       applyOrbit(dt, input, this, terrain);
       finishOrbitLook(this, terrain);
     }
 
-    if (terrain.collide(this._posX, this._posY, this._posZ - COLLISION_CLEARANCE)) {
+    if (
+      !walking &&
+      terrain.collide(this._posX, this._posY, this._posZ - COLLISION_CLEARANCE)
+    ) {
       this._posZ =
         terrain.getTerrainHeight(this._posX, this._posY) + COLLISION_CLEARANCE;
       if (this._mode === MODE_ORBITAL && (this._panoramaLook || this._frustumLook)) {

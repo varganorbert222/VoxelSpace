@@ -71,8 +71,9 @@ fn skyCloudMip(foot: f32) -> u32 {
   return mip;
 }
 
-// Retail plane hit is shifted by 3 (one mip-0 texel is 8 world units). The
-// mip steps when one pixel covers twice as many texels. The sample is nearest.
+// Retail plane hit is shifted by 3 (one mip-0 texel is 8 meters). The mip
+// steps when one pixel of the 1024-wide reference view covers twice as many
+// texels. skyF(35) is that footprint scale, including Cloud LOD Bias.
 fn skyCloudLevel(o: u32, dir: vec3f) -> f32 {
   let plane = skyF(9u);
   let t = plane / dir.z;
@@ -80,7 +81,11 @@ fn skyCloudLevel(o: u32, dir: vec3f) -> f32 {
   let b = vec3f(skyF(SKY_ROW_STEP), skyF(SKY_ROW_STEP + 1u), skyF(SKY_ROW_STEP + 2u));
   let pa = t * (a.xy - dir.xy * (a.z / dir.z)) / CLOUD_TEXEL_WORLD;
   let pb = t * (b.xy - dir.xy * (b.z / dir.z)) / CLOUD_TEXEL_WORLD;
-  let foot = sqrt(max(dot(pa, pa), dot(pb, pb)));
+  var scale = skyF(35u);
+  if (!(scale > 0.0)) {
+    scale = 1.0;
+  }
+  let foot = sqrt(max(dot(pa, pa), dot(pb, pb))) * scale;
   let mip = skyCloudMip(foot);
   let u = (skyF(11u) + t * dir.x) / CLOUD_TEXEL_WORLD;
   let v = (skyF(12u) + t * dir.y) / CLOUD_TEXEL_WORLD;

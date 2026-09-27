@@ -166,6 +166,8 @@ export function createWasmKernels(instance) {
       ":" +
       params.lodSpacing +
       ":" +
+      frame.lodBias +
+      ":" +
       params.farClip +
       ":" +
       (params.lod0Refine | 0);
@@ -219,7 +221,9 @@ export function createWasmKernels(instance) {
       ":" +
       params.lodSpacingMode +
       ":" +
-      params.lodSpacing;
+      params.lodSpacing +
+      ":" +
+      frame.lodBias;
     if (switchKey === key) {
       return;
     }

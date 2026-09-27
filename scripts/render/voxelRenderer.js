@@ -58,6 +58,7 @@ function voxelParams(renderer, maps) {
     mipCount: renderer.mipCount,
     lodSpacingMode: renderer.lodSpacingMode,
     lodSpacing: renderer.lodSpacing,
+    lodBias: renderer.lodBias,
     skyColor: renderer.skyFill(maps.skyColor),
     horizonColor: renderer.skyFill(camera.bottomColor),
     terrainMips: maps.terrainMips,
@@ -85,6 +86,7 @@ function isVoxelTokenStale(token, renderer) {
     renderer.mipCount !== token.mipCount ||
     renderer.lodSpacingMode !== token.lodSpacingMode ||
     renderer.lodSpacing !== token.lodSpacing ||
+    renderer.lodBias !== token.lodBias ||
     camera.posX !== token.camX ||
     camera.posY !== token.camY ||
     camera.posZ !== token.camZ ||
@@ -144,6 +146,7 @@ class VoxelRenderer {
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
       lodSpacing: renderer.lodSpacing,
+    lodBias: renderer.lodBias,
       camX: camera.posX,
       camY: camera.posY,
       camZ: camera.posZ,

@@ -1092,6 +1092,11 @@ body.cam-orbital .stick.orbit-only {
   display: block;
 }
 
+body.cam-walk .altitude-only,
+body.cam-walk .freelook-only {
+  display: none;
+}
+
 .touch-cluster {
   pointer-events: none;
   position: fixed;

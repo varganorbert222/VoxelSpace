@@ -66,6 +66,7 @@ function frustumSpaceParams(renderer, maps) {
     mipCount: renderer.mipCount,
     lodSpacingMode: renderer.lodSpacingMode,
     lodSpacing: renderer.lodSpacing,
+    lodBias: renderer.lodBias,
     mapsGeneration: maps.generation,
   };
 }
@@ -89,6 +90,7 @@ function isFrustumSpaceTokenStale(token, renderer) {
     renderer.mipCount !== token.mipCount ||
     renderer.lodSpacingMode !== token.lodSpacingMode ||
     renderer.lodSpacing !== token.lodSpacing ||
+    renderer.lodBias !== token.lodBias ||
     camera.minDeltaZ !== token.minDeltaZ ||
     camera.posX !== token.camX ||
     camera.posY !== token.camY ||
@@ -182,6 +184,7 @@ class FrustumSpaceRenderer {
       mipCount: renderer.mipCount,
       lodSpacingMode: renderer.lodSpacingMode,
       lodSpacing: renderer.lodSpacing,
+    lodBias: renderer.lodBias,
       minDeltaZ: camera.minDeltaZ,
       camX: camera.posX,
       camY: camera.posY,

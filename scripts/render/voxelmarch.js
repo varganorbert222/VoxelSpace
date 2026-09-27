@@ -314,6 +314,7 @@ export function renderVoxelTexels({
   lod0RefineCurve,
   lodSpacingMode,
   lodSpacing,
+  lodBias,
   quality = 1,
   showDetails = 0,
 }) {
@@ -326,6 +327,7 @@ export function renderVoxelTexels({
     lod0Refine,
     lodSpacingMode,
     lodSpacing,
+    lodBias,
   });
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;

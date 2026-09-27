@@ -2,6 +2,7 @@
 
 export const MODE_FLY = "fly";
 export const MODE_ORBITAL = "orbital";
+export const MODE_WALK = "walking";
 
 export const DEFAULT_NEAR_CLIP = 1;
 export const DEFAULT_FAR_CLIP = 2000;
@@ -31,3 +32,11 @@ export const ORBIT_THETA_MIN_PANORAMA = 0.05;
 export const ORBIT_PITCH_SCALE = 60;
 
 export const COLLISION_CLEARANCE = 1;
+
+// Ground follow from the DF renderer: eye height above the height field,
+// 0.5 m sweep so a rise lifts the camera before it tunnels, then a 7 Hz ease.
+export const WALK_EYE_HEIGHT = 2;
+export const WALK_SWEEP_STEP = 0.5;
+export const WALK_FOLLOW_RATE = 7;
+// Map units are meters. 12 m/s reads as a walk on this terrain; Shift keeps the sprint multiplier.
+export const WALK_SPEED = 12;

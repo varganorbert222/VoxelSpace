@@ -4,7 +4,7 @@ import { mapChipLabel, mapInputLabel } from "./mapCatalog.js";
 import { initMapPicker } from "./mapPicker.js";
 import config from "../../data/config.json" with { type: "json" };
 import { BACKEND_CHIP, usesWorkers } from "../constants/backend.js";
-import { MODE_ORBITAL } from "../constants/camera.js";
+import { MODE_ORBITAL, MODE_WALK } from "../constants/camera.js";
 import { syncDebugLegend } from "./debugLegend.js";
 import {
   DEBUG_VIEW_COLOR,
@@ -55,6 +55,9 @@ function formatRangeValue(id, value) {
   }
   if (id === "id_render_scale") {
     return n.toFixed(1);
+  }
+  if (id === "id_lod_bias" || id === "id_cloud_lod_bias") {
+    return n.toFixed(2);
   }
   return String(value);
 }
@@ -330,6 +333,24 @@ class SettingsForm {
         },
         persist
       ),
+      lodBias: initRangeElement(
+        "id_lod_bias",
+        config.settings.lodBias,
+        options.lodBias,
+        (e) => {
+          app.renderer.setOptions({ lodBias: parseFloat(e.target.value) });
+        },
+        persist
+      ),
+      cloudLodBias: initRangeElement(
+        "id_cloud_lod_bias",
+        config.settings.cloudLodBias,
+        options.cloudLodBias,
+        (e) => {
+          app.renderer.setOptions({ cloudLodBias: parseFloat(e.target.value) });
+        },
+        persist
+      ),
       filterDistance: initRangeElement(
         "id_filter_distance",
         config.settings.filterDistance,
@@ -443,6 +464,8 @@ class SettingsForm {
       renderScale,
       fov,
       mipCount,
+      lodBias,
+      cloudLodBias,
       filterDistance,
       quality,
       applyFog,
@@ -477,6 +500,10 @@ class SettingsForm {
     mipCount.step = mipRange.step;
     mipCount.value = options.mipCount;
     updateMipCountValue(options.mipCount, this._app.terrain);
+    lodBias.value = options.lodBias;
+    updateBoundValue("id_lod_bias", options.lodBias);
+    cloudLodBias.value = options.cloudLodBias;
+    updateBoundValue("id_cloud_lod_bias", options.cloudLodBias);
     filterDistance.value = options.filterDistance;
     updateBoundValue("id_filter_distance", options.filterDistance);
     setDisabled(
@@ -509,6 +536,7 @@ class SettingsForm {
     cameraMode.value = camera.mode;
     document.body.classList.toggle("cam-orbital", camera.mode === MODE_ORBITAL);
     document.body.classList.toggle("cam-fly", camera.mode !== MODE_ORBITAL);
+    document.body.classList.toggle("cam-walk", camera.mode === MODE_WALK);
     fillOptionElements(
       algorithm,
       config.settings.renderAlgorithms.values,

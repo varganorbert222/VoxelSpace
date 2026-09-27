@@ -1,6 +1,6 @@
 "use strict";
 
-import { retailFocal } from "./schedule.js";
+import { retailFocal, LOD_REFERENCE_WIDTH, retailLodBiasScale } from "./schedule.js";
 import { paletteRGB } from "../../assets/pngPalette.js";
 
 const PI = 3.1415926539;
@@ -180,10 +180,12 @@ export function buildCloudMips(image) {
 // (retailSky.wgsl reads the same words):
 //   header | 64x256 color table | cloud mip bytes | one ray per screen row.
 // A row stores the view ray at pixel x = 0 and its per-pixel step; the
-// header stores the per-row step. Retail Df.exe samples the cloud plane once
-// per row: the hit is divided by 8, one mip is chosen so a pixel steps about
-// one texel, and the texel is nearest. A row whose ray Z is constant walks
-// that UV with a fixed step. Rolled rows still solve the plane per pixel.
+// header stores the per-row step. Retail stores the plane hit in Q16 and
+// shifts it by 3, so one mip-0 texel is 8 meters. The mip steps when one
+// pixel of the 1024-wide reference view covers twice as many texels. The
+// framebuffer size does not move those bands. At FOV 90 they sit at 4096 m,
+// 8192 m, 16384 m, and so on. A row whose ray Z is constant walks that UV
+// with a fixed step. Rolled rows still solve the plane per pixel.
 // Terrain stays below the cloud plane, so from below the terrain hides the
 // clouds and from above the clouds cover every downward ray, terrain included.
 // The cloud mip steps when one pixel covers twice as many texels.
@@ -206,12 +208,13 @@ const MAX_CLOUD_MIPS = 16;
 const H_CLOUD_COLOR = 30;
 const H_SKY_FLAGS = 31;
 const H_ROW_STEP = 32;
+const H_CLOUD_LOD_SCALE = 35;
 const SKY_FLAG_GRADIENT = 1;
 // Retail mode 1: the normalized ray Z is at most 0x100 in Q22.
 const HORIZON_DIR_Z2 = (0x100 / 4194304) ** 2;
 const CLOUD_SCROLL_STEP = (1 << 13) / 65536;
 // Retail stores the plane hit in Q16 and shifts it by 3, so one mip-0 texel
-// covers 8 world units.
+// covers 8 meters.
 const CLOUD_TEXEL_WORLD = 8;
 
 export function createSkyPack(sky) {
@@ -360,6 +363,10 @@ export function updateSkyPack(pack, view, camera, width, height, skyDraw) {
   f32[H_ROW_STEP] = -u[0];
   f32[H_ROW_STEP + 1] = -u[1];
   f32[H_ROW_STEP + 2] = -u[2];
+  const viewWidth = width > 0 ? width : LOD_REFERENCE_WIDTH;
+  const bias = Number(draw.cloudLodBias);
+  const biasScale = retailLodBiasScale(Number.isFinite(bias) ? bias : 0);
+  f32[H_CLOUD_LOD_SCALE] = viewWidth / LOD_REFERENCE_WIDTH / biasScale;
   for (let y = 0; y < height; y++) {
     const yn = view.horizon - y - 0.5;
     const o = pack.rowOffset + y * ROW_WORDS;
@@ -388,6 +395,14 @@ function cloudMip(foot, last) {
     mip = (mip + 1) | 0;
   }
   return mip;
+}
+
+// The live pixel is width/1024 times the reference pixel. Scale the footprint
+// back so the mip bands stay on the 1024-wide view.
+function cloudMipForFoot(pack, foot, last) {
+  const scale = pack.f32[H_CLOUD_LOD_SCALE];
+  const s = scale > 0 ? scale : 1;
+  return cloudMip(foot * s, last);
 }
 
 function cloudNearest(bytes, pack, mip, u, v) {
@@ -420,7 +435,11 @@ function cloudLevelAt(bytes, pack, plane, camU, camV, dx, dy, dz, ax, ay, az, bx
   }
   const t = plane / dz;
   const last = (pack.mips.length - 1) | 0;
-  const mip = cloudMip(cloudFoot(t, dx, dy, dz, ax, ay, az, bx, by, bz), last);
+  const mip = cloudMipForFoot(
+    pack,
+    cloudFoot(t, dx, dy, dz, ax, ay, az, bx, by, bz),
+    last
+  );
   const u = (camU + t * dx) / CLOUD_TEXEL_WORLD;
   const v = (camV + t * dy) / CLOUD_TEXEL_WORLD;
   return cloudNearest(bytes, pack, mip, u, v);
@@ -492,7 +511,7 @@ export function compositeSky(buffer32, width, height, pack, overlay) {
     if ((below || above) && sz === 0 && dz !== 0) {
       const t = plane / dz;
       const last = (pack.mips.length - 1) | 0;
-      mip = cloudMip(cloudFoot(t, dx, dy, dz, sx, sy, sz, bx, by, bz), last);
+      mip = cloudMipForFoot(pack, cloudFoot(t, dx, dy, dz, sx, sy, sz, bx, by, bz), last);
       cu = (camU + t * dx) / CLOUD_TEXEL_WORLD;
       cv = (camV + t * dy) / CLOUD_TEXEL_WORLD;
       cdu = (t * sx) / CLOUD_TEXEL_WORLD;

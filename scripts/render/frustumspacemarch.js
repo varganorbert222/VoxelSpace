@@ -233,6 +233,7 @@ export function renderFrustumSpaceColumns({
   mipCount = TERRAIN_MIP_MAX_COUNT,
   lodSpacingMode,
   lodSpacing,
+  lodBias,
   pixels,
   pixelWidth,
   fillUnfilled,
@@ -252,6 +253,7 @@ export function renderFrustumSpaceColumns({
     farClip,
     lodSpacingMode,
     lodSpacing,
+    lodBias,
   });
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;

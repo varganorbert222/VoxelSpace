@@ -5,6 +5,8 @@
 // 2, so one raw step of 1 is 1/16 world unit. One world unit is one meter.
 // Scan Quality divides the step. LOD Bias scales the finished endpoints by
 // 2^(-bias). Bias 0 leaves them put. Render distance does not move them.
+// The framebuffer size does not move them either. Ends are computed for the
+// retail 1024-wide view; FOV still sets the focal length.
 
 import { qualityStepDivisor } from "../../constants/quality.js";
 
@@ -14,7 +16,12 @@ const DIVISOR = Math.fround(2.2);
 const DIRECT5_FACTOR = 512;
 // Q22 / (Q20 >> 2) = 16 scan steps per meter.
 const SCAN_STEPS_PER_METER = 16;
+// Width that yields focal 512 at FOV 90. LOD ends stay on that view.
+export const LOD_REFERENCE_WIDTH = 1024;
 export const LOD_BIAS_DEFAULT = 0;
+export const LOD_BIAS_MIN = -2;
+export const LOD_BIAS_MAX = 3;
+export const LOD_BIAS_STEP = 0.25;
 const NEAR_FACTORS = Object.freeze([0.5, 1, 2, 4, 8]);
 const NEAR_STEPS = Object.freeze([1, 1, 2, 4, 8]);
 const NEAR_SUBDIV = Object.freeze([16, 16, 8, 4, 2]);
@@ -30,6 +37,21 @@ let frame = {
   lodSpacingMode: "retail",
   lodSpacing: 100,
 };
+
+export function clampLodBias(value) {
+  let n = Number(value);
+  if (!Number.isFinite(n)) {
+    n = LOD_BIAS_DEFAULT;
+  }
+  if (n < LOD_BIAS_MIN) {
+    n = LOD_BIAS_MIN;
+  }
+  if (n > LOD_BIAS_MAX) {
+    n = LOD_BIAS_MAX;
+  }
+  const steps = Math.round((n - LOD_BIAS_MIN) / LOD_BIAS_STEP);
+  return LOD_BIAS_MIN + steps * LOD_BIAS_STEP;
+}
 
 export function retailQualityQ(quality) {
   return qualityStepDivisor(quality);
@@ -61,9 +83,9 @@ export function useRetailFrame(params) {
     fovDeg: fovDeg | 0,
     quality: params.quality | 0,
     farClip: farClip > 1 ? farClip : frame.farClip,
-    lodBias: Number.isFinite(Number(params.lodBias))
-      ? Number(params.lodBias)
-      : frame.lodBias,
+    lodBias: clampLodBias(
+      Number.isFinite(Number(params.lodBias)) ? Number(params.lodBias) : frame.lodBias
+    ),
     showDetails: params.showDetails ? 1 : 0,
     lodSpacingMode: "retail",
     lodSpacing:
@@ -112,14 +134,14 @@ export function retailLodBiasScale(lodBias) {
 
 // Direct5 end in meters: (focal * 512 / 2.2) / 16 * 2^(-bias).
 export function retailLodSpan(lodBias) {
-  const focal = retailFocal(frame.width, frame.fovDeg);
+  const focal = retailFocal(LOD_REFERENCE_WIDTH, frame.fovDeg);
   const direct5 = (focal * DIRECT5_FACTOR) / DIVISOR / SCAN_STEPS_PER_METER;
   const bias = lodBias == null ? frame.lodBias : lodBias;
   return direct5 * retailLodBiasScale(bias);
 }
 
 export function retailBands() {
-  const raw = buildRetailBands(frame.width, frame.fovDeg, frame.quality);
+  const raw = buildRetailBands(LOD_REFERENCE_WIDTH, frame.fovDeg, frame.quality);
   const scale = retailLodBiasScale(frame.lodBias);
   return raw.map((band) => ({
     ...band,

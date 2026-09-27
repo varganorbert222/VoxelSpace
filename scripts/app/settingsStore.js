@@ -77,6 +77,8 @@ export function collectSettings(app) {
     backend: options.backend,
     debugView: options.debugView,
     mipCount: options.mipCount,
+    lodBias: options.lodBias,
+    cloudLodBias: options.cloudLodBias,
     lodSpacing: options.lodSpacing,
     hudChrome: !!app.hudChrome,
     radarOpen: !!app.radarOpen,
@@ -142,6 +144,16 @@ export function sanitizeSettings(data, defaults, bounds) {
       bounds.mipCount.min,
       bounds.mipCount.max,
       Math.round(finiteOr(data.mipCount, defaults.mipCount))
+    ),
+    lodBias: VMath.clamp(
+      bounds.lodBias.min,
+      bounds.lodBias.max,
+      finiteOr(data.lodBias, defaults.lodBias)
+    ),
+    cloudLodBias: VMath.clamp(
+      bounds.cloudLodBias.min,
+      bounds.cloudLodBias.max,
+      finiteOr(data.cloudLodBias, defaults.cloudLodBias)
     ),
     lodSpacing,
     hudChrome: boolOr(data.hudChrome, defaults.hudChrome),

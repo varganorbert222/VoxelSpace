@@ -23,6 +23,18 @@
       "step": 1,
       "default": 5
     },
+    "lodBias": {
+      "min": -2,
+      "max": 3,
+      "step": 0.25,
+      "default": 0
+    },
+    "cloudLodBias": {
+      "min": -2,
+      "max": 3,
+      "step": 0.25,
+      "default": 0
+    },
     "lodSpacing": {
       "min": 10,
       "max": 800,
@@ -30,7 +42,7 @@
       "default": 100
     },
     "cameraModes": {
-      "values": ["fly", "orbital"],
+      "values": ["fly", "orbital", "walking"],
       "default": "fly"
     },
     "renderAlgorithms": {

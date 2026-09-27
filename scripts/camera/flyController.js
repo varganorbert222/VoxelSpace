@@ -9,7 +9,7 @@ import {
   KEY_LOOK_SENSITIVITY,
 } from "../constants/camera.js";
 
-export function applyFly(dt, input, camera) {
+export function applyLook(dt, input, camera) {
   const scaledDt = dt * MOVE_DT_SCALE;
   const look = input.consumeLookDelta();
   const mouseYaw = look.x * MOUSE_LOOK_SENSITIVITY * VMath.DEG_TO_RAD;
@@ -49,8 +49,11 @@ export function applyFly(dt, input, camera) {
     rebuildBasisFromEuler(camera);
     camera.markHorizonDirty();
   }
+}
 
-  const moveDt = scaledDt * input.speedScale;
+export function applyFly(dt, input, camera) {
+  applyLook(dt, input, camera);
+  const moveDt = dt * MOVE_DT_SCALE * input.speedScale;
   const f = input.forward;
   const s = input.strafe;
   const u = input.updown;

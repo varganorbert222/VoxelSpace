@@ -55,6 +55,7 @@ export function classicRenderPayload(jobId, range, params) {
     mipCount: params.mipCount,
     lodSpacingMode: params.lodSpacingMode,
     lodSpacing: params.lodSpacing,
+    lodBias: params.lodBias,
     fwdX: params.fwdX,
     fwdY: params.fwdY,
     rowColors: params.rowColors,
@@ -97,6 +98,7 @@ export function frustumSpaceRenderPayload(jobId, range, params) {
     mipCount: params.mipCount,
     lodSpacingMode: params.lodSpacingMode,
     lodSpacing: params.lodSpacing,
+    lodBias: params.lodBias,
     rowColors: params.rowColors,
   };
 }
@@ -135,6 +137,7 @@ export function voxelRenderPayload(jobId, range, params) {
     mipCount: params.mipCount,
     lodSpacingMode: params.lodSpacingMode,
     lodSpacing: params.lodSpacing,
+    lodBias: params.lodBias,
     showDetails: params.showDetails,
     skyColor: params.skyColor,
     horizonColor: params.horizonColor,

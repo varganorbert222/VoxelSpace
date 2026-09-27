@@ -45,6 +45,7 @@ import {
   updateSkyPack,
 } from "./retail/skybox.js";
 import { compositePresentedWater } from "./retail/present.js";
+import { LOD_BIAS_DEFAULT, clampLodBias } from "./retail/schedule.js";
 
 const FOG_BOUNDS = {
   min: FOG_RANGE_MIN,
@@ -75,6 +76,8 @@ class Renderer {
     this._backendId = BACKEND_JS;
     this._backend = null;
     this._mipCount = TERRAIN_MIP_DEFAULT_COUNT;
+    this._lodBias = LOD_BIAS_DEFAULT;
+    this._cloudLodBias = LOD_BIAS_DEFAULT;
     this._lodSpacingMode = LOD_SPACING_DEFAULT_MODE;
     this._lodSpacing = LOD_SPACING_DEFAULT_METERS;
     this._opQueue = Promise.resolve();
@@ -177,6 +180,14 @@ class Renderer {
     return this._mipCount;
   }
 
+  get lodBias() {
+    return this._lodBias;
+  }
+
+  get cloudLodBias() {
+    return this._cloudLodBias;
+  }
+
   get lodSpacingMode() {
     return this._lodSpacingMode;
   }
@@ -249,6 +260,8 @@ class Renderer {
       backend: this._backendId,
       debugView: this._debugView,
       mipCount: this._mipCount,
+      lodBias: this._lodBias,
+      cloudLodBias: this._cloudLodBias,
       lodSpacing: this._clampedLodSpacing(),
     };
   }
@@ -308,6 +321,16 @@ class Renderer {
         this._mipCount = next;
         this.cancelJobs();
       }
+    }
+    if (options.lodBias !== undefined) {
+      const next = clampLodBias(options.lodBias);
+      if (next !== this._lodBias) {
+        this._lodBias = next;
+        this.cancelJobs();
+      }
+    }
+    if (options.cloudLodBias !== undefined) {
+      this._cloudLodBias = clampLodBias(options.cloudLodBias);
     }
     if (options.lodSpacing !== undefined) {
       const next = clampLodSpacingMeters(
@@ -427,6 +450,7 @@ class Renderer {
       {
         gradient: this._showSky,
         clouds: this._showClouds,
+        cloudLodBias: this._cloudLodBias,
       }
     );
     compositeSky(

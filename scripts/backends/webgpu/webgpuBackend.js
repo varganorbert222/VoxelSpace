@@ -431,6 +431,7 @@ class WebGpuBackend {
       {
         gradient: !!host.showSky,
         clouds: !!host.showClouds,
+        cloudLodBias: host.cloudLodBias,
       }
     );
     const bytes = skyPackByteLength(pack, screenH);
@@ -478,6 +479,7 @@ class WebGpuBackend {
       farClip: camera.farClip,
       showDetails: this._host.showDetails,
       lodSpacingMode: this._host.lodSpacingMode,
+      lodBias: this._host.lodBias,
       lodSpacing: this._host.lodSpacing,
     });
     const maps = this._maps;
@@ -520,6 +522,7 @@ class WebGpuBackend {
       farClip: packFar,
       showDetails: this._host.showDetails,
       lodSpacingMode: this._host.lodSpacingMode,
+      lodBias: this._host.lodBias,
       lodSpacing: this._host.lodSpacing,
     });
     const detailEnds = detailNearEnds();
@@ -646,6 +649,7 @@ class WebGpuBackend {
       farClip: this._host.effectiveFarClip,
       showDetails: this._host.showDetails,
       lodSpacingMode: this._host.lodSpacingMode,
+      lodBias: this._host.lodBias,
       lodSpacing: this._host.lodSpacing,
     });
     const maps = this._maps;
