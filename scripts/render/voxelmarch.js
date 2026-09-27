@@ -1,7 +1,7 @@
 "use strict";
 
 import { Color } from "../math/color.js";
-import { retailStepScale, useRetailFrame } from "./retail/schedule.js";
+import { useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import ColorPalette from "../math/colorPalette.js";
 import {
@@ -35,8 +35,8 @@ import {
   lod0RefineMipAt,
   lod0RefineSwitchDistances,
   lod0SamplePos,
-  marchCellSize,
   marchMaxSteps,
+  mipVoxelSize,
   mixNearestBilinear,
   mipDdaEps,
   mipLevelAtDistance,
@@ -55,7 +55,9 @@ const skyLutCache = {
 
 const AABB_Z_EPS = 1e-4;
 const DIR_XY_EPS = 1e-8;
+const DIR_FWD_EPS = 1e-4;
 const SLAB_EPS = 1e-8;
+const HIT_T_EPS = 1e-4;
 
 function fogColor(color, fogT) {
   const a = (color >>> SHIFT_ALPHA) & CHANNEL_MASK;
@@ -243,23 +245,27 @@ function voxelXyCell(camX, camY, dirX, dirY, s, cellSize) {
 }
 
 function voxelColumnHit(camZ, dirZ, h, s, sExit) {
-  const z1 = h;
   const zEnter = camZ + dirZ * s;
   const zExitV = camZ + dirZ * sExit;
   const zLo = zEnter < zExitV ? zEnter : zExitV;
   const zHi = zEnter > zExitV ? zEnter : zExitV;
-  if (zHi < GROUND_HEIGHT || zLo > z1) {
+  if (zHi < GROUND_HEIGHT || zLo > h) {
     return -1;
   }
   let tHit = s;
-  if (zEnter > z1) {
-    if (dirZ < 0) {
-      tHit = (z1 - camZ) / dirZ;
+  if (zEnter > h) {
+    if (!(dirZ < 0)) {
+      return -1;
     }
+    tHit = (h - camZ) / dirZ;
   } else if (zEnter < GROUND_HEIGHT) {
-    if (dirZ > 0) {
-      tHit = (GROUND_HEIGHT - camZ) / dirZ;
+    if (!(dirZ > 0)) {
+      return -1;
     }
+    tHit = (GROUND_HEIGHT - camZ) / dirZ;
+  }
+  if (tHit < s - HIT_T_EPS || tHit > sExit + HIT_T_EPS) {
+    return -1;
   }
   if (tHit < s) {
     tHit = s;
@@ -270,6 +276,33 @@ function voxelColumnHit(camZ, dirZ, h, s, sExit) {
   return tHit;
 }
 
+function voxelGridSize(mip) {
+  return mipVoxelSize(mip);
+}
+
+function rayHeightSpan(camZ, dirZ, ceiling, sNear, sFar) {
+  let s0 = sNear;
+  let s1 = sFar;
+  if (camZ > ceiling) {
+    if (!(dirZ < -SLAB_EPS)) {
+      return null;
+    }
+    const sCeil = (ceiling - camZ) / dirZ;
+    if (sCeil > s0) {
+      s0 = sCeil;
+    }
+  } else if (dirZ > SLAB_EPS) {
+    const sCeil = (ceiling - camZ) / dirZ;
+    if (sCeil < s1) {
+      s1 = sCeil;
+    }
+  }
+  if (!(s0 < s1)) {
+    return null;
+  }
+  return { s0: s0, s1: s1 };
+}
+
 export function renderVoxelTexels({
   heightMap,
   colorMap,
@@ -277,6 +310,7 @@ export function renderVoxelTexels({
   mapH,
   mapShift,
   altitude,
+  maxHeight,
   camX,
   camY,
   camZ,
@@ -346,6 +380,7 @@ export function renderVoxelTexels({
   );
   const lastMip = (mips.count - 1) | 0;
   const altScale = altitude / HEIGHTMAP_MAX;
+  const ceiling = maxHeight == null ? altitude : maxHeight;
   const wrap = repeat | 0;
   const fine = showDetails ? 1 : 0;
   const switches = mipSwitchDistances(
@@ -556,10 +591,9 @@ export function renderVoxelTexels({
     const dirZ = dz * invLen;
     const hatZ = dirZ;
     const lenXY2 = dirX * dirX + dirY * dirY;
+    const dirFwd = dirX * fwdX + dirY * fwdY + dirZ * fwdZ;
 
-    const camRefine = lod0RefineAt(s0, 0);
-    const camRefineMip = camRefine ? lod0RefineMipAt(s0, refineSwitches) : 0;
-    const camCell = marchCellSize(0, camRefine, camRefineMip) / retailStepScale();
+    const camCell = voxelGridSize(0);
     const camIx = Math.floor(camX / camCell) | 0;
     const camIy = Math.floor(camY / camCell) | 0;
     const camCol = columnAt(camIx, camIy, 0, camCell, s0, camZ);
@@ -583,6 +617,19 @@ export function renderVoxelTexels({
       return;
     }
 
+    if (!(dirFwd > DIR_FWD_EPS)) {
+      writeHit(dest, 0, 0, 0, 0, hatZ);
+      return;
+    }
+
+    const sNear = s0 / dirFwd;
+    const sFar = farClip / dirFwd;
+    const spanZ = rayHeightSpan(camZ, dirZ, ceiling, sNear, sFar);
+    if (!spanZ) {
+      writeHit(dest, 0, 0, 0, 0, hatZ);
+      return;
+    }
+
     if (!(lenXY2 > DIR_XY_EPS)) {
       if (!camInsideMap) {
         writeHit(dest, 0, 0, 0, 0, hatZ);
@@ -591,11 +638,12 @@ export function renderVoxelTexels({
       if (dirZ < 0) {
         if (camZ > hCamW) {
           const sHit = (hCamW - camZ) / dirZ;
-          if (sHit >= s0 && sHit <= farClip) {
+          const depthHit = sHit * dirFwd;
+          if (sHit >= spanZ.s0 && sHit <= spanZ.s1 && depthHit >= s0 && depthHit <= farClip) {
             writeHit(
               dest,
-              hitColor(camX, camY, dirX, dirY, sHit, camCol.colX, camCol.colY, 0),
-              sHit,
+              hitColor(camX, camY, dirX, dirY, depthHit, camCol.colX, camCol.colY, 0),
+              depthHit,
               hCam,
               1,
               hatZ
@@ -605,11 +653,12 @@ export function renderVoxelTexels({
         }
       } else if (hCamW > camZ) {
         const sHit = (hCamW - camZ) / dirZ;
-        if (sHit >= s0 && sHit <= farClip) {
+        const depthHit = sHit * dirFwd;
+        if (sHit >= spanZ.s0 && sHit <= spanZ.s1 && depthHit >= s0 && depthHit <= farClip) {
           writeHit(
             dest,
-            hitColor(camX, camY, dirX, dirY, sHit, camCol.colX, camCol.colY, 0),
-            sHit,
+            hitColor(camX, camY, dirX, dirY, depthHit, camCol.colX, camCol.colY, 0),
+            depthHit,
             hCam,
             1,
             hatZ
@@ -621,25 +670,29 @@ export function renderVoxelTexels({
       return;
     }
 
-    let s = s0;
+    let s = spanZ.s0;
+    const sEnd = spanZ.s1;
     let mip = lastMip;
     let k = 0;
     let wasInside = 0;
-    while ((s < farClip) & (k < maxSteps)) {
+    while ((s < sEnd) & (k < maxSteps)) {
       k = (k + 1) | 0;
-      const hitMip = mipLevelAtDistance(s, switches, lastMip);
+      const depth = s * dirFwd;
+      const zHere = camZ + dirZ * s;
+      if (zHere > ceiling && !(dirZ < 0)) {
+        break;
+      }
+      const hitMip = mipLevelAtDistance(depth, switches, lastMip);
       if ((mip < hitMip) | 0) {
         mip = hitMip;
       }
-      const refineHere = lod0RefineAt(s, mip);
-      const refineMip = refineHere ? lod0RefineMipAt(s, refineSwitches) : 0;
-      const cellSize = marchCellSize(mip, refineHere, refineMip) / retailStepScale();
+      const cellSize = voxelGridSize(mip);
       const span = voxelXyCell(camX, camY, dirX, dirY, s, cellSize);
       const ix = span.ix;
       const iy = span.iy;
       let sExit = span.tFar;
-      if (sExit > farClip) {
-        sExit = farClip;
+      if (sExit > sEnd) {
+        sExit = sEnd;
       }
       if (!(sExit > s)) {
         s = s + mipDdaEps(cellSize);
@@ -666,7 +719,7 @@ export function renderVoxelTexels({
       const zExitV = camZ + dirZ * sExit;
       const zLo = zEnter < zExitV ? zEnter : zExitV;
       const zHi = zEnter > zExitV ? zEnter : zExitV;
-      const col = columnAt(ix, iy, mip, cellSize, s, zLo);
+      const col = columnAt(ix, iy, mip, cellSize, depth, zLo);
       const hMax = col.h;
       if (zHi < GROUND_HEIGHT) {
         s = sExit;
@@ -690,6 +743,7 @@ export function renderVoxelTexels({
       }
       const sHit = voxelColumnHit(camZ, dirZ, col.h, s, sExit);
       if (sHit >= 0) {
+        const depthHit = sHit * dirFwd;
         const hx = camX + dirX * sHit;
         const hy = camY + dirY * sHit;
         if (!wrap) {
@@ -704,8 +758,8 @@ export function renderVoxelTexels({
         }
         writeHit(
           dest,
-          hitColor(hx, hy, dirX, dirY, sHit, col.colX, col.colY, mip),
-          sHit,
+          hitColor(hx, hy, dirX, dirY, depthHit, col.colX, col.colY, mip),
+          depthHit,
           col.hByte,
           k,
           hatZ

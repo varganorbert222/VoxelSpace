@@ -1244,6 +1244,11 @@ body.frustum-space .freelook-only {
   display: none;
 }
 
+body.voxel .scan-quality,
+body.voxel #id_hud_quality {
+  display: none;
+}
+
 .system-screen {
   position: fixed;
   left: 50%;

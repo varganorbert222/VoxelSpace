@@ -10,7 +10,7 @@ import {
 } from "../constants/camera.js";
 
 export function groundEyeZ(terrain, x, y) {
-  return terrain.getTerrainHeight(x, y) + WALK_EYE_HEIGHT;
+  return terrain.getTerrainHeightSmooth(x, y) + WALK_EYE_HEIGHT;
 }
 
 export function applyWalk(dt, input, camera, terrain) {

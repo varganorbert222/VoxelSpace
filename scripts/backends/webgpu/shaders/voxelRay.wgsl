@@ -8,7 +8,9 @@ const VOXEL_MAX_STEPS: u32 = 16384u;
 const VOXEL_REFINE_MAX_STEPS: u32 = 65536u;
 const AABB_Z_EPS: f32 = 1e-4;
 const DIR_XY_EPS: f32 = 1e-8;
+const DIR_FWD_EPS: f32 = 1e-4;
 const SLAB_EPS: f32 = 1e-8;
+const HIT_T_EPS: f32 = 1e-4;
 const EPS: f32 = 1e-6;
 const XY_INF: f32 = 1e30;
 
@@ -22,8 +24,8 @@ fn voxelXyCell(camX: f32, camY: f32, dirX: f32, dirY: f32, s: f32, cellSize: f32
   let e = max(cellSize * 1e-4, 1e-6);
   let px = camX + dirX * (s + e);
   let py = camY + dirY * (s + e);
-  let ix = i32(floor(px / cellSize));
-  let iy = i32(floor(py / cellSize));
+  var ix = i32(floor(px / cellSize));
+  var iy = i32(floor(py / cellSize));
   let x0 = f32(ix) * cellSize;
   let y0 = f32(iy) * cellSize;
   var tFarX = XY_INF;
@@ -40,7 +42,21 @@ fn voxelXyCell(camX: f32, camY: f32, dirX: f32, dirY: f32, s: f32, cellSize: f32
   }
   var tFar = min(tFarX, tFarY);
   if (!(tFar > s)) {
-    tFar = s + e;
+    let ax = abs(dirX);
+    let ay = abs(dirY);
+    let ad = max(ax, ay);
+    tFar = s + select(e, cellSize / ad, ad > e);
+    if (tFarX <= tFarY) {
+      if (dirX > 0.0) {
+        ix = ix + 1;
+      } else if (dirX < 0.0) {
+        ix = ix - 1;
+      }
+    } else if (dirY > 0.0) {
+      iy = iy + 1;
+    } else if (dirY < 0.0) {
+      iy = iy - 1;
+    }
   }
   return VoxelXyCell(ix, iy, tFar);
 }
@@ -55,13 +71,18 @@ fn voxelColumnHit(camZ: f32, dirZ: f32, h: f32, s: f32, sExit: f32) -> f32 {
   }
   var tHit = s;
   if (zEnter > h) {
-    if (dirZ < 0.0) {
-      tHit = (h - camZ) / dirZ;
+    if (!(dirZ < 0.0)) {
+      return -1.0;
     }
+    tHit = (h - camZ) / dirZ;
   } else if (zEnter < 0.0) {
-    if (dirZ > 0.0) {
-      tHit = (0.0 - camZ) / dirZ;
+    if (!(dirZ > 0.0)) {
+      return -1.0;
     }
+    tHit = (0.0 - camZ) / dirZ;
+  }
+  if (tHit < s - HIT_T_EPS || tHit > sExit + HIT_T_EPS) {
+    return -1.0;
   }
   if (tHit < s) {
     tHit = s;
@@ -70,6 +91,42 @@ fn voxelColumnHit(camZ: f32, dirZ: f32, h: f32, s: f32, sExit: f32) -> f32 {
     tHit = sExit;
   }
   return tHit;
+}
+
+fn voxelGridSize(mip: i32) -> f32 {
+  if (mip <= 0) {
+    return 1.0;
+  }
+  return exp2(f32(mip));
+}
+
+struct RayHeightSpan {
+  s0: f32,
+  s1: f32,
+  ok: bool,
+}
+
+fn rayHeightSpan(camZ: f32, dirZ: f32, ceiling: f32, sNear: f32, sFar: f32) -> RayHeightSpan {
+  var s0 = sNear;
+  var s1 = sFar;
+  if (camZ > ceiling) {
+    if (!(dirZ < -SLAB_EPS)) {
+      return RayHeightSpan(s0, s1, false);
+    }
+    let sCeil = (ceiling - camZ) / dirZ;
+    if (sCeil > s0) {
+      s0 = sCeil;
+    }
+  } else if (dirZ > SLAB_EPS) {
+    let sCeil = (ceiling - camZ) / dirZ;
+    if (sCeil < s1) {
+      s1 = sCeil;
+    }
+  }
+  if (!(s0 < s1)) {
+    return RayHeightSpan(s0, s1, false);
+  }
+  return RayHeightSpan(s0, s1, true);
 }
 
 fn bandMipAt(t: f32, lastMip: i32) -> i32 {
@@ -229,7 +286,9 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   }
   let dir = d / len;
   let hatZ = dir.z;
-  let camCell = mipCellSize(0, s0) / qualityQ();
+  let dirFwd = dot(dir, fwd);
+  let ceiling = frame.tMaxMinDzAltMaxH.w;
+  let camCell = voxelGridSize(0);
   let camIx = i32(floor(cam.x / camCell));
   let camIy = i32(floor(cam.y / camCell));
   let camCol = voxelColumn(0, camIx, camIy, camCell, s0, cam.z);
@@ -253,6 +312,17 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     return;
   }
   let lenXY2 = dir.x * dir.x + dir.y * dir.y;
+  if (!(dirFwd > DIR_FWD_EPS)) {
+    voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip, useFog, fogStart, fogEnd);
+    return;
+  }
+  let sNear = s0 / dirFwd;
+  let sFar = farClip / dirFwd;
+  let spanZ = rayHeightSpan(cam.z, dir.z, ceiling, sNear, sFar);
+  if (!spanZ.ok) {
+    voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip, useFog, fogStart, fogEnd);
+    return;
+  }
   if (!(lenXY2 > DIR_XY_EPS)) {
     if (!camInside) {
       voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip, useFog, fogStart, fogEnd);
@@ -261,11 +331,12 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     if (dir.z < 0.0) {
       if (cam.z > hCamW) {
         let sHit = (hCamW - cam.z) / dir.z;
-        if (sHit >= s0 && sHit <= farClip) {
+        let depthHit = sHit * dirFwd;
+        if (sHit >= spanZ.s0 && sHit <= spanZ.s1 && depthHit >= s0 && depthHit <= farClip) {
           voxelWrite(
             p,
-            voxelHitColor(0, camCol.colX, camCol.colY, cam.x, cam.y, sHit),
-            sHit,
+            voxelHitColor(0, camCol.colX, camCol.colY, cam.x, cam.y, depthHit),
+            depthHit,
             hCamByte,
             1u,
             hatZ,
@@ -280,11 +351,12 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       }
     } else if (hCamW > cam.z) {
       let sHit = (hCamW - cam.z) / dir.z;
-      if (sHit >= s0 && sHit <= farClip) {
+      let depthHit = sHit * dirFwd;
+      if (sHit >= spanZ.s0 && sHit <= spanZ.s1 && depthHit >= s0 && depthHit <= farClip) {
         voxelWrite(
           p,
-          voxelHitColor(0, camCol.colX, camCol.colY, cam.x, cam.y, sHit),
-          sHit,
+          voxelHitColor(0, camCol.colX, camCol.colY, cam.x, cam.y, depthHit),
+          depthHit,
           hCamByte,
           1u,
           hatZ,
@@ -301,27 +373,33 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     return;
   }
 
-  var s = s0;
+  var s = spanZ.s0;
+  let sEnd = spanZ.s1;
   var mip = lastMip;
   var k = 0u;
   var wasInside = 0;
   let maxSteps = VOXEL_REFINE_MAX_STEPS;
   loop {
-    if ((s >= farClip) || (k >= maxSteps)) {
+    if ((s >= sEnd) || (k >= maxSteps)) {
       break;
     }
     k = k + 1u;
-    let hitMip = bandMipAt(s, lastMip);
+    let depth = s * dirFwd;
+    let zHere = cam.z + dir.z * s;
+    if (zHere > ceiling && !(dir.z < 0.0)) {
+      break;
+    }
+    let hitMip = bandMipAt(depth, lastMip);
     if (mip < hitMip) {
       mip = hitMip;
     }
-    let cellSize = mipCellSize(mip, s) / qualityQ();
+    let cellSize = voxelGridSize(mip);
     let span = voxelXyCell(cam.x, cam.y, dir.x, dir.y, s, cellSize);
     let ix = span.ix;
     let iy = span.iy;
     var sExit = span.tFar;
-    if (sExit > farClip) {
-      sExit = farClip;
+    if (sExit > sEnd) {
+      sExit = sEnd;
     }
     if (!(sExit > s)) {
       s = s + max(cellSize * 1e-4, 1e-6);
@@ -344,19 +422,17 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let zExitV = cam.z + dir.z * sExit;
     let zLo = min(zEnter, zExitV);
     let zHi = max(zEnter, zExitV);
-    let col = voxelColumn(mip, ix, iy, cellSize, s, zLo);
+    let col = voxelColumn(mip, ix, iy, cellSize, depth, zLo);
     let hMax = col.h;
-    let occEps = max(1e-3, max(abs(zEnter), abs(zExitV)) * 1e-5);
-    let stepE = max(cellSize * 1e-4, 1e-6);
     if (zHi < 0.0) {
-      s = max(sExit, s + stepE);
+      s = sExit;
       if (mip < lastMip) {
         mip = mip + 1;
       }
       continue;
     }
-    if (zLo > hMax + occEps) {
-      s = max(sExit, s + stepE);
+    if (zLo > hMax) {
+      s = sExit;
       let approaching = ((dir.z < 0.0) && (zEnter > hMax)) || ((dir.z > 0.0) && (zEnter < 0.0));
       if (!approaching && (mip < lastMip)) {
         mip = mip + 1;
@@ -367,10 +443,12 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       mip = mip - 1;
       continue;
     }
-    var sHit = voxelColumnHit(cam.z, dir.z, col.h, s, sExit);
+    let sHit = voxelColumnHit(cam.z, dir.z, col.h, s, sExit);
     if (sHit < 0.0) {
-      sHit = s;
+      s = sExit;
+      continue;
     }
+    let depthHit = sHit * dirFwd;
     let hx = cam.x + dir.x * sHit;
     let hy = cam.y + dir.y * sHit;
     if (!wrap) {
@@ -381,8 +459,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     }
     voxelWrite(
       p,
-      voxelHitColor(mip, col.colX, col.colY, hx, hy, sHit),
-      sHit,
+      voxelHitColor(mip, col.colX, col.colY, hx, hy, depthHit),
+      depthHit,
       col.hByte,
       k,
       hatZ,

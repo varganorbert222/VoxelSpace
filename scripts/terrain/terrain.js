@@ -67,6 +67,20 @@ class Terrain {
     );
   }
 
+  getTerrainHeightSmooth(x, y) {
+    const x0 = Math.floor(x);
+    const y0 = Math.floor(y);
+    const fx = x - x0;
+    const fy = y - y0;
+    const h00 = this._heightMap[this.getMapOffset(x0, y0)];
+    const h10 = this._heightMap[this.getMapOffset(x0 + 1, y0)];
+    const h01 = this._heightMap[this.getMapOffset(x0, y0 + 1)];
+    const h11 = this._heightMap[this.getMapOffset(x0 + 1, y0 + 1)];
+    const hx0 = h00 + (h10 - h00) * fx;
+    const hx1 = h01 + (h11 - h01) * fx;
+    return ((hx0 + (hx1 - hx0) * fy) / HEIGHTMAP_MAX) * this._altitude;
+  }
+
   peekExportedMaps() {
     return this._exportedMaps;
   }

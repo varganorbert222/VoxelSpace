@@ -93,6 +93,9 @@ function detectSettingHotkey(input, e) {
     case "3":
     case "4":
     case "5":
+      if (document.body.classList.contains("voxel")) {
+        break;
+      }
       if (!e.repeat) input._setQuality = Number(ch);
       break;
     default:
