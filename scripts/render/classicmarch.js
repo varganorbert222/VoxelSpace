@@ -3,13 +3,6 @@
 import { Color } from "../math/color.js";
 import { qualityBandSteps, useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
-import {
-  CHANNEL_MASK,
-  CHANNEL_MAX,
-  SHIFT_ALPHA,
-  SHIFT_GREEN,
-  SHIFT_RED,
-} from "../constants/color.js";
 import { HEIGHTMAP_MAX } from "../constants/terrain.js";
 import { FILTER_DISTANCE_DEFAULT } from "../constants/sampling.js";
 import { UNFILLED_PIXEL } from "../constants/framebuffer.js";
@@ -21,7 +14,6 @@ import {
 } from "../constants/debugView.js";
 import { encodeHeight, encodeIter, encodeUnit } from "./debugEncode.js";
 import { NON_REPEAT_GROUND_OFFSET } from "../constants/classic.js";
-import { FOG_SATURATED } from "../constants/quality.js";
 import {
   TERRAIN_MIP_MAX_COUNT,
   bandStepAt,
@@ -314,8 +306,6 @@ function renderClassicColumnsSampled({
   nearClip,
   farClip,
   quality,
-  applyFog,
-  fogStart = 0,
   debugView,
   repeat,
   showDetails = 0,
@@ -333,9 +323,6 @@ function renderClassicColumnsSampled({
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;
   const hiddenY = hiddenYBuffer(localWidth);
-  const fogRange = farClip - fogStart;
-  const invFogRange = fogRange === 0 ? 0 : 1 / fogRange;
-  const useFog = applyFog | 0;
   const debug = isDebugColor(debugView) ? 0 : 1;
   const countIter = debugView === DEBUG_VIEW_ITERATIONS ? 1 : 0;
   const sampleN = countIter ? sampleNScratch : null;
@@ -432,16 +419,6 @@ function renderClassicColumnsSampled({
       const zScale = dstToProjPlane / z;
       const ceilingOnScreen = (ceilingSdf * zScale + screenHorizon) | 0;
       const groundOnScreen = (yGround * zScale + screenHorizon) | 0;
-      const fogTRaw =
-        fogRange === 0 ? FOG_SATURATED : (z - fogStart) * invFogRange;
-      const fogT =
-        fogTRaw < 0
-          ? 0
-          : fogTRaw > FOG_SATURATED
-            ? FOG_SATURATED
-            : fogTRaw;
-      const fogWhite = useFog & ((fogT >= FOG_SATURATED) | 0);
-      const applyFogT = useFog & ((fogT > 0) | 0) & (fogWhite ^ 1);
       const dx = kDx * z;
       const dy = kDy * z;
       let plx = kLeftX * z + camX + dx * startColumn;
@@ -593,7 +570,7 @@ function renderClassicColumnsSampled({
               } else if (countIter) {
                 plotColor = encodeIter(sampleN[localI]);
               }
-            } else if (!fogWhite) {
+            } else {
               plotColor = doFilter
                 ? ease.filterFade >= 1
                   ? sampleColorFiltered(
@@ -621,17 +598,6 @@ function renderClassicColumnsSampled({
                 : useColor[offset];
               if (detailInRange(z)) {
                 plotColor = applyDetail(plotColor, plx, ply, z);
-              }
-              if (applyFogT) {
-                const a = (plotColor >>> SHIFT_ALPHA) & CHANNEL_MASK;
-                const r = (plotColor >>> SHIFT_RED) & CHANNEL_MASK;
-                const g = (plotColor >>> SHIFT_GREEN) & CHANNEL_MASK;
-                const b = plotColor & CHANNEL_MASK;
-                plotColor =
-                  ((a + (CHANNEL_MAX - a) * fogT) << SHIFT_ALPHA) |
-                  ((r + (CHANNEL_MAX - r) * fogT) << SHIFT_RED) |
-                  ((g + (CHANNEL_MAX - g) * fogT) << SHIFT_GREEN) |
-                  (b + (CHANNEL_MAX - b) * fogT);
               }
             }
             drawVerticalLine(

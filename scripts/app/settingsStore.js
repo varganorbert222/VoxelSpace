@@ -4,7 +4,6 @@ import {
   SETTINGS_STORAGE_KEY,
   SETTINGS_STORAGE_VERSION,
 } from "../constants/main.js";
-import { clampFogRange } from "../constants/fog.js";
 import { lod0MaxMeters } from "../constants/mip.js";
 import VMath from "../math/vmath.js";
 
@@ -62,13 +61,11 @@ export function collectSettings(app) {
     farClip: app.camera.farClip,
     fov: app.camera.fov,
     quality: app.camera.quality,
-    applyFog: options.applyFog,
-    fogStart: options.fogStart,
-    fogEnd: options.fogEnd,
     repeat: options.repeat,
     showDetails: options.showDetails,
     showSky: options.showSky,
     showClouds: options.showClouds,
+    voxPalFog: options.voxPalFog,
     renderScale: app.camera.renderScale,
     filterDistance: options.filterDistance,
     multithread: options.multithread,
@@ -94,12 +91,6 @@ export function sanitizeSettings(data, defaults, bounds) {
     bounds.renderDistance.max,
     finiteOr(data.farClip, defaults.farClip)
   );
-  const fog = clampFogRange(
-    finiteOr(data.fogStart, defaults.fogStart),
-    finiteOr(data.fogEnd, farClip),
-    farClip,
-    bounds.fogRange
-  );
   const lodSpacingMax = Math.min(
     bounds.lodSpacing.max,
     lod0MaxMeters(farClip, bounds.lodSpacing.min)
@@ -118,13 +109,11 @@ export function sanitizeSettings(data, defaults, bounds) {
     ),
     quality: pickAllowed(Number(data.quality), bounds.qualities, defaults.quality),
     mode: pickAllowed(data.mode, bounds.modes, defaults.mode),
-    applyFog: boolOr(data.applyFog, defaults.applyFog),
-    fogStart: fog.fogStart,
-    fogEnd: fog.fogEnd,
     repeat: boolOr(data.repeat, defaults.repeat),
     showDetails: boolOr(data.showDetails, defaults.showDetails),
     showSky: boolOr(data.showSky, defaults.showSky),
     showClouds: boolOr(data.showClouds, defaults.showClouds),
+    voxPalFog: boolOr(data.voxPalFog, defaults.voxPalFog),
     renderScale: VMath.clamp(
       bounds.renderScale.min,
       bounds.renderScale.max,

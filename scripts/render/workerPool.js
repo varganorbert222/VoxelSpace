@@ -131,10 +131,12 @@ class WorkerPool {
 
   initMaps(snapshot) {
     this.ensureWorkers();
-    if (this._mapsGeneration === snapshot.generation) {
+    const mipsStamp = snapshot.terrainMips && snapshot.terrainMips.lodFogOn ? 1 : 0;
+    const stamp = String(snapshot.generation) + ":" + mipsStamp;
+    if (this._mapsGeneration === stamp) {
       return;
     }
-    this._mapsGeneration = snapshot.generation;
+    this._mapsGeneration = stamp;
     const n = snapshot.heightMap.length;
     const mips = snapshot.terrainMips;
     const extraCount = mips && mips.count > 1 ? (mips.count - 1) | 0 : 0;

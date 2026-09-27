@@ -219,38 +219,6 @@
         </div>
         <div
           class="control"
-          data-tip="Where fog starts and where it saturates. The right end of the track is the current Distance. If the upper thumb is below Distance, terrain is only marched to that upper bound; Distance itself stays put."
-        >
-          <div class="control-head">
-            <label id="id_fog_range_label">Fog range</label>
-            <span class="control-value" data-for="id_fog_range"></span>
-          </div>
-          <div
-            class="range-dual"
-            id="id_fog_range"
-            role="group"
-            aria-labelledby="id_fog_range_label"
-          >
-            <div class="range-dual-rail" aria-hidden="true"></div>
-            <div class="range-dual-fill" aria-hidden="true"></div>
-            <button
-              type="button"
-              class="range-dual-thumb"
-              data-thumb="start"
-              id="id_fog_start"
-              aria-label="Fog start"
-            ></button>
-            <button
-              type="button"
-              class="range-dual-thumb"
-              data-thumb="end"
-              id="id_fog_end"
-              aria-label="Fog end"
-            ></button>
-          </div>
-        </div>
-        <div
-          class="control"
           hidden
           data-tip="Kept for saved settings. The renderer no longer uses this range."
         >
@@ -339,17 +307,6 @@
       <section class="hud-section">
         <h2 class="hud-section-title"><span>06</span> Flags</h2>
         <div class="flag-grid">
-          <label class="check" for="id_apply_fog" data-tip="Fade distant terrain into the sky. Start and end distances come from Fog range.">
-            <input
-              id="id_apply_fog"
-              name="applyfog"
-              type="checkbox"
-              autocomplete="off"
-              aria-keyshortcuts="G"
-            />
-            <span class="check-box" aria-hidden="true"></span>
-            Fog
-          </label>
           <label class="check" for="id_repeat" data-tip="Tile the map so the world wraps.">
             <input id="id_repeat" name="repeat" type="checkbox" autocomplete="off" aria-keyshortcuts="P" />
             <span class="check-box" aria-hidden="true"></span>
@@ -364,6 +321,11 @@
             <input id="id_show_clouds" name="showclouds" type="checkbox" autocomplete="off" checked />
             <span class="check-box" aria-hidden="true"></span>
             Clouds
+          </label>
+          <label class="check" for="id_voxpal_fog" data-tip="VoxPal fog at LOD boundaries. Each coarser mip blends toward the horizon color from sky palette index 0. Off keeps every mip at full color.">
+            <input id="id_voxpal_fog" name="voxpalfog" type="checkbox" autocomplete="off" checked />
+            <span class="check-box" aria-hidden="true"></span>
+            Fog
           </label>
           <label
             class="check"
@@ -401,7 +363,6 @@
           <div><dt>I Shift+I</dt><dd>Distance</dd></div>
           <div><dt>O Shift+O</dt><dd>FOV</dd></div>
           <div><dt>V</dt><dd>Cycle debug view</dd></div>
-          <div><dt>G</dt><dd>Toggle fog</dd></div>
           <div><dt>P</dt><dd>Toggle repeat</dd></div>
           <div><dt>T</dt><dd>Toggle threads</dd></div>
           <div><dt>H</dt><dd>Toggle HUD</dd></div>

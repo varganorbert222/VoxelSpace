@@ -200,10 +200,7 @@ fn voxelWrite(
   iter: u32,
   hatZ: f32,
   farClip: f32,
-  nearClip: f32,
-  useFog: bool,
-  fogStart: f32,
-  fogEnd: f32
+  nearClip: f32
 ) {
   let debugView = flagDebugView(frame.mapFlags.w);
   if (debugView != DEBUG_COLOR) {
@@ -223,15 +220,8 @@ fn voxelWrite(
     return;
   }
   var outColor = packRgba(color);
-  if (!useFog && ((dist >= farClip) || (dist < nearClip))) {
+  if ((dist >= farClip) || (dist < nearClip)) {
     outColor = packRgba(skyColorFromHat(hatZ, frame.sky, frame.horizonColor));
-  } else if (useFog) {
-    let fogT = fogAmount(dist, fogStart, fogEnd);
-    if (fogT >= 1.0) {
-      outColor = packRgba(vec4f(1.0));
-    } else if (fogT > 0.0) {
-      outColor = packRgba(fogRgb(color, fogT));
-    }
   }
   textureStore(outTex, p, vec4<u32>(outColor, 0u, 0u, 0u));
 }
@@ -256,9 +246,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let nearClip = frame.sinCosNearFar.z;
   let farClip = frame.sinCosNearFar.w;
   let wrap = flagRepeat(frame.mapFlags.w);
-  let useFog = flagFog(frame.mapFlags.w);
-  let fogStart = frame.sampleLimit.y;
-  let fogEnd = frame.sampleLimit.z;
   let mapW = f32(frame.mapFlags.x);
   let mapH = f32(frame.mapFlags.y);
   var lastMip = i32(frame.extraU.y) - 1;
@@ -281,7 +268,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   var d = right * camXndc + up * camYndc + fwd;
   let len = length(d);
   if (!(len > EPS)) {
-    voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, 0.0, farClip, nearClip, useFog, fogStart, fogEnd);
+    voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, 0.0, farClip, nearClip);
     return;
   }
   let dir = d / len;
@@ -304,28 +291,25 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       1u,
       hatZ,
       farClip,
-      nearClip,
-      useFog,
-      fogStart,
-      fogEnd
+      nearClip
     );
     return;
   }
   let lenXY2 = dir.x * dir.x + dir.y * dir.y;
   if (!(dirFwd > DIR_FWD_EPS)) {
-    voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip, useFog, fogStart, fogEnd);
+    voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip);
     return;
   }
   let sNear = s0 / dirFwd;
   let sFar = farClip / dirFwd;
   let spanZ = rayHeightSpan(cam.z, dir.z, ceiling, sNear, sFar);
   if (!spanZ.ok) {
-    voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip, useFog, fogStart, fogEnd);
+    voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip);
     return;
   }
   if (!(lenXY2 > DIR_XY_EPS)) {
     if (!camInside) {
-      voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip, useFog, fogStart, fogEnd);
+      voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip);
       return;
     }
     if (dir.z < 0.0) {
@@ -341,10 +325,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
             1u,
             hatZ,
             farClip,
-            nearClip,
-            useFog,
-            fogStart,
-            fogEnd
+            nearClip
           );
           return;
         }
@@ -361,15 +342,12 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
           1u,
           hatZ,
           farClip,
-          nearClip,
-          useFog,
-          fogStart,
-          fogEnd
+          nearClip
         );
         return;
       }
     }
-    voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip, useFog, fogStart, fogEnd);
+    voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip);
     return;
   }
 
@@ -465,12 +443,9 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       k,
       hatZ,
       farClip,
-      nearClip,
-      useFog,
-      fogStart,
-      fogEnd
+      nearClip
     );
     return;
   }
-  voxelWrite(p, vec4f(0.0), 0.0, 0u, k, hatZ, farClip, nearClip, useFog, fogStart, fogEnd);
+  voxelWrite(p, vec4f(0.0), 0.0, 0u, k, hatZ, farClip, nearClip);
 }

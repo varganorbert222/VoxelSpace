@@ -5,19 +5,11 @@ import { useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import ColorPalette from "../math/colorPalette.js";
 import {
-  CHANNEL_MASK,
-  CHANNEL_MAX,
-  SHIFT_ALPHA,
-  SHIFT_GREEN,
-  SHIFT_RED,
-} from "../constants/color.js";
-import {
   SKY_PALETTE_STEPS,
   skyLutIndexFromHat,
   skyPaletteT,
 } from "../constants/framebuffer.js";
 import { HEIGHTMAP_MAX, GROUND_HEIGHT } from "../constants/terrain.js";
-import { FOG_SATURATED } from "../constants/quality.js";
 import {
   DEG_TO_RAD,
   EPSILON,
@@ -58,19 +50,6 @@ const DIR_XY_EPS = 1e-8;
 const DIR_FWD_EPS = 1e-4;
 const SLAB_EPS = 1e-8;
 const HIT_T_EPS = 1e-4;
-
-function fogColor(color, fogT) {
-  const a = (color >>> SHIFT_ALPHA) & CHANNEL_MASK;
-  const r = (color >>> SHIFT_RED) & CHANNEL_MASK;
-  const g = (color >>> SHIFT_GREEN) & CHANNEL_MASK;
-  const b = color & CHANNEL_MASK;
-  return (
-    ((a + (CHANNEL_MAX - a) * fogT) << SHIFT_ALPHA) |
-    ((r + (CHANNEL_MAX - r) * fogT) << SHIFT_RED) |
-    ((g + (CHANNEL_MAX - g) * fogT) << SHIFT_GREEN) |
-    (b + (CHANNEL_MAX - b) * fogT)
-  );
-}
 
 function getSkyLut(skyColor, horizonColor, height) {
   if (
@@ -331,9 +310,6 @@ export function renderVoxelTexels({
   endColumn,
   nearClip,
   farClip,
-  applyFog,
-  fogStart = 0,
-  fogEnd,
   debugView,
   repeat,
   filterDistance,
@@ -396,10 +372,6 @@ export function renderVoxelTexels({
     lod0RefineCurve,
     lod0RefineSwitchScratch
   );
-  const fogStop = Number.isFinite(fogEnd) ? fogEnd : farClip;
-  const fogRange = fogStop - fogStart;
-  const invFogRange = fogRange === 0 ? 0 : 1 / fogRange;
-  const useFog = applyFog | 0;
   const debug = isDebugColor(debugView) ? 0 : 1;
   const aspect = screenWidth / screenHeight;
   let tanHalfY = Math.tan(fovY * DEG_TO_RAD * HALF);
@@ -556,24 +528,8 @@ export function renderVoxelTexels({
       pixels[dest] = skyLut[skyLutIndexFromHat(hatZ, screenHeight)];
       return;
     }
-    const viewZ = dist;
-    if (
-      ((useFog ^ 1) | 0) &
-      (((viewZ >= farClip) | 0) | ((viewZ < nearClip) | 0))
-    ) {
+    if (((dist >= farClip) | 0) | ((dist < nearClip) | 0)) {
       pixels[dest] = skyLut[skyLutIndexFromHat(hatZ, screenHeight)];
-      return;
-    }
-    if (useFog) {
-      const fogT =
-        fogRange === 0 ? FOG_SATURATED : (viewZ - fogStart) * invFogRange;
-      if (fogT >= FOG_SATURATED) {
-        pixels[dest] = Color.WHITE;
-      } else if (fogT > 0) {
-        pixels[dest] = fogColor(color, fogT);
-      } else {
-        pixels[dest] = color;
-      }
       return;
     }
     pixels[dest] = color;

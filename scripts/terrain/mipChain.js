@@ -52,6 +52,7 @@ export function resolveTerrainMips(
     widths: widths,
     heights: heights,
     shifts: shifts,
+    lodFogOn: src && src.lodFogOn ? 1 : 0,
   };
 }
 

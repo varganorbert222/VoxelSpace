@@ -20,13 +20,11 @@ import {
   isAlgorithmAllowed,
 } from "../constants/algorithm.js";
 import { listBackends } from "../backends/contract.js";
-import { FOG_RANGE_MIN, FOG_RANGE_STEP } from "../constants/fog.js";
 import { DEFAULT_MAP_SIZE } from "../constants/terrain.js";
 import {
   TERRAIN_MIP_COUNT_MIN,
   mipCountMax,
 } from "../constants/mip.js";
-import { initDualRangeElement } from "./rangeSlider.js";
 
 function prepareControl(element) {
   element.setAttribute("autocomplete", "off");
@@ -44,7 +42,7 @@ function setDisabled(element, disabled, title) {
 
 function formatRangeValue(id, value) {
   const n = Number(value);
-  if (id === "id_render_distance" || id === "id_fog_range") {
+  if (id === "id_render_distance") {
     return String(Math.round(n));
   }
   if (id === "id_filter_distance") {
@@ -77,14 +75,6 @@ function updateRenderScaleValue(scale, width, height) {
   const label = document.querySelector('[data-for="id_render_scale"]');
   if (label) {
     label.textContent = formatRenderScale(scale, width, height);
-  }
-}
-
-function updateFogRangeValue(start, end) {
-  const label = document.querySelector('[data-for="id_fog_range"]');
-  if (label) {
-    label.textContent =
-      Math.round(Number(start)) + " – " + Math.round(Number(end));
   }
 }
 
@@ -265,37 +255,8 @@ class SettingsForm {
         config.settings.renderDistance,
         camera.farClip,
         (e) => {
-          const prev = camera.farClip;
-          const next = parseFloat(e.target.value);
-          camera.set({ farClip: next });
-          app.renderer.syncFogToFarClip(prev, next);
-          const fog = this._elements.fogRange;
-          fog.setMax(next);
-          fog.setValues(app.renderer.fogStart, app.renderer.fogEnd);
-          updateFogRangeValue(app.renderer.fogStart, app.renderer.fogEnd);
+          camera.set({ farClip: parseFloat(e.target.value) });
           this.sync();
-        },
-        persist
-      ),
-      fogRange: initDualRangeElement(
-        "id_fog_range",
-        {
-          min:
-            (config.settings.fogRange && config.settings.fogRange.min) ??
-            FOG_RANGE_MIN,
-          max: camera.farClip,
-          step:
-            (config.settings.fogRange && config.settings.fogRange.step) ??
-            FOG_RANGE_STEP,
-        },
-        Number.isFinite(options.fogStart) ? options.fogStart : 0,
-        Number.isFinite(options.fogEnd) ? options.fogEnd : camera.farClip,
-        (range) => {
-          app.renderer.setOptions({
-            fogStart: range.start,
-            fogEnd: range.end,
-          });
-          updateFogRangeValue(range.start, range.end);
         },
         persist
       ),
@@ -369,10 +330,6 @@ class SettingsForm {
         },
         () => app.renderer.backend
       ),
-      applyFog: initCheckboxElement("id_apply_fog", options.applyFog, (e) => {
-        app.renderer.setOptions({ applyFog: e.target.checked });
-        persist();
-      }),
       repeat: initCheckboxElement("id_repeat", options.repeat, (e) => {
         app.renderer.setOptions({ repeat: e.target.checked });
         persist();
@@ -391,6 +348,10 @@ class SettingsForm {
       }),
       showClouds: initCheckboxElement("id_show_clouds", options.showClouds, (e) => {
         app.renderer.setOptions({ showClouds: e.target.checked });
+        persist();
+      }),
+      voxPalFog: initCheckboxElement("id_voxpal_fog", options.voxPalFog, (e) => {
+        app.renderer.setOptions({ voxPalFog: e.target.checked });
         persist();
       }),
       multithread: initCheckboxElement(
@@ -460,7 +421,6 @@ class SettingsForm {
     const options = this._app.renderer.getOptions();
     const {
       renderDistance,
-      fogRange,
       renderScale,
       fov,
       mipCount,
@@ -468,10 +428,10 @@ class SettingsForm {
       cloudLodBias,
       filterDistance,
       quality,
-      applyFog,
       repeat,
       showSky,
       showClouds,
+      voxPalFog,
       multithread,
       map,
       cameraMode,
@@ -481,15 +441,6 @@ class SettingsForm {
     } = this._elements;
     renderDistance.value = camera.farClip;
     updateBoundValue("id_render_distance", camera.farClip);
-    fogRange.setMax(camera.farClip);
-    fogRange.setValues(
-      Number.isFinite(options.fogStart) ? options.fogStart : 0,
-      Number.isFinite(options.fogEnd) ? options.fogEnd : camera.farClip
-    );
-    updateFogRangeValue(
-      Number.isFinite(options.fogStart) ? options.fogStart : 0,
-      Number.isFinite(options.fogEnd) ? options.fogEnd : camera.farClip
-    );
     renderScale.value = camera.renderScale;
     updateRenderScaleValue(camera.renderScale, camera.width, camera.height);
     fov.value = camera.fov;
@@ -517,7 +468,6 @@ class SettingsForm {
       options.backend
     );
     quality.value = String(camera.quality);
-    applyFog.checked = options.applyFog;
     repeat.checked = options.repeat;
     if (this._elements.showDetails) {
       this._elements.showDetails.checked = !!options.showDetails;
@@ -525,6 +475,9 @@ class SettingsForm {
     if (showSky) {
       showSky.checked = !!options.showSky;
       showClouds.checked = !!options.showClouds;
+    }
+    if (voxPalFog) {
+      voxPalFog.checked = !!options.voxPalFog;
     }
     multithread.checked = options.multithread;
     setDisabled(

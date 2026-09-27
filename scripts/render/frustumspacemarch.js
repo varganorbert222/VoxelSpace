@@ -4,13 +4,6 @@ import { Color } from "../math/color.js";
 import { qualityBandSteps, useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import {
-  CHANNEL_MASK,
-  CHANNEL_MAX,
-  SHIFT_ALPHA,
-  SHIFT_GREEN,
-  SHIFT_RED,
-} from "../constants/color.js";
-import {
   GROUND_CLIP_OFFSET,
   GROUND_HEIGHT,
   HEIGHTMAP_MAX,
@@ -39,7 +32,6 @@ import {
   mipSwitchDistances,
 } from "../constants/mip.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
-import { FOG_SATURATED } from "../constants/quality.js";
 
 // One ray per column. The step is the mip-band width divided by 32*q.
 // On a heightfield hit the row is painted, the
@@ -176,19 +168,6 @@ function heightByteFromFine(hFine) {
   return b;
 }
 
-function applyFogPacked(plotColor, fogT) {
-  const a = (plotColor >>> SHIFT_ALPHA) & CHANNEL_MASK;
-  const r = (plotColor >>> SHIFT_RED) & CHANNEL_MASK;
-  const g = (plotColor >>> SHIFT_GREEN) & CHANNEL_MASK;
-  const b = plotColor & CHANNEL_MASK;
-  return (
-    ((a + (CHANNEL_MAX - a) * fogT) << SHIFT_ALPHA) |
-    ((r + (CHANNEL_MAX - r) * fogT) << SHIFT_RED) |
-    ((g + (CHANNEL_MAX - g) * fogT) << SHIFT_GREEN) |
-    (b + (CHANNEL_MAX - b) * fogT)
-  );
-}
-
 export function renderFrustumSpaceColumns({
   heightMap,
   colorMap,
@@ -225,8 +204,6 @@ export function renderFrustumSpaceColumns({
   farClip,
   minDeltaZ,
   quality,
-  applyFog,
-  fogStart = 0,
   debugView,
   repeat,
   filterDistance = FILTER_DISTANCE_DEFAULT,
@@ -257,9 +234,6 @@ export function renderFrustumSpaceColumns({
   });
   const localWidth = (endColumn - startColumn) | 0;
   const stride = pixelWidth;
-  const fogRange = farClip - fogStart;
-  const invFogRange = fogRange === 0 ? 0 : 1 / fogRange;
-  const useFog = applyFog | 0;
   const debug = isDebugColor(debugView) ? 0 : 1;
   const countIter = debugView === DEBUG_VIEW_ITERATIONS ? 1 : 0;
   const sampleN = countIter ? sampleNBuffer(localWidth) : null;
@@ -339,7 +313,7 @@ export function renderFrustumSpaceColumns({
   // framebuffer height stops high-resolution columns before the far ridges.
   const stepBudget = marchMaxSteps(true);
 
-  function shade(wx, wy, offset, hByte, z, fogT, fogWhite, applyFogT, useFine, localI) {
+  function shade(wx, wy, offset, hByte, z, useFine, localI) {
     if (debug) {
       if (debugView === DEBUG_VIEW_HEIGHT) {
         return encodeHeight(hByte);
@@ -350,9 +324,6 @@ export function renderFrustumSpaceColumns({
       if (countIter) {
         return encodeIter(sampleN[localI]);
       }
-      return Color.WHITE;
-    }
-    if (fogWhite) {
       return Color.WHITE;
     }
     let plotColor =
@@ -369,9 +340,6 @@ export function renderFrustumSpaceColumns({
         : shadeColorMap[offset];
     if (detailInRange(z)) {
       plotColor = applyDetail(plotColor, wx, wy, z);
-    }
-    if (applyFogT) {
-      plotColor = applyFogPacked(plotColor, fogT);
     }
     return plotColor;
   }
@@ -442,29 +410,8 @@ export function renderFrustumSpaceColumns({
         sampleN[localI] = (sampleN[localI] + 1) | 0;
       }
       if (wz < hFine * altScale) {
-        const fogTRaw =
-          fogRange === 0 ? FOG_SATURATED : (t - fogStart) * invFogRange;
-        const fogT =
-          fogTRaw < 0
-            ? 0
-            : fogTRaw > FOG_SATURATED
-              ? FOG_SATURATED
-              : fogTRaw;
-        const fogWhite = useFog & ((fogT >= FOG_SATURATED) | 0);
-        const applyFogT = useFog & ((fogT > 0) | 0) & (fogWhite ^ 1);
         const hByte = doLerp ? heightByteFromFine(hFine) : nearestH;
-        const col = shade(
-          wx,
-          wy,
-          offset,
-          hByte,
-          t,
-          fogT,
-          fogWhite,
-          applyFogT,
-          useFine,
-          localI
-        );
+        const col = shade(wx, wy, offset, hByte, t, useFine, localI);
         const o = (pixelBase + ((sy * stride + pixCol) | 0)) | 0;
         pixels[o] = col;
         if (depth) {

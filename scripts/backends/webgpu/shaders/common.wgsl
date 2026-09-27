@@ -42,25 +42,6 @@ fn unpackRgba(p: u32) -> vec4f {
   ) / 255.0;
 }
 
-fn fogRgb(c: vec4f, fogT: f32) -> vec4f {
-  return c + (vec4f(1.0) - c) * fogT;
-}
-
-fn fogAmount(z: f32, fogStart: f32, fogEnd: f32) -> f32 {
-  let span = fogEnd - fogStart;
-  if (span == 0.0) {
-    return 1.0;
-  }
-  var t = (z - fogStart) / span;
-  if (t < 0.0) {
-    t = 0.0;
-  }
-  if (t > 1.0) {
-    t = 1.0;
-  }
-  return t;
-}
-
 const PI: f32 = 3.141592653589793;
 const SKY_PALETTE_STEPS: f32 = 24.0;
 const SKY_PALETTE_T_MAX: f32 = 23.0 / 24.0;
@@ -82,10 +63,6 @@ fn skyColorFromHat(hat: f32, sky: vec4f, horizon: vec4f) -> vec4f {
   let t = skyPaletteT(skyLinearFromHat(hat));
   let idx = min(u32(t * SKY_PALETTE_STEPS), 23u);
   return mix(sky, horizon, f32(idx) / SKY_PALETTE_STEPS);
-}
-
-fn flagFog(flags: u32) -> bool {
-  return (flags & 1u) != 0u;
 }
 
 fn flagRepeat(flags: u32) -> bool {

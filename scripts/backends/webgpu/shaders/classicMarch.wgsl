@@ -66,7 +66,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let mapH = i32(frame.mapFlags.y);
   let mapShift = frame.mapFlags.z;
   let flags = frame.mapFlags.w;
-  let useFog = flagFog(flags);
   let repeat = flagRepeat(flags);
   let lodCount = i32(frame.extraU.y);
   let altScale = altitude / 255.0;
@@ -79,8 +78,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let mapHMask = mapH - 1;
   let ceilingSdf = camZ - maxHeight;
   let yGround = camZ + 20.0;
-  let fogStart = frame.sampleLimit.y;
-  let fogEnd = frame.sampleLimit.z;
   let screenWidthScaler = 1.0 / f32(screenW);
   let kRightX = cosA * tanHalfX;
   let kRightY = -sinA * tanHalfX;
@@ -128,9 +125,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       let zScale = dst / z;
       let ceilingOnScreen = i32(ceilingSdf * zScale + screenHorizon);
       let groundOnScreen = i32(yGround * zScale + screenHorizon);
-      let fogT = fogAmount(z, fogStart, fogEnd);
-      let fogWhite = useFog && (fogT >= 1.0);
-      let applyFogT = useFog && (fogT > 0.0) && !fogWhite;
       let dx = kDx * z;
       let dy = kDy * z;
       var plx = kLeftX * z + camX + dx * f32(x);
@@ -191,11 +185,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
               } else {
                 plotPacked = encodeIter(sampleN);
               }
-            } else if (!fogWhite) {
+            } else {
               plot = classicSampleColor(plx, ply, mip, flagShowDetails(flags) && useFine, z);
-              if (applyFogT) {
-                plot = fogRgb(plot, fogT);
-              }
               plotPacked = packRgba(plot);
             }
             var ytop = heightOnScreen;

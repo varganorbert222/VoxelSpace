@@ -76,9 +76,6 @@ fn frustumShade(
   hByte: u32,
   z: f32,
   farClip: f32,
-  fogT: f32,
-  fogWhite: bool,
-  applyFogT: bool,
   useFine: bool,
   mip: i32,
   flags: u32,
@@ -99,16 +96,12 @@ fn frustumShade(
     }
     return encodeIter(sampleN);
   }
-  if (fogWhite) {
-    return packRgba(vec4f(1.0));
-  }
-  var plot = detailColor(
+  let plot = detailColor(
     classicSampleColor(px, py, mip, flagShowDetails(flags) && useFine, repeat, mapHMask, mapWMask),
     worldX,
     worldY,
     z
   );
-  if (applyFogT) { plot = fogRgb(plot, fogT); }
   return packRgba(plot);
 }
 
@@ -153,7 +146,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let mapW = i32(frame.mapFlags.x);
   let mapH = i32(frame.mapFlags.y);
   let flags = frame.mapFlags.w;
-  let useFog = flagFog(flags);
   let repeat = flagRepeat(flags);
   let lodCount = i32(frame.extraU.y);
   let altScale = altitude / 255.0;
@@ -162,8 +154,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let ceiling = maxHeight;
   let screenHorizon = f32(screenH) * 0.5;
   let invH2 = select(1.0 / dst, 0.0, dst == 0.0);
-  let fogStart = frame.sampleLimit.y;
-  let fogEnd = frame.sampleLimit.z;
   let screenWidthScaler = 1.0 / f32(screenW);
   let slopeCap = select(altitude, frame.sampleLimit.w, frame.sampleLimit.w > 0.0);
   let _po = pixelOffsets[0];
@@ -210,18 +200,12 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let hFine = sampled.x + addBytes;
     sampleN = sampleN + 1u;
     if (pos.z < hFine * altScale) {
-      let fogT = fogAmount(t, fogStart, fogEnd);
-      let fogWhite = useFog && (fogT >= 1.0);
-      let applyFogT = useFog && (fogT > 0.0) && !fogWhite;
       let plot = frustumShade(
         pos.x * mipScale,
         pos.y * mipScale,
         u32(clamp(hFine + 0.5, 0.0, 255.0)),
         t,
         farClip,
-        fogT,
-        fogWhite,
-        applyFogT,
         useFine,
         mip,
         flags,

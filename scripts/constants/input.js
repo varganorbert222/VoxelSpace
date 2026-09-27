@@ -53,7 +53,6 @@ export const SettingChar = Object.freeze({
   DISTANCE: "i",
   FOV: "o",
   DEBUG_VIEW: "v",
-  FOG: "g",
   REPEAT: "p",
   THREADS: "t",
 });

@@ -98,6 +98,8 @@ class App {
       showSky: !config.settings.showSky || config.settings.showSky.default !== false,
       showClouds:
         !config.settings.showClouds || config.settings.showClouds.default !== false,
+      voxPalFog:
+        !config.settings.voxPalFog || config.settings.voxPalFog.default !== false,
       filterDistance: config.settings.filterDistance.default,
       mipCount: config.settings.mipCount
         ? config.settings.mipCount.default
@@ -468,13 +470,11 @@ class App {
         fov: this.camera.fov,
         quality: this.camera.quality,
         mode: this.camera.mode,
-        applyFog: options.applyFog,
-        fogStart: options.fogStart,
-        fogEnd: options.fogEnd,
         repeat: options.repeat,
         showDetails: options.showDetails,
         showSky: options.showSky,
         showClouds: options.showClouds,
+        voxPalFog: options.voxPalFog,
         renderScale: this.camera.renderScale,
         filterDistance: options.filterDistance,
         multithread: options.multithread,
@@ -491,7 +491,6 @@ class App {
       },
       {
         renderDistance: config.settings.renderDistance,
-        fogRange: config.settings.fogRange,
         filterDistance: config.settings.filterDistance,
         fov: config.settings.fov,
         qualities: config.settings.quality.values.map(Number),
@@ -521,13 +520,11 @@ class App {
       renderScale: sanitized.renderScale,
     });
     this.renderer.setOptions({
-      applyFog: sanitized.applyFog,
-      fogStart: sanitized.fogStart,
-      fogEnd: sanitized.fogEnd,
       repeat: sanitized.repeat,
       showDetails: sanitized.showDetails,
       showSky: sanitized.showSky,
       showClouds: sanitized.showClouds,
+      voxPalFog: sanitized.voxPalFog,
       filterDistance: sanitized.filterDistance,
       multithread: sanitized.multithread,
       algorithm: sanitized.algorithm,

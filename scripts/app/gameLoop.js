@@ -48,10 +48,6 @@ function applySettingsHotkeys(app) {
     });
     app.persistAndSync();
   }
-  if (app.input.consumeToggleFog) {
-    app.renderer.setOptions({ applyFog: !app.renderer.applyFog });
-    app.persistAndSync();
-  }
   if (app.input.consumeToggleRepeat) {
     app.renderer.setOptions({ repeat: !app.renderer.repeat });
     app.persistAndSync();
@@ -87,7 +83,6 @@ function applySettingsHotkeys(app) {
       config.settings.renderDistance
     );
     app.camera.set({ farClip: nextFar });
-    app.renderer.syncFogToFarClip(prevFar, nextFar);
     app.renderer.clampLodSpacingToFarClip();
     app.persistAndSync();
   }

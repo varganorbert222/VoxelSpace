@@ -6,7 +6,6 @@ import { unpackToVec4 } from "./color.js";
 
 export const FRAME_BYTES = WEBGPU_FRAME_BYTES;
 
-const FLAG_FOG = 1;
 const FLAG_REPEAT = 2;
 const FLAG_DEBUG_SHIFT = 8;
 const FLAG_SHOW_DETAILS = 1 << 15;
@@ -55,9 +54,6 @@ export function packFrame(packer, p) {
   u[29] = p.mapH | 0;
   u[30] = p.mapShift | 0;
   let flags = 0;
-  if (p.applyFog) {
-    flags |= FLAG_FOG;
-  }
   if (p.repeat) {
     flags |= FLAG_REPEAT;
   }
@@ -123,8 +119,6 @@ export function packFrame(packer, p) {
   f[84] = Number.isFinite(p.filterDistance)
     ? p.filterDistance
     : FILTER_DISTANCE_DEFAULT;
-  f[85] = Number.isFinite(p.fogStart) ? p.fogStart : 0;
-  f[86] = Number.isFinite(p.fogEnd) ? p.fogEnd : 0;
   f[87] = Number.isFinite(p.maxSlope) ? p.maxSlope : p.altitude;
   f[88] = Number.isFinite(p.detailEnd0) ? p.detailEnd0 : 0;
   f[89] = Number.isFinite(p.detailEnd1) ? p.detailEnd1 : 0;

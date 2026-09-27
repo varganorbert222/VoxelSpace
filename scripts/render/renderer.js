@@ -18,7 +18,6 @@ import {
   clampFilterDistance,
 } from "../constants/sampling.js";
 import { DEFAULT_MULTITHREAD } from "../constants/threading.js";
-import { DEFAULT_FAR_CLIP } from "../constants/camera.js";
 import {
   TERRAIN_MIP_DEFAULT_COUNT,
   LOD_SPACING_DEFAULT_MODE,
@@ -28,15 +27,8 @@ import {
   clampLodSpacingMeters,
   lod0MaxMeters,
 } from "../constants/mip.js";
-import {
-  FOG_RANGE_DEFAULT_START,
-  FOG_RANGE_MIN,
-  FOG_RANGE_STEP,
-  clampFogRange,
-  effectiveFarClip,
-  syncFogEndToFarClip,
-} from "../constants/fog.js";
 import { createBackend, listBackends } from "../backends/contract.js";
+import { prepareLodFog, selectLodFog } from "./retail/fog.js";
 import {
   compositeSky,
   createSkyPack,
@@ -47,21 +39,14 @@ import {
 import { compositePresentedWater } from "./retail/present.js";
 import { LOD_BIAS_DEFAULT, clampLodBias } from "./retail/schedule.js";
 
-const FOG_BOUNDS = {
-  min: FOG_RANGE_MIN,
-  step: FOG_RANGE_STEP,
-};
-
 class Renderer {
   constructor(frameBuffer, surface) {
     this._frameBuffer = frameBuffer;
     this._surface = surface;
     this._camera = null;
-    this._applyFog = true;
-    this._fogStart = FOG_RANGE_DEFAULT_START;
-    this._fogEnd = DEFAULT_FAR_CLIP;
     this._repeat = true;
     this._showDetails = true;
+    this._voxPalFog = true;
     this._showSky = true;
     this._showClouds = true;
     this._maps = null;
@@ -85,16 +70,6 @@ class Renderer {
 
   setCamera(camera) {
     this._camera = camera;
-    if (camera) {
-      const next = clampFogRange(
-        this._fogStart,
-        this._fogEnd,
-        camera.farClip,
-        FOG_BOUNDS
-      );
-      this._fogStart = next.fogStart;
-      this._fogEnd = next.fogEnd;
-    }
   }
 
   get camera() {
@@ -109,29 +84,16 @@ class Renderer {
     return this._surface;
   }
 
-  get applyFog() {
-    return this._applyFog;
-  }
-
-  get fogStart() {
-    return this._fogStart;
-  }
-
-  get fogEnd() {
-    return this._fogEnd;
-  }
-
-  get effectiveFarClip() {
-    const far = this._camera ? this._camera.farClip : this._fogEnd;
-    return effectiveFarClip(far, this._applyFog, this._fogEnd);
-  }
-
   get repeat() {
     return this._repeat;
   }
 
   get showDetails() {
     return this._showDetails;
+  }
+
+  get voxPalFog() {
+    return this._voxPalFog;
   }
 
   get showSky() {
@@ -247,11 +209,9 @@ class Renderer {
 
   getOptions() {
     return {
-      applyFog: this._applyFog,
-      fogStart: this._fogStart,
-      fogEnd: this._fogEnd,
       repeat: this._repeat,
       showDetails: this._showDetails,
+      voxPalFog: this._voxPalFog,
       showSky: this._showSky,
       showClouds: this._showClouds,
       filterDistance: this._filterDistance,
@@ -267,20 +227,6 @@ class Renderer {
   }
 
   setOptions(options) {
-    const far = this._camera ? this._camera.farClip : this._fogEnd;
-    if (options.applyFog !== undefined) {
-      this._applyFog = options.applyFog;
-    }
-    if (options.fogStart !== undefined || options.fogEnd !== undefined) {
-      const next = clampFogRange(
-        options.fogStart !== undefined ? options.fogStart : this._fogStart,
-        options.fogEnd !== undefined ? options.fogEnd : this._fogEnd,
-        far,
-        FOG_BOUNDS
-      );
-      this._fogStart = next.fogStart;
-      this._fogEnd = next.fogEnd;
-    }
     if (options.repeat !== undefined) {
       this._repeat = options.repeat;
     }
@@ -289,6 +235,13 @@ class Renderer {
       if (next !== this._showDetails) {
         this._showDetails = next;
         this.cancelJobs();
+      }
+    }
+    if (options.voxPalFog !== undefined) {
+      const next = !!options.voxPalFog;
+      if (next !== this._voxPalFog) {
+        this._voxPalFog = next;
+        this._syncVoxPalFog();
       }
     }
     if (options.showSky !== undefined) {
@@ -345,18 +298,6 @@ class Renderer {
     }
   }
 
-  syncFogToFarClip(prevFar, nextFar) {
-    const next = syncFogEndToFarClip(
-      this._fogStart,
-      this._fogEnd,
-      prevFar,
-      nextFar,
-      FOG_BOUNDS
-    );
-    this._fogStart = next.fogStart;
-    this._fogEnd = next.fogEnd;
-  }
-
   cancelJobs() {
     if (this._backend && this._backend.cancelJobs) {
       this._backend.cancelJobs();
@@ -370,7 +311,19 @@ class Renderer {
     }
   }
 
+  _syncVoxPalFog() {
+    if (!this._maps) {
+      return;
+    }
+    selectLodFog(this._maps, this._voxPalFog);
+    if (this._backend && this._backend.setMaps) {
+      this._enqueue(() => this._backend.setMaps(this._maps));
+    }
+  }
+
   async setMaps(exportedMaps) {
+    prepareLodFog(exportedMaps);
+    selectLodFog(exportedMaps, this._voxPalFog);
     this._maps = exportedMaps;
     this._skyPack =
       exportedMaps && exportedMaps.retail
@@ -591,9 +544,6 @@ class Renderer {
       algorithm: this._algorithm,
       camera: this._camera,
       terrain,
-      applyFog: this._applyFog,
-      fogStart: this._fogStart,
-      fogEnd: this._fogEnd,
       repeat: this._repeat,
       screenWidth: this._frameBuffer.width,
       screenHeight: this._frameBuffer.height,

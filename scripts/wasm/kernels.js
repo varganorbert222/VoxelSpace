@@ -239,11 +239,6 @@ export function createWasmKernels(instance) {
     switchKey = key;
   }
 
-  function syncFogRange(params) {
-    const start = Number(params.fogStart);
-    ex.set_fog_range(Number.isFinite(start) ? start : 0);
-  }
-
   function syncSampleFlags(params) {
     useRetailFrame(params);
     const dist = Number(params.filterDistance);
@@ -362,7 +357,7 @@ export function createWasmKernels(instance) {
     const heights = mips.heights;
     const shifts = mips.shifts;
     const mipCount = mips.count;
-    const mapsKey = generation + ":" + mipCount;
+    const mapsKey = generation + ":" + mipCount + ":" + (mips.lodFogOn ? 1 : 0);
     if (mapsGeneration === mapsKey) {
       return;
     }
@@ -402,7 +397,6 @@ export function createWasmKernels(instance) {
     syncClassicTables(params);
     syncSampleFlags(params);
     syncDetail(params);
-    syncFogRange(params);
     const localWidth = (params.endColumn - params.startColumn) | 0;
     const n = (localWidth * params.screenHeight) | 0;
     const rowColors = params.rowColors;
@@ -436,7 +430,7 @@ export function createWasmKernels(instance) {
       classicStepTable[0],
       STEP_GROWTH_BY_QUALITY[qualityIndex(params.quality)],
       1,
-      params.applyFog | 0,
+      0,
       params.repeat | 0,
       params.fillUnfilled | 0,
       pixelsPtr,
@@ -455,7 +449,6 @@ export function createWasmKernels(instance) {
     ensureMaps(params);
     syncSampleFlags(params);
     syncDetail(params);
-    syncFogRange(params);
     const mips = resolveTerrainMips(
       params.terrainMips,
       params.heightMap,
@@ -506,7 +499,7 @@ export function createWasmKernels(instance) {
       classicStepTable[0],
       STEP_GROWTH_BY_QUALITY[qualityIndex(params.quality)],
       1,
-      params.applyFog | 0,
+      0,
       params.repeat | 0,
       params.fillUnfilled | 0,
       pixelsPtr,
@@ -525,7 +518,6 @@ export function createWasmKernels(instance) {
     ensureMaps(params);
     syncSampleFlags(params);
     syncDetail(params);
-    syncFogRange(params);
     const mips = resolveTerrainMips(
       params.terrainMips,
       params.heightMap,
@@ -542,8 +534,6 @@ export function createWasmKernels(instance) {
     if (!(tanHalfY > 0) && params.dstToProjPlane > 0) {
       tanHalfY = (params.screenHeight * HALF) / params.dstToProjPlane;
     }
-    const fogStop = Number.isFinite(params.fogEnd) ? params.fogEnd : params.farClip;
-    const fogFar = params.applyFog ? fogStop : params.farClip;
     ex.reset_scratch();
     const pixelsPtr = mustAlloc(n * 4);
     if (!(params.fillUnfilled | 0)) {
@@ -570,8 +560,8 @@ export function createWasmKernels(instance) {
       params.dstToProjPlane,
       tanHalfY,
       params.nearClip,
-      fogFar,
-      params.applyFog | 0,
+      params.farClip,
+      0,
       params.repeat | 0,
       params.showDetails ? 1 : 0,
       params.fillUnfilled | 0,

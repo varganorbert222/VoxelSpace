@@ -512,7 +512,7 @@ class WebGpuBackend {
     writeBuffer(this._device, this._mipSwitchBuf, switchF32);
     const clipZ = GROUND_HEIGHT - GROUND_CLIP_OFFSET;
     const t0 = firstBandT(camera.nearClip);
-    const packFar = this._host.effectiveFarClip;
+    const packFar = camera.farClip;
     const tMax = packFar;
     const tanLast = 0;
     useRetailFrame({
@@ -561,7 +561,6 @@ class WebGpuBackend {
       mapW: maps.width,
       mapH: maps.height,
       mapShift: maps.mapShift,
-      applyFog: this._host.applyFog,
       repeat: this._host.repeat,
       showDetails: this._host.showDetails,
       detailEnd0: detailEnds[0],
@@ -574,8 +573,6 @@ class WebGpuBackend {
       detailLightB: detailLight[2],
       lodSpacing: this._host.lodSpacing,
       filterDistance: this._host.filterDistance,
-      fogStart: this._host.fogStart,
-      fogEnd: this._host.fogEnd,
       skyColor: this._skyFill(terrain.skyColor),
       horizonColor: this._skyFill(camera.bottomColor),
       clipZ: clipZ,
@@ -646,7 +643,7 @@ class WebGpuBackend {
       screenWidth: screenW,
       fov: camera.fov,
       quality: camera.quality,
-      farClip: this._host.effectiveFarClip,
+      farClip: camera.farClip,
       showDetails: this._host.showDetails,
       lodSpacingMode: this._host.lodSpacingMode,
       lodBias: this._host.lodBias,
@@ -665,7 +662,7 @@ class WebGpuBackend {
     const bandCount = mips.count;
     const deltas = new Float32Array(TERRAIN_MIP_MAX_COUNT);
     const zStart = firstBandT(camera.nearClip);
-    const far = this._host.effectiveFarClip;
+    const far = camera.farClip;
     const switches = mipSwitchDistances(
       bandCount,
       far,

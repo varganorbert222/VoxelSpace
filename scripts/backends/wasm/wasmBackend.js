@@ -76,22 +76,6 @@ class WasmBackend {
     return this._pool;
   }
 
-  get applyFog() {
-    return this._host.applyFog;
-  }
-
-  get fogStart() {
-    return this._host.fogStart;
-  }
-
-  get fogEnd() {
-    return this._host.fogEnd;
-  }
-
-  get effectiveFarClip() {
-    return this._host.effectiveFarClip;
-  }
-
   get repeat() {
     return this._host.repeat;
   }

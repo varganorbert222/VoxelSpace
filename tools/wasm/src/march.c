@@ -1,4 +1,4 @@
-﻿/* VoxelSpace march kernels -- wasm32, no libc. Values for quality / LOD / fog
+﻿/* VoxelSpace march kernels -- wasm32, no libc. Values for quality / LOD
  * tables are supplied by JS (scripts/constants). Do not grow a second set. */
 
 typedef unsigned char u8;
@@ -79,8 +79,6 @@ static f64 T_EPSILON;
 static f64 T_HALF;
 static f64 T_INV_TWO_PI;
 static f64 T_MIN_SAMPLE;
-static f64 T_FOG_SAT;
-static f64 T_FOG_START;
 static f64 T_NON_REPEAT_GROUND;
 static f64 T_MIP_STEP_SCALE;
 static f64 T_YHIT_SCALE;
@@ -181,7 +179,7 @@ WASM_EXPORT void set_tunables(
   T_HALF = half;
   T_INV_TWO_PI = inv_two_pi;
   T_MIN_SAMPLE = min_sample;
-  T_FOG_SAT = fog_sat;
+  (void)fog_sat;
   T_NON_REPEAT_GROUND = non_repeat_ground;
   T_MIP_STEP_SCALE = mip_step_scale;
   T_YHIT_SCALE = yhit_scale;
@@ -523,7 +521,7 @@ WASM_EXPORT void set_sample_flags(
 }
 
 WASM_EXPORT void set_fog_range(f64 fog_start) {
-  T_FOG_START = fog_start;
+  (void)fog_start;
 }
 
 WASM_EXPORT void set_detail_maps(
@@ -821,18 +819,6 @@ WASM_EXPORT void set_luts(
   g_sky_len = sky_len;
 }
 
-static inline u32 fog_pack(u32 color, f64 fog_t) {
-  u32 a = (color >> (u32)T_SHIFT_A) & (u32)T_CHAN_MASK;
-  u32 r = (color >> (u32)T_SHIFT_R) & (u32)T_CHAN_MASK;
-  u32 g = (color >> (u32)T_SHIFT_G) & (u32)T_CHAN_MASK;
-  u32 b = color & (u32)T_CHAN_MASK;
-  f64 maxc = (f64)T_CHAN_MAX;
-  return ((u32)(a + (maxc - (f64)a) * fog_t) << (u32)T_SHIFT_A) |
-         ((u32)(r + (maxc - (f64)r) * fog_t) << (u32)T_SHIFT_R) |
-         ((u32)(g + (maxc - (f64)g) * fog_t) << (u32)T_SHIFT_G) |
-         (u32)(b + (maxc - (f64)b) * fog_t);
-}
-
 static inline u32 pack_named(u32 r, u32 g, u32 b) {
   return ((u32)T_CHAN_MAX << (u32)T_SHIFT_A) | (r << (u32)T_SHIFT_R) |
          (g << (u32)T_SHIFT_G) | b;
@@ -972,9 +958,7 @@ WASM_EXPORT void classic_columns(
   u32 *color_map = g_mip_c[0];
   i32 local_width = (end_column - start_column) | 0;
   i32 stride = pixel_width;
-  f64 fog_range = far_clip - T_FOG_START;
-  f64 inv_fog = fog_range == 0.0 ? 0.0 : 1.0 / fog_range;
-  i32 use_fog = apply_fog | 0;
+  (void)apply_fog;
   f64 ceiling = g_max_height;
   f64 ceiling_sdf = cam_z - ceiling;
   f64 y_ground = cam_z + T_NON_REPEAT_GROUND;
@@ -1120,10 +1104,6 @@ WASM_EXPORT void classic_columns(
       f64 z_scale = dst_to_proj / z;
       i32 ceiling_on_screen = (i32)(ceiling_sdf * z_scale + screen_horizon);
       i32 ground_on_screen = (i32)(y_ground * z_scale + screen_horizon);
-      f64 fog_t_raw = fog_range == 0.0 ? T_FOG_SAT : (z - T_FOG_START) * inv_fog;
-      f64 fog_t = fog_t_raw < 0.0 ? 0.0 : fog_t_raw > T_FOG_SAT ? T_FOG_SAT : fog_t_raw;
-      i32 fog_white = use_fog & (fog_t >= T_FOG_SAT);
-      i32 apply_fog_t = use_fog & (fog_t > 0.0) & (fog_white ^ 1);
       f64 dx = k_dx * z;
       f64 dy = k_dy * z;
       f64 plx = k_left_x * z + cam_x + dx * (f64)start_column;
@@ -1215,7 +1195,7 @@ WASM_EXPORT void classic_columns(
             } else if (debug == DEBUG_ITER) {
               plot_color = encode_iter(sample_ok ? g_sample_n[local_i] : 0);
             }
-          } else if (!fog_white) {
+          } else {
             plot_color = filter_now
                             ? sample_sv_color(
                                   color_map,
@@ -1230,9 +1210,6 @@ WASM_EXPORT void classic_columns(
                             : color_map[nn_off];
             if (detail_in_range(z)) {
               plot_color = apply_detail(plot_color, plx, ply, z);
-            }
-            if (apply_fog_t) {
-              plot_color = fog_pack(plot_color, fog_t);
             }
           }
           if (height_on_screen < col_hidden) {
@@ -1292,9 +1269,6 @@ static u32 fs_terrain_color(
     i32 shift,
     f64 z,
     f64 far_clip,
-    f64 fog_t,
-    i32 fog_white,
-    i32 apply_fog_t,
     i32 debug,
     u32 h_byte,
     i32 iter) {
@@ -1311,18 +1285,12 @@ static u32 fs_terrain_color(
     }
     return T_WHITE;
   }
-  if (fog_white) {
-    return T_WHITE;
-  }
   plot = (do_filter & use_fine)
              ? sample_sv_color(
                    color_map, plx, ply, wmask, hmask, shift, wrap, 1, offset)
              : color_map[offset];
   if (detail_in_range(z)) {
     plot = apply_detail(plot, world_x, world_y, z);
-  }
-  if (apply_fog_t) {
-    plot = fog_pack(plot, fog_t);
   }
   return plot;
 }
@@ -1369,9 +1337,7 @@ WASM_EXPORT void frustum_space_columns(
   u32 *color_map = g_mip_c[0];
   i32 local_width = (end_column - start_column) | 0;
   i32 stride = pixel_width;
-  f64 fog_range = far_clip - T_FOG_START;
-  f64 inv_fog = fog_range == 0.0 ? 0.0 : 1.0 / fog_range;
-  i32 use_fog = apply_fog | 0;
+  (void)apply_fog;
   f64 ceiling = g_max_height;
   f64 slope_cap = g_max_slope;
   f64 clip_z = -T_NON_REPEAT_GROUND;
@@ -1485,9 +1451,6 @@ WASM_EXPORT void frustum_space_columns(
         f64 h_fine;
         i32 use_fine;
         i32 fine_lerp;
-        f64 fog_t;
-        i32 fog_white;
-        i32 apply_fog_t;
         u32 plot;
         guard = (guard + 1) | 0;
         while (((mip + 1) < g_lod_n) & (t >= lod_distances[mip + 1])) {
@@ -1539,21 +1502,10 @@ WASM_EXPORT void frustum_space_columns(
           g_sample_n[local_i] = (g_sample_n[local_i] + 1) | 0;
         }
         if (wz < h_fine * g_alt_scale) {
-          f64 fog_t_raw =
-              fog_range == 0.0 ? T_FOG_SAT : (t - T_FOG_START) * inv_fog;
-          fog_t = fog_t_raw;
-          if (fog_t < 0.0) {
-            fog_t = 0.0;
-          }
-          if (fog_t > T_FOG_SAT) {
-            fog_t = T_FOG_SAT;
-          }
-          fog_white = use_fog & (fog_t >= T_FOG_SAT);
-          apply_fog_t = use_fog & (fog_t > 0.0) & (fog_white ^ 1);
           plot = fs_terrain_color(
               lod_color_map, wx * lod_scale, wy * lod_scale, wx, wy, nn_off,
               use_fine ? 1 : 0, do_filter, wrap, lod_w_mask, lod_h_mask, lod_shift,
-              t, far_clip, fog_t, fog_white, apply_fog_t, debug, h_byte,
+              t, far_clip, debug, h_byte,
               sample_ok ? g_sample_n[local_i] : guard);
           pixels[(sy * stride + local_i) | 0] = plot;
           sy = (sy - 1) | 0;

@@ -46,11 +46,8 @@ function voxelParams(renderer, maps) {
     fovY: camera.fov,
     dstToProjPlane: camera.calculateProjPlane(),
     nearClip: camera.nearClip,
-    farClip: renderer.effectiveFarClip,
+    farClip: renderer.camera.farClip,
     quality: camera.quality,
-    applyFog: renderer.applyFog,
-    fogStart: renderer.fogStart,
-    fogEnd: renderer.fogEnd,
     debugView: renderer.debugView,
     repeat: renderer.repeat,
     showDetails: renderer.showDetails ? 1 : 0,
@@ -75,10 +72,7 @@ function isVoxelTokenStale(token, renderer) {
     frameBuffer.height !== token.height ||
     camera.quality !== token.quality ||
     camera.farClip !== token.camFarClip ||
-    renderer.effectiveFarClip !== token.farClip ||
-    renderer.applyFog !== token.applyFog ||
-    renderer.fogStart !== token.fogStart ||
-    renderer.fogEnd !== token.fogEnd ||
+    renderer.camera.farClip !== token.farClip ||
     renderer.debugView !== token.debugView ||
     renderer.repeat !== token.repeat ||
     renderer.showDetails !== token.showDetails ||
@@ -135,10 +129,7 @@ class VoxelRenderer {
       height: renderer.frameBuffer.height,
       quality: camera.quality,
       camFarClip: camera.farClip,
-      farClip: renderer.effectiveFarClip,
-      applyFog: renderer.applyFog,
-      fogStart: renderer.fogStart,
-      fogEnd: renderer.fogEnd,
+      farClip: renderer.camera.farClip,
       debugView: renderer.debugView,
       repeat: renderer.repeat,
       showDetails: renderer.showDetails,

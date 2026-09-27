@@ -87,12 +87,6 @@ class Input {
     return pressed;
   }
 
-  get consumeToggleFog() {
-    const pressed = this._toggleFog;
-    this._toggleFog = false;
-    return pressed;
-  }
-
   get consumeToggleRepeat() {
     const pressed = this._toggleRepeat;
     this._toggleRepeat = false;
@@ -165,7 +159,6 @@ class Input {
     this._toggleRenderAlgorithm = false;
     this._toggleRenderBackend = false;
     this._toggleDebugView = false;
-    this._toggleFog = false;
     this._toggleRepeat = false;
     this._toggleThreads = false;
     this._cycleMap = false;

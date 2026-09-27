@@ -67,9 +67,6 @@ function detectSettingHotkey(input, e) {
     case SettingChar.DEBUG_VIEW:
       if (!e.repeat) input._toggleDebugView = true;
       break;
-    case SettingChar.FOG:
-      if (!e.repeat) input._toggleFog = true;
-      break;
     case SettingChar.REPEAT:
       if (!e.repeat) input._toggleRepeat = true;
       break;
