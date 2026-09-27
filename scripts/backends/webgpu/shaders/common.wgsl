@@ -101,7 +101,8 @@ fn flagShowDetails(flags: u32) -> bool {
 }
 
 fn lod0RefineAt(t: f32, mip: i32) -> bool {
-  return mip <= 0;
+  let end = frame.detailTail.x;
+  return mip <= 0 && end > 0.0 && t < end;
 }
 
 fn lod0RefineMipAt(t: f32) -> i32 {
@@ -236,8 +237,6 @@ fn easeLodSample(t: f32, wx: f32, wy: f32, mip: i32) -> vec4f {
   var filt = 0.0;
   if (lod0RefineAt(t, sampleMip)) {
     sampleRm = lod0RefineMipAt(t);
-  }
-  if (sampleMip == 0) {
     filt = 1.0;
   }
   return vec4f(f32(sampleMip), f32(sampleRm), 0.0, filt);
@@ -249,7 +248,7 @@ fn terrainSampleHeightPair(tex: texture_2d<u32>, mip: i32, wx: f32, wy: f32, dis
   let useRm = i32(ease.y);
   var sx = wx;
   var sy = wy;
-  if (useMip == 0) {
+  if (useMip == 0 && ease.w > 0.0) {
     let s = lod0RefineCellFromM(useRm);
     sx = (floor(wx / s) + 0.5) * s;
     sy = (floor(wy / s) + 0.5) * s;
@@ -287,7 +286,7 @@ fn terrainSampleColor(tex: texture_2d<f32>, mip: i32, wx: f32, wy: f32, dist: f3
   let useRm = i32(ease.y);
   var sx = wx;
   var sy = wy;
-  if (useMip == 0) {
+  if (useMip == 0 && ease.w > 0.0) {
     let s = lod0RefineCellFromM(useRm);
     sx = (floor(wx / s) + 0.5) * s;
     sy = (floor(wy / s) + 0.5) * s;
@@ -359,9 +358,6 @@ fn gridDdaFarT(t: f32, wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32) -> f32 
 }
 
 fn mipCellFarT(t: f32, wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32) -> f32 {
-  if (mip <= 0 && !lod0RefineAt(t, mip)) {
-    return t;
-  }
   let tFar = t + mipDdaDelta(wx, wy, dirX, dirY, mip, t);
   if (tFar > t) {
     return tFar;
@@ -370,13 +366,12 @@ fn mipCellFarT(t: f32, wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32) -> f32 
 }
 
 fn mipSpanFarT(t: f32, step: f32, wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32) -> f32 {
-  if (mip <= 0 && !lod0RefineAt(t, mip)) {
-    return t;
-  }
   var tFar = t + step;
-  let cellFar = mipCellFarT(t, wx, wy, dirX, dirY, mip);
-  if (cellFar > tFar) {
-    tFar = cellFar;
+  if (!(mip <= 0 && !lod0RefineAt(t, mip))) {
+    let cellFar = mipCellFarT(t, wx, wy, dirX, dirY, mip);
+    if (cellFar > tFar) {
+      tFar = cellFar;
+    }
   }
   if (tFar > t) {
     return tFar;
@@ -449,7 +444,7 @@ fn growBandStep(step: f32, lo: f32, cell: f32) -> f32 {
 }
 
 fn bandMarchStep(bandStep: f32, mip: i32, t: f32) -> f32 {
-  // Uploaded retail raw step / q. Near Refine divides by 16, 16, 8, 4, 2.
+  // Uploaded Direct step in meters. Near divides mip 0 by 16, 16, 8, 4, 2 until factor 8.
   var s = bandStep;
   if (!(s > 0.0)) {
     s = 1.0;

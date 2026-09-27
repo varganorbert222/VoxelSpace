@@ -315,7 +315,7 @@ export function renderFrustumSpaceColumns({
   const mapWMask = (mapW - 1) | 0;
   const mapHMask = (mapH - 1) | 0;
   const fine = showDetails ? 1 : 0;
-  const filterDist = filterDistance;
+  void filterDistance;
   const wrap = repeat | 0;
   const invH2 = dstToProjPlane === 0 ? 0 : 1 / dstToProjPlane;
   let shadeColorMap = colorMap;
@@ -385,7 +385,7 @@ export function renderFrustumSpaceColumns({
     while (((sy >= 0) | 0) & (t < farClip) & ((guard < stepBudget) | 0)) {
       guard = (guard + 1) | 0;
       const mip = mipLevelAtDistance(t, switches, lastMip);
-      const refineHere = lod0RefineAt(lod0Refine, mip);
+      const refineHere = lod0RefineAt(t, mip);
       const refineMip = refineHere ? lod0RefineMipAt(t, refineSwitches) : 0;
       step = nearMarchStep(bandStepAt(bandSteps, mip), mip, refineHere, refineMip);
       const yn = (rowBase - sy) * invH2;
@@ -419,7 +419,7 @@ export function renderFrustumSpaceColumns({
           ((sampleX | 0) & shadeHMask)) |
         0;
       const nearestH = mips.heightMaps[mip][offset];
-      const useFine = ((mip | 0) === 0) & ((t <= filterDist) | 0);
+      const useFine = refineHere ? 1 : 0;
       const doLerp = fine & useFine;
       let hFine = doLerp
         ? sampleHeightBilinear(

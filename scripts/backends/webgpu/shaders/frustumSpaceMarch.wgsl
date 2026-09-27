@@ -165,7 +165,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let fogStart = frame.sampleLimit.y;
   let fogEnd = frame.sampleLimit.z;
   let screenWidthScaler = 1.0 / f32(screenW);
-  let filterDist = frame.sampleLimit.x;
   let slopeCap = select(altitude, frame.sampleLimit.w, frame.sampleLimit.w > 0.0);
   let _po = pixelOffsets[0];
 
@@ -203,7 +202,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       t = t + step;
       continue;
     }
-    let useFine = (mip == 0) && (t <= filterDist);
+    let useFine = lod0RefineAt(t, mip);
     let doLerp = flagShowDetails(flags) && useFine;
     let sampled = classicSampleHeight(pos.x * mipScale, pos.y * mipScale, mip, doLerp, repeat, lodHMask, lodWMask);
     let baseWorld = sampled.x * altScale;

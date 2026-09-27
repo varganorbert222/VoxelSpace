@@ -1,7 +1,11 @@
 "use strict";
 
 import { MIN_SAMPLE_DISTANCE, qualityStepDivisor } from "./quality.js";
-import { retailLodSpan, retailMipSwitches } from "../render/retail/schedule.js";
+import {
+  retailLodSpan,
+  retailMipSwitches,
+  retailNearEnd,
+} from "../render/retail/schedule.js";
 
 export const TERRAIN_MIP_KERNEL = 2;
 export const TERRAIN_MIP_MIN_SIZE = 1;
@@ -55,11 +59,11 @@ export function lod0RefineCellSize(refineMip) {
   return 1 / lod0RefineSubdiv(refineMip);
 }
 
-export function lod0RefineSwitchDistances(lod0Meters, _mode, out) {
+export function lod0RefineSwitchDistances(_lod0Meters, _mode, out) {
   const switchN = LOD0_REFINE_SWITCH_COUNT;
-  const far = Number(lod0Meters);
+  const far = retailNearEnd();
   const dest = out && out.length >= switchN ? out : new Float64Array(switchN);
-  // Retail near ends: 1/16, 1/8, 1/4, 1/2 of the mip-0 end.
+  // Retail near ends: 1/16, 1/8, 1/4, 1/2 of factor 8. Direct0 starts after that.
   for (let i = 0; (i < switchN) | 0; i = (i + 1) | 0) {
     const u = Math.pow(2, i - 4);
     const t = u * far;
@@ -157,16 +161,21 @@ export function easeLodSample(
   refineMip
 ) {
   const sampleMip = mip | 0;
-  const sampleRefineOn = lod0RefineAt(refineOn, sampleMip);
+  const sampleRefineOn = lod0RefineAt(t, sampleMip);
   easeScratch.sampleMip = sampleMip;
   easeScratch.sampleRefineOn = sampleRefineOn;
   easeScratch.sampleRefineMip = sampleRefineOn ? refineMip | 0 : 0;
-  easeScratch.filterFade = sampleMip === 0 ? 1 : 0;
+  easeScratch.filterFade = sampleRefineOn ? 1 : 0;
   return easeScratch;
 }
 
-export function lod0RefineAt(_enabled, mip) {
-  return (mip | 0) === 0;
+// Near passes only. Direct0 is still mip 0, but it is not refined.
+export function lod0RefineAt(t, mip) {
+  if ((mip | 0) !== 0) {
+    return false;
+  }
+  const end = retailNearEnd();
+  return end > 0 && Number(t) < end;
 }
 
 export function marchMaxSteps(refine) {

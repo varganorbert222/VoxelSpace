@@ -144,7 +144,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       }
       if (colHidden != 0) {
         if (isOk && (ceilingOnScreen < colHidden)) {
-          let useFine = mip == 0;
+          let useFine = lod0RefineAt(z, mip);
           let sampled = classicSampleHeight(plx, ply, mip, flagShowDetails(flags) && useFine, z);
           var hFine = sampled.x;
           let spanFar = mipSpanFarT(z, step, plx, ply, dirX, dirY, mip);

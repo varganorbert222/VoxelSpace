@@ -346,7 +346,6 @@ export function renderVoxelTexels({
   const altScale = altitude / HEIGHTMAP_MAX;
   const wrap = repeat | 0;
   const fine = showDetails ? 1 : 0;
-  const refine = !!lod0Refine;
   const switches = mipSwitchDistances(
     mips.count,
     farClip,
@@ -393,7 +392,7 @@ export function renderVoxelTexels({
   const rdz = rightZ * dCamX;
 
   function lod0SampleXY(wx, wy, dirX, dirY, t) {
-    const refineHere = lod0RefineAt(refine, 0);
+    const refineHere = lod0RefineAt(t, 0);
     const refineMip = refineHere ? lod0RefineMipAt(t, refineSwitches) : 0;
     const sample = lod0SamplePos(wx, wy, dirX, dirY, refineHere, refineMip);
     return {
@@ -470,7 +469,7 @@ export function renderVoxelTexels({
   function hitColor(hx, hy, dirX, dirY, t, colX, colY, skipMip) {
     if ((skipMip | 0) <= 0) {
       const lod = lod0SampleXY(hx, hy, dirX, dirY, t);
-      const base = fine
+      const base = fine && lod.refineHere
         ? sampleColorFiltered(
             lod0C,
             lod.sx,
@@ -556,7 +555,7 @@ export function renderVoxelTexels({
     const hatZ = dirZ;
     const lenXY2 = dirX * dirX + dirY * dirY;
 
-    const camRefine = lod0RefineAt(refine, 0);
+    const camRefine = lod0RefineAt(s0, 0);
     const camRefineMip = camRefine ? lod0RefineMipAt(s0, refineSwitches) : 0;
     const camCell = marchCellSize(0, camRefine, camRefineMip);
     const camIx = Math.floor(camX / camCell) | 0;
@@ -630,7 +629,7 @@ export function renderVoxelTexels({
       if ((mip < hitMip) | 0) {
         mip = hitMip;
       }
-      const refineHere = lod0RefineAt(refine, mip);
+      const refineHere = lod0RefineAt(s, mip);
       const refineMip = refineHere ? lod0RefineMipAt(s, refineSwitches) : 0;
       const cellSize = marchCellSize(mip, refineHere, refineMip);
       const span = voxelXyCell(camX, camY, dirX, dirY, s, cellSize);

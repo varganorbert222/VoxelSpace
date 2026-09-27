@@ -380,7 +380,6 @@ function renderClassicColumnsSampled({
   });
   const mips = lodState.mips;
   const bandCount = lodState.bandCount;
-  const refine = lodState.refine;
   const bandSteps = lodState.steps;
   const refineSwitches = lodState.refineSwitches;
   const mipSwitches = lodState.mipSwitches;
@@ -427,7 +426,7 @@ function renderClassicColumnsSampled({
       ((z < endIndex) | 0) & ((z < farClip) | 0);
 
     ) {
-      const refineHere = lod0RefineAt(refine, mip);
+      const refineHere = lod0RefineAt(z, mip);
       const refineMip = refineHere ? lod0RefineMipAt(z, refineSwitches) : 0;
       step = nearMarchStep(bandStepAt(bandSteps, mip), mip, refineHere, refineMip);
       const zScale = dstToProjPlane / z;
@@ -511,9 +510,8 @@ function renderClassicColumnsSampled({
             ((((sy | 0) & useWMask) << useShift) +
               ((sx | 0) & useHMask)) |
             0;
-          const doLerp = fine & ((useMip | 0) === 0);
-          const doFilter =
-            fine & ((useMip | 0) === 0) & (ease.filterFade > 0);
+          const doLerp = fine & (useRefine ? 1 : 0);
+          const doFilter = fine & (useRefine ? 1 : 0) & (ease.filterFade > 0);
           const nearestH = useHeight[offset];
           const hSample = doLerp
             ? mixNearestBilinear(
