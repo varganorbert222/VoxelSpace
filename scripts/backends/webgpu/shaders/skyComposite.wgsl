@@ -13,6 +13,17 @@ fn paintSky(color: u32, empty: u32, cover: f32) -> u32 {
   return out;
 }
 
+// Full-screen clear. Column marches used to write this marker themselves,
+// one thread per column, which serializes with the framebuffer height.
+@compute @workgroup_size(16, 16)
+fn clearMain(@builtin(global_invocation_id) gid: vec3<u32>) {
+  let dims = textureDimensions(screenTex);
+  if (gid.x >= dims.x || gid.y >= dims.y) {
+    return;
+  }
+  textureStore(screenTex, vec2<i32>(i32(gid.x), i32(gid.y)), vec4<u32>(0u, 0u, 0u, 0u));
+}
+
 // One thread per sample column. Classic and frustum-space sample the left
 // pixel and write both; voxel keeps one thread per pixel.
 @compute @workgroup_size(16, 16)

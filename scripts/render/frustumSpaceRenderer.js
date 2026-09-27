@@ -163,6 +163,7 @@ class FrustumSpaceRenderer {
       }
       params.rowColors = rowColors;
     }
+    params.present = renderer.prepareSlicePresent();
     const camera = renderer.camera;
     const token = {
       algorithm: renderer.algorithm,
@@ -213,6 +214,9 @@ class FrustumSpaceRenderer {
         slice.startColumn,
         slice.endColumn
       );
+    }
+    if (params.present) {
+      renderer.consumeSlicePresent();
     }
     return true;
   }

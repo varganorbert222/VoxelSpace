@@ -4,6 +4,7 @@ import { renderClassicColumns as renderClassicColumnsJs } from "./classicmarch.j
 import { renderFrustumSpaceColumns as renderFrustumSpaceColumnsJs } from "./frustumspacemarch.js";
 import { renderVoxelTexels as renderVoxelTexelsJs } from "./voxelmarch.js";
 import { bindRetailMaps } from "./retail/detail.js";
+import { presentColumns } from "./retail/present.js";
 import {
   MSG_INIT_MAPS,
   MSG_INIT_KERNEL,
@@ -154,6 +155,7 @@ function renderClassic(msg) {
     fillUnfilled: 0,
     rowColors: rowColors || null,
   });
+  presentColumns(pixels, localWidth, msg.screenHeight | 0, msg.startColumn | 0, msg.present);
   self.postMessage(
     {
       type: MSG_RESULT_CLASSIC,
@@ -224,6 +226,7 @@ function renderFrustumSpace(msg) {
     fillUnfilled: 0,
     rowColors: rowColors || null,
   });
+  presentColumns(pixels, localWidth, msg.screenHeight | 0, msg.startColumn | 0, msg.present);
   self.postMessage(
     {
       type: MSG_RESULT_FRUSTUM_SPACE,
@@ -285,6 +288,7 @@ function renderVoxel(msg) {
     pixelWidth: localWidth,
     fillUnfilled: 0,
   });
+  presentColumns(pixels, localWidth, msg.screenHeight | 0, msg.startColumn | 0, msg.present);
   self.postMessage(
     {
       type: MSG_RESULT_VOXEL,

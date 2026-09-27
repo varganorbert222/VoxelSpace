@@ -6,6 +6,7 @@ import { unpackToVec4 } from "./color.js";
 
 export const FRAME_BYTES = WEBGPU_FRAME_BYTES;
 
+const FLAG_SCREEN_CLEAR = 1;
 const FLAG_REPEAT = 2;
 const FLAG_COLUMN_PAIR = 4;
 const FLAG_DEBUG_SHIFT = 8;
@@ -63,6 +64,9 @@ export function packFrame(packer, p) {
   }
   if (p.columnPair) {
     flags |= FLAG_COLUMN_PAIR;
+  }
+  if (p.screenClear) {
+    flags |= FLAG_SCREEN_CLEAR;
   }
   flags |= ((p.debugViewId | 0) & 3) << FLAG_DEBUG_SHIFT;
   u[31] = flags;

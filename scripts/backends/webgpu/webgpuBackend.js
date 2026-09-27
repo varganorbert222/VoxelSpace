@@ -570,6 +570,7 @@ class WebGpuBackend {
       repeat: this._host.repeat,
       showDetails: this._host.showDetails,
       columnPair: this._host.algorithm !== ALGORITHM_VOXEL,
+      screenClear: !!this._screenClear,
       detailEnd0: detailEnds[0],
       detailEnd1: detailEnds[1],
       detailEnd2: detailEnds[2],
@@ -820,6 +821,29 @@ class WebGpuBackend {
     );
   }
 
+  _dispatchScreenClear(encoder, screenW, screenH) {
+    if (!this._pipes.screenClear || !this._screenClear) {
+      return;
+    }
+    const bind = this._cachedBind("skyComposite", () =>
+      this._device.createBindGroup({
+        layout: this._pipes.layouts.skyComposite,
+        entries: [
+          { binding: 0, resource: this._screenTex.createView() },
+          { binding: 1, resource: { buffer: this._skyRowBuf } },
+        ],
+      })
+    );
+    const pass = encoder.beginComputePass();
+    pass.setPipeline(this._pipes.screenClear);
+    pass.setBindGroup(0, bind);
+    pass.dispatchWorkgroups(
+      Math.ceil(screenW / WEBGPU_WORKGROUP_2D),
+      Math.ceil(screenH / WEBGPU_WORKGROUP_2D)
+    );
+    pass.end();
+  }
+
   _dispatchSkyComposite(encoder, screenW, screenH) {
     const host = this._host;
     if (!this._retailSkyActive() || !isDebugColor(host.debugView)) {
@@ -906,15 +930,25 @@ class WebGpuBackend {
         classic || frame.algorithm === ALGORITHM_FRUSTUM_SPACE
       );
     }
+    const host = this._host;
+    this._screenClear = !!(
+      frame.algorithm !== ALGORITHM_VOXEL &&
+      this._pipes.screenClear &&
+      this._retailSkyActive() &&
+      isDebugColor(host.debugView) &&
+      (host.showSky || host.showClouds)
+    );
     this._pack(camera, terrain, screenW, screenH, screenW, screenH);
     const encoder = this._device.createCommandEncoder();
     if (frame.algorithm === ALGORITHM_VOXEL) {
       this._dispatchVoxel(encoder, screenW, screenH);
     } else if (frame.algorithm === ALGORITHM_FRUSTUM_SPACE) {
       this._writeClassicTables(camera);
+      this._dispatchScreenClear(encoder, screenW, screenH);
       this._dispatchFrustumSpace(encoder, screenW, screenH);
     } else {
       this._writeClassicTables(camera);
+      this._dispatchScreenClear(encoder, screenW, screenH);
       this._dispatchClassic(encoder, screenW, screenH);
     }
     this._dispatchSkyComposite(encoder, screenW, screenH);

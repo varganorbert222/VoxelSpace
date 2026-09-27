@@ -122,6 +122,7 @@ class VoxelRenderer {
     pool.initMaps(maps);
     const params = voxelParams(renderer, maps);
     params.skyColor = renderer.skyFill(terrain.skyColor);
+    params.present = renderer.prepareSlicePresent();
     const camera = renderer.camera;
     const token = {
       algorithm: renderer.algorithm,
@@ -169,6 +170,9 @@ class VoxelRenderer {
         slice.startColumn,
         slice.endColumn
       );
+    }
+    if (params.present) {
+      renderer.consumeSlicePresent();
     }
     return true;
   }

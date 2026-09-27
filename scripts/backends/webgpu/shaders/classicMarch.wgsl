@@ -47,21 +47,25 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   }
 
   let debugView = flagDebugView(frame.mapFlags.w);
-  var y = 0;
-  loop {
-    if (y >= screenH) {
-      break;
-    }
-    var sky = 0u;
-    if (debugView == DEBUG_COLOR) {
-      if (skyPacked()) {
-        sky = skyUnfilledColor();
-      } else {
-        sky = skyColorAt(x, y);
+  // A 2D clear already wrote the sky marker. Walking the column here is a
+  // serial texture store per row, and it gets longer as the framebuffer grows.
+  if (!flagScreenClear(frame.mapFlags.w)) {
+    var y = 0;
+    loop {
+      if (y >= screenH) {
+        break;
       }
+      var sky = 0u;
+      if (debugView == DEBUG_COLOR) {
+        if (skyPacked()) {
+          sky = skyUnfilledColor();
+        } else {
+          sky = skyColorAt(x, y);
+        }
+      }
+      storeColumn(x, y, sky, screenW, pair);
+      y = y + 1;
     }
-    storeColumn(x, y, sky, screenW, pair);
-    y = y + 1;
   }
 
   let camX = frame.camPosTanHalfX.x;

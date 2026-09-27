@@ -145,6 +145,7 @@ export async function createPipelines(device, canvasFormat, onStatus) {
 
   let skyCompositeLayout = null;
   let skyCompositePipe = null;
+  let screenClearPipe = null;
   if (skyCompositeMod) {
     try {
       device.pushErrorScope("validation");
@@ -172,6 +173,22 @@ export async function createPipelines(device, canvasFormat, onStatus) {
       } else {
         skyCompositeLayout = layout;
         skyCompositePipe = pipe;
+      }
+      if (skyCompositePipe) {
+        device.pushErrorScope("validation");
+        const clearPipe = device.createComputePipeline({
+          label: "screenClear",
+          layout: device.createPipelineLayout({
+            bindGroupLayouts: [layout],
+          }),
+          compute: { module: skyCompositeMod, entryPoint: "clearMain" },
+        });
+        const clearErr = await device.popErrorScope();
+        if (clearErr) {
+          console.warn("screenClear pipeline failed:", clearErr.message);
+        } else {
+          screenClearPipe = clearPipe;
+        }
       }
     } catch (err) {
       try {
@@ -243,6 +260,7 @@ export async function createPipelines(device, canvasFormat, onStatus) {
     frustumSpace: frustumSpacePipe,
     voxel: voxelPipe,
     skyComposite: skyCompositePipe,
+    screenClear: screenClearPipe,
     blit: blitPipe,
     layouts: {
       frame: frameLayout,

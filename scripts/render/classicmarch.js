@@ -280,6 +280,15 @@ function drawVerticalLine(pixels, stride, x, ytop, ybottom, col, width) {
   if ((ytop > ybottom) | 0) return;
   let xEnd = (x + span) | 0;
   if ((xEnd > stride) | 0) xEnd = stride;
+  if (((xEnd - x) | 0) === 2) {
+    let offset = (ytop * stride + x) | 0;
+    for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
+      pixels[offset] = col;
+      pixels[(offset + 1) | 0] = col;
+      offset = (offset + stride) | 0;
+    }
+    return;
+  }
   for (let j = x; (j < xEnd) | 0; j = (j + 1) | 0) {
     let offset = (ytop * stride + j) | 0;
     for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {

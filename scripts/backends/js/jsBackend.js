@@ -123,6 +123,14 @@ class JsBackend {
     this._host.writeToContext();
   }
 
+  prepareSlicePresent() {
+    return this._host.prepareSlicePresent();
+  }
+
+  consumeSlicePresent() {
+    this._host.consumeSlicePresent();
+  }
+
   async setMaps(exportedMaps) {
     this._maps = exportedMaps;
     bindRetailMaps(exportedMaps);

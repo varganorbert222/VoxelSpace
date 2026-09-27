@@ -129,21 +129,24 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   }
 
   let debugView = flagDebugView(frame.mapFlags.w);
-  var y = 0;
-  loop {
-    if (y >= screenH) {
-      break;
-    }
-    var sky = 0u;
-    if (debugView == DEBUG_COLOR) {
-      if (skyPacked()) {
-        sky = skyUnfilledColor();
-      } else {
-        sky = skyColorAt(x, y);
+  // A 2D clear already wrote the sky marker. The column thread only marches.
+  if (!flagScreenClear(frame.mapFlags.w)) {
+    var y = 0;
+    loop {
+      if (y >= screenH) {
+        break;
       }
+      var sky = 0u;
+      if (debugView == DEBUG_COLOR) {
+        if (skyPacked()) {
+          sky = skyUnfilledColor();
+        } else {
+          sky = skyColorAt(x, y);
+        }
+      }
+      storeColumn(x, y, sky, screenW, pair);
+      y = y + 1;
     }
-    storeColumn(x, y, sky, screenW, pair);
-    y = y + 1;
   }
 
   let cam = frame.camPosTanHalfX.xyz;

@@ -1,5 +1,6 @@
 "use strict";
 
+import { compositeSky, skyPackView } from "./skybox.js";
 import { compositeWater } from "./water.js";
 
 export function compositePresentedWater(frameBuffer, camera, maps) {
@@ -18,4 +19,49 @@ export function compositePresentedWater(frameBuffer, camera, maps) {
   }
   compositeWater(frameBuffer._buffer32bit, width, height, camera, water, skyRows);
   frameBuffer._mustBeRecalcBuffer32bit = true;
+}
+
+// March slices are independent columns. Sky and water run here, on the
+// worker, so the full-frame pass does not pile up on the main thread when
+// the framebuffer grows. originX is the slice's first screen column. The
+// buffer width is the slice, not the screen.
+export function presentColumns(buffer32, sliceWidth, height, originX, present) {
+  if (!present) {
+    return;
+  }
+  const screenW = present.screenWidth | 0;
+  const camera = present.camera;
+  if (present.water && camera) {
+    const skyRows = new Uint32Array(height);
+    const map = present.water.map;
+    compositeWater(
+      buffer32,
+      sliceWidth,
+      height,
+      camera,
+      {
+        height: present.water.height,
+        opacity: present.water.opacity,
+        table: present.water.table,
+        mips: map ? [map] : null,
+      },
+      skyRows,
+      screenW
+    );
+  }
+  const words = present.words;
+  if (!words) {
+    return;
+  }
+  const pack = skyPackView(words, screenW, height, present.cloudBytes | 0);
+  compositeSky(
+    buffer32,
+    sliceWidth,
+    height,
+    pack,
+    present.overlay,
+    present.pair | 0,
+    originX | 0,
+    screenW
+  );
 }

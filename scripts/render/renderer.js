@@ -54,6 +54,7 @@ class Renderer {
     this._skyPack = null;
     this._skyPending = false;
     this._waterPending = false;
+    this._slicePresented = false;
     this._filterDistance = FILTER_DISTANCE_DEFAULT;
     this._debugView = DEBUG_VIEW_COLOR;
     this._algorithm = ALGORITHM_CLASSIC;
@@ -380,6 +381,58 @@ class Renderer {
     this._frameBuffer.drawBackground(screenHorizon, null);
   }
 
+  // Sky and water for a worker slice. The main thread updates the pack, then
+  // each worker composites only its columns. Null keeps that work here.
+  prepareSlicePresent() {
+    if (!this.retailSkyPass || !this._frameBuffer || !this._camera) {
+      return null;
+    }
+    const width = this._frameBuffer.width | 0;
+    const height = this._frameBuffer.height | 0;
+    const pack = this._skyPack;
+    ensureSkyPack(pack, height);
+    updateSkyPack(pack, this._skyView(height), this._camera, width, height, {
+      gradient: this._showSky,
+      clouds: this._showClouds,
+      cloudLodBias: this._cloudLodBias,
+    });
+    const camera = this._camera;
+    const retail = this._maps && this._maps.retail;
+    const water = retail && retail.water;
+    const presentWater =
+      water && water.table && water.height > 0
+        ? {
+            height: water.height,
+            opacity: water.opacity,
+            table: water.table,
+            map: water.mips && water.mips.length ? water.mips[0] : null,
+          }
+        : null;
+    return {
+      words: pack.words,
+      cloudBytes: pack.cloudBytes | 0,
+      overlay: isDebugColor(this._debugView),
+      pair: this._algorithm === ALGORITHM_VOXEL ? 1 : COLUMN_PAIR,
+      screenWidth: width,
+      camera: {
+        posX: camera.posX,
+        posY: camera.posY,
+        posZ: camera.posZ,
+        pitch: camera.pitch,
+        fov: camera.fov,
+        angle: camera.angle,
+        farClip: camera.farClip,
+      },
+      water: presentWater,
+    };
+  }
+
+  consumeSlicePresent() {
+    this._slicePresented = true;
+    this._skyPending = false;
+    this._waterPending = false;
+  }
+
   _compositeSky() {
     const pack = this._skyPack;
     const camera = this._camera;
@@ -418,6 +471,11 @@ class Renderer {
   }
 
   writeToContext() {
+    if (this._slicePresented) {
+      this._slicePresented = false;
+      this._frameBuffer.writeToContext();
+      return;
+    }
     if (!this._skyPending && this.retailSkyPass) {
       this._skyPending = true;
     }

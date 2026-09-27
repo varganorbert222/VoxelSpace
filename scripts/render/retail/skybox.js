@@ -464,14 +464,61 @@ function blendCloud(color, cloud, level) {
 // cloud plane, clouds are also laid over every downward ray (terrain too),
 // unless overlay is false (debug views). Gradient off paints black and skips
 // the ramp; clouds still blend on top of that black.
-export function compositeSky(buffer32, width, height, pack, overlay, pair) {
-  if (!pack || !pack.words || pack.width !== width || pack.height !== height) {
+// Words already hold the header, table, and cloud bytes. A worker slice uses
+// this view so it does not need the original pack object.
+export function skyPackView(words, screenWidth, height, cloudBytesIn) {
+  const mipCount = words[H_MIP_COUNT] | 0;
+  const baseSize = words[H_BASE_SIZE] | 0;
+  const mipOffsets = [];
+  let cloudBytes = cloudBytesIn | 0;
+  const mipN = mipCount > MAX_CLOUD_MIPS ? MAX_CLOUD_MIPS : mipCount;
+  for (let i = 0; i < mipN; i++) {
+    mipOffsets.push(words[H_MIP_OFFSETS + i] | 0);
+  }
+  if (!(cloudBytes > 0) && mipN > 0) {
+    const last = (mipN - 1) | 0;
+    let size = baseSize >> last;
+    if (size < 1) {
+      size = 1;
+    }
+    cloudBytes = (mipOffsets[last] + size * size) | 0;
+  }
+  const tableOffset = words[H_TABLE_OFFSET] | 0;
+  return {
+    words: words,
+    f32: new Float32Array(words.buffer, words.byteOffset, words.length),
+    width: screenWidth | 0,
+    height: height | 0,
+    cloudOffset: words[H_CLOUD_OFFSET] | 0,
+    cloudBytes: cloudBytes,
+    rowOffset: words[H_ROW_OFFSET] | 0,
+    mips: mipOffsets,
+    mipOffsets: mipOffsets,
+    baseSize: baseSize,
+    sky: { table: words.subarray(tableOffset, (tableOffset + 64 * 256) | 0) },
+  };
+}
+
+export function compositeSky(buffer32, width, height, pack, overlay, pair, originX, screenWidth) {
+  const screenW = (screenWidth | 0) > 0 ? screenWidth | 0 : width | 0;
+  const x0 = originX | 0;
+  if (!pack || !pack.words || pack.width !== screenW || pack.height !== height) {
     return;
   }
   const words = pack.words;
   const f32 = pack.f32;
   const table = pack.sky.table;
-  const bytes = new Uint8Array(words.buffer, pack.cloudOffset * 4, pack.cloudBytes);
+  const cloudByte = pack.cloudOffset * 4 + words.byteOffset;
+  let bytes = pack.cloudView;
+  if (
+    !bytes ||
+    bytes.buffer !== words.buffer ||
+    bytes.byteOffset !== cloudByte ||
+    bytes.length !== (pack.cloudBytes | 0)
+  ) {
+    bytes = new Uint8Array(words.buffer, cloudByte, pack.cloudBytes | 0);
+    pack.cloudView = bytes;
+  }
   const horizonColor = words[H_HORIZON];
   const cloudColor = words[H_CLOUD_COLOR];
   const black = words[H_BLACK] !== 0;
@@ -520,6 +567,15 @@ export function compositeSky(buffer32, width, height, pack, overlay, pair) {
       cdu = (t * sx) / CLOUD_TEXEL_WORLD;
       cdv = (t * sy) / CLOUD_TEXEL_WORLD;
       walk = true;
+    }
+    if (x0) {
+      dx += sx * x0;
+      dy += sy * x0;
+      dz += sz * x0;
+      if (walk) {
+        cu += cdu * x0;
+        cv += cdv * x0;
+      }
     }
     const spanStep = paired ? 2 : 1;
     for (let x = 0; (x < width) | 0; ) {

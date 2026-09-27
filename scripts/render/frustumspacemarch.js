@@ -419,10 +419,11 @@ export function renderFrustumSpaceColumns({
         const col = shade(wx, wy, offset, hByte, t, useFine, localI);
         const o = (pixelBase + ((sy * stride + pixCol) | 0)) | 0;
         pixels[o] = col;
-        const rayLen = Math.hypot(bx, by, bz);
-        const dist = t * rayLen;
-        const depthV = dist > 0 ? dist : t;
+        let depthV = 0;
         if (depth) {
+          const rayLen = Math.hypot(bx, by, bz);
+          const dist = t * rayLen;
+          depthV = dist > 0 ? dist : t;
           depth[o] = depthV;
         }
         if (heightBuf) {

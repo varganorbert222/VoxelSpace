@@ -57,6 +57,7 @@ export function classicRenderPayload(jobId, range, params) {
     fwdX: params.fwdX,
     fwdY: params.fwdY,
     rowColors: params.rowColors,
+    present: params.present || null,
   };
 }
 
@@ -96,6 +97,7 @@ export function frustumSpaceRenderPayload(jobId, range, params) {
     lodSpacing: params.lodSpacing,
     lodBias: params.lodBias,
     rowColors: params.rowColors,
+    present: params.present || null,
   };
 }
 
@@ -134,6 +136,7 @@ export function voxelRenderPayload(jobId, range, params) {
     showDetails: params.showDetails,
     skyColor: params.skyColor,
     horizonColor: params.horizonColor,
+    present: params.present || null,
   };
 }
 

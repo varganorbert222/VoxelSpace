@@ -119,11 +119,12 @@ function sampleMap(mips, u, v) {
   return map[((v & mask) * size + (u & mask)) | 0];
 }
 
-export function compositeWater(buffer32, width, height, camera, water, skyRows) {
+export function compositeWater(buffer32, width, height, camera, water, skyRows, screenWidth) {
   if (!water || !water.table || !(water.height > 0)) {
     return;
   }
-  const focal = retailFocal(width, camera.fov);
+  const viewW = (screenWidth | 0) > 0 ? screenWidth | 0 : width | 0;
+  const focal = retailFocal(viewW, camera.fov);
   const pitchRad = (-camera.pitch * Math.PI) / 180;
   const centerY = height * 0.5;
   const horizon = centerY + 5 + focal * Math.tan(pitchRad);
