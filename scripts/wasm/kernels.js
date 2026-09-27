@@ -10,7 +10,7 @@ import {
 } from "../constants/color.js";
 import { HEIGHTMAP_MAX } from "../constants/terrain.js";
 import { FILTER_DISTANCE_DEFAULT } from "../constants/sampling.js";
-import { UNFILLED_PIXEL } from "../constants/framebuffer.js";
+import { COLUMN_PAIR, UNFILLED_PIXEL } from "../constants/framebuffer.js";
 import { NON_REPEAT_GROUND_OFFSET, classicPixelBudget } from "../constants/classic.js";
 import {
   FOG_SATURATED,
@@ -175,7 +175,7 @@ export function createWasmKernels(instance) {
       return bandCount;
     }
     const offsets = new Int32Array(bandCount);
-    offsets.fill(1);
+    offsets.fill(COLUMN_PAIR);
     const switches = mipSwitchDistances(
       bandCount,
       params.farClip,

@@ -1,4 +1,4 @@
-// Per-pixel retail sky. The skyRows buffer holds either one color per row or
+// Retail sky. The skyRows buffer holds either one color per row or
 // the packed sky from scripts/render/retail/skybox.js (header, color table,
 // cloud mip bytes, one ray per row). The layout must match that file.
 const SKY_MAGIC: u32 = 0x00534b59u;

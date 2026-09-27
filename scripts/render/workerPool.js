@@ -18,6 +18,7 @@ import {
 } from "./jobProtocol.js";
 import { BACKEND_JS } from "../constants/backend.js";
 import { canShareBuffers, allocU8, allocU32 } from "./sharedBuffers.js";
+import { COLUMN_PAIR } from "../constants/framebuffer.js";
 
 // Measured: splitting into more chunks than workers costs more in messages,
 // allocations and blits than the load balancing wins back.
@@ -231,7 +232,7 @@ class WorkerPool {
         MSG_RENDER_CLASSIC,
         params,
         params.screenWidth,
-        1
+        COLUMN_PAIR
       )
     );
   }
@@ -242,7 +243,7 @@ class WorkerPool {
         MSG_RENDER_FRUSTUM_SPACE,
         params,
         params.screenWidth,
-        1,
+        COLUMN_PAIR,
         FRUSTUM_CHUNKS_PER_WORKER
       )
     );

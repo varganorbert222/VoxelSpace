@@ -1,18 +1,62 @@
 @group(0) @binding(0) var screenTex: texture_storage_2d<r32uint, read_write>;
 @group(0) @binding(1) var<storage, read> skyRows: array<u32>;
-// common.wgsl refers to frame; this pass never reads it.
 @group(1) @binding(0) var<uniform> frame: Frame;
 
+fn paintSky(color: u32, empty: u32, cover: f32) -> u32 {
+  var out = color;
+  if (out == 0u) {
+    out = empty;
+  }
+  if (cover > 0.0) {
+    out = skyBlendCloud(out, skyWord(30u), cover);
+  }
+  return out;
+}
+
+// One thread per sample column. Classic and frustum-space sample the left
+// pixel and write both; voxel keeps one thread per pixel.
 @compute @workgroup_size(16, 16)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let dims = textureDimensions(screenTex);
-  if (gid.x >= dims.x || gid.y >= dims.y) {
+  let paired = flagColumnPair(frame.mapFlags.w);
+  let x = select(i32(gid.x), i32(gid.x) * 2, paired);
+  let y = i32(gid.y);
+  let width = i32(dims.x);
+  let height = i32(dims.y);
+  if (x >= width || y >= height) {
     return;
   }
-  let p = vec2<i32>(gid.xy);
-  let color = textureLoad(screenTex, p).x;
-  let out = skyComposite(p.x, p.y, color);
-  if (out != color) {
-    textureStore(screenTex, p, vec4<u32>(out, 0u, 0u, 0u));
+  var span = 1;
+  if (paired && x + 1 < width) {
+    span = 2;
+  }
+  let c0 = textureLoad(screenTex, vec2<i32>(x, y)).x;
+  var c1 = c0;
+  if (span == 2) {
+    c1 = textureLoad(screenTex, vec2<i32>(x + 1, y)).x;
+  }
+  let above = skyPacked() && (skyF(9u) < 0.0) && (skyWord(6u) > 0u);
+  let needEmpty = (c0 == 0u) || (span == 2 && c1 == 0u);
+  if (!needEmpty && !above) {
+    return;
+  }
+  let empty = select(0u, skyColorAt(x, y), needEmpty);
+  var cover = 0.0;
+  if (above) {
+    let o = skyRowBase(y);
+    let dir = skyDir(o, x);
+    if (dir.z < 0.0) {
+      cover = min(62.0, skyCloudLevel(o, dir));
+    }
+  }
+  let out0 = paintSky(c0, empty, cover);
+  if (out0 != c0) {
+    textureStore(screenTex, vec2<i32>(x, y), vec4<u32>(out0, 0u, 0u, 0u));
+  }
+  if (span == 2) {
+    let out1 = paintSky(c1, empty, cover);
+    if (out1 != c1) {
+      textureStore(screenTex, vec2<i32>(x + 1, y), vec4<u32>(out1, 0u, 0u, 0u));
+    }
   }
 }

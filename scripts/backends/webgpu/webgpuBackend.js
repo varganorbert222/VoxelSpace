@@ -18,7 +18,7 @@ import {
   skyView,
   updateSkyPack,
 } from "../../render/retail/skybox.js";
-import { SKY_PALETTE_STEPS, skyPaletteT } from "../../constants/framebuffer.js";
+import { COLUMN_PAIR, SKY_PALETTE_STEPS, skyPaletteT } from "../../constants/framebuffer.js";
 import { EPSILON, HALF, NDC_SCALE, PIXEL_CENTER } from "../../constants/vmath.js";
 import { GROUND_CLIP_OFFSET, GROUND_HEIGHT } from "../../constants/terrain.js";
 import { Color } from "../../math/color.js";
@@ -66,6 +66,12 @@ function classicSkyRows(height, horizon, topColor, bottomColor) {
     );
   }
   return rows;
+}
+
+function columnPairGroups(screenW, pair) {
+  const span = pair > 1 ? pair : 1;
+  const columns = Math.ceil(screenW / span);
+  return Math.ceil(columns / WEBGPU_WORKGROUP_1D);
 }
 
 class WebGpuBackend {
@@ -563,6 +569,7 @@ class WebGpuBackend {
       mapShift: maps.mapShift,
       repeat: this._host.repeat,
       showDetails: this._host.showDetails,
+      columnPair: this._host.algorithm !== ALGORITHM_VOXEL,
       detailEnd0: detailEnds[0],
       detailEnd1: detailEnds[1],
       detailEnd2: detailEnds[2],
@@ -680,7 +687,7 @@ class WebGpuBackend {
     );
     deltas.set(bandSteps.subarray(0, Math.min(bandSteps.length, deltas.length)));
     const offsets = new Uint32Array(TERRAIN_MIP_MAX_COUNT);
-    offsets.fill(1);
+    offsets.fill(COLUMN_PAIR);
     writeBuffer(this._device, this._offsetBuf, offsets);
     writeBuffer(this._device, this._deltaBuf, deltas);
     writeBuffer(this._device, this._distBuf, lodDistances);
@@ -731,7 +738,7 @@ class WebGpuBackend {
     pass.setBindGroup(1, tables);
     pass.setBindGroup(2, maps);
     pass.setBindGroup(3, out);
-    pass.dispatchWorkgroups(Math.ceil(screenW / WEBGPU_WORKGROUP_1D));
+    pass.dispatchWorkgroups(columnPairGroups(screenW, COLUMN_PAIR));
     pass.end();
   }
 
@@ -771,7 +778,7 @@ class WebGpuBackend {
     pass.setBindGroup(1, tables);
     pass.setBindGroup(2, maps);
     pass.setBindGroup(3, out);
-    pass.dispatchWorkgroups(Math.ceil(screenW / WEBGPU_WORKGROUP_1D));
+    pass.dispatchWorkgroups(columnPairGroups(screenW, COLUMN_PAIR));
     pass.end();
   }
 
@@ -833,8 +840,13 @@ class WebGpuBackend {
     const pass = encoder.beginComputePass();
     pass.setPipeline(this._pipes.skyComposite);
     pass.setBindGroup(0, bind);
+    pass.setBindGroup(1, this._frameBind());
+    const columns =
+      host.algorithm === ALGORITHM_VOXEL
+        ? screenW
+        : Math.ceil(screenW / COLUMN_PAIR);
     pass.dispatchWorkgroups(
-      Math.ceil(screenW / WEBGPU_WORKGROUP_2D),
+      Math.ceil(columns / WEBGPU_WORKGROUP_2D),
       Math.ceil(screenH / WEBGPU_WORKGROUP_2D)
     );
     pass.end();

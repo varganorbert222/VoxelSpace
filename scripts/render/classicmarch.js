@@ -5,7 +5,7 @@ import { qualityBandSteps, useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import { HEIGHTMAP_MAX } from "../constants/terrain.js";
 import { FILTER_DISTANCE_DEFAULT } from "../constants/sampling.js";
-import { UNFILLED_PIXEL } from "../constants/framebuffer.js";
+import { COLUMN_PAIR, UNFILLED_PIXEL } from "../constants/framebuffer.js";
 import {
   DEBUG_VIEW_DEPTH,
   DEBUG_VIEW_HEIGHT,
@@ -269,17 +269,23 @@ function heightByteFromFine(hFine) {
   return b;
 }
 
-function drawVerticalLine(pixels, stride, x, ytop, ybottom, col) {
+function drawVerticalLine(pixels, stride, x, ytop, ybottom, col, width) {
   x = x | 0;
   ytop = ytop | 0;
   ybottom = ybottom | 0;
   col = col | 0;
+  let span = width | 0;
+  if ((span < 1) | 0) span = 1;
   if ((ytop < 0) | 0) ytop = 0;
   if ((ytop > ybottom) | 0) return;
-  let offset = (ytop * stride + x) | 0;
-  for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
-    pixels[offset] = col;
-    offset = (offset + stride) | 0;
+  let xEnd = (x + span) | 0;
+  if ((xEnd > stride) | 0) xEnd = stride;
+  for (let j = x; (j < xEnd) | 0; j = (j + 1) | 0) {
+    let offset = (ytop * stride + j) | 0;
+    for (let k = ytop | 0; (k < ybottom) | 0; k = (k + 1) | 0) {
+      pixels[offset] = col;
+      offset = (offset + stride) | 0;
+    }
   }
 }
 
@@ -426,16 +432,18 @@ function renderClassicColumnsSampled({
       let sliceOpen = 0;
       let sliceSdf = 0;
 
-      for (
-        let i = startColumn;
-        (i < endColumn) | 0;
-        i = (i + 1) | 0
-      ) {
+      for (let i = startColumn; (i < endColumn) | 0; ) {
+        let pair = COLUMN_PAIR;
+        const remain = (endColumn - i) | 0;
+        if ((pair > remain) | 0) {
+          pair = remain;
+        }
         const localI = (i - startColumn) | 0;
         const colHidden = hiddenY[localI];
         if (colHidden === 0) {
-          plx += dx;
-          ply += dy;
+          plx += dx * pair;
+          ply += dy * pair;
+          i = (i + pair) | 0;
           continue;
         }
 
@@ -452,8 +460,9 @@ function renderClassicColumnsSampled({
 
         if (isOk) {
           if ((ceilingOnScreen >= colHidden) | 0) {
-            plx += dx;
-            ply += dy;
+            plx += dx * pair;
+            ply += dy * pair;
+            i = (i + pair) | 0;
             continue;
           }
 
@@ -606,14 +615,19 @@ function renderClassicColumnsSampled({
               localI,
               heightOnScreen,
               heightOnScreenBottom,
-              plotColor
+              plotColor,
+              pair
             );
-            hiddenY[localI] = heightOnScreen;
+            const hiddenEnd = (localI + pair) | 0;
+            for (let j = localI; (j < hiddenEnd) | 0; j = (j + 1) | 0) {
+              hiddenY[j] = heightOnScreen;
+            }
           }
         }
 
-        plx += dx;
-        ply += dy;
+        plx += dx * pair;
+        ply += dy * pair;
+        i = (i + pair) | 0;
       }
 
       if (sliceSdf > clearance) {

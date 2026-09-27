@@ -77,6 +77,10 @@ fn flagShowDetails(flags: u32) -> bool {
   return (flags & 32768u) != 0u;
 }
 
+fn flagColumnPair(flags: u32) -> bool {
+  return (flags & 4u) != 0u;
+}
+
 fn lod0RefineAt(t: f32, mip: i32) -> bool {
   let end = frame.detailTail.x;
   return mip <= 0 && end > 0.0 && t < end;

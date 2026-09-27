@@ -179,13 +179,15 @@ export function buildCloudMips(image) {
 // Packed sky, shared by the CPU composite and the WebGPU shaders
 // (retailSky.wgsl reads the same words):
 //   header | 64x256 color table | cloud mip bytes | one ray per screen row.
-// A row stores the view ray at pixel x = 0 and its per-pixel step; the
+// A row stores the view ray at pixel x = 0 and its per-pixel step. Classic
+// and frustum-space advance that step by two pixels and write the sample to
+// both, matching the retail pair column. Voxel keeps the one-pixel step. The
 // header stores the per-row step. Retail stores the plane hit in Q16 and
 // shifts it by 3, so one mip-0 texel is 8 meters. The mip steps when one
 // pixel of the 1024-wide reference view covers twice as many texels. The
 // framebuffer size does not move those bands. At FOV 90 they sit at 4096 m,
 // 8192 m, 16384 m, and so on. A row whose ray Z is constant walks that UV
-// with a fixed step. Rolled rows still solve the plane per pixel.
+// with a fixed step. Rolled rows still solve the plane once per sample column.
 // Terrain stays below the cloud plane, so from below the terrain hides the
 // clouds and from above the clouds cover every downward ray, terrain included.
 // The cloud mip steps when one pixel covers twice as many texels.
@@ -462,7 +464,7 @@ function blendCloud(color, cloud, level) {
 // cloud plane, clouds are also laid over every downward ray (terrain too),
 // unless overlay is false (debug views). Gradient off paints black and skips
 // the ramp; clouds still blend on top of that black.
-export function compositeSky(buffer32, width, height, pack, overlay) {
+export function compositeSky(buffer32, width, height, pack, overlay, pair) {
   if (!pack || !pack.words || pack.width !== width || pack.height !== height) {
     return;
   }
@@ -493,6 +495,7 @@ export function compositeSky(buffer32, width, height, pack, overlay) {
     }
     return;
   }
+  const paired = (pair | 0) > 1;
   for (let y = 0; y < height; y++) {
     const o = pack.rowOffset + y * ROW_WORDS;
     let dx = f32[o];
@@ -518,106 +521,90 @@ export function compositeSky(buffer32, width, height, pack, overlay) {
       cdv = (t * sy) / CLOUD_TEXEL_WORLD;
       walk = true;
     }
-    for (let x = 0; x < width; x++, dx += sx, dy += sy, dz += sz) {
-      const i = row + x;
-      let color = buffer32[i];
-      const cover = above && dz < 0;
-      if (color !== 0 && !cover) {
-        if (walk) {
-          cu += cdu;
-          cv += cdv;
-        }
-        continue;
+    const spanStep = paired ? 2 : 1;
+    for (let x = 0; (x < width) | 0; ) {
+      let span = spanStep;
+      if (((x + span) | 0) > width) {
+        span = (width - x) | 0;
       }
-      if (color === 0) {
+      const cover = above && dz < 0;
+      let needs = 0;
+      for (let p = 0; (p < span) | 0; p = (p + 1) | 0) {
+        const stored = buffer32[(row + x + p) | 0];
+        if (stored === 0 || cover) {
+          needs = 1;
+        }
+      }
+      let emptyColor = 0;
+      let overlayLevel = 0;
+      if (needs) {
+        let level = 0;
+        if (below || cover) {
+          level = walk
+            ? cloudNearest(bytes, pack, mip, cu, cv)
+            : cloudLevelAt(
+                bytes,
+                pack,
+                plane,
+                camU,
+                camV,
+                dx,
+                dy,
+                dz,
+                sx,
+                sy,
+                sz,
+                bx,
+                by,
+                bz
+              );
+          if (level < 0) level = 0;
+          if (level > 62) level = 62;
+        }
         if (!gradient) {
-          color = 0xff000000;
-          if (below) {
-            const level = walk
-              ? cloudNearest(bytes, pack, mip, cu, cv)
-              : cloudLevelAt(
-                  bytes,
-                  pack,
-                  plane,
-                  camU,
-                  camV,
-                  dx,
-                  dy,
-                  dz,
-                  sx,
-                  sy,
-                  sz,
-                  bx,
-                  by,
-                  bz
-                );
-            if (level > 0) {
-              color = blendCloud(color, cloudColor, level > 62 ? 62 : level);
-            }
+          emptyColor = 0xff000000;
+          if (below && level > 0) {
+            emptyColor = blendCloud(emptyColor, cloudColor, level);
           }
         } else {
           const horiz2 = dx * dx + dy * dy;
           if (black) {
-            color = 0xff000000;
+            emptyColor = 0xff000000;
           } else if (!(dz > 0) || dz * dz <= HORIZON_DIR_Z2 * (horiz2 + dz * dz)) {
-            color = horizonColor;
+            emptyColor = horizonColor;
           } else {
             let grad = Math.floor((dz / Math.sqrt(horiz2)) * gradScale);
-            grad = grad < 0 ? 0 : grad > 255 ? 255 : grad;
-            let q = 0;
-            if (below) {
-              q = walk
-                ? cloudNearest(bytes, pack, mip, cu, cv)
-                : cloudLevelAt(
-                    bytes,
-                    pack,
-                    plane,
-                    camU,
-                    camV,
-                    dx,
-                    dy,
-                    dz,
-                    sx,
-                    sy,
-                    sz,
-                    bx,
-                    by,
-                    bz
-                  );
-              q = q < 0 ? 0 : q > 62 ? 62 : q;
-            }
-            color = table[q * 256 + grad];
+            if (grad < 0) grad = 0;
+            if (grad > 255) grad = 255;
+            emptyColor = table[(below ? level : 0) * 256 + grad];
           }
         }
-      }
-      if (cover) {
-        const level = walk
-          ? cloudNearest(bytes, pack, mip, cu, cv)
-          : cloudLevelAt(
-              bytes,
-              pack,
-              plane,
-              camU,
-              camV,
-              dx,
-              dy,
-              dz,
-              sx,
-              sy,
-              sz,
-              bx,
-              by,
-              bz
-            );
-        if (level > 0) {
-          color = blendCloud(color, cloudColor, level > 62 ? 62 : level);
+        if (cover) {
+          overlayLevel = level;
+        }
+        for (let p = 0; (p < span) | 0; p = (p + 1) | 0) {
+          const i = (row + x + p) | 0;
+          let color = buffer32[i];
+          if (color !== 0 && !cover) {
+            continue;
+          }
+          if (color === 0) {
+            color = emptyColor;
+          }
+          if (cover && overlayLevel > 0) {
+            color = blendCloud(color, cloudColor, overlayLevel);
+          }
+          buffer32[i] = color;
         }
       }
+      dx += sx * span;
+      dy += sy * span;
+      dz += sz * span;
       if (walk) {
-        cu += cdu;
-        cv += cdv;
+        cu += cdu * span;
+        cv += cdv * span;
       }
-      buffer32[i] = color;
+      x = (x + span) | 0;
     }
   }
 }

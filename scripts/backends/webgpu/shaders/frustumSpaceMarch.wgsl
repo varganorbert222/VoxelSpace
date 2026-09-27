@@ -105,13 +105,25 @@ fn frustumShade(
   return packRgba(plot);
 }
 
-// One thread per column: view-Z slices front-to-back with a persistent
-// horizon. See scripts/render/frustumspacemarch.js for the derivation.
+fn storeColumn(x: i32, y: i32, packed: u32, screenW: i32, pair: i32) {
+  var i = 0;
+  loop {
+    if (i >= pair || x + i >= screenW) {
+      break;
+    }
+    textureStore(outTex, vec2<i32>(x + i, y), vec4<u32>(packed, 0u, 0u, 0u));
+    i = i + 1;
+  }
+}
+
+// One thread per two-pixel column: view-Z slices front-to-back with a
+// persistent horizon. See scripts/render/frustumspacemarch.js.
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) gid: vec3u) {
   let screenW = i32(frame.screenPano.x);
   let screenH = i32(frame.screenPano.y);
-  let x = i32(gid.x);
+  let pair = i32(max(pixelOffsets[0], 1u));
+  let x = i32(gid.x) * pair;
   if (x >= screenW) {
     return;
   }
@@ -130,7 +142,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         sky = skyColorAt(x, y);
       }
     }
-    textureStore(outTex, vec2<i32>(x, y), vec4<u32>(sky, 0u, 0u, 0u));
+    storeColumn(x, y, sky, screenW, pair);
     y = y + 1;
   }
 
@@ -156,7 +168,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let invH2 = select(1.0 / dst, 0.0, dst == 0.0);
   let screenWidthScaler = 1.0 / f32(screenW);
   let slopeCap = select(altitude, frame.sampleLimit.w, frame.sampleLimit.w > 0.0);
-  let _po = pixelOffsets[0];
 
   let rowBase = screenHorizon - 0.5;
   let upXY = length(up.xy);
@@ -217,7 +228,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         pos.x,
         pos.y
       );
-      textureStore(outTex, vec2<i32>(x, sy), vec4<u32>(plot, 0u, 0u, 0u));
+      storeColumn(x, sy, plot, screenW, pair);
       sy = sy - 1;
       let prev = t - step;
       let t0 = lodDistances[0];

@@ -9,7 +9,7 @@ import {
   HEIGHTMAP_MAX,
 } from "../constants/terrain.js";
 import { FILTER_DISTANCE_DEFAULT } from "../constants/sampling.js";
-import { UNFILLED_PIXEL } from "../constants/framebuffer.js";
+import { COLUMN_PAIR, UNFILLED_PIXEL } from "../constants/framebuffer.js";
 import {
   DEBUG_VIEW_DEPTH,
   DEBUG_VIEW_HEIGHT,
@@ -33,7 +33,7 @@ import {
 } from "../constants/mip.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
 
-// One ray per column. The step is the mip-band width divided by 32*q.
+// One ray per two-pixel column. The step is the mip-band width divided by 32*q.
 // On a heightfield hit the row is painted, the
 // ray rewinds one step, and the row cursor moves up. The next test continues
 // from that point. A miss only advances the ray. Spec is Y-up; this project
@@ -344,7 +344,12 @@ export function renderFrustumSpaceColumns({
     return plotColor;
   }
 
-  for (let i = startColumn; (i < endColumn) | 0; i = (i + 1) | 0) {
+  for (let i = startColumn; (i < endColumn) | 0; ) {
+    let pair = COLUMN_PAIR;
+    const remain = (endColumn - i) | 0;
+    if ((pair > remain) | 0) {
+      pair = remain;
+    }
     const localI = (i - startColumn) | 0;
     const pixCol = spanColumns ? i : localI;
     const xn = (i + 0.5) * xnStep - 1;
@@ -414,16 +419,34 @@ export function renderFrustumSpaceColumns({
         const col = shade(wx, wy, offset, hByte, t, useFine, localI);
         const o = (pixelBase + ((sy * stride + pixCol) | 0)) | 0;
         pixels[o] = col;
+        const rayLen = Math.hypot(bx, by, bz);
+        const dist = t * rayLen;
+        const depthV = dist > 0 ? dist : t;
         if (depth) {
-          const rayLen = Math.hypot(bx, by, bz);
-          const dist = t * rayLen;
-          depth[o] = dist > 0 ? dist : t;
+          depth[o] = depthV;
         }
         if (heightBuf) {
           heightBuf[o] = hByte;
         }
         if (iterBuf) {
           iterBuf[o] = guard;
+        }
+        if (
+          ((pair > 1) | 0) &
+          ((((pixCol + 1) | 0) < stride) | 0) &
+          ((((i + 1) | 0) < endColumn) | 0)
+        ) {
+          const o2 = (o + 1) | 0;
+          pixels[o2] = col;
+          if (depth) {
+            depth[o2] = depthV;
+          }
+          if (heightBuf) {
+            heightBuf[o2] = hByte;
+          }
+          if (iterBuf) {
+            iterBuf[o2] = guard;
+          }
         }
         sy = (sy - 1) | 0;
         const prev = t - step;
@@ -432,5 +455,6 @@ export function renderFrustumSpaceColumns({
         t = t + step;
       }
     }
+    i = (i + pair) | 0;
   }
 }

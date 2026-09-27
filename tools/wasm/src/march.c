@@ -1417,13 +1417,17 @@ WASM_EXPORT void frustum_space_columns(
   xn_step = 2.0 * screen_width_scaler;
   xn0 = ((f64)start_column + 0.5) * xn_step - 1.0;
 
-  /* One ray per column. The LOD cell sets the step and Step divides it.
-     The first hit paints this row, rewinds one step, and moves up a row.
-     The step cap matches the WebGPU frustum march and does not grow with
-     the framebuffer height. */
+  /* One ray per two-pixel column, sampled at the left pixel. The LOD cell
+     sets the step and Step divides it. The first hit paints this row,
+     rewinds one step, and moves up a row. The step cap matches the WebGPU
+     frustum march and does not grow with the framebuffer height. */
   {
     i32 step_budget = 65536;
-    for (i32 col = start_column; col < end_column; col = (col + 1) | 0) {
+    for (i32 col = start_column; col < end_column;) {
+      i32 pair = 2;
+      if (((col + pair) | 0) > end_column) {
+        pair = (end_column - col) | 0;
+      }
       i32 local_i = (col - start_column) | 0;
       i32 sy = (screen_height - 1) | 0;
       f64 t = z_start;
@@ -1508,6 +1512,9 @@ WASM_EXPORT void frustum_space_columns(
               t, far_clip, debug, h_byte,
               sample_ok ? g_sample_n[local_i] : guard);
           pixels[(sy * stride + local_i) | 0] = plot;
+          if ((pair > 1) & (((local_i + 1) | 0) < local_width)) {
+            pixels[(sy * stride + ((local_i + 1) | 0)) | 0] = plot;
+          }
           sy = (sy - 1) | 0;
           {
             f64 prev = t - step;
@@ -1517,6 +1524,7 @@ WASM_EXPORT void frustum_space_columns(
           t = t + step;
         }
       }
+      col = (col + pair) | 0;
     }
   }
 }

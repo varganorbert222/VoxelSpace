@@ -1,4 +1,5 @@
 @group(0) @binding(0) var<uniform> frame: Frame;
+@group(1) @binding(0) var<storage, read> pixelOffsets: array<u32, 8>;
 @group(1) @binding(1) var<storage, read> lodDeltas: array<f32, 16>;
 @group(1) @binding(2) var<storage, read> lodDistances: array<f32, 32>;
 @group(2) @binding(0) var heightTex: texture_2d<u32>;
@@ -24,11 +25,23 @@ fn classicSampleColor(plx: f32, ply: f32, mip: i32, doFilter: bool, z: f32) -> v
   return detailColor(terrainSampleColor(colorTex, mip, plx, ply, dist, z), plx, ply, z);
 }
 
+fn storeColumn(x: i32, y: i32, packed: u32, screenW: i32, pair: i32) {
+  var i = 0;
+  loop {
+    if (i >= pair || x + i >= screenW) {
+      break;
+    }
+    textureStore(outTex, vec2<i32>(x + i, y), vec4<u32>(packed, 0u, 0u, 0u));
+    i = i + 1;
+  }
+}
+
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) gid: vec3u) {
   let screenW = i32(frame.screenPano.x);
   let screenH = i32(frame.screenPano.y);
-  let x = i32(gid.x);
+  let pair = i32(max(pixelOffsets[0], 1u));
+  let x = i32(gid.x) * pair;
   if (x >= screenW) {
     return;
   }
@@ -47,7 +60,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         sky = skyColorAt(x, y);
       }
     }
-    textureStore(outTex, vec2<i32>(x, y), vec4<u32>(sky, 0u, 0u, 0u));
+    storeColumn(x, y, sky, screenW, pair);
     y = y + 1;
   }
 
@@ -199,11 +212,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
                 if (yy >= heightOnScreenBottom) {
                   break;
                 }
-                textureStore(
-                  outTex,
-                  vec2<i32>(x, yy),
-                  vec4<u32>(plotPacked, 0u, 0u, 0u)
-                );
+                storeColumn(x, yy, plotPacked, screenW, pair);
                 yy = yy + 1;
               }
             }

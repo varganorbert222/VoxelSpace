@@ -161,7 +161,9 @@ export async function createPipelines(device, canvasFormat, onStatus) {
       });
       const pipe = device.createComputePipeline({
         label: "skyComposite",
-        layout: device.createPipelineLayout({ bindGroupLayouts: [layout] }),
+        layout: device.createPipelineLayout({
+          bindGroupLayouts: [layout, frameLayout],
+        }),
         compute: { module: skyCompositeMod, entryPoint: "main" },
       });
       const pipeErr = await device.popErrorScope();

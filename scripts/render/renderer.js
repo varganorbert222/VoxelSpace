@@ -9,10 +9,11 @@ import {
 import {
   ALGORITHM_CLASSIC,
   ALGORITHM_FRUSTUM_SPACE,
+  ALGORITHM_VOXEL,
   isAlgorithmAllowed,
 } from "../constants/algorithm.js";
 import { DEBUG_VIEW_COLOR, isDebugColor } from "../constants/debugView.js";
-import { UNFILLED_PIXEL } from "../constants/framebuffer.js";
+import { COLUMN_PAIR, UNFILLED_PIXEL } from "../constants/framebuffer.js";
 import {
   FILTER_DISTANCE_DEFAULT,
   clampFilterDistance,
@@ -411,7 +412,8 @@ class Renderer {
       width,
       height,
       pack,
-      isDebugColor(this._debugView)
+      isDebugColor(this._debugView),
+      this._algorithm === ALGORITHM_VOXEL ? 1 : COLUMN_PAIR
     );
   }
 
