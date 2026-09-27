@@ -229,7 +229,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   }
   let dir = d / len;
   let hatZ = dir.z;
-  let camCell = mipCellSize(0, s0);
+  let camCell = mipCellSize(0, s0) / qualityQ();
   let camIx = i32(floor(cam.x / camCell));
   let camIy = i32(floor(cam.y / camCell));
   let camCol = voxelColumn(0, camIx, camIy, camCell, s0, cam.z);
@@ -315,7 +315,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     if (mip < hitMip) {
       mip = hitMip;
     }
-    let cellSize = mipCellSize(mip, s);
+    let cellSize = mipCellSize(mip, s) / qualityQ();
     let span = voxelXyCell(cam.x, cam.y, dir.x, dir.y, s, cellSize);
     let ix = span.ix;
     let iy = span.iy;

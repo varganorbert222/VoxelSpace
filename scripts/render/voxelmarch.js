@@ -1,7 +1,7 @@
 "use strict";
 
 import { Color } from "../math/color.js";
-import { useRetailFrame } from "./retail/schedule.js";
+import { retailStepScale, useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
 import ColorPalette from "../math/colorPalette.js";
 import {
@@ -559,7 +559,7 @@ export function renderVoxelTexels({
 
     const camRefine = lod0RefineAt(s0, 0);
     const camRefineMip = camRefine ? lod0RefineMipAt(s0, refineSwitches) : 0;
-    const camCell = marchCellSize(0, camRefine, camRefineMip);
+    const camCell = marchCellSize(0, camRefine, camRefineMip) / retailStepScale();
     const camIx = Math.floor(camX / camCell) | 0;
     const camIy = Math.floor(camY / camCell) | 0;
     const camCol = columnAt(camIx, camIy, 0, camCell, s0, camZ);
@@ -633,7 +633,7 @@ export function renderVoxelTexels({
       }
       const refineHere = lod0RefineAt(s, mip);
       const refineMip = refineHere ? lod0RefineMipAt(s, refineSwitches) : 0;
-      const cellSize = marchCellSize(mip, refineHere, refineMip);
+      const cellSize = marchCellSize(mip, refineHere, refineMip) / retailStepScale();
       const span = voxelXyCell(camX, camY, dirX, dirY, s, cellSize);
       const ix = span.ix;
       const iy = span.iy;

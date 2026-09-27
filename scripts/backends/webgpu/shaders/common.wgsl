@@ -366,13 +366,9 @@ fn mipCellFarT(t: f32, wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32) -> f32 
 }
 
 fn mipSpanFarT(t: f32, step: f32, wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32) -> f32 {
+  // The painted slice is the Quality step (raw step / q). The Low cell is not
+  // a farther edge, so a denser q shortens the column the same way on JS.
   var tFar = t + step;
-  if (!(mip <= 0 && !lod0RefineAt(t, mip))) {
-    let cellFar = mipCellFarT(t, wx, wy, dirX, dirY, mip);
-    if (cellFar > tFar) {
-      tFar = cellFar;
-    }
-  }
   if (tFar > t) {
     return tFar;
   }
@@ -418,8 +414,8 @@ fn qualityQ() -> f32 {
   if (q < 1.0) {
     q = 1.0;
   }
-  if (q > 5.0) {
-    q = 5.0;
+  if (q > 4.0) {
+    q = 4.0;
   }
   return q;
 }
