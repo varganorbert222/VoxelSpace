@@ -156,14 +156,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       if (colHidden != 0) {
         if (isOk && (ceilingOnScreen < colHidden)) {
           let useFine = lod0RefineAt(z, mip);
-          let refineMip = lod0RefineMipAt(z);
-          let env = vmaxMeters(plx, ply, vmaxLevel(mip, useFine, refineMip), altScale, repeat);
           let spanFar = mipSpanFarT(z, step, plx, ply, dirX, dirY, mip);
-          let envY = projectSdfYSpan(camZ - env, dst, z, spanFar, screenHorizon);
-          if (envY >= colHidden) {
-            z = z + step;
-            continue;
-          }
           let sampled = classicSampleHeight(plx, ply, mip, flagShowDetails(flags) && useFine, z);
           var hFine = sampled.x;
           let yCap = projectSdfYSpan(
