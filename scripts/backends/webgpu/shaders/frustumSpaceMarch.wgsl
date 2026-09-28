@@ -200,7 +200,10 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   var t = lodDistances[0];
   var step = 0.0;
   var guard = 0u;
-  var emptyRun = true;
+  var helperOn = true;
+  var fineSince = 0;
+  var helperBand = -1;
+  var advance = true;
   loop {
     if ((sy < 0) || (t >= farClip) || (guard >= MAX_STEPS)) { break; }
     guard = guard + 1u;
@@ -222,21 +225,28 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let inside = ((pos.x >= 0.0) && (pos.x <= mapWf) && (pos.y >= 0.0) && (pos.y <= mapHf)) || repeat;
     if (!inside) {
       t = t + step;
-      emptyRun = true;
+      fineSince = fineSince + 1;
       continue;
     }
-    if (emptyRun) {
-      let useFine = lod0RefineAt(t, mip);
-      let refineMip = lod0RefineMipAt(t);
+    let useFine = lod0RefineAt(t, mip);
+    let refineMip = lod0RefineMipAt(t);
+    let bandKey = select(mip + 32, refineMip + 1, useFine);
+    if (bandKey != helperBand) {
+      helperBand = bandKey;
+      if (advance) {
+        helperOn = true;
+      }
+      fineSince = 0;
+    }
+    if (advance && helperOn) {
       let level = vmaxLevel(mip, useFine, refineMip);
       let bits = vmaxShift(mip, useFine, refineMip);
       let levels = textureNumLevels(vmaxTex);
       let lv = min(u32(max(level, 0)), levels - 1u);
-      let cell = exp2(f32(lv));
       let coarse = step * exp2(f32(bits));
-      let horiz = max(abs(dir.x), abs(dir.y));
-      let eps = select(0.0, 1.0e-4 / horiz, horiz > 1.0e-8);
-      if (coarse > step * 0.5 && pos.z >= vmaxMeters(pos.x, pos.y, i32(lv), altScale, repeat)) {
+      helperOn = false;
+      fineSince = 0;
+      if (coarse > step * 0.5) {
         var cursor = t;
         var hops = 0u;
         var bandEnd = farClip;
@@ -259,45 +269,26 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
           }
         }
         loop {
-          if (hops >= 128u) { break; }
-          let exitDt = rayCellExit(cursor, dir.x, dir.y, cam.x, cam.y, cell);
-          var next = cursor + coarse;
-          var leaving = false;
-          if (cursor + exitDt <= next) {
-            next = cursor + exitDt;
-            leaving = true;
-          }
-          if (next >= bandEnd || next <= cursor) { break; }
-          let probe = select(next, next - eps, leaving);
-          if (probe <= cursor) { break; }
-          let pProbe = cam + dir * probe;
-          let probeIn = (pProbe.x >= 0.0 && pProbe.x <= mapWf && pProbe.y >= 0.0 && pProbe.y <= mapHf) || repeat;
-          if (!probeIn) { break; }
-          if ((dir.z < 0.0 || leaving) &&
-              pProbe.z < vmaxMeters(pProbe.x, pProbe.y, i32(lv), altScale, repeat)) {
-            break;
-          }
-          if (leaving) {
-            let p2 = cam + dir * next;
-            let inMap = (p2.x >= 0.0 && p2.x <= mapWf && p2.y >= 0.0 && p2.y <= mapHf) || repeat;
-            if (!inMap || p2.z < vmaxMeters(p2.x, p2.y, i32(lv), altScale, repeat)) { break; }
-          }
+          if (hops >= 48000u) { break; }
+          let next = cursor + coarse;
+          if (next > bandEnd) { break; }
+          let p2 = cam + dir * next;
+          let inMap = (p2.x >= 0.0 && p2.x <= mapWf && p2.y >= 0.0 && p2.y <= mapHf) || repeat;
+          if (!inMap || p2.z < vmaxMeters(p2.x, p2.y, i32(lv), altScale, repeat)) { break; }
           cursor = next;
           hops = hops + 1u;
         }
         if (cursor > t) {
-          t = cursor;
-          pos = cam + dir * t;
-          let still = (pos.x >= 0.0 && pos.x <= mapWf && pos.y >= 0.0 && pos.y <= mapHf) || repeat;
-          if (!still) {
-            t = t + step;
-            emptyRun = true;
-            continue;
+          t = cursor + step;
+          advance = true;
+          fineSince = 1;
+          if (fineSince >= vmaxHelperPeriod(mip, useFine, refineMip)) {
+            helperOn = true;
           }
+          continue;
         }
       }
     }
-    let useFine = lod0RefineAt(t, mip);
     let doLerp = flagShowDetails(flags) && useFine;
     let sampled = classicSampleHeight(
       pos.x * mipScale,
@@ -335,10 +326,16 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       let prev = t - step;
       let t0 = lodDistances[0];
       t = select(t0, prev, prev > t0);
-      emptyRun = false;
+      helperOn = false;
+      fineSince = 0;
+      advance = false;
     } else {
       t = t + step;
-      emptyRun = true;
+      advance = true;
+      fineSince = fineSince + 1;
+      if (fineSince >= vmaxHelperPeriod(mip, useFine, refineMip)) {
+        helperOn = true;
+      }
     }
   }
 }

@@ -943,28 +943,21 @@ static f64 vmax_meters(f64 x, f64 y, i32 level, i32 wrap) {
   return (f64)map[((iy << g_mip_sh[lv]) + ix) | 0] * g_alt_scale;
 }
 
-// t delta to the next envelope-cell edge. The edge is the following cell.
-static f64 ray_cell_exit(f64 t, f64 bx, f64 by, f64 cam_x, f64 cam_y, f64 cell) {
-  f64 x = cam_x + t * bx;
-  f64 y = cam_y + t * by;
-  f64 dt = 1.0e30;
-  if (bx > 1.0e-8 || bx < -1.0e-8) {
-    f64 origin = (f64)ifloor_vmax(x / cell) * cell;
-    f64 edge = bx > 0.0 ? origin + cell : origin;
-    f64 step = (edge - x) / bx;
-    if (step > 1.0e-8 && step < dt) {
-      dt = step;
-    }
+static i32 vmax_helper_period(i32 mip, f64 t) {
+  i32 sub = 0;
+  if ((mip == 0) && in_near(t)) {
+    sub = near_subdiv_at(t);
   }
-  if (by > 1.0e-8 || by < -1.0e-8) {
-    f64 origin = (f64)ifloor_vmax(y / cell) * cell;
-    f64 edge = by > 0.0 ? origin + cell : origin;
-    f64 step = (edge - y) / by;
-    if (step > 1.0e-8 && step < dt) {
-      dt = step;
-    }
+  if (sub >= 16) {
+    return 65536;
   }
-  return dt;
+  if (sub == 8) {
+    return 256;
+  }
+  if (sub == 4 || sub == 2) {
+    return 16;
+  }
+  return 0x7fffffff;
 }
 
 WASM_EXPORT void set_luts(
@@ -1635,7 +1628,10 @@ WASM_EXPORT void frustum_space_columns(
       f64 t = z_start;
       f64 step = 0.0;
       i32 guard = 0;
-      i32 empty_run = 1;
+      i32 helper_on = 1;
+      i32 fine_since = 0;
+      i32 helper_band = -1;
+      i32 advance = 1;
       f64 xn = ((f64)col + 0.5) * xn_step - 1.0;
       while ((sy >= 0) & (t < far_clip) & (guard < step_budget)) {
         i32 mip = 0;
@@ -1686,18 +1682,25 @@ WASM_EXPORT void frustum_space_columns(
         inside = (wx >= 0.0) & (wx <= (f64)g_map_w) & (wy >= 0.0) & (wy <= (f64)g_map_h);
         if (!inside && !wrap) {
           t = t + step;
-          empty_run = 1;
+          fine_since = (fine_since + 1) | 0;
           continue;
         }
-        if (empty_run && g_vmax_h[0]) {
+        {
+          i32 band_key = in_near(t) && (mip == 0) ? near_subdiv_at(t) : (mip + 32) | 0;
+          if (band_key != helper_band) {
+            helper_band = band_key;
+            if (advance) {
+              helper_on = 1;
+            }
+            fine_since = 0;
+          }
+        }
+        if (advance && helper_on && g_vmax_h[0]) {
           i32 vmax_lv = 0;
           i32 vmax_sh = 2;
           f64 band_end = far_clip;
-          f64 cell;
           f64 coarse;
           f64 cursor;
-          f64 horiz;
-          f64 eps;
           i32 hops;
           vmax_params(mip, t, &vmax_lv, &vmax_sh);
           if (((mip + 1) < g_lod_n) && (lod_distances[mip + 1] > t) &&
@@ -1718,72 +1721,39 @@ WASM_EXPORT void frustum_space_columns(
             }
           }
           vmax_lv = vmax_clamp(vmax_lv);
-          cell = (f64)(1 << vmax_lv);
           coarse = step * (f64)(1 << vmax_sh);
-          horiz = bx < 0.0 ? -bx : bx;
-          if ((by < 0.0 ? -by : by) > horiz) {
-            horiz = by < 0.0 ? -by : by;
-          }
-          eps = horiz > 1.0e-8 ? 1.0e-4 / horiz : 0.0;
-          if ((coarse > step * 0.5) &&
-              !(wz < vmax_meters(wx, wy, vmax_lv, wrap))) {
+          helper_on = 0;
+          fine_since = 0;
+          if (coarse > step * 0.5) {
             cursor = t;
             hops = 0;
-            while (hops < 128) {
-              f64 exit_dt = ray_cell_exit(cursor, bx, by, cam_x, cam_y, cell);
+            while (hops < 48000) {
               f64 next = cursor + coarse;
-              i32 leaving = 0;
-              f64 probe;
-              f64 px;
-              f64 py;
-              if (cursor + exit_dt <= next) {
-                next = cursor + exit_dt;
-                leaving = 1;
-              }
-              if (!(next < band_end) || !(next > cursor)) {
+              f64 nx;
+              f64 ny;
+              if (next > band_end) {
                 break;
               }
-              probe = leaving ? next - eps : next;
-              if (!(probe > cursor)) {
+              nx = cam_x + next * bx;
+              ny = cam_y + next * by;
+              if (!wrap && ((nx < 0.0) || (ny < 0.0) || (nx > (f64)g_map_w) ||
+                            (ny > (f64)g_map_h))) {
                 break;
               }
-              px = cam_x + probe * bx;
-              py = cam_y + probe * by;
-              if (!wrap && ((px < 0.0) || (py < 0.0) || (px > (f64)g_map_w) ||
-                            (py > (f64)g_map_h))) {
+              if (cam_z + next * bz < vmax_meters(nx, ny, vmax_lv, wrap)) {
                 break;
-              }
-              if ((bz < 0.0) || leaving) {
-                if (cam_z + probe * bz < vmax_meters(px, py, vmax_lv, wrap)) {
-                  break;
-                }
-              }
-              if (leaving) {
-                f64 nx = cam_x + next * bx;
-                f64 ny = cam_y + next * by;
-                if (!wrap && ((nx < 0.0) || (ny < 0.0) || (nx > (f64)g_map_w) ||
-                              (ny > (f64)g_map_h))) {
-                  break;
-                }
-                if (cam_z + next * bz < vmax_meters(nx, ny, vmax_lv, wrap)) {
-                  break;
-                }
               }
               cursor = next;
               hops = (hops + 1) | 0;
             }
             if (cursor > t) {
-              t = cursor;
-              wx = cam_x + t * bx;
-              wy = cam_y + t * by;
-              wz = cam_z + t * bz;
-              inside = (wx >= 0.0) & (wx <= (f64)g_map_w) & (wy >= 0.0) &
-                       (wy <= (f64)g_map_h);
-              if (!inside && !wrap) {
-                t = t + step;
-                empty_run = 1;
-                continue;
+              t = cursor + step;
+              advance = 1;
+              fine_since = 1;
+              if (fine_since >= vmax_helper_period(mip, t)) {
+                helper_on = 1;
               }
+              continue;
             }
           }
         }
@@ -1823,10 +1793,16 @@ WASM_EXPORT void frustum_space_columns(
             f64 prev = t - step;
             t = prev > z_start ? prev : z_start;
           }
-          empty_run = 0;
+          helper_on = 0;
+          fine_since = 0;
+          advance = 0;
         } else {
           t = t + step;
-          empty_run = 1;
+          advance = 1;
+          fine_since = (fine_since + 1) | 0;
+          if (fine_since >= vmax_helper_period(mip, t)) {
+            helper_on = 1;
+          }
         }
       }
       col = (col + pair) | 0;

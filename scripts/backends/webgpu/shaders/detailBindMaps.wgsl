@@ -25,27 +25,17 @@ fn vmaxShift(mip: i32, refine: bool, refineMip: i32) -> i32 {
   return 2;
 }
 
-fn rayCellExit(t: f32, bx: f32, by: f32, camX: f32, camY: f32, cell: f32) -> f32 {
-  let x = camX + t * bx;
-  let y = camY + t * by;
-  var dt = 1.0e30;
-  if (bx > 1.0e-8 || bx < -1.0e-8) {
-    let origin = floor(x / cell) * cell;
-    let edge = select(origin, origin + cell, bx > 0.0);
-    let step = (edge - x) / bx;
-    if (step > 1.0e-8 && step < dt) {
-      dt = step;
+fn vmaxHelperPeriod(mip: i32, refine: bool, refineMip: i32) -> i32 {
+  if (mip <= 0 && refine) {
+    if (refineMip < 2) {
+      return 65536;
     }
-  }
-  if (by > 1.0e-8 || by < -1.0e-8) {
-    let origin = floor(y / cell) * cell;
-    let edge = select(origin, origin + cell, by > 0.0);
-    let step = (edge - y) / by;
-    if (step > 1.0e-8 && step < dt) {
-      dt = step;
+    if (refineMip == 2) {
+      return 256;
     }
+    return 16;
   }
-  return dt;
+  return 0x7fffffff;
 }
 
 fn vmaxMeters(x: f32, y: f32, level: i32, altScale: f32, wrap: bool) -> f32 {

@@ -3,7 +3,7 @@
 import { Color } from "../math/color.js";
 import { qualityBandSteps, useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
-import { vmaxLevel, vmaxShift, vmaxSkipDistance } from "./retail/vmax.js";
+import { vmaxHelperPeriod, vmaxLevel, vmaxShift, vmaxSkipDistance } from "./retail/vmax.js";
 import {
   GROUND_CLIP_OFFSET,
   GROUND_HEIGHT,
@@ -386,7 +386,10 @@ export function renderFrustumSpaceColumns({
     let t = zStart;
     let step = 0;
     let guard = 0;
-    let emptyRun = 1;
+    let helperOn = 1;
+    let fineSince = 0;
+    let helperBand = -1;
+    let advance = 1;
     while (((sy >= 0) | 0) & (t < farClip) & ((guard < stepBudget) | 0)) {
       guard = (guard + 1) | 0;
       const mip = mipLevelAtDistance(t, switches, lastMip);
@@ -410,10 +413,18 @@ export function renderFrustumSpaceColumns({
         ((wy <= mapH) | 0);
       if (!(inside | wrap)) {
         t = t + step;
-        emptyRun = 1;
+        fineSince = (fineSince + 1) | 0;
         continue;
       }
-      if (emptyRun && mips.vmaxMaps) {
+      const bandKey = refineHere ? (refineMip | 0) + 1 : (mip | 0) + 32;
+      if (bandKey !== helperBand) {
+        helperBand = bandKey;
+        if (advance) {
+          helperOn = 1;
+        }
+        fineSince = 0;
+      }
+      if (advance && helperOn && mips.vmaxMaps) {
         let bandEnd = farClip;
         if (((mip + 1) | 0) < switches.length && switches[mip] > t && switches[mip] < bandEnd) {
           bandEnd = switches[mip];
@@ -450,20 +461,16 @@ export function renderFrustumSpaceColumns({
           wrap,
           altScale
         );
+        helperOn = 0;
+        fineSince = 0;
         if (jumped > t) {
-          t = jumped;
-          wx = camX + t * bx;
-          wy = camY + t * by;
-          wz = camZ + t * bz;
-          const still =
-            ((wx >= 0) | 0) &
-            ((wx <= mapW) | 0) &
-            ((wy >= 0) | 0) &
-            ((wy <= mapH) | 0);
-          if (!(still | wrap)) {
-            t = t + step;
-            continue;
+          t = jumped + step;
+          advance = 1;
+          fineSince = 1;
+          if (fineSince >= vmaxHelperPeriod(mip, refineHere, refineMip)) {
+            helperOn = 1;
           }
+          continue;
         }
       }
       shadeInvScale = 1 / (1 << mip);
@@ -537,10 +544,16 @@ export function renderFrustumSpaceColumns({
         sy = (sy - 1) | 0;
         const prev = t - step;
         t = prev > zStart ? prev : zStart;
-        emptyRun = 0;
+        helperOn = 0;
+        fineSince = 0;
+        advance = 0;
       } else {
         t = t + step;
-        emptyRun = 1;
+        advance = 1;
+        fineSince = (fineSince + 1) | 0;
+        if (fineSince >= vmaxHelperPeriod(mip, refineHere, refineMip)) {
+          helperOn = 1;
+        }
       }
     }
     i = (i + pair) | 0;

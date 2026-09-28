@@ -3,7 +3,7 @@
 import { Color } from "../math/color.js";
 import { qualityBandSteps, useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
-import { vmaxClamp, vmaxLevel, vmaxMeters } from "./retail/vmax.js";
+import { vmaxClamp, vmaxLevel } from "./retail/vmax.js";
 import { HEIGHTMAP_MAX } from "../constants/terrain.js";
 import { FILTER_DISTANCE_DEFAULT } from "../constants/sampling.js";
 import { COLUMN_PAIR, UNFILLED_PIXEL } from "../constants/framebuffer.js";
@@ -444,7 +444,14 @@ function renderClassicColumnsSampled({
       const vmaxLv = mips.vmaxMaps
         ? vmaxClamp(mips, vmaxLevel(mip, refineHere, refineMip))
         : 0;
+      const vmaxMap = mips.vmaxMaps ? mips.vmaxMaps[vmaxLv] : null;
+      const vmaxShift = vmaxMap ? mips.shifts[vmaxLv] | 0 : 0;
+      const vmaxW = vmaxMap ? mips.widths[vmaxLv] | 0 : 1;
+      const vmaxH = vmaxMap ? mips.heights[vmaxLv] | 0 : 1;
+      const vmaxWMask = (vmaxW - 1) | 0;
+      const vmaxHMask = (vmaxH - 1) | 0;
       const zFar = z + step;
+      const kFar = zFar > z ? dstToProjPlane / zFar : zScale;
 
       for (let i = startColumn; (i < endColumn) | 0; ) {
         let pair = COLUMN_PAIR;
@@ -480,22 +487,25 @@ function renderClassicColumnsSampled({
             continue;
           }
 
-          if (mips.vmaxMaps) {
-            const env = vmaxMeters(
-              mips,
-              plx,
-              ply,
-              vmaxLv,
-              altScale,
-              repeat | 0
-            );
-            const envY = projectSdfYSpan(
-              camZ - env,
-              dstToProjPlane,
-              z,
-              zFar,
-              screenHorizon
-            );
+          if (vmaxMap) {
+            let ix = Math.floor(plx) >> vmaxLv;
+            let iy = Math.floor(ply) >> vmaxLv;
+            if (repeat) {
+              ix &= vmaxWMask;
+              iy &= vmaxHMask;
+            } else {
+              if (ix < 0) ix = 0;
+              if (iy < 0) iy = 0;
+              if (ix >= vmaxW) ix = vmaxWMask;
+              if (iy >= vmaxH) iy = vmaxHMask;
+            }
+            const env = vmaxMap[((iy << vmaxShift) + ix) | 0] * altScale;
+            const sdf = camZ - env;
+            let envY = (sdf * zScale + screenHorizon) | 0;
+            const yFar = (sdf * kFar + screenHorizon) | 0;
+            if ((yFar < envY) | 0) {
+              envY = yFar;
+            }
             if ((envY >= colHidden) | 0) {
               plx += dx * pair;
               ply += dy * pair;
