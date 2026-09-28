@@ -5,7 +5,7 @@ import {
   calculateHorizon,
   calculateProjPlane,
 } from "./projection.js";
-import { applyFly } from "./flyController.js";
+import { applyFly, levelWalkOrientation } from "./flyController.js";
 import { applyOrbit, finishOrbitLook } from "./orbitController.js";
 import { applyWalk } from "./walkController.js";
 import { lookAt, rebuildBasisFromEuler } from "./basis.js";
@@ -260,7 +260,11 @@ class Camera {
     this._bottomColor = settings.bottomColor ?? this._bottomColor;
     this._frameBuffer.setColors(this._topColor, this._bottomColor);
 
+    const prevMode = this._mode;
     this._mode = settings.mode ?? this._mode;
+    if (this._mode === MODE_WALK && prevMode !== MODE_WALK) {
+      levelWalkOrientation(this);
+    }
     this._posX = settings.posX ?? this._posX;
     this._posY = settings.posY ?? this._posY;
     this._posZ = settings.posZ ?? this._posZ;

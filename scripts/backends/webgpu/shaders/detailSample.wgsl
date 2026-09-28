@@ -49,16 +49,70 @@ fn sampleDetailPacked(wx: f32, wy: f32, dist: f32) -> u32 {
   ).r;
 }
 
-fn detailHeightBytes(wx: f32, wy: f32, dist: f32) -> f32 {
-  let elev = (sampleDetailPacked(wx, wy, dist) >> 16u) & 255u;
-  if (elev < 128u) {
+fn detailElevAdd(byte: u32) -> f32 {
+  if (byte < 128u) {
     return 0.0;
   }
-  return f32(elev - 128u) / 32.0;
+  return f32(byte - 128u) / 32.0;
+}
+
+fn sampleDetailPackedLevel(wx: f32, wy: f32, level: i32) -> u32 {
+  if (level < 0) {
+    return 0u;
+  }
+  let dims = textureDimensions(characterTex);
+  let ix = detailWrapIndex(wx, i32(dims.x));
+  let iy = detailWrapIndex(wy, i32(dims.y));
+  let tile = textureLoad(characterTex, vec2i(ix, iy), 0).r;
+  let subdiv = 16u >> u32(level);
+  let fx = wx - floor(wx);
+  let fy = wy - floor(wy);
+  let last = i32(subdiv) - 1;
+  let cx = clamp(i32(floor(fx * f32(subdiv))), 0, last);
+  let cy = clamp(i32(floor(fy * f32(subdiv))), 0, last);
+  return textureLoad(
+    detailPackedTex,
+    vec2i(cx, i32(tile) * i32(subdiv) + cy),
+    level
+  ).r;
+}
+
+fn detailSpanAt(wx: f32, wy: f32, level: i32) -> vec2f {
+  if (level < 0) {
+    return vec2f(0.0);
+  }
+  let packed = sampleDetailPackedLevel(wx, wy, level);
+  return vec2f(
+    detailElevAdd((packed >> 24u) & 255u),
+    detailElevAdd((packed >> 16u) & 255u)
+  );
+}
+
+// x = min add, y = max add, z = column add. A flat detail cell keeps its max.
+// A varied cell uses the child sample so the top is not the parent maximum.
+fn detailColumnBump(wx: f32, wy: f32, dist: f32) -> vec3f {
+  let level = detailLevelAt(dist);
+  if (level < 0) {
+    return vec3f(0.0);
+  }
+  let parent = sampleDetailPackedLevel(wx, wy, level);
+  let maxAdd = detailElevAdd((parent >> 16u) & 255u);
+  let minAdd = detailElevAdd((parent >> 24u) & 255u);
+  var add = maxAdd;
+  if (level > 0 && minAdd < maxAdd) {
+    let child = sampleDetailPackedLevel(wx, wy, level - 1);
+    add = detailElevAdd((child >> 16u) & 255u);
+  }
+  return vec3f(minAdd, maxAdd, add);
 }
 
 // Retail skips the detail map until the coarse height says the sample can
 // meet the surface. A bump is at most (255 - 128) / 32 height bytes.
+fn detailHeightBytes(wx: f32, wy: f32, dist: f32) -> f32 {
+  let elev = (sampleDetailPacked(wx, wy, dist) >> 16u) & 255u;
+  return detailElevAdd(elev);
+}
+
 fn detailElevMaxBytes(dist: f32) -> f32 {
   if (detailLevelAt(dist) < 0) {
     return 0.0;

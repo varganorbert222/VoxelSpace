@@ -100,6 +100,46 @@ fn voxelGridSize(mip: i32) -> f32 {
   return exp2(f32(mip));
 }
 
+fn detailTargetLevel(depth: f32) -> i32 {
+  let subdiv = lod0RefineSubdivAt(lod0RefineMipAt(depth));
+  if (subdiv >= 16u) {
+    return 0;
+  }
+  if (subdiv >= 8u) {
+    return 1;
+  }
+  if (subdiv >= 4u) {
+    return 2;
+  }
+  return 3;
+}
+
+fn detailSubdivOf(level: i32) -> f32 {
+  if (level <= 0) {
+    return 16.0;
+  }
+  if (level == 1) {
+    return 8.0;
+  }
+  if (level == 2) {
+    return 4.0;
+  }
+  return 2.0;
+}
+
+fn detailLevelOfSubdiv(subdiv: f32) -> i32 {
+  if (subdiv >= 16.0) {
+    return 0;
+  }
+  if (subdiv >= 8.0) {
+    return 1;
+  }
+  if (subdiv >= 4.0) {
+    return 2;
+  }
+  return 3;
+}
+
 struct RayHeightSpan {
   s0: f32,
   s1: f32,
@@ -150,6 +190,27 @@ struct VoxelColumn {
   colY: i32,
 }
 
+fn voxelQuantHeight(wx: f32, wy: f32, t: f32, wrap: bool, showFine: bool) -> f32 {
+  let tx = i32(floor(wx));
+  let ty = i32(floor(wy));
+  let nearest = f32(terrainHeightAt(heightTex, tx, ty, 0, wrap));
+  if (!showFine || !lod0RefineAt(t, 0)) {
+    return nearest;
+  }
+  let subdiv = lod0RefineSubdivAt(lod0RefineMipAt(t));
+  var fx = wx - floor(wx);
+  var fy = wy - floor(wy);
+  if (subdiv > 1u) {
+    fx = subcellCenter(fx, subdiv);
+    fy = subcellCenter(fy, subdiv);
+  }
+  let h00 = f32(terrainHeightAt(heightTex, tx, ty, 0, wrap));
+  let h10 = f32(terrainHeightAt(heightTex, tx + 1, ty, 0, wrap));
+  let h01 = f32(terrainHeightAt(heightTex, tx, ty + 1, 0, wrap));
+  let h11 = f32(terrainHeightAt(heightTex, tx + 1, ty + 1, 0, wrap));
+  return bilinearHeight(h00, h10, h01, h11, fx, fy);
+}
+
 fn voxelColumn(skipMip: i32, ix: i32, iy: i32, cellSize: f32, t: f32, probeZ: f32) -> VoxelColumn {
   let wrap = flagRepeat(frame.mapFlags.w);
   let altitude = frame.tMaxMinDzAltMaxH.z;
@@ -162,16 +223,22 @@ fn voxelColumn(skipMip: i32, ix: i32, iy: i32, cellSize: f32, t: f32, probeZ: f3
     let wy = (f32(iy) + 0.5) * cellSize;
     colX = i32(floor(wx));
     colY = i32(floor(wy));
-    hFine = f32(terrainHeightAt(heightTex, colX, colY, 0, wrap));
+    hFine = voxelQuantHeight(wx, wy, t, wrap, flagShowDetails(frame.mapFlags.w));
+    let bump = detailColumnBump(wx, wy, t);
     let baseWorld = hFine * (altitude / 255.0);
-    hFine = hFine + detailHeightBytesReached(wx, wy, t, baseWorld, probeZ);
+    if (probeZ <= baseWorld + bump.y * (altitude / 255.0)) {
+      hFine = hFine + bump.z;
+    }
     hByte = u32(clamp(hFine + 0.5, 0.0, 255.0));
   } else {
     let wx = (f32(ix) + 0.5) * cellSize;
     let wy = (f32(iy) + 0.5) * cellSize;
     hFine = f32(terrainHeightAt(heightTex, ix, iy, skipMip, wrap));
+    let bump = detailColumnBump(wx, wy, t);
     let baseWorld = hFine * (altitude / 255.0);
-    hFine = hFine + detailHeightBytesReached(wx, wy, t, baseWorld, probeZ);
+    if (probeZ <= baseWorld + bump.y * (altitude / 255.0)) {
+      hFine = hFine + bump.z;
+    }
     hByte = u32(clamp(hFine + 0.5, 0.0, 255.0));
   }
   var h = hFine * (altitude / 255.0);
@@ -181,15 +248,216 @@ fn voxelColumn(skipMip: i32, ix: i32, iy: i32, cellSize: f32, t: f32, probeZ: f3
   return VoxelColumn(h, hByte, colX, colY);
 }
 
-fn voxelHitColor(mip: i32, colX: i32, colY: i32, wx: f32, wy: f32, dist: f32) -> vec4f {
-  let base = terrainColorAt(
-    colorTex,
-    colX,
-    colY,
-    mip,
-    flagRepeat(frame.mapFlags.w)
+fn voxelQuantColor(wx: f32, wy: f32, dist: f32, wrap: bool, showFine: bool) -> vec4f {
+  let tx = i32(floor(wx));
+  let ty = i32(floor(wy));
+  if (!showFine || !lod0RefineAt(dist, 0)) {
+    return terrainColorAt(colorTex, tx, ty, 0, wrap);
+  }
+  let subdiv = lod0RefineSubdivAt(lod0RefineMipAt(dist));
+  var fx = wx - floor(wx);
+  var fy = wy - floor(wy);
+  if (subdiv > 1u) {
+    fx = subcellCenter(fx, subdiv);
+    fy = subcellCenter(fy, subdiv);
+  }
+  return bilinearColor(
+    terrainColorAt(colorTex, tx, ty, 0, wrap),
+    terrainColorAt(colorTex, tx + 1, ty, 0, wrap),
+    terrainColorAt(colorTex, tx, ty + 1, 0, wrap),
+    terrainColorAt(colorTex, tx + 1, ty + 1, 0, wrap),
+    fx,
+    fy
   );
+}
+
+fn voxelHitColor(mip: i32, ix: i32, iy: i32, cellSize: f32, colX: i32, colY: i32, dist: f32) -> vec4f {
+  let wrap = flagRepeat(frame.mapFlags.w);
+  let wx = (f32(ix) + 0.5) * cellSize;
+  let wy = (f32(iy) + 0.5) * cellSize;
+  var base: vec4f;
+  if (mip <= 0) {
+    base = voxelQuantColor(wx, wy, dist, wrap, flagShowDetails(frame.mapFlags.w));
+  } else {
+    base = terrainColorAt(colorTex, colX, colY, mip, wrap);
+  }
   return detailColor(base, wx, wy, dist);
+}
+
+struct DetailLeaf {
+  h: f32,
+  hByte: u32,
+}
+
+fn detailLeafHeight(ix: i32, iy: i32, cellSize: f32, wrap: bool, altitude: f32) -> DetailLeaf {
+  let wx = (f32(ix) + 0.5) * cellSize;
+  let wy = (f32(iy) + 0.5) * cellSize;
+  let subdiv = u32(max(1.0 / cellSize + 0.5, 1.0));
+  let tx = i32(floor(wx));
+  let ty = i32(floor(wy));
+  var fx = wx - floor(wx);
+  var fy = wy - floor(wy);
+  if (subdiv > 1u) {
+    fx = subcellCenter(fx, subdiv);
+    fy = subcellCenter(fy, subdiv);
+  }
+  let hFine = bilinearHeight(
+    f32(terrainHeightAt(heightTex, tx, ty, 0, wrap)),
+    f32(terrainHeightAt(heightTex, tx + 1, ty, 0, wrap)),
+    f32(terrainHeightAt(heightTex, tx, ty + 1, 0, wrap)),
+    f32(terrainHeightAt(heightTex, tx + 1, ty + 1, 0, wrap)),
+    fx,
+    fy
+  );
+  let bump = detailSpanAt(wx, wy, detailLevelOfSubdiv(f32(subdiv))).y;
+  var h = (hFine + bump) * (altitude / 255.0);
+  if (!(h > 0.0)) {
+    h = AABB_Z_EPS;
+  }
+  return DetailLeaf(h, u32(clamp(hFine + bump + 0.5, 0.0, 255.0)));
+}
+
+fn detailBilinearAt(wx: f32, wy: f32, wrap: bool) -> f32 {
+  let tx = i32(floor(wx));
+  let ty = i32(floor(wy));
+  let fx = wx - floor(wx);
+  let fy = wy - floor(wy);
+  return bilinearHeight(
+    f32(terrainHeightAt(heightTex, tx, ty, 0, wrap)),
+    f32(terrainHeightAt(heightTex, tx + 1, ty, 0, wrap)),
+    f32(terrainHeightAt(heightTex, tx, ty + 1, 0, wrap)),
+    f32(terrainHeightAt(heightTex, tx + 1, ty + 1, 0, wrap)),
+    fx,
+    fy
+  );
+}
+
+fn detailCellTop(ix: i32, iy: i32, cellSize: f32, level: i32, wrap: bool, altitude: f32) -> f32 {
+  let x0 = f32(ix) * cellSize;
+  let y0 = f32(iy) * cellSize;
+  let x1 = x0 + cellSize;
+  let y1 = y0 + cellSize;
+  let hMax = max(
+    max(detailBilinearAt(x0, y0, wrap), detailBilinearAt(x1, y0, wrap)),
+    max(detailBilinearAt(x0, y1, wrap), detailBilinearAt(x1, y1, wrap))
+  );
+  let bump = detailSpanAt(x0 + cellSize * 0.5, y0 + cellSize * 0.5, level).y;
+  var h = (hMax + bump) * (altitude / 255.0);
+  if (!(h > 0.0)) {
+    h = AABB_Z_EPS;
+  }
+  return h;
+}
+
+fn detailMeterTop(ix: i32, iy: i32, wrap: bool, altitude: f32) -> f32 {
+  let hMax = max(
+    max(
+      f32(terrainHeightAt(heightTex, ix, iy, 0, wrap)),
+      f32(terrainHeightAt(heightTex, ix + 1, iy, 0, wrap))
+    ),
+    max(
+      f32(terrainHeightAt(heightTex, ix, iy + 1, 0, wrap)),
+      f32(terrainHeightAt(heightTex, ix + 1, iy + 1, 0, wrap))
+    )
+  );
+  let x0 = f32(ix);
+  let y0 = f32(iy);
+  let bump = max(
+    max(detailSpanAt(x0 + 0.25, y0 + 0.25, 3).y, detailSpanAt(x0 + 0.75, y0 + 0.25, 3).y),
+    max(detailSpanAt(x0 + 0.25, y0 + 0.75, 3).y, detailSpanAt(x0 + 0.75, y0 + 0.75, 3).y)
+  );
+  var h = (hMax + bump) * (altitude / 255.0);
+  if (!(h > 0.0)) {
+    h = AABB_Z_EPS;
+  }
+  return h;
+}
+
+struct DetailMarch {
+  hit: i32,
+  k: u32,
+  s: f32,
+  depth: f32,
+  hByte: u32,
+  color: vec4f,
+}
+
+fn marchDetail(
+  cam: vec3f,
+  dir: vec3f,
+  dirFwd: f32,
+  sIn: f32,
+  sLimit: f32,
+  kIn: u32,
+  maxSteps: u32,
+  wrap: bool,
+  altitude: f32
+) -> DetailMarch {
+  var s = sIn;
+  var k = kIn;
+  var level = 3;
+  loop {
+    if ((s >= sLimit) || (k >= maxSteps)) {
+      break;
+    }
+    k = k + 1u;
+    let depth = s * dirFwd;
+    if (!lod0RefineAt(depth, 0)) {
+      break;
+    }
+    let band = detailTargetLevel(depth);
+    if (level < band) {
+      level = band;
+    }
+    let cellSize = 1.0 / detailSubdivOf(level);
+    let span = voxelXyCell(cam.x, cam.y, dir.x, dir.y, s, cellSize);
+    var sExit = span.tFar;
+    if (sExit > sLimit) {
+      sExit = sLimit;
+    }
+    if (!(sExit > s)) {
+      s = s + max(cellSize * 1e-4, 1e-6);
+      continue;
+    }
+    let zEnter = cam.z + dir.z * s;
+    let zExitV = cam.z + dir.z * sExit;
+    let zLo = min(zEnter, zExitV);
+    let zHi = max(zEnter, zExitV);
+    let leafNow = level <= band;
+    var hTop = 0.0;
+    var leaf = DetailLeaf(0.0, 0u);
+    if (leafNow) {
+      leaf = detailLeafHeight(span.ix, span.iy, cellSize, wrap, altitude);
+      hTop = leaf.h;
+    } else {
+      hTop = detailCellTop(span.ix, span.iy, cellSize, level, wrap, altitude);
+    }
+    if ((zHi < 0.0) || (zLo > hTop)) {
+      s = sExit;
+      if (level < 3) {
+        level = level + 1;
+      }
+      continue;
+    }
+    if (!leafNow) {
+      level = level - 1;
+      continue;
+    }
+    let sHit = voxelColumnHit(cam.z, dir.z, leaf.h, s, sExit);
+    if (sHit >= 0.0) {
+      let depthHit = sHit * dirFwd;
+      return DetailMarch(
+        1,
+        k,
+        sHit,
+        depthHit,
+        leaf.hByte,
+        voxelHitColor(0, span.ix, span.iy, cellSize, 0, 0, depthHit)
+      );
+    }
+    s = sExit;
+  }
+  return DetailMarch(0, k, s, 0.0, 0u, vec4f(0.0));
 }
 
 fn voxelWrite(
@@ -275,17 +543,32 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let hatZ = dir.z;
   let dirFwd = dot(dir, fwd);
   let ceiling = frame.tMaxMinDzAltMaxH.w;
-  let camCell = voxelGridSize(0);
-  let camIx = i32(floor(cam.x / camCell));
-  let camIy = i32(floor(cam.y / camCell));
-  let camCol = voxelColumn(0, camIx, camIy, camCell, s0, cam.z);
+  let altitude = frame.tMaxMinDzAltMaxH.z;
+  let depthNear = s0 * max(dirFwd, 0.0);
+  let camInDetail = flagShowDetails(frame.mapFlags.w) && lod0RefineAt(depthNear, 0);
+  var camCell = 1.0;
+  var camIx = i32(floor(cam.x));
+  var camIy = i32(floor(cam.y));
+  var hCamByte = 0u;
+  var hCamW = 0.0;
+  if (camInDetail) {
+    let level = detailTargetLevel(depthNear);
+    camCell = 1.0 / detailSubdivOf(level);
+    camIx = i32(floor(cam.x / camCell));
+    camIy = i32(floor(cam.y / camCell));
+    let leaf = detailLeafHeight(camIx, camIy, camCell, wrap, altitude);
+    hCamByte = leaf.hByte;
+    hCamW = leaf.h;
+  } else {
+    let camCol = voxelColumn(0, camIx, camIy, 1.0, s0, cam.z);
+    hCamByte = camCol.hByte;
+    hCamW = camCol.h;
+  }
   let camInside = wrap || ((cam.x >= 0.0) && (cam.x < mapW) && (cam.y >= 0.0) && (cam.y < mapH));
-  let hCamByte = camCol.hByte;
-  let hCamW = camCol.h;
   if (camInside && (cam.z <= hCamW)) {
     voxelWrite(
       p,
-      voxelHitColor(0, camCol.colX, camCol.colY, cam.x, cam.y, s0),
+      voxelHitColor(0, camIx, camIy, camCell, 0, 0, s0),
       s0,
       hCamByte,
       1u,
@@ -319,7 +602,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         if (sHit >= spanZ.s0 && sHit <= spanZ.s1 && depthHit >= s0 && depthHit <= farClip) {
           voxelWrite(
             p,
-            voxelHitColor(0, camCol.colX, camCol.colY, cam.x, cam.y, depthHit),
+            voxelHitColor(0, camIx, camIy, camCell, 0, 0, depthHit),
             depthHit,
             hCamByte,
             1u,
@@ -336,7 +619,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       if (sHit >= spanZ.s0 && sHit <= spanZ.s1 && depthHit >= s0 && depthHit <= farClip) {
         voxelWrite(
           p,
-          voxelHitColor(0, camCol.colX, camCol.colY, cam.x, cam.y, depthHit),
+          voxelHitColor(0, camIx, camIy, camCell, 0, 0, depthHit),
           depthHit,
           hCamByte,
           1u,
@@ -400,8 +683,15 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let zExitV = cam.z + dir.z * sExit;
     let zLo = min(zEnter, zExitV);
     let zHi = max(zEnter, zExitV);
-    let col = voxelColumn(mip, ix, iy, cellSize, depth, zLo);
-    let hMax = col.h;
+    let inDetail = (mip <= 0) && flagShowDetails(frame.mapFlags.w) && lod0RefineAt(depth, 0);
+    var hMax = 0.0;
+    var col = VoxelColumn(0.0, 0u, ix, iy);
+    if (inDetail) {
+      hMax = detailMeterTop(ix, iy, wrap, altitude);
+    } else {
+      col = voxelColumn(mip, ix, iy, cellSize, depth, zLo);
+      hMax = col.h;
+    }
     if (zHi < 0.0) {
       s = sExit;
       if (mip < lastMip) {
@@ -421,6 +711,24 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       mip = mip - 1;
       continue;
     }
+    if (inDetail) {
+      let refined = marchDetail(cam, dir, dirFwd, s, sExit, k, maxSteps, wrap, altitude);
+      k = refined.k;
+      if (refined.hit != 0) {
+        let hx = cam.x + dir.x * refined.s;
+        let hy = cam.y + dir.y * refined.s;
+        if (!wrap) {
+          let hitInside = (hx >= 0.0) && (hx < mapW) && (hy >= 0.0) && (hy < mapH);
+          if (!hitInside) {
+            break;
+          }
+        }
+        voxelWrite(p, refined.color, refined.depth, refined.hByte, refined.k, hatZ, farClip, nearClip);
+        return;
+      }
+      s = sExit;
+      continue;
+    }
     let sHit = voxelColumnHit(cam.z, dir.z, col.h, s, sExit);
     if (sHit < 0.0) {
       s = sExit;
@@ -437,7 +745,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     }
     voxelWrite(
       p,
-      voxelHitColor(mip, col.colX, col.colY, hx, hy, depthHit),
+      voxelHitColor(mip, ix, iy, cellSize, col.colX, col.colY, depthHit),
       depthHit,
       col.hByte,
       k,

@@ -1,13 +1,42 @@
 "use strict";
 
 import VMath from "../math/vmath.js";
-import { applyPanoramaLook, rebuildBasisFromEuler } from "./basis.js";
+import { applyPanoramaLook, extractEulerFromBasis, rebuildBasisFromEuler } from "./basis.js";
 import {
   MOVE_DT_SCALE,
   MOUSE_LOOK_SENSITIVITY,
   STICK_LOOK_SENSITIVITY,
   KEY_LOOK_SENSITIVITY,
 } from "../constants/camera.js";
+
+// Free-look stores pitch with the opposite sign of the Euler basis.
+// Level once: keep the look direction, drop roll, then stay on yaw and pitch.
+export function levelWalkOrientation(camera) {
+  extractEulerFromBasis(camera);
+  camera.setEuler(camera.angle, -camera.pitch, 0);
+  rebuildBasisFromEuler(camera);
+  camera.markHorizonDirty();
+}
+
+export function applyEulerLook(dt, input, camera) {
+  const scaledDt = dt * MOVE_DT_SCALE;
+  const look = input.consumeLookDelta();
+  const stickYaw =
+    input.stickLookX * STICK_LOOK_SENSITIVITY * scaledDt * VMath.DEG_TO_RAD;
+  const keyYaw = input.yawHold * KEY_LOOK_SENSITIVITY * scaledDt * VMath.DEG_TO_RAD;
+  const pitch =
+    camera.pitch +
+    look.y * MOUSE_LOOK_SENSITIVITY +
+    input.stickLookY * STICK_LOOK_SENSITIVITY * scaledDt +
+    input.pitchHold * KEY_LOOK_SENSITIVITY * scaledDt;
+  camera.setEuler(
+    camera.angle - (look.x * MOUSE_LOOK_SENSITIVITY * VMath.DEG_TO_RAD + stickYaw + keyYaw),
+    VMath.clamp(-89.9, 89.9, pitch),
+    0
+  );
+  rebuildBasisFromEuler(camera);
+  camera.markHorizonDirty();
+}
 
 export function applyLook(dt, input, camera) {
   const scaledDt = dt * MOVE_DT_SCALE;
@@ -33,9 +62,7 @@ export function applyLook(dt, input, camera) {
   } else {
     camera.setEuler(
       camera.angle -
-        (look.x * MOUSE_LOOK_SENSITIVITY * VMath.DEG_TO_RAD +
-          stickYaw +
-          keyYaw),
+        (look.x * MOUSE_LOOK_SENSITIVITY * VMath.DEG_TO_RAD + stickYaw + keyYaw),
       VMath.clamp(
         camera.pitchMin,
         camera.pitchMax,

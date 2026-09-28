@@ -2,7 +2,7 @@
 
 import { Color } from "../math/color.js";
 import { useRetailFrame } from "./retail/schedule.js";
-import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
+import { applyDetail, detailColumnBump, detailInRange, detailSpanAt } from "./retail/detail.js";
 import ColorPalette from "../math/colorPalette.js";
 import {
   SKY_PALETTE_STEPS,
@@ -25,8 +25,8 @@ import {
   TERRAIN_MIP_MAX_COUNT,
   lod0RefineAt,
   lod0RefineMipAt,
+  lod0RefineSubdiv,
   lod0RefineSwitchDistances,
-  lod0SamplePos,
   marchMaxSteps,
   mipVoxelSize,
   mixNearestBilinear,
@@ -122,13 +122,25 @@ function bilinearPacked4(c00, c10, c01, c11, fx, fy) {
   return lerpPacked(lerpPacked(c00, c10, tx), lerpPacked(c01, c11, tx), ty);
 }
 
-function sampleHeightBilinear(heightMap, x, y, mapShift, wMask, hMask, wrap) {
+function quantFraction(f, subdiv) {
+  const sub = subdiv | 0;
+  if ((sub | 0) <= 1) {
+    return f;
+  }
+  const last = (sub - 1) | 0;
+  let c = (f * sub) | 0;
+  if ((c < 0) | 0) c = 0;
+  if ((c > last) | 0) c = last;
+  return (c + 0.5) / sub;
+}
+
+function sampleHeightBilinear(heightMap, x, y, mapShift, wMask, hMask, wrap, subdiv) {
   const x0 = Math.floor(x);
   const y0 = Math.floor(y);
-  const fx = x - x0;
-  const fy = y - y0;
   const ix = x0 | 0;
   const iy = y0 | 0;
+  const fx = quantFraction(x - x0, subdiv);
+  const fy = quantFraction(y - y0, subdiv);
   const h00 = heightAt(heightMap, ix, iy, mapShift, wMask, hMask, wrap);
   const h10 = heightAt(
     heightMap,
@@ -162,7 +174,7 @@ function sampleHeightBilinear(heightMap, x, y, mapShift, wMask, hMask, wrap) {
   return hx0 + (hx1 - hx0) * fy;
 }
 
-function sampleColorFiltered(colorMap, x, y, mapShift, wMask, hMask, wrap) {
+function sampleColorFiltered(colorMap, x, y, mapShift, wMask, hMask, wrap, subdiv) {
   const x0 = Math.floor(x);
   const y0 = Math.floor(y);
   const ix = x0 | 0;
@@ -180,8 +192,8 @@ function sampleColorFiltered(colorMap, x, y, mapShift, wMask, hMask, wrap) {
       hMask,
       wrap
     ),
-    x - x0,
-    y - y0
+    quantFraction(x - x0, subdiv),
+    quantFraction(y - y0, subdiv)
   );
 }
 
@@ -253,10 +265,6 @@ function voxelColumnHit(camZ, dirZ, h, s, sExit) {
     tHit = sExit;
   }
   return tHit;
-}
-
-function voxelGridSize(mip) {
-  return mipVoxelSize(mip);
 }
 
 function rayHeightSpan(camZ, dirZ, ceiling, sNear, sFar) {
@@ -395,24 +403,127 @@ export function renderVoxelTexels({
   if (!(s0 > 0)) {
     s0 = EPSILON;
   }
+  const DETAIL_SUBDIV = [16, 8, 4, 2];
+
+  function detailLevelForSubdiv(subdiv) {
+    if ((subdiv | 0) >= 16) {
+      return 0;
+    }
+    if ((subdiv | 0) >= 8) {
+      return 1;
+    }
+    if ((subdiv | 0) >= 4) {
+      return 2;
+    }
+    return 3;
+  }
+
+  function detailLevelForDepth(depth) {
+    return detailLevelForSubdiv(lod0RefineSubdiv(lod0RefineMipAt(depth, refineSwitches)));
+  }
+
+  function heightBilinear(x, y) {
+    return sampleHeightBilinear(
+      lod0H,
+      x,
+      y,
+      lod0Shift,
+      lod0WMask,
+      lod0HMask,
+      wrap,
+      0
+    );
+  }
+
+  function detailLeaf(ix, iy, cellSize) {
+    const wx = (ix + HALF) * cellSize;
+    const wy = (iy + HALF) * cellSize;
+    const subdiv = Math.round(1 / cellSize) | 0;
+    const hFine = sampleHeightBilinear(
+      lod0H,
+      wx,
+      wy,
+      lod0Shift,
+      lod0WMask,
+      lod0HMask,
+      wrap,
+      subdiv
+    );
+    const span = detailSpanAt(wx, wy, detailLevelForSubdiv(subdiv));
+    let h = (hFine + span.max) * altScale;
+    if (!(h > GROUND_HEIGHT)) {
+      h = GROUND_HEIGHT + AABB_Z_EPS;
+    }
+    let hb = (hFine + span.max + HALF) | 0;
+    if ((hb < 0) | 0) {
+      hb = 0;
+    }
+    if ((hb > 255) | 0) {
+      hb = 255;
+    }
+    return { h: h, hByte: hb };
+  }
+
+  function detailCellTop(ix, iy, cellSize, level) {
+    const x0 = ix * cellSize;
+    const y0 = iy * cellSize;
+    const x1 = x0 + cellSize;
+    const y1 = y0 + cellSize;
+    let hMax = heightBilinear(x0, y0);
+    const h10 = heightBilinear(x1, y0);
+    const h01 = heightBilinear(x0, y1);
+    const h11 = heightBilinear(x1, y1);
+    if (h10 > hMax) hMax = h10;
+    if (h01 > hMax) hMax = h01;
+    if (h11 > hMax) hMax = h11;
+    const span = detailSpanAt(x0 + cellSize * HALF, y0 + cellSize * HALF, level);
+    let h = (hMax + span.max) * altScale;
+    if (!(h > GROUND_HEIGHT)) {
+      h = GROUND_HEIGHT + AABB_Z_EPS;
+    }
+    return h;
+  }
+
+  function meterTop(ix, iy) {
+    let hMax = heightAt(lod0H, ix, iy, lod0Shift, lod0WMask, lod0HMask, wrap);
+    const h10 = heightAt(lod0H, (ix + 1) | 0, iy, lod0Shift, lod0WMask, lod0HMask, wrap);
+    const h01 = heightAt(lod0H, ix, (iy + 1) | 0, lod0Shift, lod0WMask, lod0HMask, wrap);
+    const h11 = heightAt(
+      lod0H,
+      (ix + 1) | 0,
+      (iy + 1) | 0,
+      lod0Shift,
+      lod0WMask,
+      lod0HMask,
+      wrap
+    );
+    if (h10 > hMax) hMax = h10;
+    if (h01 > hMax) hMax = h01;
+    if (h11 > hMax) hMax = h11;
+    let bump = 0;
+    const ox = ix | 0;
+    const oy = iy | 0;
+    const a = detailSpanAt(ox + 0.25, oy + 0.25, 3);
+    const b = detailSpanAt(ox + 0.75, oy + 0.25, 3);
+    const c = detailSpanAt(ox + 0.25, oy + 0.75, 3);
+    const d = detailSpanAt(ox + 0.75, oy + 0.75, 3);
+    if (a.max > bump) bump = a.max;
+    if (b.max > bump) bump = b.max;
+    if (c.max > bump) bump = c.max;
+    if (d.max > bump) bump = d.max;
+    let h = (hMax + bump) * altScale;
+    if (!(h > GROUND_HEIGHT)) {
+      h = GROUND_HEIGHT + AABB_Z_EPS;
+    }
+    return h;
+  }
+
   const dCamX = NDC_SCALE * tanHalfX * invW;
   const camX0 =
     ((startColumn + PIXEL_CENTER) * invW * NDC_SCALE - 1) * tanHalfX;
   const rdx = rightX * dCamX;
   const rdy = rightY * dCamX;
   const rdz = rightZ * dCamX;
-
-  function lod0SampleXY(wx, wy, dirX, dirY, t) {
-    const refineHere = lod0RefineAt(t, 0);
-    const refineMip = refineHere ? lod0RefineMipAt(t, refineSwitches) : 0;
-    const sample = lod0SamplePos(wx, wy, dirX, dirY, refineHere, refineMip);
-    return {
-      sx: refineHere ? sample.x : wx,
-      sy: refineHere ? sample.y : wy,
-      refineHere: refineHere,
-      refineMip: refineMip,
-    };
-  }
 
   function columnAt(ix, iy, skipMip, cellSize, t, probeZ) {
     if ((skipMip | 0) <= 0) {
@@ -429,10 +540,24 @@ export function renderVoxelTexels({
         lod0HMask,
         wrap
       );
-      let hFine = nearestH;
-      const bump = detailElevMax(t) * altScale;
-      if (probeZ <= hFine * altScale + bump) {
-        hFine += detailHeightAdd(wx, wy, t);
+      const refineHere = fine && lod0RefineAt(t, 0);
+      const refineMip = refineHere ? lod0RefineMipAt(t, refineSwitches) : 0;
+      const subdiv = refineHere ? lod0RefineSubdiv(refineMip) : 0;
+      let hFine = refineHere
+        ? sampleHeightBilinear(
+            lod0H,
+            wx,
+            wy,
+            lod0Shift,
+            lod0WMask,
+            lod0HMask,
+            wrap,
+            subdiv
+          )
+        : nearestH;
+      const bump = detailColumnBump(wx, wy, t);
+      if (probeZ <= hFine * altScale + bump.max * altScale) {
+        hFine += bump.add;
       }
       let h = hFine * altScale;
       if (!(h > GROUND_HEIGHT)) {
@@ -459,9 +584,9 @@ export function renderVoxelTexels({
         (mips.heights[skipMip] - 1) | 0,
         wrap
       );
-    const bump = detailElevMax(t) * altScale;
-    if (probeZ <= hFine * altScale + bump) {
-      hFine += detailHeightAdd(wx, wy, t);
+    const bump = detailColumnBump(wx, wy, t);
+    if (probeZ <= hFine * altScale + bump.max * altScale) {
+      hFine += bump.add;
     }
     let hByte = (hFine + HALF) | 0;
     if ((hByte < 0) | 0) {
@@ -477,29 +602,33 @@ export function renderVoxelTexels({
     return { h: h, hByte: hByte, colX: ix | 0, colY: iy | 0 };
   }
 
-  function hitColor(hx, hy, dirX, dirY, t, colX, colY, skipMip) {
+  function hitColor(ix, iy, cellSize, t, colX, colY, skipMip) {
+    const wx = (ix + HALF) * cellSize;
+    const wy = (iy + HALF) * cellSize;
     if ((skipMip | 0) <= 0) {
-      const lod = lod0SampleXY(hx, hy, dirX, dirY, t);
-      const base = fine && lod.refineHere
+      const refineHere = fine && lod0RefineAt(t, 0);
+      const subdiv = refineHere ? lod0RefineSubdiv(lod0RefineMipAt(t, refineSwitches)) : 0;
+      const base = refineHere
         ? sampleColorFiltered(
             lod0C,
-            lod.sx,
-            lod.sy,
+            wx,
+            wy,
             lod0Shift,
             lod0WMask,
             lod0HMask,
-            wrap
+            wrap,
+            subdiv
           )
         : colorAt(
             lod0C,
-            Math.floor(lod.sx) | 0,
-            Math.floor(lod.sy) | 0,
+            Math.floor(wx) | 0,
+            Math.floor(wy) | 0,
             lod0Shift,
             lod0WMask,
             lod0HMask,
             wrap
           );
-      return detailInRange(t) ? applyDetail(base, lod.sx, lod.sy, t) : base;
+      return detailInRange(t) ? applyDetail(base, wx, wy, t) : base;
     }
     const mip = skipMip | 0;
     const coarse = colorAt(
@@ -511,7 +640,7 @@ export function renderVoxelTexels({
       (mips.heights[mip] - 1) | 0,
       wrap
     );
-    return detailInRange(t) ? applyDetail(coarse, hx, hy, t) : coarse;
+    return detailInRange(t) ? applyDetail(coarse, wx, wy, t) : coarse;
   }
 
   function writeHit(dest, color, dist, hByte, iter, hatZ) {
@@ -551,12 +680,26 @@ export function renderVoxelTexels({
     const lenXY2 = dirX * dirX + dirY * dirY;
     const dirFwd = dirX * fwdX + dirY * fwdY + dirZ * fwdZ;
 
-    const camCell = voxelGridSize(0);
-    const camIx = Math.floor(camX / camCell) | 0;
-    const camIy = Math.floor(camY / camCell) | 0;
-    const camCol = columnAt(camIx, camIy, 0, camCell, s0, camZ);
-    const hCam = camCol.hByte;
-    const hCamW = camCol.h;
+    const depthNear = s0 * dirFwd;
+    const camInDetail = fine && lod0RefineAt(depthNear, 0);
+    let camIx = Math.floor(camX) | 0;
+    let camIy = Math.floor(camY) | 0;
+    let camCell = 1;
+    let hCam = 0;
+    let hCamW = 0;
+    if (camInDetail) {
+      const level = detailLevelForDepth(depthNear);
+      camCell = 1 / DETAIL_SUBDIV[level];
+      camIx = Math.floor(camX / camCell) | 0;
+      camIy = Math.floor(camY / camCell) | 0;
+      const leaf = detailLeaf(camIx, camIy, camCell);
+      hCam = leaf.hByte;
+      hCamW = leaf.h;
+    } else {
+      const camCol = columnAt(camIx, camIy, 0, 1, s0, camZ);
+      hCam = camCol.hByte;
+      hCamW = camCol.h;
+    }
     const camInsideMap =
       wrap |
       (((camX >= 0) | 0) &
@@ -566,7 +709,7 @@ export function renderVoxelTexels({
     if (camInsideMap && camZ <= hCamW) {
       writeHit(
         dest,
-        hitColor(camX, camY, dirX, dirY, s0, camCol.colX, camCol.colY, 0),
+        hitColor(camIx, camIy, camCell, s0, 0, 0, 0),
         s0,
         hCam,
         1,
@@ -600,7 +743,7 @@ export function renderVoxelTexels({
           if (sHit >= spanZ.s0 && sHit <= spanZ.s1 && depthHit >= s0 && depthHit <= farClip) {
             writeHit(
               dest,
-              hitColor(camX, camY, dirX, dirY, depthHit, camCol.colX, camCol.colY, 0),
+              hitColor(camIx, camIy, camCell, depthHit, 0, 0, 0),
               depthHit,
               hCam,
               1,
@@ -615,7 +758,7 @@ export function renderVoxelTexels({
         if (sHit >= spanZ.s0 && sHit <= spanZ.s1 && depthHit >= s0 && depthHit <= farClip) {
           writeHit(
             dest,
-            hitColor(camX, camY, dirX, dirY, depthHit, camCol.colX, camCol.colY, 0),
+            hitColor(camIx, camIy, camCell, depthHit, 0, 0, 0),
             depthHit,
             hCam,
             1,
@@ -626,6 +769,77 @@ export function renderVoxelTexels({
       }
       writeHit(dest, 0, 0, 0, 0, hatZ);
       return;
+    }
+
+    function marchDetail(sIn, sLimit, kIn) {
+      let s = sIn;
+      let k = kIn | 0;
+      let level = 3;
+      while ((s < sLimit) & (k < maxSteps)) {
+        k = (k + 1) | 0;
+        const depth = s * dirFwd;
+        if (!lod0RefineAt(depth, 0)) {
+          break;
+        }
+        const target = detailLevelForDepth(depth);
+        if ((level < target) | 0) {
+          level = target;
+        }
+        const cellSize = 1 / DETAIL_SUBDIV[level];
+        const span = voxelXyCell(camX, camY, dirX, dirY, s, cellSize);
+        let sExit = span.tFar;
+        if (sExit > sLimit) {
+          sExit = sLimit;
+        }
+        if (!(sExit > s)) {
+          s = s + mipDdaEps(cellSize);
+          continue;
+        }
+        const zEnter = camZ + dirZ * s;
+        const zExitV = camZ + dirZ * sExit;
+        const zLo = zEnter < zExitV ? zEnter : zExitV;
+        const zHi = zEnter > zExitV ? zEnter : zExitV;
+        const leafNow = (level | 0) <= (target | 0);
+        const leaf = leafNow ? detailLeaf(span.ix, span.iy, cellSize) : null;
+        const hTop = leafNow
+          ? leaf.h
+          : detailCellTop(span.ix, span.iy, cellSize, level);
+        if ((zHi < GROUND_HEIGHT) | (zLo > hTop)) {
+          s = sExit;
+          if ((level < 3) | 0) {
+            level = (level + 1) | 0;
+          }
+          continue;
+        }
+        if (!leafNow) {
+          level = (level - 1) | 0;
+          continue;
+        }
+        const sHit = voxelColumnHit(camZ, dirZ, leaf.h, s, sExit);
+        if (sHit >= 0) {
+          const depthHit = sHit * dirFwd;
+          const wx = (span.ix + HALF) * cellSize;
+          const wy = (span.iy + HALF) * cellSize;
+          return {
+            hit: 1,
+            k: k,
+            s: sHit,
+            depth: depthHit,
+            hByte: leaf.hByte,
+            color: hitColor(
+              span.ix,
+              span.iy,
+              cellSize,
+              depthHit,
+              Math.floor(wx) | 0,
+              Math.floor(wy) | 0,
+              0
+            ),
+          };
+        }
+        s = sExit;
+      }
+      return { hit: 0, k: k, s: s };
     }
 
     let s = spanZ.s0;
@@ -644,7 +858,7 @@ export function renderVoxelTexels({
       if ((mip < hitMip) | 0) {
         mip = hitMip;
       }
-      const cellSize = voxelGridSize(mip);
+      const cellSize = mipVoxelSize(mip);
       const span = voxelXyCell(camX, camY, dirX, dirY, s, cellSize);
       const ix = span.ix;
       const iy = span.iy;
@@ -677,8 +891,15 @@ export function renderVoxelTexels({
       const zExitV = camZ + dirZ * sExit;
       const zLo = zEnter < zExitV ? zEnter : zExitV;
       const zHi = zEnter > zExitV ? zEnter : zExitV;
-      const col = columnAt(ix, iy, mip, cellSize, depth, zLo);
-      const hMax = col.h;
+      const inDetail = ((mip | 0) <= 0) & (fine ? 1 : 0) & (lod0RefineAt(depth, 0) ? 1 : 0);
+      let col = null;
+      let hMax = 0;
+      if (inDetail) {
+        hMax = meterTop(ix, iy);
+      } else {
+        col = columnAt(ix, iy, mip, cellSize, depth, zLo);
+        hMax = col.h;
+      }
       if (zHi < GROUND_HEIGHT) {
         s = sExit;
         if ((mip < lastMip) | 0) {
@@ -699,6 +920,28 @@ export function renderVoxelTexels({
         mip = (mip - 1) | 0;
         continue;
       }
+      if (inDetail) {
+        const refined = marchDetail(s, sExit, k);
+        k = refined.k;
+        if (refined.hit) {
+          const hx = camX + dirX * refined.s;
+          const hy = camY + dirY * refined.s;
+          if (!wrap) {
+            const hitInside =
+              ((hx >= 0) | 0) &
+              ((hx < mapWf) | 0) &
+              ((hy >= 0) | 0) &
+              ((hy < mapHf) | 0);
+            if (!hitInside) {
+              break;
+            }
+          }
+          writeHit(dest, refined.color, refined.depth, refined.hByte, refined.k, hatZ);
+          return;
+        }
+        s = sExit;
+        continue;
+      }
       const sHit = voxelColumnHit(camZ, dirZ, col.h, s, sExit);
       if (sHit >= 0) {
         const depthHit = sHit * dirFwd;
@@ -716,7 +959,7 @@ export function renderVoxelTexels({
         }
         writeHit(
           dest,
-          hitColor(hx, hy, dirX, dirY, depthHit, col.colX, col.colY, mip),
+          hitColor(ix, iy, cellSize, depthHit, col.colX, col.colY, mip),
           depthHit,
           col.hByte,
           k,

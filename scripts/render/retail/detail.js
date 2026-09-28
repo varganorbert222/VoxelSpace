@@ -193,10 +193,12 @@ function buildDetailChain(color, shade, elev) {
   const match = buildMatcher(buildPal);
   const base = new Uint32Array(nTexels);
   for (let i = 0; i < nTexels; i++) {
+    const elevByte = elev.data[i] | 0;
     base[i] =
       ((color.data[i] | 0) |
         ((shade.data[i] | 0) << 8) |
-        ((elev.data[i] | 0) << 16)) >>>
+        (elevByte << 16) |
+        (elevByte << 24)) >>>
       0;
   }
   const mips = [base];
@@ -229,14 +231,20 @@ function buildDetailChain(color, shade, elev) {
               ((p2 >>> 8) & 255) +
               ((p3 >>> 8) & 255)) >>
             2;
-          const elevByte = Math.max(
+          const maxE = Math.max(
             (p0 >>> 16) & 255,
             (p1 >>> 16) & 255,
             (p2 >>> 16) & 255,
             (p3 >>> 16) & 255
           );
+          const minE = Math.min(
+            (p0 >>> 24) & 255,
+            (p1 >>> 24) & 255,
+            (p2 >>> 24) & 255,
+            (p3 >>> 24) & 255
+          );
           dst[dt + y * nn + x] =
-            (colorIndex | (shadeByte << 8) | (elevByte << 16)) >>> 0;
+            (colorIndex | (shadeByte << 8) | (maxE << 16) | (minE << 24)) >>> 0;
         }
       }
     }
@@ -333,6 +341,76 @@ let packedY = 0;
 let packedDist = 0;
 let packedValue = 0;
 let packedValid = 0;
+
+function samplePackedLevel(x, y, level) {
+  if (!state || !state.detailReady || (level | 0) < 0) {
+    return null;
+  }
+  const character = state.characterIndex;
+  const ix = wrapFloor(x, character.width);
+  const iy = wrapFloor(y, character.height);
+  const tile = character.data[(iy * character.width + ix) | 0] | 0;
+  const subdiv = LEVEL_SUBDIV[level] | 0;
+  if (!subdiv) {
+    return null;
+  }
+  const fx = x - Math.floor(x);
+  const fy = y - Math.floor(y);
+  let cx = Math.floor(fx * subdiv) | 0;
+  let cy = Math.floor(fy * subdiv) | 0;
+  if (cx < 0) cx = 0;
+  if (cy < 0) cy = 0;
+  if (cx >= subdiv) cx = subdiv - 1;
+  if (cy >= subdiv) cy = subdiv - 1;
+  const mip = state.detailMips[level];
+  const idx = ((tile * subdiv + cy) * subdiv + cx) | 0;
+  if (!mip || idx < 0 || idx >= mip.length) {
+    return null;
+  }
+  return mip[idx] >>> 0;
+}
+
+function elevByteAdd(byte) {
+  const e = byte & 255;
+  if (e < 128) {
+    return 0;
+  }
+  return (e - 128) / 32;
+}
+
+export function detailSpanAt(x, y, level) {
+  const packed = samplePackedLevel(x, y, level | 0);
+  if (packed == null) {
+    return { min: 0, max: 0 };
+  }
+  return {
+    min: elevByteAdd(packed >>> 24),
+    max: elevByteAdd(packed >>> 16),
+  };
+}
+
+// Min and max live in the detail mip. A flat cell uses that height. A varied
+// cell steps with the child sample, so the column top is not the parent max.
+export function detailColumnBump(x, y, distance) {
+  const level = detailLevel(distance);
+  if (level < 0) {
+    return { min: 0, max: 0, add: 0 };
+  }
+  const parent = samplePackedLevel(x, y, level);
+  if (parent == null) {
+    return { min: 0, max: 0, add: 0 };
+  }
+  const max = elevByteAdd(parent >>> 16);
+  const min = elevByteAdd(parent >>> 24);
+  let add = max;
+  if ((level | 0) > 0 && min < max) {
+    const child = samplePackedLevel(x, y, (level - 1) | 0);
+    if (child != null) {
+      add = elevByteAdd(child >>> 16);
+    }
+  }
+  return { min: min, max: max, add: add };
+}
 
 function samplePacked(x, y, distance) {
   if (packedValid && x === packedX && y === packedY && distance === packedDist) {

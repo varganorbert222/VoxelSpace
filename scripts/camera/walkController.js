@@ -1,6 +1,6 @@
 "use strict";
 
-import { applyLook } from "./flyController.js";
+import { applyEulerLook } from "./flyController.js";
 import { KEY_MOVE_SPEED } from "../constants/input.js";
 import {
   WALK_EYE_HEIGHT,
@@ -14,7 +14,7 @@ export function groundEyeZ(terrain, x, y) {
 }
 
 export function applyWalk(dt, input, camera, terrain) {
-  applyLook(dt, input, camera);
+  applyEulerLook(dt, input, camera);
 
   const yaw = camera.angle;
   const fwdX = -Math.sin(yaw);
