@@ -1,6 +1,6 @@
 "use strict";
 
-import { verticalProjPlane } from "../../camera/projection.js";
+import { horizontalProjPlane } from "../../camera/projection.js";
 import { paletteRGB } from "../../assets/pngPalette.js";
 
 function clampByte(v) {
@@ -123,7 +123,8 @@ export function compositeWater(buffer32, width, height, camera, water, skyRows, 
   if (!water || !water.table || !(water.height > 0)) {
     return;
   }
-  const focal = verticalProjPlane(height, camera.fov);
+  const viewW = screenWidth > 0 ? screenWidth : width;
+  const focal = horizontalProjPlane(viewW, camera.fov);
   const pitchRad = (-camera.pitch * Math.PI) / 180;
   const centerY = height * 0.5;
   const horizon = centerY + 5 + focal * Math.tan(pitchRad);

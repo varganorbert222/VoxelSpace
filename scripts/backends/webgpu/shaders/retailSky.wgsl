@@ -72,8 +72,8 @@ fn skyCloudMip(foot: f32) -> u32 {
 }
 
 // Retail plane hit is shifted by 3 (one mip-0 texel is 8 meters). The mip
-// steps when one pixel at the retail 640-preset focal covers twice as many
-// texels. skyF(35) is projPlane/focal, including Cloud LOD Bias.
+// steps when one pixel at the 640×480 preset projection distance covers twice
+// as many texels. skyF(35) is projPlane/focal, including Cloud LOD Bias.
 fn skyCloudLevel(o: u32, dir: vec3f) -> f32 {
   let plane = skyF(9u);
   let t = plane / dir.z;

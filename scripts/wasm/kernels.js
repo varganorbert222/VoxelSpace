@@ -530,9 +530,11 @@ export function createWasmKernels(instance) {
     syncMipSwitch(params, mips.count);
     const localWidth = (params.endColumn - params.startColumn) | 0;
     const n = (localWidth * params.screenHeight) | 0;
-    let tanHalfY = Math.tan(params.fovY * DEG_TO_RAD * HALF);
-    if (!(tanHalfY > 0) && params.dstToProjPlane > 0) {
+    let tanHalfY = 0;
+    if (params.dstToProjPlane > 0 && params.screenHeight > 0) {
       tanHalfY = (params.screenHeight * HALF) / params.dstToProjPlane;
+    } else {
+      tanHalfY = Math.tan(params.fovY * DEG_TO_RAD * HALF);
     }
     ex.reset_scratch();
     const pixelsPtr = mustAlloc(n * 4);

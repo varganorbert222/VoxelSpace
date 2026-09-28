@@ -1,7 +1,7 @@
 "use strict";
 
-import { retailFocal, LOD_TERRAIN_WIDTH, retailLodBiasScale } from "./schedule.js";
-import { verticalProjPlane } from "../../camera/projection.js";
+import { retailDescriptorFocal, LOD_TERRAIN_WIDTH, retailLodBiasScale } from "./schedule.js";
+import { horizontalProjPlane } from "../../camera/projection.js";
 import { paletteRGB } from "../../assets/pngPalette.js";
 
 const PI = 3.1415926539;
@@ -185,7 +185,7 @@ export function buildCloudMips(image) {
 // both, matching the retail pair column. Voxel keeps the one-pixel step. The
 // header stores the per-row step. Retail stores the plane hit in Q16 and
 // shifts it by 3, so one mip-0 texel is 8 meters. The mip steps when one
-// pixel of the retail 640-wide preset covers twice as many texels. The
+// pixel at the retail 640-preset focal covers twice as many texels. The
 // framebuffer size does not move those bands: the footprint is scaled by
 // projPlane / focal(640, fov), which is the retail center-pixel size.
 // A row whose ray Z is constant walks that UV
@@ -333,7 +333,7 @@ export function updateSkyPack(pack, view, camera, width, height, skyDraw) {
   const pitchDeg = Number.isFinite(view.pitchDeg) ? view.pitchDeg : -camera.pitch;
   const quantPitch = Math.trunc((pitchDeg * DEN) / 360);
   const step = retailSkyGradientStepQ16(LOD_TERRAIN_WIDTH, camera.fov, sky.horizon);
-  const gradScale = (retailFocal(LOD_TERRAIN_WIDTH, camera.fov) * step) / 65536;
+  const gradScale = (retailDescriptorFocal(camera.fov) * step) / 65536;
   const clock = ((Date.now() / 16) | 0) & 32767;
   words[0] = SKY_MAGIC;
   words[1] = width;
@@ -367,8 +367,8 @@ export function updateSkyPack(pack, view, camera, width, height, skyDraw) {
   f32[H_ROW_STEP] = -u[0];
   f32[H_ROW_STEP + 1] = -u[1];
   f32[H_ROW_STEP + 2] = -u[2];
-  const focal = retailFocal(LOD_TERRAIN_WIDTH, camera.fov);
-  const proj = verticalProjPlane(height, camera.fov);
+  const focal = retailDescriptorFocal(camera.fov);
+  const proj = horizontalProjPlane(width, camera.fov);
   const bias = Number(draw.cloudLodBias);
   const biasScale = retailLodBiasScale(Number.isFinite(bias) ? bias : 0);
   f32[H_CLOUD_LOD_SCALE] = (focal > 0 ? proj / focal : 1) / biasScale;
@@ -402,7 +402,7 @@ function cloudMip(foot, last) {
   return mip;
 }
 
-// Scale the live pixel back to the retail 640-preset focal. A taller
+// Scale the live pixel back to the retail 640-preset focal. A wider
 // framebuffer has a longer proj plane, so this ratio keeps the mip put.
 function cloudMipForFoot(pack, foot, last) {
   const scale = pack.f32[H_CLOUD_LOD_SCALE];

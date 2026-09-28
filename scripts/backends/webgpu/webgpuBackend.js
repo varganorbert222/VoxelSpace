@@ -600,7 +600,7 @@ class WebGpuBackend {
       inv1: mipInvScale(1),
       inv2: mipInvScale(2),
       pixelCenter: PIXEL_CENTER,
-      fovY: camera.fov,
+      fovY: fov.fovY,
       tanHalfY: fov.tanHalfY,
       ndcScale: NDC_SCALE,
       epsilon: EPSILON,

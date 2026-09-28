@@ -16,9 +16,9 @@ const DIVISOR = Math.fround(2.2);
 const DIRECT5_FACTOR = 512;
 // Q22 / (Q20 >> 2) = 16 scan steps per meter.
 const SCAN_STEPS_PER_METER = 16;
-// Terrain descriptors, the sky gradient, and the cloud mip bands follow the
-// retail 640x480 preset. Focal at FOV 90 is 320. Output width does not move
-// them. FOV does, through this focal length.
+// Terrain descriptors follow the retail 640×480 preset. Output size does not
+// move them. camera.fov is the horizontal angle, the same axis retail's
+// focalFor uses with the preset width. Focal at horizontal 90 is 320.
 export const LOD_TERRAIN_WIDTH = 640;
 export const LOD_BIAS_DEFAULT = 0;
 export const LOD_BIAS_MIN = -2;
@@ -66,6 +66,11 @@ export function retailFocal(width, fovDeg) {
   return Math.max(1, Math.trunc(w * 0.5 / Math.tan(halfAngle) + 0.5));
 }
 
+// Retail focalFor(640, horizontal FOV). At 90° this is 320.
+export function retailDescriptorFocal(fovDeg) {
+  return retailFocal(LOD_TERRAIN_WIDTH, fovDeg);
+}
+
 export function fovDegFromTanHalf(tanHalf) {
   if (!(tanHalf > 0)) {
     return 90;
@@ -78,7 +83,12 @@ export function useRetailFrame(params) {
     return frame;
   }
   const width = params.screenWidth || params.width || frame.width;
-  const fovDeg = params.fov || fovDegFromTanHalf(params.tanHalfFovX);
+  const fovDeg =
+    params.fov != null
+      ? params.fov
+      : params.fovY != null
+        ? params.fovY
+        : fovDegFromTanHalf(params.tanHalfFovX);
   const farClip = Number(params.farClip);
   frame = {
     width: width | 0,
@@ -102,8 +112,8 @@ export function retailFrame() {
   return frame;
 }
 
-export function buildRetailBands(width, fovDeg, quality) {
-  const focal = retailFocal(width, fovDeg);
+export function buildRetailBands(fovDeg, quality) {
+  const focal = retailDescriptorFocal(fovDeg);
   const q = retailQualityQ(quality);
   const bands = [];
   for (let i = 0; i < NEAR_FACTORS.length; i++) {
@@ -138,14 +148,14 @@ export function retailLodBiasScale(lodBias) {
 
 // Direct5 end in meters: (focal * 512 / 2.2) / 16 * 2^(-bias).
 export function retailLodSpan(lodBias) {
-  const focal = retailFocal(LOD_TERRAIN_WIDTH, frame.fovDeg);
+  const focal = retailDescriptorFocal(frame.fovDeg);
   const direct5 = (focal * DIRECT5_FACTOR) / DIVISOR / SCAN_STEPS_PER_METER;
   const bias = lodBias == null ? frame.lodBias : lodBias;
   return direct5 * retailLodBiasScale(bias);
 }
 
 export function retailBands() {
-  const raw = buildRetailBands(LOD_TERRAIN_WIDTH, frame.fovDeg, frame.quality);
+  const raw = buildRetailBands(frame.fovDeg, frame.quality);
   const scale = retailLodBiasScale(frame.lodBias);
   return raw.map((band) => ({
     ...band,
@@ -178,7 +188,7 @@ export function retailMipSwitches(bandCount, spanMeters, out) {
   return dest.subarray(0, switchN);
 }
 
-// Direct mip i walks (1 << i) meters at Low, capped at Direct5 (mip 5, 32 m).
+// Direct mip i walks (1 << i) meters at Scan Quality 1, capped at Direct5 (mip 5, 32 m).
 // That is the retail raw step divided by 16 scan steps per meter, then by q.
 // Mip 0 is Direct0's 1 m; the five Near passes divide it until factor 8.
 // Past the last band the same step continues. Distance only stops the ray.

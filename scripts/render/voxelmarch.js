@@ -374,9 +374,11 @@ export function renderVoxelTexels({
   );
   const debug = isDebugColor(debugView) ? 0 : 1;
   const aspect = screenWidth / screenHeight;
-  let tanHalfY = Math.tan(fovY * DEG_TO_RAD * HALF);
-  if (!(tanHalfY > 0) && dstToProjPlane > 0) {
+  let tanHalfY = 0;
+  if (dstToProjPlane > 0 && screenHeight > 0) {
     tanHalfY = (screenHeight * HALF) / dstToProjPlane;
+  } else {
+    tanHalfY = Math.tan(fovY * DEG_TO_RAD * HALF);
   }
   const tanHalfX = tanHalfY * aspect;
   const invW = 1 / screenWidth;

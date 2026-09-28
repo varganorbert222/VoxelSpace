@@ -9,32 +9,34 @@ export function calculateFov(camera) {
   }
   camera._fovDirty = false;
 
-  const halfFovY = camera.fov * VMath.DEG_TO_RAD * HALF;
-  const tanHalfY = Math.tan(halfFovY);
+  const halfFovX = camera.fov * VMath.DEG_TO_RAD * HALF;
+  const tanHalfX = Math.tan(halfFovX);
   const aspect = camera.width / camera.height;
-  const halfFovX = Math.atan(tanHalfY * aspect);
+  const tanHalfY = aspect > 0 ? tanHalfX / aspect : tanHalfX;
+  const halfFovY = Math.atan(tanHalfY);
 
   camera._cachedFov = {
-    fovX: halfFovX * 2 * VMath.RAD_TO_DEG,
-    fovY: camera.fov,
+    fovX: camera.fov,
+    fovY: halfFovY * 2 * VMath.RAD_TO_DEG,
     halfFovX: halfFovX,
     halfFovY: halfFovY,
     tanHalfY: tanHalfY,
-    tanHalfX: tanHalfY * aspect,
+    tanHalfX: tanHalfX,
   };
 
   return camera._cachedFov;
 }
 
-// Vertical focal length in pixels. The FOV slider is the vertical angle.
-export function verticalProjPlane(height, fovDeg) {
-  const halfFovY = (Number(fovDeg) || 0) * VMath.DEG_TO_RAD * HALF;
-  const tanHalfY = Math.tan(halfFovY);
-  const h2 = Math.max(1, height | 0) * HALF;
-  if (!(tanHalfY > 1e-8)) {
-    return h2;
+// Projection distance in pixels. The FOV slider is the horizontal angle,
+// matching retail's focalFor(width, fov).
+export function horizontalProjPlane(width, fovDeg) {
+  const halfFovX = (Number(fovDeg) || 0) * VMath.DEG_TO_RAD * HALF;
+  const tanHalfX = Math.tan(halfFovX);
+  const w2 = Math.max(1, width | 0) * HALF;
+  if (!(tanHalfX > 1e-8)) {
+    return w2;
   }
-  return h2 / tanHalfY;
+  return w2 / tanHalfX;
 }
 
 export function calculateProjPlane(camera) {
@@ -43,7 +45,7 @@ export function calculateProjPlane(camera) {
   }
   camera._projPlaneDirty = false;
 
-  camera._cachedProjPlane = verticalProjPlane(camera.height, camera.fov);
+  camera._cachedProjPlane = horizontalProjPlane(camera.width, camera.fov);
 
   return camera._cachedProjPlane;
 }
