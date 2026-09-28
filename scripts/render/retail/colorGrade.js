@@ -144,6 +144,38 @@ function wordsOf(bytes) {
   return view;
 }
 
+export function gradeWord(p, grade) {
+  const lut = grade.lut;
+  const apply = grade.apply;
+  if (!apply) {
+    if ((grade.saturation | 0) === 0) {
+      const y = ((p & 255) + (((p >>> 8) & 255) << 1) + ((p >>> 16) & 255)) >> 2;
+      return (
+        (p & 0xff000000) |
+        (lut[512 + y] << 16) |
+        (lut[256 + y] << 8) |
+        lut[y]
+      ) >>> 0;
+    }
+    const r = p & 255;
+    const g = (p >>> 8) & 255;
+    const b = (p >>> 16) & 255;
+    return (
+      (p & 0xff000000) | (lut[512 + b] << 16) | (lut[256 + g] << 8) | lut[r]
+    ) >>> 0;
+  }
+  const r = p & 255;
+  const g = (p >>> 8) & 255;
+  const b = (p >>> 16) & 255;
+  const row = ((r + (g << 1) + b) >> 2) << 8;
+  return (
+    (p & 0xff000000) |
+    (apply[131072 + (row | b)] << 16) |
+    (apply[65536 + (row | g)] << 8) |
+    apply[row | r]
+  ) >>> 0;
+}
+
 export function gradeBytes(bytes, grade) {
   const view = wordsOf(bytes);
   gradeWords(view, view, grade);

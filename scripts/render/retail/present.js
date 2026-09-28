@@ -25,7 +25,7 @@ export function compositePresentedWater(frameBuffer, camera, maps) {
 // worker, so the full-frame pass does not pile up on the main thread when
 // the framebuffer grows. originX is the slice's first screen column. The
 // buffer width is the slice, not the screen.
-export function presentColumns(buffer32, sliceWidth, height, originX, present) {
+export function presentColumns(buffer32, sliceWidth, height, originX, present, grade) {
   if (!present) {
     return;
   }
@@ -62,6 +62,7 @@ export function presentColumns(buffer32, sliceWidth, height, originX, present) {
     present.overlay,
     present.pair | 0,
     originX | 0,
-    screenW
+    screenW,
+    present.overlay ? grade : null
   );
 }

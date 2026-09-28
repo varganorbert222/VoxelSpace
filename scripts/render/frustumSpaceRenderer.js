@@ -216,6 +216,9 @@ class FrustumSpaceRenderer {
       );
     }
     if (params.present) {
+      if (params.present.overlay) {
+        renderer.frameBuffer.markGraded();
+      }
       renderer.consumeSlicePresent();
     }
     return true;

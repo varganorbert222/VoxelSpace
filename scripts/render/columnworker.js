@@ -101,6 +101,7 @@ function initMaps(msg) {
     bindRetailMaps({ retail: msg.retail });
   }
   attachVMaxMips(workerState.terrainMips, msg.retail || null);
+  workerState.colorGrade = msg.colorGrade || null;
 }
 
 function renderClassic(msg) {
@@ -157,7 +158,14 @@ function renderClassic(msg) {
     fillUnfilled: 0,
     rowColors: rowColors || null,
   });
-  presentColumns(pixels, localWidth, msg.screenHeight | 0, msg.startColumn | 0, msg.present);
+  presentColumns(
+    pixels,
+    localWidth,
+    msg.screenHeight | 0,
+    msg.startColumn | 0,
+    msg.present,
+    workerState.colorGrade
+  );
   self.postMessage(
     {
       type: MSG_RESULT_CLASSIC,
@@ -228,7 +236,14 @@ function renderFrustumSpace(msg) {
     fillUnfilled: 0,
     rowColors: rowColors || null,
   });
-  presentColumns(pixels, localWidth, msg.screenHeight | 0, msg.startColumn | 0, msg.present);
+  presentColumns(
+    pixels,
+    localWidth,
+    msg.screenHeight | 0,
+    msg.startColumn | 0,
+    msg.present,
+    workerState.colorGrade
+  );
   self.postMessage(
     {
       type: MSG_RESULT_FRUSTUM_SPACE,
@@ -290,7 +305,14 @@ function renderVoxel(msg) {
     pixelWidth: localWidth,
     fillUnfilled: 0,
   });
-  presentColumns(pixels, localWidth, msg.screenHeight | 0, msg.startColumn | 0, msg.present);
+  presentColumns(
+    pixels,
+    localWidth,
+    msg.screenHeight | 0,
+    msg.startColumn | 0,
+    msg.present,
+    workerState.colorGrade
+  );
   self.postMessage(
     {
       type: MSG_RESULT_VOXEL,

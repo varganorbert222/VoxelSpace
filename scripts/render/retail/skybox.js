@@ -3,6 +3,7 @@
 import { retailDescriptorFocal, LOD_TERRAIN_WIDTH, retailLodBiasScale } from "./schedule.js";
 import { horizontalProjPlane } from "../../camera/projection.js";
 import { paletteRGB } from "../../assets/pngPalette.js";
+import { gradeWord } from "./colorGrade.js";
 
 const PI = 3.1415926539;
 const DEN = 4294967295;
@@ -491,11 +492,11 @@ export function skyPackView(words, screenWidth, height, cloudBytesIn) {
   };
 }
 
-export function compositeSky(buffer32, width, height, pack, overlay, pair, originX, screenWidth) {
+export function compositeSky(buffer32, width, height, pack, overlay, pair, originX, screenWidth, grade) {
   const screenW = (screenWidth | 0) > 0 ? screenWidth | 0 : width | 0;
   const x0 = originX | 0;
   if (!pack || !pack.words || pack.width !== screenW || pack.height !== height) {
-    return;
+    return 0;
   }
   const words = pack.words;
   const f32 = pack.f32;
@@ -527,12 +528,22 @@ export function compositeSky(buffer32, width, height, pack, overlay, pair, origi
   const above = clouds && plane < 0 && overlay !== false;
   if (!gradient && !below && !above) {
     const n = width * height;
-    for (let i = 0; i < n; i++) {
-      if (buffer32[i] === 0) {
-        buffer32[i] = 0xff000000;
+    if (!grade) {
+      for (let i = 0; i < n; i++) {
+        if (buffer32[i] === 0) {
+          buffer32[i] = 0xff000000;
+        }
       }
+      return 0;
     }
-    return;
+    for (let i = 0; i < n; i++) {
+      let color = buffer32[i];
+      if (color === 0) {
+        color = 0xff000000;
+      }
+      buffer32[i] = gradeWord(color, grade);
+    }
+    return 1;
   }
   const paired = (pair | 0) > 1;
   for (let y = 0; y < height; y++) {
@@ -585,6 +596,12 @@ export function compositeSky(buffer32, width, height, pack, overlay, pair, origi
       }
       let emptyColor = 0;
       let overlayLevel = 0;
+      if (!needs && grade) {
+        for (let p = 0; (p < span) | 0; p = (p + 1) | 0) {
+          const i = (row + x + p) | 0;
+          buffer32[i] = gradeWord(buffer32[i], grade);
+        }
+      }
       if (needs) {
         let level = 0;
         if (below || cover) {
@@ -634,6 +651,9 @@ export function compositeSky(buffer32, width, height, pack, overlay, pair, origi
           const i = (row + x + p) | 0;
           let color = buffer32[i];
           if (color !== 0 && !cover) {
+            if (grade) {
+              buffer32[i] = gradeWord(color, grade);
+            }
             continue;
           }
           if (color === 0) {
@@ -642,7 +662,7 @@ export function compositeSky(buffer32, width, height, pack, overlay, pair, origi
           if (cover && overlayLevel > 0) {
             color = blendCloud(color, cloudColor, overlayLevel);
           }
-          buffer32[i] = color;
+          buffer32[i] = grade ? gradeWord(color, grade) : color;
         }
       }
       dx += sx * span;
@@ -655,6 +675,7 @@ export function compositeSky(buffer32, width, height, pack, overlay, pair, origi
       x = (x + span) | 0;
     }
   }
+  return grade ? 1 : 0;
 }
 
 export { SKY_DEFAULT_HEIGHT, RETAIL_HEIGHT_WORLD_SCALE, PI };

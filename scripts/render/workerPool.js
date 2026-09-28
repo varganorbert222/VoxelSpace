@@ -19,6 +19,7 @@ import {
 import { BACKEND_JS } from "../constants/backend.js";
 import { canShareBuffers, allocU8, allocU32 } from "./sharedBuffers.js";
 import { COLUMN_PAIR } from "../constants/framebuffer.js";
+import { activeColorGrade } from "./retail/colorGrade.js";
 
 // Measured: splitting into more chunks than workers costs more in messages,
 // allocations and blits than the load balancing wins back.
@@ -183,6 +184,7 @@ class WorkerPool {
           mipHeightMaps: sharedMipH,
           mipColorMaps: sharedMipC,
           retail: snapshot.retail || null,
+          colorGrade: activeColorGrade(),
         });
         continue;
       }
@@ -220,6 +222,7 @@ class WorkerPool {
           mipHeightMaps: mipHeightMaps,
           mipColorMaps: mipColorMaps,
           retail: snapshot.retail || null,
+          colorGrade: activeColorGrade(),
         },
         transfer
       );

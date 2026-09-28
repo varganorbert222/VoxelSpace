@@ -461,14 +461,20 @@ class Renderer {
         cloudLodBias: this._cloudLodBias,
       }
     );
-    compositeSky(
+    const graded = compositeSky(
       frameBuffer.buffer32bit,
       width,
       height,
       pack,
       isDebugColor(this._debugView),
-      this._algorithm === ALGORITHM_VOXEL ? 1 : COLUMN_PAIR
+      this._algorithm === ALGORITHM_VOXEL ? 1 : COLUMN_PAIR,
+      0,
+      0,
+      isDebugColor(this._debugView) ? activeColorGrade() : null
     );
+    if (graded) {
+      frameBuffer.markGraded();
+    }
   }
 
   writeToContext() {
