@@ -298,6 +298,7 @@ static __attribute__((always_inline)) f64 sample_sv_height(
     i32 shift,
     i32 wrap,
     i32 lerp,
+    i32 subdiv,
     u32 *h_byte,
     i32 *nn_off) {
   i32 ix = (i32)x;
@@ -325,6 +326,20 @@ static __attribute__((always_inline)) f64 sample_sv_height(
   h10 = (f64)height_at_sv(map, ix + 1, iy, wmask, hmask, shift, wrap);
   h01 = (f64)height_at_sv(map, ix, iy + 1, wmask, hmask, shift, wrap);
   h11 = (f64)height_at_sv(map, ix + 1, iy + 1, wmask, hmask, shift, wrap);
+  if (subdiv > 1) {
+    f64 inv = 1.0 / (f64)subdiv;
+    i32 last = (subdiv - 1) | 0;
+    i32 cx = (i32)(fx * (f64)subdiv);
+    i32 cy = (i32)(fy * (f64)subdiv);
+    if (cx > last) {
+      cx = last;
+    }
+    if (cy > last) {
+      cy = last;
+    }
+    fx = ((f64)cx + 0.5) * inv;
+    fy = ((f64)cy + 0.5) * inv;
+  }
   h = h00 + (h10 - h00) * fx;
   h = h + ((h01 + (h11 - h01) * fx) - h) * fy;
   b = (i32)(h + 0.5);
@@ -416,15 +431,23 @@ static i32 in_near(f64 t) {
   return (end > 0.0) && (t < end);
 }
 
-static f64 lod0_step(f64 base_step, f64 t) {
+static i32 near_subdiv_at(f64 t) {
   i32 m = 0;
   if (!in_near(t)) {
-    return base_step;
+    return 0;
   }
   while ((m < 4) && (t >= g_refine_sw[m])) {
     m = (m + 1) | 0;
   }
-  return base_step * (1.0 / (f64)lod0_subdiv(m));
+  return lod0_subdiv(m);
+}
+
+static f64 lod0_step(f64 base_step, f64 t) {
+  i32 sub = near_subdiv_at(t);
+  if (sub <= 1) {
+    return base_step;
+  }
+  return base_step * (1.0 / (f64)sub);
 }
 
 static f64 band_step_at(i32 mip) {
@@ -1110,6 +1133,7 @@ WASM_EXPORT void classic_columns(
       f64 ply = k_left_y * z + cam_y + dy * (f64)start_column;
       i32 lerp_now = do_lerp && (mip == 0) && in_near(z);
       i32 filter_now = do_filter && (mip == 0) && in_near(z);
+      i32 near_sub = lerp_now ? near_subdiv_at(z) : 0;
       i32 col;
       i32 slice_open = 0;
 
@@ -1156,6 +1180,7 @@ WASM_EXPORT void classic_columns(
                 lod_shift,
                 repeat,
                 1,
+                near_sub,
                 &h_byte_sv,
                 &nn_off);
           } else {
@@ -1495,7 +1520,7 @@ WASM_EXPORT void frustum_space_columns(
         fine_lerp = do_lerp & (use_fine ? 1 : 0);
         h_fine = sample_sv_height(
             lod_height_map, wx * lod_scale, wy * lod_scale, lod_w_mask, lod_h_mask,
-            lod_shift, wrap, fine_lerp, &h_byte, &nn_off);
+            lod_shift, wrap, fine_lerp, fine_lerp ? near_subdiv_at(t) : 0, &h_byte, &nn_off);
         {
           f64 bump = detail_elev_max(t) * g_alt_scale;
           if (wz < h_fine * g_alt_scale + bump) {

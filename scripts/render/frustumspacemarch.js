@@ -27,6 +27,7 @@ import {
   firstBandT,
   lod0RefineAt,
   lod0RefineMipAt,
+  lod0RefineSubdiv,
   lod0RefineSwitchDistances,
   mipLevelAtDistance,
   mipSwitchDistances,
@@ -98,7 +99,7 @@ function bilinearPacked4(c00, c10, c01, c11, fx, fy) {
   return lerpPacked(lerpPacked(c00, c10, tx), lerpPacked(c01, c11, tx), ty);
 }
 
-function sampleHeightBilinear(heightMap, x, y, mapShift, wMask, hMask, wrap) {
+function sampleHeightBilinear(heightMap, x, y, mapShift, wMask, hMask, wrap, subdiv) {
   const x0 = Math.floor(x);
   const y0 = Math.floor(y);
   const fx = x - x0;
@@ -133,9 +134,22 @@ function sampleHeightBilinear(heightMap, x, y, mapShift, wMask, hMask, wrap) {
     hMask,
     wrap
   );
-  const hx0 = h00 + (h10 - h00) * fx;
-  const hx1 = h01 + (h11 - h01) * fx;
-  return hx0 + (hx1 - hx0) * fy;
+  let qx = fx;
+  let qy = fy;
+  if ((subdiv | 0) > 1) {
+    const sub = subdiv | 0;
+    const last = (sub - 1) | 0;
+    let cx = (fx * sub) | 0;
+    let cy = (fy * sub) | 0;
+    if ((cx > last) | 0) cx = last;
+    if ((cy > last) | 0) cy = last;
+    const inv = 1 / sub;
+    qx = (cx + 0.5) * inv;
+    qy = (cy + 0.5) * inv;
+  }
+  const hx0 = h00 + (h10 - h00) * qx;
+  const hx1 = h01 + (h11 - h01) * qx;
+  return hx0 + (hx1 - hx0) * qy;
 }
 
 function sampleColorFiltered(colorMap, x, y, mapShift, wMask, hMask, wrap) {
@@ -404,7 +418,8 @@ export function renderFrustumSpaceColumns({
             shadeMapShift,
             shadeWMask,
             shadeHMask,
-            wrap
+            wrap,
+            lod0RefineSubdiv(refineMip)
           )
         : nearestH;
       const bump = detailElevMax(t) * altScale;

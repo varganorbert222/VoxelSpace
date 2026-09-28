@@ -208,6 +208,16 @@ fn bilinearHeight(h00: f32, h10: f32, h01: f32, h11: f32, fx: f32, fy: f32) -> f
   return mix(mix(h00, h10, fx), mix(h01, h11, fx), fy);
 }
 
+fn subcellCenter(f: f32, subdiv: u32) -> f32 {
+  let sub = f32(subdiv);
+  var c = i32(f * sub);
+  let last = i32(subdiv) - 1;
+  if (c > last) {
+    c = last;
+  }
+  return (f32(c) + 0.5) / sub;
+}
+
 fn bilinearColor(c00: vec4f, c10: vec4f, c01: vec4f, c11: vec4f, fx: f32, fy: f32) -> vec4f {
   return mix(mix(c00, c10, fx), mix(c01, c11, fx), fy);
 }
@@ -248,15 +258,13 @@ fn terrainSampleHeightPair(tex: texture_2d<u32>, mip: i32, wx: f32, wy: f32, dis
     let inv = terrainInv(useMip);
     let x0 = floor(sx * inv);
     let y0 = floor(sy * inv);
-    let fx = sx * inv - x0;
-    let fy = sy * inv - y0;
     let tx = i32(x0);
     let ty = i32(y0);
     let h00 = f32(terrainHeightAt(tex, tx, ty, 0, wrap));
     let h10 = f32(terrainHeightAt(tex, tx + 1, ty, 0, wrap));
     let h01 = f32(terrainHeightAt(tex, tx, ty + 1, 0, wrap));
     let h11 = f32(terrainHeightAt(tex, tx + 1, ty + 1, 0, wrap));
-    h = bilinearHeight(h00, h10, h01, h11, fx, fy);
+    h = bilinearHeight(h00, h10, h01, h11, sx * inv - x0, sy * inv - y0);
     if (ease.w < 1.0) {
       let nearest = f32(terrainHeightNN(tex, useMip, sx, sy));
       h = nearest + (h - nearest) * ease.w;

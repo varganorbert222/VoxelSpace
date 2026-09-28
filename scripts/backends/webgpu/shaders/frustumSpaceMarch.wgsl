@@ -28,15 +28,19 @@ fn classicHeightAt(texX: i32, texY: i32, mip: i32, wrap: bool, mapHMask: i32, ma
   return textureLoad(heightTex, vec2<i32>(x, y), mip).r;
 }
 
-fn classicSampleHeight(plx: f32, ply: f32, mip: i32, lerp: bool, wrap: bool, mapHMask: i32, mapWMask: i32) -> vec2f {
+fn classicSampleHeight(plx: f32, ply: f32, mip: i32, lerp: bool, subdiv: u32, wrap: bool, mapHMask: i32, mapWMask: i32) -> vec2f {
   let base = f32(classicHeightAt(i32(plx), i32(ply), mip, wrap, mapHMask, mapWMask));
   if (!lerp) {
     return vec2f(base, base);
   }
   let x0 = floor(plx);
   let y0 = floor(ply);
-  let fx = plx - x0;
-  let fy = ply - y0;
+  var fx = plx - x0;
+  var fy = ply - y0;
+  if (subdiv > 1u) {
+    fx = subcellCenter(fx, subdiv);
+    fy = subcellCenter(fy, subdiv);
+  }
   let tx = i32(x0);
   let ty = i32(y0);
   let h00 = f32(classicHeightAt(tx, ty, mip, wrap, mapHMask, mapWMask));
@@ -208,7 +212,15 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     }
     let useFine = lod0RefineAt(t, mip);
     let doLerp = flagShowDetails(flags) && useFine;
-    let sampled = classicSampleHeight(pos.x * mipScale, pos.y * mipScale, mip, doLerp, repeat, lodHMask, lodWMask);
+    let sampled = classicSampleHeight(
+      pos.x * mipScale,
+      pos.y * mipScale,
+      mip,
+      doLerp,
+      select(1u, lod0RefineSubdivAt(lod0RefineMipAt(t)), doLerp),
+      repeat,
+      lodHMask,
+      lodWMask);
     let baseWorld = sampled.x * altScale;
     let addBytes = detailHeightBytesReached(pos.x, pos.y, t, baseWorld, pos.z);
     let hFine = sampled.x + addBytes;
