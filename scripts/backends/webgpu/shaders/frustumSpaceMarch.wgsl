@@ -241,8 +241,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     if (advance && helperOn) {
       let level = vmaxLevel(mip, useFine, refineMip);
       let bits = vmaxShift(mip, useFine, refineMip);
-      let levels = textureNumLevels(vmaxTex);
-      let lv = min(u32(max(level, 0)), levels - 1u);
       let coarse = step * exp2(f32(bits));
       helperOn = false;
       fineSince = 0;
@@ -268,13 +266,24 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
             bandEnd = nearEdge;
           }
         }
+        let vmaxLast = max(i32(textureNumLevels(vmaxTex)) - 1, 0);
+        var lv = level;
+        if (lv < 0) {
+          lv = 0;
+        }
+        if (lv > vmaxLast) {
+          lv = vmaxLast;
+        }
+        let vmaxSize = textureDimensions(vmaxTex, u32(lv));
+        let vmaxMaskX = i32(vmaxSize.x) - 1;
+        let vmaxMaskY = i32(vmaxSize.y) - 1;
         loop {
           if (hops >= 48000u) { break; }
           let next = cursor + coarse;
           if (next > bandEnd) { break; }
           let p2 = cam + dir * next;
           let inMap = (p2.x >= 0.0 && p2.x <= mapWf && p2.y >= 0.0 && p2.y <= mapHf) || repeat;
-          if (!inMap || p2.z < vmaxMeters(p2.x, p2.y, i32(lv), altScale, repeat)) { break; }
+          if (!inMap || p2.z < vmaxMeters(p2.x, p2.y, lv, vmaxMaskX, vmaxMaskY, altScale, repeat)) { break; }
           cursor = next;
           hops = hops + 1u;
         }

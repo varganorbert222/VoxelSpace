@@ -104,6 +104,10 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let kDy = (kRightY + kRightY) * screenWidthScaler;
   let dirX = kLeftX + kDx * f32(x);
   let dirY = kLeftY + kDy * f32(x);
+  let vmaxLast = max(i32(textureNumLevels(vmaxTex)) - 1, 0);
+  var vmaxLv = -1;
+  var vmaxMaskX = 0;
+  var vmaxMaskY = 0;
 
   var sampleN = 0u;
   var lod = lodCount;
@@ -157,11 +161,56 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         if (isOk && (ceilingOnScreen < colHidden)) {
           let useFine = lod0RefineAt(z, mip);
           let refineMip = lod0RefineMipAt(z);
-          let env = vmaxMeters(plx, ply, vmaxLevel(mip, useFine, refineMip), altScale, repeat);
+          var lv = vmaxLevel(mip, useFine, refineMip);
+          if (lv < 0) {
+            lv = 0;
+          }
+          if (lv > vmaxLast) {
+            lv = vmaxLast;
+          }
+          if (lv != vmaxLv) {
+            vmaxLv = lv;
+            let vmaxSize = textureDimensions(vmaxTex, u32(lv));
+            vmaxMaskX = i32(vmaxSize.x) - 1;
+            vmaxMaskY = i32(vmaxSize.y) - 1;
+          }
+          let env = vmaxMeters(plx, ply, vmaxLv, vmaxMaskX, vmaxMaskY, altScale, repeat);
           let spanFar = mipSpanFarT(z, step, plx, ply, dirX, dirY, mip);
           let envY = projectSdfYSpan(camZ - env, dst, z, spanFar, screenHorizon);
           if (envY >= colHidden) {
-            z = z + step;
+            let ix0 = vmaxIndex(plx, vmaxLv, vmaxMaskX, repeat);
+            let iy0 = vmaxIndex(ply, vmaxLv, vmaxMaskY, repeat);
+            var stopCol = false;
+            loop {
+              let next = z + step;
+              if ((next >= endIndex) || (next >= farClip) || (n >= MAX_STEPS)) {
+                z = next;
+                break;
+              }
+              let nplx = camX + dirX * next;
+              let nply = camY + dirY * next;
+              let nInside = (nplx >= 0.0) && (nplx <= f32(mapW)) && (nply >= 0.0) && (nply <= f32(mapH));
+              let nOk = nInside || repeat;
+              let nCeil = i32(ceilingSdf * (dst / next) + screenHorizon);
+              if (nOk && (nCeil >= colHidden) && (ceilingSdf <= 0.0)) {
+                stopCol = true;
+                break;
+              }
+              let nStep = bandMarchStep(bandStep, mip, next);
+              let nFar = mipSpanFarT(next, nStep, nplx, nply, dirX, dirY, mip);
+              let sameCell = nOk && (vmaxIndex(nplx, vmaxLv, vmaxMaskX, repeat) == ix0) && (vmaxIndex(nply, vmaxLv, vmaxMaskY, repeat) == iy0);
+              let nEnvY = projectSdfYSpan(camZ - env, dst, next, nFar, screenHorizon);
+              if (!sameCell || (nEnvY < colHidden) || (nCeil >= colHidden)) {
+                z = next;
+                break;
+              }
+              z = next;
+              n = n + 1u;
+              step = nStep;
+            }
+            if (stopCol) {
+              break;
+            }
             continue;
           }
           let sampled = classicSampleHeight(plx, ply, mip, flagShowDetails(flags) && useFine, z);
