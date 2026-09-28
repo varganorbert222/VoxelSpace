@@ -31,7 +31,6 @@ import {
   mipVoxelSize,
   mixNearestBilinear,
   mipDdaEps,
-  mipLevelAtDistance,
   mipSwitchDistances,
 } from "../constants/mip.js";
 
@@ -199,13 +198,20 @@ function sampleColorFiltered(colorMap, x, y, mapShift, wMask, hMask, wrap, subdi
 
 const XY_INF = 1e30;
 
-function voxelXyCell(camX, camY, dirX, dirY, s, cellSize) {
-  const e = mipDdaEps(cellSize);
-  const px = camX + dirX * (s + e);
-  const py = camY + dirY * (s + e);
-  const inv = 1 / cellSize;
-  let ix = Math.floor(px * inv);
-  let iy = Math.floor(py * inv);
+function gridIndex(p, dir, cellSize) {
+  const g = p / cellSize;
+  let i = Math.floor(g);
+  if (dir < -SLAB_EPS) {
+    const edge = i * cellSize;
+    const tol = Math.max(cellSize * 1e-5, Math.abs(p) * 1e-6);
+    if (p <= edge + tol) {
+      i = (i - 1) | 0;
+    }
+  }
+  return i | 0;
+}
+
+function slabExit(camX, camY, dirX, dirY, ix, iy, cellSize) {
   const x0 = ix * cellSize;
   const y0 = iy * cellSize;
   let tFarX = XY_INF;
@@ -220,19 +226,43 @@ function voxelXyCell(camX, camY, dirX, dirY, s, cellSize) {
   } else if (dirY < -SLAB_EPS) {
     tFarY = (y0 - camY) / dirY;
   }
-  let tFar = tFarX < tFarY ? tFarX : tFarY;
-  if (!(tFar > s)) {
-    const ax = dirX < 0 ? -dirX : dirX;
-    const ay = dirY < 0 ? -dirY : dirY;
-    const ad = ax > ay ? ax : ay;
-    tFar = s + (ad > e ? cellSize / ad : e);
-    if (tFarX <= tFarY) {
-      ix = (ix + (dirX > 0 ? 1 : dirX < 0 ? -1 : 0)) | 0;
-    } else {
-      iy = (iy + (dirY > 0 ? 1 : dirY < 0 ? -1 : 0)) | 0;
+  return {
+    tx: tFarX,
+    ty: tFarY,
+    t: tFarX < tFarY ? tFarX : tFarY,
+  };
+}
+
+function voxelXyCell(camX, camY, dirX, dirY, s, cellSize) {
+  const e = mipDdaEps(cellSize);
+  const px = camX + dirX * (s + e);
+  const py = camY + dirY * (s + e);
+  let ix = gridIndex(px, dirX, cellSize);
+  let iy = gridIndex(py, dirY, cellSize);
+  let far = slabExit(camX, camY, dirX, dirY, ix, iy, cellSize);
+  if (!(far.t > s)) {
+    const tol = Math.max(e, cellSize * 1e-4);
+    const stepX = far.tx <= s + tol;
+    const stepY = far.ty <= s + tol;
+    if (stepX && dirX > SLAB_EPS) {
+      ix = (ix + 1) | 0;
+    } else if (stepX && dirX < -SLAB_EPS) {
+      ix = (ix - 1) | 0;
+    }
+    if (stepY && dirY > SLAB_EPS) {
+      iy = (iy + 1) | 0;
+    } else if (stepY && dirY < -SLAB_EPS) {
+      iy = (iy - 1) | 0;
+    }
+    far = slabExit(camX, camY, dirX, dirY, ix, iy, cellSize);
+    if (!(far.t > s)) {
+      const ax = dirX < 0 ? -dirX : dirX;
+      const ay = dirY < 0 ? -dirY : dirY;
+      const ad = ax > ay ? ax : ay;
+      far.t = s + (ad > e ? cellSize / ad : e);
     }
   }
-  return { ix: ix | 0, iy: iy | 0, tFar: tFar };
+  return { ix: ix | 0, iy: iy | 0, tFar: far.t };
 }
 
 function voxelColumnHit(camZ, dirZ, h, s, sExit) {
@@ -854,10 +884,6 @@ export function renderVoxelTexels({
       if (zHere > ceiling && !(dirZ < 0)) {
         break;
       }
-      const hitMip = mipLevelAtDistance(depth, switches, lastMip);
-      if ((mip < hitMip) | 0) {
-        mip = hitMip;
-      }
       const cellSize = mipVoxelSize(mip);
       const span = voxelXyCell(camX, camY, dirX, dirY, s, cellSize);
       const ix = span.ix;
@@ -916,7 +942,7 @@ export function renderVoxelTexels({
         }
         continue;
       }
-      if ((mip > hitMip) | 0) {
+      if ((mip > 0) | 0) {
         mip = (mip - 1) | 0;
         continue;
       }

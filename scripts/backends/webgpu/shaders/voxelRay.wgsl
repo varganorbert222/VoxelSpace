@@ -20,12 +20,25 @@ struct VoxelXyCell {
   tFar: f32,
 }
 
-fn voxelXyCell(camX: f32, camY: f32, dirX: f32, dirY: f32, s: f32, cellSize: f32) -> VoxelXyCell {
-  let e = max(cellSize * 1e-4, 1e-6);
-  let px = camX + dirX * (s + e);
-  let py = camY + dirY * (s + e);
-  var ix = i32(floor(px / cellSize));
-  var iy = i32(floor(py / cellSize));
+fn gridIndex(p: f32, dir: f32, cellSize: f32) -> i32 {
+  var i = i32(floor(p / cellSize));
+  if (dir < -SLAB_EPS) {
+    let edge = f32(i) * cellSize;
+    let tol = max(cellSize * 1e-5, abs(p) * 1e-6);
+    if (p <= edge + tol) {
+      i = i - 1;
+    }
+  }
+  return i;
+}
+
+struct SlabExit {
+  tx: f32,
+  ty: f32,
+  t: f32,
+}
+
+fn slabExit(camX: f32, camY: f32, dirX: f32, dirY: f32, ix: i32, iy: i32, cellSize: f32) -> SlabExit {
   let x0 = f32(ix) * cellSize;
   let y0 = f32(iy) * cellSize;
   var tFarX = XY_INF;
@@ -40,25 +53,37 @@ fn voxelXyCell(camX: f32, camY: f32, dirX: f32, dirY: f32, s: f32, cellSize: f32
   } else if (dirY < -SLAB_EPS) {
     tFarY = (y0 - camY) / dirY;
   }
-  var tFar = min(tFarX, tFarY);
-  if (!(tFar > s)) {
-    let ax = abs(dirX);
-    let ay = abs(dirY);
-    let ad = max(ax, ay);
-    tFar = s + select(e, cellSize / ad, ad > e);
-    if (tFarX <= tFarY) {
-      if (dirX > 0.0) {
-        ix = ix + 1;
-      } else if (dirX < 0.0) {
-        ix = ix - 1;
-      }
-    } else if (dirY > 0.0) {
+  return SlabExit(tFarX, tFarY, min(tFarX, tFarY));
+}
+
+fn voxelXyCell(camX: f32, camY: f32, dirX: f32, dirY: f32, s: f32, cellSize: f32) -> VoxelXyCell {
+  let e = max(cellSize * 1e-4, 1e-6);
+  let px = camX + dirX * (s + e);
+  let py = camY + dirY * (s + e);
+  var ix = gridIndex(px, dirX, cellSize);
+  var iy = gridIndex(py, dirY, cellSize);
+  var far = slabExit(camX, camY, dirX, dirY, ix, iy, cellSize);
+  if (!(far.t > s)) {
+    let tol = max(e, cellSize * 1e-4);
+    let stepX = far.tx <= s + tol;
+    let stepY = far.ty <= s + tol;
+    if (stepX && dirX > SLAB_EPS) {
+      ix = ix + 1;
+    } else if (stepX && dirX < -SLAB_EPS) {
+      ix = ix - 1;
+    }
+    if (stepY && dirY > SLAB_EPS) {
       iy = iy + 1;
-    } else if (dirY < 0.0) {
+    } else if (stepY && dirY < -SLAB_EPS) {
       iy = iy - 1;
     }
+    far = slabExit(camX, camY, dirX, dirY, ix, iy, cellSize);
+    if (!(far.t > s)) {
+      let ad = max(abs(dirX), abs(dirY));
+      far.t = s + select(e, cellSize / ad, ad > e);
+    }
   }
-  return VoxelXyCell(ix, iy, tFar);
+  return VoxelXyCell(ix, iy, far.t);
 }
 
 fn voxelColumnHit(camZ: f32, dirZ: f32, h: f32, s: f32, sExit: f32) -> f32 {
@@ -650,10 +675,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     if (zHere > ceiling && !(dir.z < 0.0)) {
       break;
     }
-    let hitMip = bandMipAt(depth, lastMip);
-    if (mip < hitMip) {
-      mip = hitMip;
-    }
     let cellSize = voxelGridSize(mip);
     let span = voxelXyCell(cam.x, cam.y, dir.x, dir.y, s, cellSize);
     let ix = span.ix;
@@ -707,7 +728,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       }
       continue;
     }
-    if (mip > hitMip) {
+    if (mip > 0) {
       mip = mip - 1;
       continue;
     }
