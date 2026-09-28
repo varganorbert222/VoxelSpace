@@ -3,12 +3,12 @@
 import { assetSrc, getMap, resolveMapId } from "./mapCatalog.js";
 import { loadImagesAsync } from "../assets/imageLoader.js";
 import { readColorFromImage } from "../assets/image.js";
-import { isNightMap, NIGHT_FILTER } from "../constants/mapLayout.js";
 import { Color } from "../math/color.js";
 import { buildCloudMips, buildSkyTable, retailCloudHeight } from "../render/retail/skybox.js";
 import { buildWaterMips, buildWaterTable } from "../render/retail/water.js";
 import { retailBands } from "../render/retail/schedule.js";
 import { prepareRetailDetail } from "../render/retail/detail.js";
+import { setActiveColorGrade } from "../render/retail/colorGrade.js";
 
 const BYTE_HEIGHT_SCALE = 0.25;
 
@@ -126,6 +126,7 @@ export function loadMap(app, mapName) {
       nearEnd: retailBands()[4].end,
     };
     prepareRetailDetail(exported.retail);
+    setActiveColorGrade(render.gamma, render.saturation, render.filter);
     const built = exported.terrainMips ? exported.terrainMips.count : 1;
     app.renderer.clampMipCountToMap(app.terrain.width, app.terrain.height, built);
     app.renderer.setMaps(exported);
@@ -136,32 +137,10 @@ export function loadMap(app, mapName) {
       topColor: app.terrain.skyColor,
       bottomColor: app.terrain.horizonColor,
     });
-    if (app.currentMapName === selectedMap.id) {
-      presentNight(selectedMap);
+    const viewport = document.getElementById("id_viewport");
+    if (viewport) {
+      viewport.classList.remove("is-night");
     }
     app.persistAndSync();
   });
-}
-
-function presentNight(map) {
-  const viewport = document.getElementById("id_viewport");
-  const matrix = document.getElementById("id_night_matrix");
-  const night = isNightMap(map.name);
-  if (viewport) {
-    viewport.classList.toggle("is-night", night);
-  }
-  if (!night || !matrix) {
-    return;
-  }
-  const rgb = Array.isArray(map.filter) ? map.filter : NIGHT_FILTER;
-  const scale = rgb.map((channel) => Number(channel) / 128);
-  matrix.setAttribute(
-    "values",
-    scale[0] +
-      " 0 0 0 0  0 " +
-      scale[1] +
-      " 0 0 0  0 0 " +
-      scale[2] +
-      " 0 0  0 0 0 1 0"
-  );
 }

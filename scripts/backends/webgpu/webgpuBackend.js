@@ -9,6 +9,7 @@ import {
 import { debugViewId, isDebugColor } from "../../constants/debugView.js";
 import { STEP_GROWTH_BY_QUALITY, qualityIndex } from "../../constants/quality.js";
 import { qualityBandSteps, useRetailFrame, retailStepScale } from "../../render/retail/schedule.js";
+import { activeColorGrade } from "../../render/retail/colorGrade.js";
 import { detailNearEnds, prepareRetailDetail } from "../../render/retail/detail.js";
 import {
   createSkyPack,
@@ -880,12 +881,57 @@ class WebGpuBackend {
     this._blit(encoder);
   }
 
+  _ensureColorGrade() {
+    const grade = activeColorGrade();
+    const colorOn = isDebugColor(this._host.debugView) ? 1 : 0;
+    const key = grade.key + ":" + String(colorOn);
+    if (!this._gradeTex) {
+      this._gradeTex = this._device.createTexture({
+        label: "color grade lut",
+        size: { width: 256, height: 1 },
+        format: "rgba8uint",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      });
+      this._gradeBuf = this._device.createBuffer({
+        label: "color grade",
+        size: 16,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+    }
+    if (this._gradeKey === key) {
+      return;
+    }
+    this._gradeKey = key;
+    const lut = grade.lut;
+    const rgba = new Uint8Array(256 * 4);
+    for (let i = 0; i < 256; i++) {
+      rgba[i * 4] = lut[i];
+      rgba[i * 4 + 1] = lut[256 + i];
+      rgba[i * 4 + 2] = lut[512 + i];
+      rgba[i * 4 + 3] = 255;
+    }
+    this._device.queue.writeTexture(
+      { texture: this._gradeTex },
+      rgba,
+      { bytesPerRow: 1024 },
+      { width: 256, height: 1 }
+    );
+    const params = new Uint32Array([grade.saturation | 0, colorOn, 0, 0]);
+    this._device.queue.writeBuffer(this._gradeBuf, 0, params);
+    this._bindCache.blit = null;
+  }
+
   _blit(encoder) {
+    this._ensureColorGrade();
     const view = this._context.getCurrentTexture().createView();
     const bg = this._cachedBind("blit", () =>
       this._device.createBindGroup({
         layout: this._pipes.layouts.blit,
-        entries: [{ binding: 0, resource: this._screenTex.createView() }],
+        entries: [
+          { binding: 0, resource: this._screenTex.createView() },
+          { binding: 1, resource: this._gradeTex.createView() },
+          { binding: 2, resource: { buffer: this._gradeBuf } },
+        ],
       })
     );
     const pass = encoder.beginRenderPass({

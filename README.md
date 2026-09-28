@@ -25,7 +25,7 @@ Voxel space is the technique behind *Comanche*: a height map plus a color map, m
 | You get | What it means |
 | --- | --- |
 | **Classic columns** | The original voxel-space picture, every frame |
-| **Frustum-space** | View-Z slices with real pitch, live every frame |
+| **Scanline** | View-Z slices with real pitch, live every frame |
 | **Voxel raycast** | Per-pixel 3D rays through height columns, max-mip empty skip |
 | **CPU · JS** | Readable kernels on a Canvas 2D swap |
 | **CPU · WASM** | The same kernels, compiled `-O3` for wasm32 |
@@ -47,7 +47,7 @@ Works in a current desktop or mobile browser. WebGPU is optional (Chrome / Edge 
 
 ## How it works
 
-Height and color maps are 1024×1024 raster pairs. Classic marches world-vertical columns. Frustum-space samples the same height field along camera rays at discrete view-Z planes so pitch is real, not a horizon shift. Voxel casts one 3D ray per pixel. Distant samples use mipmaps and growing step size so the far clip stays cheap.
+Height and color maps are 1024×1024 raster pairs. Classic marches world-vertical columns. Scanline samples the same height field along camera rays at discrete view-Z planes so pitch is real, not a horizon shift. Voxel casts one 3D ray per pixel. Distant samples use mipmaps and growing step size so the far clip stays cheap.
 
 A mip chain sits on the maps. Classic and voxel drop to coarser LODs farther from the camera. How many levels and where they switch is a View control. On LOD 0, optional bilinear height and color sampling smooths the nearest voxels; LOD0 refine snaps those samples onto the inner 1/16…1 m cell grid, then adds height noise. Higher LODs stay nearest-texel so coarse blocks stay flat. Voxel occupancy at a cell is that same mipmap sample (bilinear + refine at LOD 0, nearest on coarser mips). Voxel step size is the mip / refine cell at that distance, so empty-space skip naturally lengthens with LOD.
 
@@ -207,7 +207,7 @@ A 256×256 top-down of the current map, with heading, FOV wedge, and craft mark.
 | Algorithm | Picture | Look | Cache |
 | --- | --- | --- | --- |
 | **classic** | Column voxel space | Yaw + limited pitch | None — every frame |
-| **frustum-space** | View-Z slices, per-pixel first hit | Yaw + real pitch (±80°), no roll | None — every frame |
+| **scanline** | View-Z slices, per-pixel first hit | Yaw + real pitch (±80°), no roll | None — every frame |
 | **voxel** | Per-pixel 3D column raycast | Full Euler + roll | None — every frame |
 
 ### Camera
@@ -230,7 +230,7 @@ Quality sets the sample step inside each distance band. It does not change rende
 | --- | --- | --- |
 | **Distance** | 100 – 74500 | Far clip (HUD value; march may stop sooner if Fog is on and Fog range end is lower). The max is the retail Direct5 end at 640×480 / FOV 90 (≈74473). |
 | **Fog range** | 0 – Distance | Dual thumbs: fog starts at the lower bound and saturates at the upper. The track max follows Distance. |
-| **Delta Z** | 0.1 – 2.0 | Ray step for classic and frustum-space. Unused by voxel (mip cell size steps). |
+| **Delta Z** | 0.1 – 2.0 | Ray step for classic and scanline. Unused by voxel (mip cell size steps). |
 | **LOD** | 1 – map log₂ | How many mip rasters the march uses. 1 is full resolution only. On a 1024 map, 5 stops at 64×64 and 10 at 2×2. Default is the middle of the range. Voxel uses the same distance bands: hit voxel size is `2^mip` (or lod0 refine 1/16…1 m); coarser max-mips may still skip empty air. |
 | **LOD curve** | Linear / Doubling / Logarithmic | How switch distances fill 0…Distance. Linear: equal range per level. Doubling: each switch is twice as far as the previous. Logarithmic: log-spaced from the first switch to Distance. |
 | **LOD step** | 10 m – Distance | Meters to the first LOD switch. Editable on Logarithmic; Linear and Doubling fill 0…Distance on their own and show the first switch here. |
@@ -277,7 +277,7 @@ The extractor lineage is the C program from [sioux](https://github.com/hanatos/s
 | `index.html` | HUD shell, command panel, canvas, radar, touch pad |
 | `styles/` | Cockpit chrome |
 | `scripts/app/` | Boot, game loop, HUD, settings, radar, map load |
-| `scripts/render/` | Classic / frustum-space / voxel, workers |
+| `scripts/render/` | Classic / scanline / voxel, workers |
 | `scripts/backends/` | JS, WASM, WebGPU (+ WGSL) |
 | `scripts/camera/` | Fly, orbit, projection, collision |
 | `scripts/terrain/` | Height/color, mip chain, wrap, LOD-0 sampling |

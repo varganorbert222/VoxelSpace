@@ -383,11 +383,14 @@ static __attribute__((always_inline)) u32 sample_sv_color(
     i32 shift,
     i32 wrap,
     i32 filter,
+    i32 subdiv,
     i32 nn_off) {
   i32 ix;
   i32 iy;
   f64 x0;
   f64 y0;
+  f64 fx;
+  f64 fy;
   if (!filter) {
     return map[nn_off];
   }
@@ -395,13 +398,29 @@ static __attribute__((always_inline)) u32 sample_sv_color(
   y0 = wasm_floor(y);
   ix = (i32)x0;
   iy = (i32)y0;
+  fx = x - x0;
+  fy = y - y0;
+  if (subdiv > 1) {
+    f64 inv = 1.0 / (f64)subdiv;
+    i32 last = (subdiv - 1) | 0;
+    i32 cx = (i32)(fx * (f64)subdiv);
+    i32 cy = (i32)(fy * (f64)subdiv);
+    if (cx > last) {
+      cx = last;
+    }
+    if (cy > last) {
+      cy = last;
+    }
+    fx = ((f64)cx + 0.5) * inv;
+    fy = ((f64)cy + 0.5) * inv;
+  }
   return bilinear_packed4(
       color_at_sv(map, ix, iy, wmask, hmask, shift, wrap),
       color_at_sv(map, ix + 1, iy, wmask, hmask, shift, wrap),
       color_at_sv(map, ix, iy + 1, wmask, hmask, shift, wrap),
       color_at_sv(map, ix + 1, iy + 1, wmask, hmask, shift, wrap),
-      x - x0,
-      y - y0);
+      fx,
+      fy);
 }
 
 /* Retail near bands are 16, 16, 8, 4, 2 times denser than the mip-0 step. */
@@ -1231,6 +1250,7 @@ WASM_EXPORT void classic_columns(
                                   lod_shift,
                                   repeat,
                                   1,
+                                  near_sub,
                                   nn_off)
                             : color_map[nn_off];
             if (detail_in_range(z)) {
@@ -1296,7 +1316,8 @@ static u32 fs_terrain_color(
     f64 far_clip,
     i32 debug,
     u32 h_byte,
-    i32 iter) {
+    i32 iter,
+    i32 subdiv) {
   u32 plot;
   if (debug) {
     if (debug == DEBUG_HEIGHT) {
@@ -1312,7 +1333,7 @@ static u32 fs_terrain_color(
   }
   plot = (do_filter & use_fine)
              ? sample_sv_color(
-                   color_map, plx, ply, wmask, hmask, shift, wrap, 1, offset)
+                   color_map, plx, ply, wmask, hmask, shift, wrap, 1, subdiv, offset)
              : color_map[offset];
   if (detail_in_range(z)) {
     plot = apply_detail(plot, world_x, world_y, z);
@@ -1535,7 +1556,8 @@ WASM_EXPORT void frustum_space_columns(
               lod_color_map, wx * lod_scale, wy * lod_scale, wx, wy, nn_off,
               use_fine ? 1 : 0, do_filter, wrap, lod_w_mask, lod_h_mask, lod_shift,
               t, far_clip, debug, h_byte,
-              sample_ok ? g_sample_n[local_i] : guard);
+              sample_ok ? g_sample_n[local_i] : guard,
+              fine_lerp ? near_subdiv_at(t) : 0);
           pixels[(sy * stride + local_i) | 0] = plot;
           if ((pair > 1) & (((local_i + 1) | 0) < local_width)) {
             pixels[(sy * stride + ((local_i + 1) | 0)) | 0] = plot;

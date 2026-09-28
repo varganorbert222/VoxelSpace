@@ -13,6 +13,7 @@ import {
   isAlgorithmAllowed,
 } from "../constants/algorithm.js";
 import { DEBUG_VIEW_COLOR, isDebugColor } from "../constants/debugView.js";
+import { activeColorGrade } from "./retail/colorGrade.js";
 import { COLUMN_PAIR, UNFILLED_PIXEL } from "../constants/framebuffer.js";
 import {
   FILTER_DISTANCE_DEFAULT,
@@ -471,16 +472,17 @@ class Renderer {
   }
 
   writeToContext() {
+    const grade = isDebugColor(this._debugView) ? activeColorGrade() : null;
     if (this._slicePresented) {
       this._slicePresented = false;
-      this._frameBuffer.writeToContext();
+      this._frameBuffer.writeToContext(grade);
       return;
     }
     if (!this._skyPending && this.retailSkyPass) {
       this._skyPending = true;
     }
     this._compositeSky();
-    this._frameBuffer.writeToContext();
+    this._frameBuffer.writeToContext(grade);
   }
 
   _syncWorkerFlag() {

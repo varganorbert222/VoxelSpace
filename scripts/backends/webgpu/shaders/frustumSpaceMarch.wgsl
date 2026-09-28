@@ -57,14 +57,18 @@ fn classicColorAt(texX: i32, texY: i32, mip: i32, wrap: bool, mapHMask: i32, map
   return textureLoad(colorTex, vec2<i32>(x, y), mip);
 }
 
-fn classicSampleColor(plx: f32, ply: f32, mip: i32, doFilter: bool, wrap: bool, mapHMask: i32, mapWMask: i32) -> vec4f {
+fn classicSampleColor(plx: f32, ply: f32, mip: i32, doFilter: bool, subdiv: u32, wrap: bool, mapHMask: i32, mapWMask: i32) -> vec4f {
   if (!doFilter) {
     return classicColorAt(i32(plx), i32(ply), mip, wrap, mapHMask, mapWMask);
   }
   let x0 = floor(plx);
   let y0 = floor(ply);
-  let fx = plx - x0;
-  let fy = ply - y0;
+  var fx = plx - x0;
+  var fy = ply - y0;
+  if (subdiv > 1u) {
+    fx = subcellCenter(fx, subdiv);
+    fy = subcellCenter(fy, subdiv);
+  }
   let tx = i32(x0);
   let ty = i32(y0);
   let c00 = classicColorAt(tx, ty, mip, wrap, mapHMask, mapWMask);
@@ -101,7 +105,16 @@ fn frustumShade(
     return encodeIter(sampleN);
   }
   let plot = detailColor(
-    classicSampleColor(px, py, mip, flagShowDetails(flags) && useFine, repeat, mapHMask, mapWMask),
+    classicSampleColor(
+      px,
+      py,
+      mip,
+      flagShowDetails(flags) && useFine,
+      select(1u, lod0RefineSubdivAt(lod0RefineMipAt(z)), flagShowDetails(flags) && useFine),
+      repeat,
+      mapHMask,
+      mapWMask
+    ),
     worldX,
     worldY,
     z

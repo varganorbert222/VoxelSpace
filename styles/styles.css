@@ -1181,7 +1181,7 @@ body.cam-walk .freelook-only {
 }
 
 body.classic .freelook-only,
-body.frustum-space .freelook-only {
+body.scanline .freelook-only {
   display: none;
 }
 

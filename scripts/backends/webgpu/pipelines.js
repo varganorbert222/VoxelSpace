@@ -140,6 +140,8 @@ export async function createPipelines(device, canvasFormat, onStatus) {
     label: "blit",
     entries: [
       { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "uint" } },
+      { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "uint" } },
+      { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
     ],
   });
 

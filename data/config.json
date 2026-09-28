@@ -49,7 +49,7 @@
       "default": "fly"
     },
     "renderAlgorithms": {
-      "values": ["classic", "frustum-space", "voxel"],
+      "values": ["classic", "scanline", "voxel"],
       "default": "classic"
     },
     "renderBackends": {

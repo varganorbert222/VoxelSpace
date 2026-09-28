@@ -127,7 +127,11 @@ export function sanitizeSettings(data, defaults, bounds) {
     ),
     multithread: boolOr(data.multithread, defaults.multithread),
     map: pickAllowed(data.map, bounds.mapNames, defaults.map),
-    algorithm: pickAllowed(data.algorithm, bounds.algorithms, defaults.algorithm),
+    algorithm: pickAllowed(
+      data.algorithm === "frustum-space" ? "scanline" : data.algorithm,
+      bounds.algorithms,
+      defaults.algorithm
+    ),
     backend: pickAllowed(data.backend, bounds.backends, defaults.backend),
     debugView: pickAllowed(data.debugView, bounds.debugViews, defaults.debugView),
     mipCount: VMath.clamp(

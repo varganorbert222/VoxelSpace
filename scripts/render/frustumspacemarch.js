@@ -152,11 +152,24 @@ function sampleHeightBilinear(heightMap, x, y, mapShift, wMask, hMask, wrap, sub
   return hx0 + (hx1 - hx0) * qy;
 }
 
-function sampleColorFiltered(colorMap, x, y, mapShift, wMask, hMask, wrap) {
+function sampleColorFiltered(colorMap, x, y, mapShift, wMask, hMask, wrap, subdiv) {
   const x0 = Math.floor(x);
   const y0 = Math.floor(y);
   const ix = x0 | 0;
   const iy = y0 | 0;
+  let fx = x - x0;
+  let fy = y - y0;
+  if ((subdiv | 0) > 1) {
+    const sub = subdiv | 0;
+    const last = (sub - 1) | 0;
+    let cx = (fx * sub) | 0;
+    let cy = (fy * sub) | 0;
+    if ((cx > last) | 0) cx = last;
+    if ((cy > last) | 0) cy = last;
+    const inv = 1 / sub;
+    fx = (cx + 0.5) * inv;
+    fy = (cy + 0.5) * inv;
+  }
   return bilinearPacked4(
     colorAt(colorMap, ix, iy, mapShift, wMask, hMask, wrap),
     colorAt(colorMap, (ix + 1) | 0, iy, mapShift, wMask, hMask, wrap),
@@ -170,8 +183,8 @@ function sampleColorFiltered(colorMap, x, y, mapShift, wMask, hMask, wrap) {
       hMask,
       wrap
     ),
-    x - x0,
-    y - y0
+    fx,
+    fy
   );
 }
 
@@ -349,7 +362,8 @@ export function renderFrustumSpaceColumns({
             shadeMapShift,
             shadeWMask,
             shadeHMask,
-            wrap
+            wrap,
+            lod0RefineSubdiv(lod0RefineMipAt(z))
           )
         : shadeColorMap[offset];
     if (detailInRange(z)) {

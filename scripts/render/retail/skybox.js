@@ -86,31 +86,20 @@ function gradientBase(keys, row) {
   ];
 }
 
-function gradeColor(r, g, b, sat, gam) {
-  const avg = (r + g + b) / 3;
-  return packFrame(
-    255 * Math.pow(clampByte(avg + (r - avg) * sat) / 255, gam),
-    255 * Math.pow(clampByte(avg + (g - avg) * sat) / 255, gam),
-    255 * Math.pow(clampByte(avg + (b - avg) * sat) / 255, gam)
-  );
-}
-
 export function buildSkyTable(paletteImage, saturation, gamma) {
+  void saturation;
+  void gamma;
   const keys = skyKeys(paletteImage);
   const cloud = paletteRGB(paletteImage, 16);
-  const sat = Number.isFinite(saturation) ? saturation / 128 : 1;
-  const gam = Number.isFinite(gamma) ? gamma / 128 : 1;
   const table = new Uint32Array(CLOUD_LEVELS * 256);
   for (let level = 0; level < CLOUD_LEVELS; level++) {
     const q = level < 62 ? level : 62;
     for (let row = 0; row < 256; row++) {
       const base = gradientBase(keys, row);
-      table[(level * 256 + row) | 0] = gradeColor(
+      table[(level * 256 + row) | 0] = packFrame(
         base[0] + (((cloud[0] - base[0]) * q) >> 6),
         base[1] + (((cloud[1] - base[1]) * q) >> 6),
-        base[2] + (((cloud[2] - base[2]) * q) >> 6),
-        sat,
-        gam
+        base[2] + (((cloud[2] - base[2]) * q) >> 6)
       );
     }
   }
@@ -118,7 +107,7 @@ export function buildSkyTable(paletteImage, saturation, gamma) {
     table,
     horizonRGB: keys[0],
     lightRGB: cloud,
-    cloudColor: gradeColor(cloud[0], cloud[1], cloud[2], sat, gam),
+    cloudColor: packFrame(cloud[0], cloud[1], cloud[2]),
   };
 }
 
@@ -181,7 +170,7 @@ export function buildCloudMips(image) {
 // (retailSky.wgsl reads the same words):
 //   header | 64x256 color table | cloud mip bytes | one ray per screen row.
 // A row stores the view ray at pixel x = 0 and its per-pixel step. Classic
-// and frustum-space advance that step by two pixels and write the sample to
+// and scanline advance that step by two pixels and write the sample to
 // both, matching the retail pair column. Voxel keeps the one-pixel step. The
 // header stores the per-row step. Retail stores the plane hit in Q16 and
 // shifts it by 3, so one mip-0 texel is 8 meters. The mip steps when one
@@ -282,7 +271,7 @@ export function skyPackDynamicRanges(pack, height) {
 
 // The ray of pixel (x, y) is F + R * xn + U * yn, with
 // xn = (x + 0.5) * 2 / width - 1 and yn = horizon - y - 0.5. This is the
-// same ray the classic and frustum-space terrain marches use.
+// same ray the classic and scanline terrain marches use.
 // retailBlack enables the retail all-black sky below -45 degrees pitch.
 // Free-look algorithms leave it off so steep views keep the sky.
 export function skyView(camera, height, perspective, retailBlack = !perspective) {

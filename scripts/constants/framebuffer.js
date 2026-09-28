@@ -5,7 +5,7 @@ export const SKY_PALETTE_T_MAX = (SKY_PALETTE_STEPS - 1) / SKY_PALETTE_STEPS;
 export const SKY_ZENITH_POWER = 2.75;
 export const UNFILLED_PIXEL = 0;
 // Retail column pairs: one scanline column is sampled at the left pixel and
-// written to both pixels of the pair. Classic and frustum-space only.
+// written to both pixels of the pair. Classic and scanline only.
 export const COLUMN_PAIR = 2;
 
 export function skyPaletteT(linearT) {

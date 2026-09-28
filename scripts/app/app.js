@@ -214,7 +214,7 @@ class App {
     }
     document.body.classList.toggle("classic", algorithm === ALGORITHM_CLASSIC);
     document.body.classList.toggle(
-      "frustum-space",
+      "scanline",
       algorithm === ALGORITHM_FRUSTUM_SPACE
     );
     document.body.classList.toggle("voxel", algorithm === ALGORITHM_VOXEL);

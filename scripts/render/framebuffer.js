@@ -6,6 +6,7 @@ import {
   skyPaletteT,
 } from "../constants/framebuffer.js";
 import { BYTES_PER_PIXEL } from "../constants/image.js";
+import { gradeBytes } from "./retail/colorGrade.js";
 import { HALF } from "../constants/vmath.js";
 
 class FrameBuffer {
@@ -119,8 +120,22 @@ class FrameBuffer {
     return dest;
   }
 
-  writeToContext() {
-    this._contextForCanvas.putImageData(this._imageDataForContext, 0, 0);
+  writeToContext(grade) {
+    if (!this._contextForCanvas || !this._imageDataForContext) {
+      return;
+    }
+    if (!grade || !this._buffer8bit) {
+      this._contextForCanvas.putImageData(this._imageDataForContext, 0, 0);
+      return;
+    }
+    const n = this._buffer8bit.length;
+    if (!this._present8 || this._present8.length !== n) {
+      this._present8 = new Uint8ClampedArray(n);
+      this._presentImage = new ImageData(this._present8, this._width, this._height);
+    }
+    this._present8.set(this._buffer8bit);
+    gradeBytes(this._present8, grade);
+    this._contextForCanvas.putImageData(this._presentImage, 0, 0);
   }
 
   set(bufferData) {
