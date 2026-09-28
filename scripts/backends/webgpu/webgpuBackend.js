@@ -104,8 +104,10 @@ class WebGpuBackend {
     this._skyBufPack = null;
     this._maps = null;
     this._heightTex = null;
+    this._vmaxTex = null;
     this._colorTex = null;
     this._dummyH = null;
+    this._dummyV = null;
     this._dummyC = null;
     this._screenTex = null;
     this._screenSample = null;
@@ -158,8 +160,10 @@ class WebGpuBackend {
     this._distBuf = createStorageBuffer(this._device, 32 * 4);
     this._mipSwitchBuf = createStorageBuffer(this._device, TERRAIN_MIP_MAX_COUNT * 2 * 4);
     this._dummyH = createHeightTexture(this._device, 1, 1, 1);
+    this._dummyV = createHeightTexture(this._device, 1, 1, 1);
     this._dummyC = createColorTexture(this._device, 1, 1, 1);
     uploadHeight(this._device, this._dummyH, new Uint8Array(1), 1, 1);
+    uploadHeight(this._device, this._dummyV, new Uint8Array([255]), 1, 1);
     uploadColor(this._device, this._dummyC, new Uint32Array(1), 1, 1);
     this._characterTex = null;
     this._detailPackedTex = null;
@@ -200,6 +204,8 @@ class WebGpuBackend {
     );
     destroyTex(this._heightTex);
     destroyTex(this._colorTex);
+    destroyTex(this._vmaxTex);
+    this._vmaxTex = null;
     this._heightTex = createHeightTexture(
       this._device,
       maps.width,
@@ -229,6 +235,24 @@ class WebGpuBackend {
         mips.heights[m],
         m
       );
+    }
+    if (mips.vmaxMaps && mips.vmaxMaps.length) {
+      this._vmaxTex = createHeightTexture(
+        this._device,
+        maps.width,
+        maps.height,
+        mips.vmaxMaps.length
+      );
+      for (let m = 0; (m < mips.vmaxMaps.length) | 0; m = (m + 1) | 0) {
+        uploadHeight(
+          this._device,
+          this._vmaxTex,
+          mips.vmaxMaps[m],
+          mips.widths[m],
+          mips.heights[m],
+          m
+        );
+      }
     }
     this._installDetailTextures(maps && maps.retail);
     this._dropBinds(["maps", "mips", "classicMaps"]);
@@ -329,6 +353,7 @@ class WebGpuBackend {
       { binding: 2, resource: character.createView() },
       { binding: 3, resource: packed.createView() },
       { binding: 4, resource: palette.createView() },
+      { binding: 5, resource: (this._vmaxTex || this._dummyV).createView() },
     ];
   }
 
@@ -1015,8 +1040,10 @@ class WebGpuBackend {
     destroyTex(this._screenTex);
     destroyTex(this._screenSample);
     destroyTex(this._dummyH);
+    destroyTex(this._dummyV);
     destroyTex(this._dummyC);
     destroyTex(this._heightTex);
+    destroyTex(this._vmaxTex);
     destroyTex(this._colorTex);
     destroyTex(this._characterTex);
     destroyTex(this._detailPackedTex);

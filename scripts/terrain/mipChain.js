@@ -53,6 +53,7 @@ export function resolveTerrainMips(
     heights: heights,
     shifts: shifts,
     lodFogOn: src && src.lodFogOn ? 1 : 0,
+    vmaxMaps: src && src.vmaxMaps ? src.vmaxMaps : null,
   };
 }
 

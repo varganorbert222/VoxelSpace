@@ -4,6 +4,7 @@ import { renderClassicColumns as renderClassicColumnsJs } from "./classicmarch.j
 import { renderFrustumSpaceColumns as renderFrustumSpaceColumnsJs } from "./frustumspacemarch.js";
 import { renderVoxelTexels as renderVoxelTexelsJs } from "./voxelmarch.js";
 import { bindRetailMaps } from "./retail/detail.js";
+import { attachVMaxMips } from "./retail/vmax.js";
 import { presentColumns } from "./retail/present.js";
 import {
   MSG_INIT_MAPS,
@@ -99,6 +100,7 @@ function initMaps(msg) {
   if (msg.retail) {
     bindRetailMaps({ retail: msg.retail });
   }
+  attachVMaxMips(workerState.terrainMips, msg.retail || null);
 }
 
 function renderClassic(msg) {

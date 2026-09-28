@@ -8,6 +8,7 @@ import { buildCloudMips, buildSkyTable, retailCloudHeight } from "../render/reta
 import { buildWaterMips, buildWaterTable } from "../render/retail/water.js";
 import { retailBands } from "../render/retail/schedule.js";
 import { prepareRetailDetail } from "../render/retail/detail.js";
+import { attachVMaxMips } from "../render/retail/vmax.js";
 import { setActiveColorGrade } from "../render/retail/colorGrade.js";
 
 const BYTE_HEIGHT_SCALE = 0.25;
@@ -126,6 +127,7 @@ export function loadMap(app, mapName) {
       nearEnd: retailBands()[4].end,
     };
     prepareRetailDetail(exported.retail);
+    attachVMaxMips(exported.terrainMips, exported.retail);
     setActiveColorGrade(render.gamma, render.saturation, render.filter);
     const built = exported.terrainMips ? exported.terrainMips.count : 1;
     app.renderer.clampMipCountToMap(app.terrain.width, app.terrain.height, built);

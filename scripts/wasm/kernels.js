@@ -357,7 +357,14 @@ export function createWasmKernels(instance) {
     const heights = mips.heights;
     const shifts = mips.shifts;
     const mipCount = mips.count;
-    const mapsKey = generation + ":" + mipCount + ":" + (mips.lodFogOn ? 1 : 0);
+    const mapsKey =
+      generation +
+      ":" +
+      mipCount +
+      ":" +
+      (mips.lodFogOn ? 1 : 0) +
+      ":" +
+      (mips.vmaxMaps ? mips.vmaxMaps.length : 0);
     if (mapsGeneration === mapsKey) {
       return;
     }
@@ -383,6 +390,9 @@ export function createWasmKernels(instance) {
       const hp = allocCopy(ex, memory, heightMaps[m]);
       const cp = allocCopy(ex, memory, colorMaps[m]);
       ex.set_map_level(m, hp, cp, widths[m], heights[m], shifts[m]);
+      if (mips.vmaxMaps && mips.vmaxMaps[m]) {
+        ex.set_vmax_level(m, allocCopy(ex, memory, mips.vmaxMaps[m]));
+      }
     }
     ex.commit_perm();
     mapsGeneration = mapsKey;

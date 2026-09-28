@@ -214,7 +214,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     step = max(bandMarchStep(lodDeltas[mip], mip, t), 1.0e-4);
     let yn = (rowBase - f32(sy)) * invH2;
     let dir = fwd + right * (xn * tanHalfX) + up * yn;
-    let pos = cam + dir * t;
+    var pos = cam + dir * t;
     if ((pos.z > ceiling) && !(dir.z < 0.0)) {
       break;
     }
@@ -222,6 +222,61 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     if (!inside) {
       t = t + step;
       continue;
+    }
+    {
+      let useFine = lod0RefineAt(t, mip);
+      let refineMip = lod0RefineMipAt(t);
+      let level = vmaxLevel(mip, useFine, refineMip);
+      let bits = vmaxShift(mip, useFine, refineMip);
+      let levels = textureNumLevels(vmaxTex);
+      let lv = min(u32(max(level, 0)), levels - 1u);
+      let cell = exp2(f32(lv));
+      var coarse = step * exp2(f32(bits));
+      if (coarse > cell) {
+        coarse = cell;
+      }
+      if (coarse > step * 0.5 && pos.z >= vmaxMeters(pos.x, pos.y, i32(lv), altScale, repeat)) {
+        var cursor = t;
+        var hops = 0u;
+        var bandEnd = farClip;
+        if (mip + 1 < lodCount && lodDistances[mip + 1] > t && lodDistances[mip + 1] < bandEnd) {
+          bandEnd = lodDistances[mip + 1];
+        }
+        if (useFine) {
+          var nearEdge = frame.detailTail.x;
+          if (refineMip <= 0) {
+            nearEdge = frame.stepScaleCaps.y;
+          } else if (refineMip == 1) {
+            nearEdge = frame.stepScaleCaps.z;
+          } else if (refineMip == 2) {
+            nearEdge = frame.stepScaleCaps.w;
+          } else if (refineMip == 3) {
+            nearEdge = frame.mipSwitchYHit.y;
+          }
+          if (nearEdge > t && nearEdge < bandEnd) {
+            bandEnd = nearEdge;
+          }
+        }
+        loop {
+          if (hops >= 32u) { break; }
+          let next = cursor + coarse;
+          if (next >= bandEnd) { break; }
+          let p2 = cam + dir * next;
+          let inMap = (p2.x >= 0.0 && p2.x <= mapWf && p2.y >= 0.0 && p2.y <= mapHf) || repeat;
+          if (!inMap || p2.z < vmaxMeters(p2.x, p2.y, i32(lv), altScale, repeat)) { break; }
+          cursor = next;
+          hops = hops + 1u;
+        }
+        if (cursor > t) {
+          t = cursor;
+          pos = cam + dir * t;
+          let still = (pos.x >= 0.0 && pos.x <= mapWf && pos.y >= 0.0 && pos.y <= mapHf) || repeat;
+          if (!still) {
+            t = t + step;
+            continue;
+          }
+        }
+      }
     }
     let useFine = lod0RefineAt(t, mip);
     let doLerp = flagShowDetails(flags) && useFine;

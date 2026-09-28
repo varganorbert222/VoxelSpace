@@ -22,6 +22,7 @@ exports=(
   set_detail_frame
   set_map_info
   set_map_level
+  set_vmax_level
   set_luts
   classic_columns
   frustum_space_columns

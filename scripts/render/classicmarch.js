@@ -3,6 +3,7 @@
 import { Color } from "../math/color.js";
 import { qualityBandSteps, useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
+import { vmaxClamp, vmaxMeters, vmaxQuery } from "./retail/vmax.js";
 import { HEIGHTMAP_MAX } from "../constants/terrain.js";
 import { FILTER_DISTANCE_DEFAULT } from "../constants/sampling.js";
 import { COLUMN_PAIR, UNFILLED_PIXEL } from "../constants/framebuffer.js";
@@ -473,6 +474,41 @@ function renderClassicColumnsSampled({
             ply += dy * pair;
             i = (i + pair) | 0;
             continue;
+          }
+
+          if (mips.vmaxMaps) {
+            const query = vmaxQuery(mip, refineHere, refineMip);
+            const env = vmaxMeters(
+              mips,
+              plx,
+              ply,
+              vmaxClamp(mips, query.level),
+              altScale,
+              repeat | 0
+            );
+            const envY = classicProjectedY(
+              camZ - env,
+              dstToProjPlane,
+              z,
+              step,
+              plx,
+              ply,
+              i,
+              kLeftX,
+              kLeftY,
+              kDx,
+              kDy,
+              mip,
+              screenHorizon,
+              refineHere,
+              refineMip
+            );
+            if ((envY >= colHidden) | 0) {
+              plx += dx * pair;
+              ply += dy * pair;
+              i = (i + pair) | 0;
+              continue;
+            }
           }
 
           const dirX = kLeftX + kDx * i;

@@ -3,6 +3,7 @@
 import { Color } from "../math/color.js";
 import { qualityBandSteps, useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
+import { vmaxQuery, vmaxSkipDistance } from "./retail/vmax.js";
 import {
   GROUND_CLIP_OFFSET,
   GROUND_HEIGHT,
@@ -395,9 +396,9 @@ export function renderFrustumSpaceColumns({
       const bx = fwdX + xn * tanHalfFovX * rightX + yn * upX;
       const by = fwdY + xn * tanHalfFovX * rightY + yn * upY;
       const bz = fwdZ + xn * tanHalfFovX * rightZ + yn * upZ;
-      const wx = camX + t * bx;
-      const wy = camY + t * by;
-      const wz = camZ + t * bz;
+      let wx = camX + t * bx;
+      let wy = camY + t * by;
+      let wz = camZ + t * bz;
       if ((wz > ceiling) & !(bz < 0)) {
         break;
       }
@@ -409,6 +410,60 @@ export function renderFrustumSpaceColumns({
       if (!(inside | wrap)) {
         t = t + step;
         continue;
+      }
+      if (mips.vmaxMaps) {
+        let bandEnd = farClip;
+        if (((mip + 1) | 0) < switches.length && switches[mip] > t && switches[mip] < bandEnd) {
+          bandEnd = switches[mip];
+        }
+        if (refineHere) {
+          if (refineMip < refineSwitches.length) {
+            const sw = refineSwitches[refineMip];
+            if (sw > t && sw < bandEnd) {
+              bandEnd = sw;
+            }
+          }
+          const nearLimit = refineSwitches.length
+            ? refineSwitches[refineSwitches.length - 1] * 2
+            : 0;
+          if (nearLimit > t && nearLimit < bandEnd) {
+            bandEnd = nearLimit;
+          }
+        }
+        const query = vmaxQuery(mip, refineHere, refineMip);
+        const jumped = vmaxSkipDistance(
+          t,
+          step,
+          bx,
+          by,
+          bz,
+          camX,
+          camY,
+          camZ,
+          mips,
+          query.level,
+          query.shift,
+          bandEnd,
+          mapW,
+          mapH,
+          wrap,
+          altScale
+        );
+        if (jumped > t) {
+          t = jumped;
+          wx = camX + t * bx;
+          wy = camY + t * by;
+          wz = camZ + t * bz;
+          const still =
+            ((wx >= 0) | 0) &
+            ((wx <= mapW) | 0) &
+            ((wy >= 0) | 0) &
+            ((wy <= mapH) | 0);
+          if (!(still | wrap)) {
+            t = t + step;
+            continue;
+          }
+        }
       }
       shadeInvScale = 1 / (1 << mip);
       shadeColorMap = mips.colorMaps[mip];
