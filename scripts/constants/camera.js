@@ -10,7 +10,7 @@ export const DEFAULT_POS_X = 512;
 export const DEFAULT_POS_Y = 512;
 export const DEFAULT_POS_Z = 150;
 export const DEFAULT_RENDER_SCALE = 0.5;
-export const DEFAULT_QUALITY = 2;
+export const DEFAULT_QUALITY = 1;
 export const DEFAULT_FOV = 90;
 export const DEFAULT_ORBIT_RADIUS = 500;
 

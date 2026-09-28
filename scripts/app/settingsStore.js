@@ -5,6 +5,7 @@ import {
   SETTINGS_STORAGE_VERSION,
 } from "../constants/main.js";
 import { lod0MaxMeters } from "../constants/mip.js";
+import { clampScanQuality } from "../constants/quality.js";
 import VMath from "../math/vmath.js";
 
 function finiteOr(value, fallback) {
@@ -107,7 +108,7 @@ export function sanitizeSettings(data, defaults, bounds) {
       bounds.fov.max,
       finiteOr(data.fov, defaults.fov)
     ),
-    quality: pickAllowed(Number(data.quality), bounds.qualities, defaults.quality),
+    quality: clampScanQuality(finiteOr(data.quality, defaults.quality)),
     mode: pickAllowed(data.mode, bounds.modes, defaults.mode),
     repeat: boolOr(data.repeat, defaults.repeat),
     showDetails: boolOr(data.showDetails, defaults.showDetails),

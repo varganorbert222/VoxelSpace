@@ -6,9 +6,9 @@
 // Scan Quality divides the step. LOD Bias scales the finished endpoints by
 // 2^(-bias). Bias 0 leaves them put. Render distance does not move them.
 // The framebuffer size does not move them either. Ends are computed for the
-// retail 1024-wide view; FOV still sets the focal length.
+// retail 640-wide preset; FOV still sets the focal length.
 
-import { qualityStepDivisor } from "../../constants/quality.js";
+import { clampScanQuality, qualityStepDivisor } from "../../constants/quality.js";
 
 const FOV_DEG_RAD = 0.01745329;
 const DIVISOR = Math.fround(2.2);
@@ -16,8 +16,10 @@ const DIVISOR = Math.fround(2.2);
 const DIRECT5_FACTOR = 512;
 // Q22 / (Q20 >> 2) = 16 scan steps per meter.
 const SCAN_STEPS_PER_METER = 16;
-// Width that yields focal 512 at FOV 90. LOD ends stay on that view.
-export const LOD_REFERENCE_WIDTH = 1024;
+// Terrain descriptors, the sky gradient, and the cloud mip bands follow the
+// retail 640x480 preset. Focal at FOV 90 is 320. Output width does not move
+// them. FOV does, through this focal length.
+export const LOD_TERRAIN_WIDTH = 640;
 export const LOD_BIAS_DEFAULT = 0;
 export const LOD_BIAS_MIN = -2;
 export const LOD_BIAS_MAX = 3;
@@ -81,7 +83,9 @@ export function useRetailFrame(params) {
   frame = {
     width: width | 0,
     fovDeg: fovDeg | 0,
-    quality: params.quality | 0,
+    quality: clampScanQuality(
+      Number.isFinite(Number(params.quality)) ? Number(params.quality) : frame.quality
+    ),
     farClip: farClip > 1 ? farClip : frame.farClip,
     lodBias: clampLodBias(
       Number.isFinite(Number(params.lodBias)) ? Number(params.lodBias) : frame.lodBias
@@ -134,14 +138,14 @@ export function retailLodBiasScale(lodBias) {
 
 // Direct5 end in meters: (focal * 512 / 2.2) / 16 * 2^(-bias).
 export function retailLodSpan(lodBias) {
-  const focal = retailFocal(LOD_REFERENCE_WIDTH, frame.fovDeg);
+  const focal = retailFocal(LOD_TERRAIN_WIDTH, frame.fovDeg);
   const direct5 = (focal * DIRECT5_FACTOR) / DIVISOR / SCAN_STEPS_PER_METER;
   const bias = lodBias == null ? frame.lodBias : lodBias;
   return direct5 * retailLodBiasScale(bias);
 }
 
 export function retailBands() {
-  const raw = buildRetailBands(LOD_REFERENCE_WIDTH, frame.fovDeg, frame.quality);
+  const raw = buildRetailBands(LOD_TERRAIN_WIDTH, frame.fovDeg, frame.quality);
   const scale = retailLodBiasScale(frame.lodBias);
   return raw.map((band) => ({
     ...band,

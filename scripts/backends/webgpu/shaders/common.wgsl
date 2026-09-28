@@ -404,8 +404,8 @@ fn terrainSamplePos(wx: f32, wy: f32, dirX: f32, dirY: f32, mip: i32, t: f32) ->
 
 fn qualityQ() -> f32 {
   var q = frame.tMaxMinDzAltMaxH.y;
-  if (q < 1.0) {
-    q = 1.0;
+  if (q < 0.55) {
+    q = 0.55;
   }
   if (q > 4.0) {
     q = 4.0;

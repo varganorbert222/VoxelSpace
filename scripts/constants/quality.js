@@ -1,54 +1,50 @@
 "use strict";
 
-export const QUALITY_LOW = 1;
-export const QUALITY_MEDIUM = 2;
-export const QUALITY_HIGH = 3;
-export const QUALITY_VERY_HIGH = 4;
-export const QUALITY_ULTRA = 5;
+// Retail scan quality. The raw band step is divided by this value.
+// 1 is the retail step. Below 1 the step grows. Above 1 it shrinks.
+export const SCAN_QUALITY_MIN = 0.55;
+export const SCAN_QUALITY_MAX = 4;
+export const SCAN_QUALITY_STEP = 0.05;
+export const SCAN_QUALITY_DEFAULT = 1;
+export const QUALITY_LOW = SCAN_QUALITY_MIN;
 
-export const QUALITY_LABEL = Object.freeze({
-  [QUALITY_LOW]: "Low",
-  [QUALITY_MEDIUM]: "Medium",
-  [QUALITY_HIGH]: "High",
-  [QUALITY_VERY_HIGH]: "Very-high",
-  [QUALITY_ULTRA]: "Ultra",
-});
-
-export function isUltraQualityAllowed(_backend) {
-  return true;
+export function clampScanQuality(value) {
+  let n = Number(value);
+  if (!Number.isFinite(n)) {
+    n = SCAN_QUALITY_DEFAULT;
+  }
+  if (n < SCAN_QUALITY_MIN) {
+    n = SCAN_QUALITY_MIN;
+  }
+  if (n > SCAN_QUALITY_MAX) {
+    n = SCAN_QUALITY_MAX;
+  }
+  const steps = Math.round((n - SCAN_QUALITY_MIN) / SCAN_QUALITY_STEP);
+  const snapped = SCAN_QUALITY_MIN + steps * SCAN_QUALITY_STEP;
+  return Math.round(snapped * 100) / 100;
 }
 
-export function clampQualityForContext(quality, backend) {
-  const q = qualityIndex(quality);
-  if (q === QUALITY_ULTRA && !isUltraQualityAllowed(backend)) {
-    return QUALITY_VERY_HIGH;
-  }
-  return q;
+export function clampQualityForContext(quality, _backend) {
+  return clampScanQuality(quality);
 }
 
 export const STEP_GROWTH_BY_QUALITY = Object.freeze([
   0, 0.0038, 0.0031, 0.0025, 0.002, 0.0014,
 ]);
 
-// Sample density relative to the retail Low step (rawStep / q).
-// The same ladder is used by JS, WASM, and WebGPU.
-export const QUALITY_STEP_DIVISOR = Object.freeze([
-  0, 1, 1.25, 1.5, 2, 2.5,
-]);
-
 export function qualityIndex(quality) {
-  let q = quality | 0;
-  if ((q < 1) | 0) {
-    q = 1;
+  let i = Math.round(clampScanQuality(quality));
+  if (i < 1) {
+    i = 1;
   }
-  if ((q > QUALITY_ULTRA) | 0) {
-    q = QUALITY_ULTRA;
+  if (i > 5) {
+    i = 5;
   }
-  return q;
+  return i;
 }
 
 export function qualityStepDivisor(quality) {
-  return QUALITY_STEP_DIVISOR[qualityIndex(quality)];
+  return clampScanQuality(quality);
 }
 
 export const MIN_SAMPLE_DISTANCE = 0.5;

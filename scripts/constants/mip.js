@@ -303,9 +303,6 @@ export function bandStepFloor(mip, refine, refineMip, quality) {
   if (!(lo > 0)) {
     lo = cell > 0 ? cell : MIN_SAMPLE_DISTANCE;
   }
-  if (lo > cell) {
-    lo = cell;
-  }
   return lo;
 }
 

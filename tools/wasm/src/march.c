@@ -469,11 +469,11 @@ static f64 band_step_at(i32 mip) {
 }
 
 static f64 step_divisor(void) {
-  if (!(g_step_divisor >= 1.0)) {
-    return 1.0;
+  if (!(g_step_divisor >= 0.55)) {
+    return 0.55;
   }
-  if (g_step_divisor > 2.5) {
-    return 2.5;
+  if (g_step_divisor > 4.0) {
+    return 4.0;
   }
   return g_step_divisor;
 }
@@ -518,10 +518,10 @@ WASM_EXPORT void set_sample_flags(
     f64 refine_sw1,
     f64 refine_sw2,
     f64 refine_sw3) {
-  if (!(step_divisor >= 1.0)) {
-    g_step_divisor = 1.0;
-  } else if (step_divisor > 2.5) {
-    g_step_divisor = 2.5;
+  if (!(step_divisor >= 0.55)) {
+    g_step_divisor = 0.55;
+  } else if (step_divisor > 4.0) {
+    g_step_divisor = 4.0;
   } else {
     g_step_divisor = step_divisor;
   }

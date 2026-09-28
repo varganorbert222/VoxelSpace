@@ -1,6 +1,7 @@
 "use strict";
 
-import { retailFocal, LOD_REFERENCE_WIDTH, retailLodBiasScale } from "./schedule.js";
+import { retailFocal, LOD_TERRAIN_WIDTH, retailLodBiasScale } from "./schedule.js";
+import { verticalProjPlane } from "../../camera/projection.js";
 import { paletteRGB } from "../../assets/pngPalette.js";
 
 const PI = 3.1415926539;
@@ -184,9 +185,10 @@ export function buildCloudMips(image) {
 // both, matching the retail pair column. Voxel keeps the one-pixel step. The
 // header stores the per-row step. Retail stores the plane hit in Q16 and
 // shifts it by 3, so one mip-0 texel is 8 meters. The mip steps when one
-// pixel of the 1024-wide reference view covers twice as many texels. The
-// framebuffer size does not move those bands. At FOV 90 they sit at 4096 m,
-// 8192 m, 16384 m, and so on. A row whose ray Z is constant walks that UV
+// pixel of the retail 640-wide preset covers twice as many texels. The
+// framebuffer size does not move those bands: the footprint is scaled by
+// projPlane / focal(640, fov), which is the retail center-pixel size.
+// A row whose ray Z is constant walks that UV
 // with a fixed step. Rolled rows still solve the plane once per sample column.
 // Terrain stays below the cloud plane, so from below the terrain hides the
 // clouds and from above the clouds cover every downward ray, terrain included.
@@ -330,8 +332,8 @@ export function updateSkyPack(pack, view, camera, width, height, skyDraw) {
   const plane = skyZ - camera.posZ;
   const pitchDeg = Number.isFinite(view.pitchDeg) ? view.pitchDeg : -camera.pitch;
   const quantPitch = Math.trunc((pitchDeg * DEN) / 360);
-  const step = retailSkyGradientStepQ16(width, camera.fov, sky.horizon);
-  const gradScale = (retailFocal(width, camera.fov) * step) / 65536;
+  const step = retailSkyGradientStepQ16(LOD_TERRAIN_WIDTH, camera.fov, sky.horizon);
+  const gradScale = (retailFocal(LOD_TERRAIN_WIDTH, camera.fov) * step) / 65536;
   const clock = ((Date.now() / 16) | 0) & 32767;
   words[0] = SKY_MAGIC;
   words[1] = width;
@@ -365,10 +367,11 @@ export function updateSkyPack(pack, view, camera, width, height, skyDraw) {
   f32[H_ROW_STEP] = -u[0];
   f32[H_ROW_STEP + 1] = -u[1];
   f32[H_ROW_STEP + 2] = -u[2];
-  const viewWidth = width > 0 ? width : LOD_REFERENCE_WIDTH;
+  const focal = retailFocal(LOD_TERRAIN_WIDTH, camera.fov);
+  const proj = verticalProjPlane(height, camera.fov);
   const bias = Number(draw.cloudLodBias);
   const biasScale = retailLodBiasScale(Number.isFinite(bias) ? bias : 0);
-  f32[H_CLOUD_LOD_SCALE] = viewWidth / LOD_REFERENCE_WIDTH / biasScale;
+  f32[H_CLOUD_LOD_SCALE] = (focal > 0 ? proj / focal : 1) / biasScale;
   for (let y = 0; y < height; y++) {
     const yn = view.horizon - y - 0.5;
     const o = pack.rowOffset + y * ROW_WORDS;
@@ -399,8 +402,8 @@ function cloudMip(foot, last) {
   return mip;
 }
 
-// The live pixel is width/1024 times the reference pixel. Scale the footprint
-// back so the mip bands stay on the 1024-wide view.
+// Scale the live pixel back to the retail 640-preset focal. A taller
+// framebuffer has a longer proj plane, so this ratio keeps the mip put.
 function cloudMipForFoot(pack, foot, last) {
   const scale = pack.f32[H_CLOUD_LOD_SCALE];
   const s = scale > 0 ? scale : 1;

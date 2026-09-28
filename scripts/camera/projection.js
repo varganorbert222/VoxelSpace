@@ -26,14 +26,24 @@ export function calculateFov(camera) {
   return camera._cachedFov;
 }
 
+// Vertical focal length in pixels. The FOV slider is the vertical angle.
+export function verticalProjPlane(height, fovDeg) {
+  const halfFovY = (Number(fovDeg) || 0) * VMath.DEG_TO_RAD * HALF;
+  const tanHalfY = Math.tan(halfFovY);
+  const h2 = Math.max(1, height | 0) * HALF;
+  if (!(tanHalfY > 1e-8)) {
+    return h2;
+  }
+  return h2 / tanHalfY;
+}
+
 export function calculateProjPlane(camera) {
   if (!camera._projPlaneDirty) {
     return camera._cachedProjPlane;
   }
   camera._projPlaneDirty = false;
 
-  const fov = calculateFov(camera);
-  camera._cachedProjPlane = camera._height2 / fov.tanHalfY;
+  camera._cachedProjPlane = verticalProjPlane(camera.height, camera.fov);
 
   return camera._cachedProjPlane;
 }

@@ -31,8 +31,8 @@ import {
 import { BACKEND_JS, BACKEND_WEBGPU } from "../constants/backend.js";
 import { detectBackends } from "../backends/contract.js";
 import {
-  QUALITY_LABEL,
   QUALITY_LOW,
+  clampScanQuality,
   clampQualityForContext,
 } from "../constants/quality.js";
 import { DEBUG_VIEW_COLOR } from "../constants/debugView.js";
@@ -347,15 +347,17 @@ class App {
       return;
     }
     const backendName = this.renderer.backend === BACKEND_WEBGPU ? "WebGPU" : "CPU";
-    const previousLabel = QUALITY_LABEL[previousQuality] || String(previousQuality);
-    const nextLabel = QUALITY_LABEL[nextQuality] || String(nextQuality);
+    const lowered = clampScanQuality(previousQuality - 0.5);
+    const previousLabel = Number(previousQuality).toFixed(2);
+    const nextLabel = Number(lowered).toFixed(2);
+    nextQuality = lowered;
     title.textContent = "Low performance detected";
     copy.textContent =
       nextQuality > QUALITY_LOW
-        ? `${backendName} performance is below 5 FPS at ${previousLabel} quality. Choose whether to lower quality or continue unchanged.`
-        : `${backendName} performance is below 5 FPS. Quality is already at its minimum.`;
+        ? `${backendName} performance is below 5 FPS at scan quality ${previousLabel}. Choose whether to lower it to ${nextLabel} or continue unchanged.`
+        : `${backendName} performance is below 5 FPS. Scan quality is already at its minimum.`;
     continueButton.textContent = "Lower quality";
-    continueButton.hidden = nextQuality === QUALITY_LOW;
+    continueButton.hidden = !(nextQuality > QUALITY_LOW);
     keepQualityButton.hidden = false;
     if (fallbackButton) {
       fallbackButton.hidden = this.renderer.backend !== BACKEND_WEBGPU;
@@ -368,7 +370,7 @@ class App {
 
   _lowerQualityFromPrompt() {
     const currentQuality = this.camera.quality;
-    const nextQuality = Math.max(QUALITY_LOW, currentQuality - 1);
+    const nextQuality = clampScanQuality(currentQuality - 0.5);
     this._closePerformancePrompt();
     if (nextQuality !== currentQuality) {
       this.setQuality(nextQuality);
@@ -493,7 +495,7 @@ class App {
         renderDistance: config.settings.renderDistance,
         filterDistance: config.settings.filterDistance,
         fov: config.settings.fov,
-        qualities: config.settings.quality.values.map(Number),
+        quality: config.settings.quality,
         modes: config.settings.cameraModes.values,
         algorithms: config.settings.renderAlgorithms.values,
         backends: config.settings.renderBackends.values,

@@ -183,11 +183,12 @@
               <option value="">Please select runtime</option>
             </select>
           </div>
-          <div class="control scan-quality" data-tip="Sample density inside each distance band. Low matches the retail scan step. Higher Quality uses a shorter step; it does not change band edges or Render scale.">
+          <div class="control scan-quality" data-tip="Retail scan quality. Divides the band step. 1.00 is the retail step. 0.55 takes a longer step, 4.00 a shorter one. Band edges and Render scale stay put.">
             <div class="control-head">
-              <label for="id_quality">Quality</label>
+              <label for="id_quality">Scan Quality</label>
+              <span class="control-value" data-for="id_quality"></span>
             </div>
-              <select id="id_quality" name="quality" autocomplete="off" aria-keyshortcuts="1 2 3 4 5"></select>
+            <input id="id_quality" type="range" autocomplete="off" aria-keyshortcuts="1 2 3 4 5" />
           </div>
           <div
             class="control"
@@ -250,7 +251,7 @@
         </div>
         <div
           class="control"
-          data-tip="Cloud LOD bias. Mip bands scale by 2 to the power of minus this value. 0 keeps the 4096 m, 8192 m, 16384 m switches at FOV 90. Range is -2 to 3 in steps of 0.25."
+          data-tip="Cloud LOD bias. Mip bands scale by 2 to the power of minus this value. 0 keeps the retail 640-preset focal. The output size does not move the bands. Range is -2 to 3 in steps of 0.25."
         >
           <div class="control-head">
             <label for="id_cloud_lod_bias">Cloud LOD Bias</label>
@@ -358,7 +359,7 @@
           <div><dt>M</dt><dd>Cycle map</dd></div>
           <div><dt>L</dt><dd>Cycle algorithm</dd></div>
           <div><dt>B</dt><dd>Cycle runtime</dd></div>
-          <div class="scan-quality"><dt>1-5</dt><dd>Quality</dd></div>
+          <div class="scan-quality"><dt>1-5</dt><dd>Scan quality</dd></div>
           <div><dt>C</dt><dd>Cycle camera</dd></div>
           <div><dt>I Shift+I</dt><dd>Distance</dd></div>
           <div><dt>O Shift+O</dt><dd>FOV</dd></div>

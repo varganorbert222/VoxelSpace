@@ -11,12 +11,6 @@ import {
   DEBUG_VIEW_LABEL,
 } from "../constants/debugView.js";
 import {
-  QUALITY_LABEL,
-  QUALITY_ULTRA,
-  QUALITY_VERY_HIGH,
-  isUltraQualityAllowed,
-} from "../constants/quality.js";
-import {
   isAlgorithmAllowed,
 } from "../constants/algorithm.js";
 import { listBackends } from "../backends/contract.js";
@@ -54,7 +48,7 @@ function formatRangeValue(id, value) {
   if (id === "id_render_scale") {
     return n.toFixed(1);
   }
-  if (id === "id_lod_bias" || id === "id_cloud_lod_bias") {
+  if (id === "id_lod_bias" || id === "id_cloud_lod_bias" || id === "id_quality") {
     return n.toFixed(2);
   }
   return String(value);
@@ -155,30 +149,6 @@ function fillOptionElements(element, values, labels, getState) {
   if (current) {
     element.value = current;
   }
-}
-
-function fillQualityOptions(element, values, backend) {
-  fillOptionElements(element, values, QUALITY_LABEL, (value) => {
-    if (Number(value) === QUALITY_ULTRA && !isUltraQualityAllowed(backend)) {
-      return { disabled: true, title: "Desktop WebGPU only" };
-    }
-    return null;
-  });
-}
-
-function initQualityElement(id, values, value, onChange, getBackend) {
-  const element = prepareControl(document.getElementById(id));
-  fillQualityOptions(element, values, getBackend());
-  element.value = String(value);
-  element.addEventListener("change", (e) => {
-    const q = Number(e.target.value);
-    if (q === QUALITY_ULTRA && !isUltraQualityAllowed(getBackend())) {
-      e.target.value = String(QUALITY_VERY_HIGH);
-      return;
-    }
-    onChange(e);
-  });
-  return element;
 }
 
 function initOptionElement(id, optionConfig, value, onChange, labels) {
@@ -321,14 +291,14 @@ class SettingsForm {
         },
         persist
       ),
-      quality: initQualityElement(
+      quality: initRangeElement(
         "id_quality",
-        config.settings.quality.values,
+        config.settings.quality,
         camera.quality,
         (e) => {
-          app.setQuality(e.target.value);
+          app.setQuality(parseFloat(e.target.value));
         },
-        () => app.renderer.backend
+        persist
       ),
       repeat: initCheckboxElement("id_repeat", options.repeat, (e) => {
         app.renderer.setOptions({ repeat: e.target.checked });
@@ -462,12 +432,8 @@ class SettingsForm {
       true,
       "Filter distance is controlled by the current renderer."
     );
-    fillQualityOptions(
-      quality,
-      config.settings.quality.values,
-      options.backend
-    );
-    quality.value = String(camera.quality);
+    quality.value = camera.quality;
+    updateBoundValue("id_quality", camera.quality);
     repeat.checked = options.repeat;
     if (this._elements.showDetails) {
       this._elements.showDetails.checked = !!options.showDetails;
@@ -506,10 +472,7 @@ class SettingsForm {
     setChip("id_hud_algorithm", options.algorithm);
     setChip("id_hud_backend", BACKEND_CHIP[options.backend] || options.backend);
     setChip("id_hud_camera", camera.mode);
-    setChip(
-      "id_hud_quality",
-      QUALITY_LABEL[camera.quality] || String(camera.quality)
-    );
+    setChip("id_hud_quality", Number(camera.quality).toFixed(2));
     const debugViewName = options.debugView || DEBUG_VIEW_COLOR;
     setChip("id_hud_debug", DEBUG_VIEW_LABEL[debugViewName] || debugViewName);
     syncDebugLegend(debugViewName);
