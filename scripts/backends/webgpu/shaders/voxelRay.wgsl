@@ -728,8 +728,13 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       }
       continue;
     }
-    if (mip > 0) {
+    let band = bandMipAt(depth, lastMip);
+    if (mip > band) {
       mip = mip - 1;
+      continue;
+    }
+    if (mip < band) {
+      mip = band;
       continue;
     }
     if (inDetail) {

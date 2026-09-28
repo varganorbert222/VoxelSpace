@@ -28,6 +28,7 @@ import {
   lod0RefineSubdiv,
   lod0RefineSwitchDistances,
   marchMaxSteps,
+  mipLevelAtDistance,
   mipVoxelSize,
   mixNearestBilinear,
   mipDdaEps,
@@ -942,8 +943,13 @@ export function renderVoxelTexels({
         }
         continue;
       }
-      if ((mip > 0) | 0) {
+      const band = mipLevelAtDistance(depth, switches, lastMip);
+      if ((mip > band) | 0) {
         mip = (mip - 1) | 0;
+        continue;
+      }
+      if ((mip < band) | 0) {
+        mip = band;
         continue;
       }
       if (inDetail) {
