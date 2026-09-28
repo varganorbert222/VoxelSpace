@@ -6,7 +6,8 @@ import {
   skyPaletteT,
 } from "../constants/framebuffer.js";
 import { BYTES_PER_PIXEL } from "../constants/image.js";
-import { gradeBytes } from "./retail/colorGrade.js";
+import { gradeInto } from "./retail/colorGrade.js";
+import { bindGradeBuffers, gradeWasmFrame } from "./retail/gradeWasm.js";
 import { HALF } from "../constants/vmath.js";
 
 class FrameBuffer {
@@ -43,6 +44,7 @@ class FrameBuffer {
     this._cachedHorizon = NaN;
     this._topColor = NaN;
     this._bottomColor = NaN;
+    this._wasmGrade = 0;
   }
 
   drawBackground(screenHorizon, skyRows) {
@@ -128,13 +130,17 @@ class FrameBuffer {
       this._contextForCanvas.putImageData(this._imageDataForContext, 0, 0);
       return;
     }
+    if (this._wasmGrade && gradeWasmFrame(grade)) {
+      this._contextForCanvas.putImageData(this._presentImage, 0, 0);
+      return;
+    }
     const n = this._buffer8bit.length;
-    if (!this._present8 || this._present8.length !== n) {
+    if (!this._present8 || this._present8.length !== n || this._wasmGrade) {
       this._present8 = new Uint8ClampedArray(n);
       this._presentImage = new ImageData(this._present8, this._width, this._height);
+      this._wasmGrade = 0;
     }
-    this._present8.set(this._buffer8bit);
-    gradeBytes(this._present8, grade);
+    gradeInto(this._buffer8bit, this._present8, grade);
     this._contextForCanvas.putImageData(this._presentImage, 0, 0);
   }
 
@@ -172,9 +178,22 @@ class FrameBuffer {
     }
 
     const pixelCount = (this._width * this._height) | 0;
-    this._colorBuffer = new ArrayBuffer(pixelCount * BYTES_PER_PIXEL);
-    this._buffer8bit = new Uint8ClampedArray(this._colorBuffer);
-    this._buffer32bit = new Uint32Array(this._colorBuffer);
+    const placed = bindGradeBuffers(pixelCount);
+    if (placed) {
+      this._colorBuffer = null;
+      this._buffer8bit = placed.src8;
+      this._buffer32bit = placed.src32;
+      this._present8 = placed.dst8;
+      this._presentImage = new ImageData(placed.dst8, this._width, this._height);
+      this._wasmGrade = 1;
+    } else {
+      this._colorBuffer = new ArrayBuffer(pixelCount * BYTES_PER_PIXEL);
+      this._buffer8bit = new Uint8ClampedArray(this._colorBuffer);
+      this._buffer32bit = new Uint32Array(this._colorBuffer);
+      this._present8 = null;
+      this._presentImage = null;
+      this._wasmGrade = 0;
+    }
     this._cachedBuffer32bit = new Uint32Array(pixelCount);
     this._imageDataForContext = new ImageData(
       this._buffer8bit,

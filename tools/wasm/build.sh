@@ -48,3 +48,22 @@ clang \
   "$src"
 
 node "$root/tools/wasm/emit-bytes.js" "$wasm" "$bytes_js"
+
+grade_src="$root/tools/wasm/src/grade.c"
+grade_wasm="$out_dir/grade.wasm"
+grade_js="$root/scripts/wasm/grade.bytes.js"
+
+clang \
+  --target=wasm32 \
+  -nostdlib \
+  -O3 \
+  -ffp-contract=off \
+  -Wl,--no-entry \
+  -Wl,--allow-undefined \
+  -Wl,--export=memory \
+  -Wl,--initial-memory=131072 \
+  -Wl,--max-memory=268435456 \
+  -o "$grade_wasm" \
+  "$grade_src"
+
+node "$root/tools/wasm/emit-bytes.js" "$grade_wasm" "$grade_js" GRADE

@@ -79,3 +79,25 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 node (Join-Path $PSScriptRoot "emit-bytes.js") $wasm $bytesJs
+
+$gradeSrc = Join-Path $PSScriptRoot "src/grade.c"
+$gradeWasm = Join-Path $outDir "grade.wasm"
+$gradeJs = Join-Path $repo "scripts/wasm/grade.bytes.js"
+$gradeArgs = @(
+  "--target=wasm32",
+  "-nostdlib",
+  "-O3",
+  "-ffp-contract=off",
+  "-Wl,--no-entry",
+  "-Wl,--allow-undefined",
+  "-Wl,--export=memory",
+  "-Wl,--initial-memory=131072",
+  "-Wl,--max-memory=268435456",
+  "-o", $gradeWasm,
+  $gradeSrc
+)
+& $clang @gradeArgs
+if ($LASTEXITCODE -ne 0) {
+  exit $LASTEXITCODE
+}
+node (Join-Path $PSScriptRoot "emit-bytes.js") $gradeWasm $gradeJs GRADE

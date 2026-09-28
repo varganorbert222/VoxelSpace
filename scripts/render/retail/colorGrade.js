@@ -58,7 +58,26 @@ export function buildColorGrade(gamma, saturation, filter) {
       lut[(c << 8) | x] = q & 255;
     }
   }
-  return { saturation: sat, lut };
+  // Saturation 128 leaves the byte unchanged before the LUT, so the present
+  // pass is three lookups. Any other saturation depends on luma: fold that
+  // into a 256×256 table once, instead of multiplying inside the frame loop.
+  let apply = null;
+  if (sat !== 128 && sat !== 0) {
+    apply = new Uint8Array(3 * 65536);
+    for (let y = 0; y < 256; y++) {
+      const row = y << 8;
+      for (let v = 0; v < 256; v++) {
+        let c = y + (((v - y) * sat) >> 7);
+        if (c < 0) c = 0;
+        else if (c > 255) c = 255;
+        const i = row | v;
+        apply[i] = lut[c];
+        apply[65536 + i] = lut[256 + c];
+        apply[131072 + i] = lut[512 + c];
+      }
+    }
+  }
+  return { saturation: sat, lut, apply };
 }
 
 export function gradeByte(v, y, saturation, lut, channelIndex) {
@@ -67,19 +86,71 @@ export function gradeByte(v, y, saturation, lut, channelIndex) {
   return lut[(channelIndex << 8) | c];
 }
 
-export function gradeBytes(bytes, grade) {
+function gradeWords(src, dst, grade) {
+  const n = src.length | 0;
   const lut = grade.lut;
-  const sat = grade.saturation | 0;
-  const n = bytes.length;
-  for (let i = 0; (i < n) | 0; i = (i + 4) | 0) {
-    const r = bytes[i] | 0;
-    const g = bytes[(i + 1) | 0] | 0;
-    const b = bytes[(i + 2) | 0] | 0;
-    const y = (r + (g << 1) + b) >> 2;
-    bytes[i] = gradeByte(r, y, sat, lut, 0);
-    bytes[(i + 1) | 0] = gradeByte(g, y, sat, lut, 1);
-    bytes[(i + 2) | 0] = gradeByte(b, y, sat, lut, 2);
+  const apply = grade.apply;
+  if (!apply) {
+    if ((grade.saturation | 0) === 0) {
+      for (let i = 0; (i < n) | 0; i = (i + 1) | 0) {
+        const p = src[i];
+        const y = ((p & 255) + (((p >>> 8) & 255) << 1) + ((p >>> 16) & 255)) >> 2;
+        dst[i] =
+          (p & 0xff000000) |
+          (lut[512 + y] << 16) |
+          (lut[256 + y] << 8) |
+          lut[y];
+      }
+      return;
+    }
+    for (let i = 0; (i < n) | 0; i = (i + 1) | 0) {
+      const p = src[i];
+      const r = p & 255;
+      const g = (p >>> 8) & 255;
+      const b = (p >>> 16) & 255;
+      dst[i] =
+        (p & 0xff000000) |
+        (lut[512 + b] << 16) |
+        (lut[256 + g] << 8) |
+        lut[r];
+    }
+    return;
   }
+  const gBase = 65536;
+  const bBase = 131072;
+  for (let i = 0; (i < n) | 0; i = (i + 1) | 0) {
+    const p = src[i];
+    const r = p & 255;
+    const g = (p >>> 8) & 255;
+    const b = (p >>> 16) & 255;
+    const row = ((r + (g << 1) + b) >> 2) << 8;
+    dst[i] =
+      (p & 0xff000000) |
+      (apply[bBase + (row | b)] << 16) |
+      (apply[gBase + (row | g)] << 8) |
+      apply[row | r];
+  }
+}
+
+const wordViews = new WeakMap();
+
+function wordsOf(bytes) {
+  let view = wordViews.get(bytes);
+  const words = bytes.length >> 2;
+  if (!view || view.length !== words || view.byteOffset !== bytes.byteOffset) {
+    view = new Uint32Array(bytes.buffer, bytes.byteOffset, words);
+    wordViews.set(bytes, view);
+  }
+  return view;
+}
+
+export function gradeBytes(bytes, grade) {
+  const view = wordsOf(bytes);
+  gradeWords(view, view, grade);
+}
+
+export function gradeInto(src8, dst8, grade) {
+  gradeWords(wordsOf(src8), wordsOf(dst8), grade);
 }
 
 let active = null;
