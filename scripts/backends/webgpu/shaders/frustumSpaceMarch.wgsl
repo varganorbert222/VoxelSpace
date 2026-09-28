@@ -200,10 +200,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   var t = lodDistances[0];
   var step = 0.0;
   var guard = 0u;
-  var helperOn = true;
-  var fineSince = 0;
-  var helperBand = -1;
-  var advance = true;
   loop {
     if ((sy < 0) || (t >= farClip) || (guard >= MAX_STEPS)) { break; }
     guard = guard + 1u;
@@ -218,86 +214,16 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     step = max(bandMarchStep(lodDeltas[mip], mip, t), 1.0e-4);
     let yn = (rowBase - f32(sy)) * invH2;
     let dir = fwd + right * (xn * tanHalfX) + up * yn;
-    var pos = cam + dir * t;
+    let pos = cam + dir * t;
     if ((pos.z > ceiling) && !(dir.z < 0.0)) {
       break;
     }
     let inside = ((pos.x >= 0.0) && (pos.x <= mapWf) && (pos.y >= 0.0) && (pos.y <= mapHf)) || repeat;
     if (!inside) {
       t = t + step;
-      fineSince = fineSince + 1;
       continue;
     }
     let useFine = lod0RefineAt(t, mip);
-    let refineMip = lod0RefineMipAt(t);
-    let bandKey = select(mip + 32, refineMip + 1, useFine);
-    if (bandKey != helperBand) {
-      helperBand = bandKey;
-      if (advance) {
-        helperOn = true;
-      }
-      fineSince = 0;
-    }
-    if (advance && helperOn) {
-      let level = vmaxLevel(mip, useFine, refineMip);
-      let bits = vmaxShift(mip, useFine, refineMip);
-      let coarse = step * exp2(f32(bits));
-      helperOn = false;
-      fineSince = 0;
-      if (coarse > step * 0.5) {
-        var cursor = t;
-        var hops = 0u;
-        var bandEnd = farClip;
-        if (mip + 1 < lodCount && lodDistances[mip + 1] > t && lodDistances[mip + 1] < bandEnd) {
-          bandEnd = lodDistances[mip + 1];
-        }
-        if (useFine) {
-          var nearEdge = frame.detailTail.x;
-          if (refineMip <= 0) {
-            nearEdge = frame.stepScaleCaps.y;
-          } else if (refineMip == 1) {
-            nearEdge = frame.stepScaleCaps.z;
-          } else if (refineMip == 2) {
-            nearEdge = frame.stepScaleCaps.w;
-          } else if (refineMip == 3) {
-            nearEdge = frame.mipSwitchYHit.y;
-          }
-          if (nearEdge > t && nearEdge < bandEnd) {
-            bandEnd = nearEdge;
-          }
-        }
-        let vmaxLast = max(i32(textureNumLevels(vmaxTex)) - 1, 0);
-        var lv = level;
-        if (lv < 0) {
-          lv = 0;
-        }
-        if (lv > vmaxLast) {
-          lv = vmaxLast;
-        }
-        let vmaxSize = textureDimensions(vmaxTex, u32(lv));
-        let vmaxMaskX = i32(vmaxSize.x) - 1;
-        let vmaxMaskY = i32(vmaxSize.y) - 1;
-        loop {
-          if (hops >= 48000u) { break; }
-          let next = cursor + coarse;
-          if (next > bandEnd) { break; }
-          let p2 = cam + dir * next;
-          let inMap = (p2.x >= 0.0 && p2.x <= mapWf && p2.y >= 0.0 && p2.y <= mapHf) || repeat;
-          if (!inMap || p2.z < vmaxMeters(p2.x, p2.y, lv, vmaxMaskX, vmaxMaskY, altScale, repeat)) { break; }
-          cursor = next;
-          hops = hops + 1u;
-        }
-        if (cursor > t) {
-          t = cursor + step;
-          advance = true;
-          fineSince = 1;
-          if (fineSince >= vmaxHelperPeriod(mip, useFine, refineMip)) {
-            helperOn = true;
-          }
-          continue;
-        }
-      }
-    }
     let doLerp = flagShowDetails(flags) && useFine;
     let sampled = classicSampleHeight(
       pos.x * mipScale,
@@ -335,16 +261,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       let prev = t - step;
       let t0 = lodDistances[0];
       t = select(t0, prev, prev > t0);
-      helperOn = false;
-      fineSince = 0;
-      advance = false;
     } else {
       t = t + step;
-      advance = true;
-      fineSince = fineSince + 1;
-      if (fineSince >= vmaxHelperPeriod(mip, useFine, refineMip)) {
-        helperOn = true;
-      }
     }
   }
 }

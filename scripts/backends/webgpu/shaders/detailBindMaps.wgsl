@@ -25,28 +25,15 @@ fn vmaxShift(mip: i32, refine: bool, refineMip: i32) -> i32 {
   return 2;
 }
 
-fn vmaxHelperPeriod(mip: i32, refine: bool, refineMip: i32) -> i32 {
-  if (mip <= 0 && refine) {
-    if (refineMip < 2) {
-      return 65536;
-    }
-    if (refineMip == 2) {
-      return 256;
-    }
-    return 16;
-  }
-  return 0x7fffffff;
-}
-
-fn vmaxIndex(v: f32, lv: i32, mask: i32, wrap: bool) -> i32 {
-  return wrapOrClamp(i32(floor(v)) >> u32(lv), mask, wrap);
-}
-
-fn vmaxMeters(x: f32, y: f32, lv: i32, maskX: i32, maskY: i32, altScale: f32, wrap: bool) -> f32 {
-  let shift = u32(lv);
-  var ix = i32(floor(x)) >> shift;
-  var iy = i32(floor(y)) >> shift;
+fn vmaxMeters(x: f32, y: f32, level: i32, altScale: f32, wrap: bool) -> f32 {
+  let levels = textureNumLevels(vmaxTex);
+  let lv = min(u32(max(level, 0)), levels - 1u);
+  let size = textureDimensions(vmaxTex, lv);
+  let maskX = i32(size.x) - 1;
+  let maskY = i32(size.y) - 1;
+  var ix = i32(floor(x)) >> lv;
+  var iy = i32(floor(y)) >> lv;
   ix = wrapOrClamp(ix, maskX, wrap);
   iy = wrapOrClamp(iy, maskY, wrap);
-  return f32(textureLoad(vmaxTex, vec2<i32>(ix, iy), lv).r) * altScale;
+  return f32(textureLoad(vmaxTex, vec2<i32>(ix, iy), i32(lv)).r) * altScale;
 }
