@@ -124,7 +124,10 @@ export function compositeWater(buffer32, width, height, camera, water, skyRows, 
     return;
   }
   const viewW = screenWidth > 0 ? screenWidth : width;
-  const focal = horizontalProjPlane(viewW, camera.fov);
+  const focal =
+    typeof camera.calculateProjPlane === "function"
+      ? camera.calculateProjPlane()
+      : horizontalProjPlane(viewW, camera.fov);
   const pitchRad = (-camera.pitch * Math.PI) / 180;
   const centerY = height * 0.5;
   const horizon = centerY + 5 + focal * Math.tan(pitchRad);

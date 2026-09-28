@@ -42,9 +42,6 @@ function formatRangeValue(id, value) {
   if (id === "id_filter_distance") {
     return Math.round(n) + " m";
   }
-  if (id === "id_fov") {
-    return Math.round(n) + "°";
-  }
   if (id === "id_render_scale") {
     return n.toFixed(1);
   }
@@ -52,6 +49,24 @@ function formatRangeValue(id, value) {
     return n.toFixed(2);
   }
   return String(value);
+}
+
+function formatFov(configured, effective) {
+  const setting = Math.round(Number(configured));
+  const horizontal = Math.round(Number(effective));
+  if (!Number.isFinite(horizontal)) {
+    return setting + "°";
+  }
+  return setting + "° · " + horizontal + "°";
+}
+
+function updateFovValue(camera) {
+  const label = document.querySelector('[data-for="id_fov"]');
+  if (!label || !camera) {
+    return;
+  }
+  const view = camera.calculateFov();
+  label.textContent = formatFov(camera.fov, view.fovX);
 }
 
 function formatRenderScale(scale, width, height) {
@@ -119,7 +134,7 @@ function initRangeElement(id, rangeConfig, value, onInput, onChange) {
     if (onInput) {
       onInput(e);
     }
-    if (id === "id_render_scale" || id === "id_mip_count") {
+    if (id === "id_render_scale" || id === "id_mip_count" || id === "id_fov") {
       return;
     }
     updateBoundValue(id, e.target.value);
@@ -249,6 +264,7 @@ class SettingsForm {
         camera.fov,
         (e) => {
           camera.set({ fov: parseFloat(e.target.value) });
+          updateFovValue(camera);
         },
         persist
       ),
@@ -414,7 +430,7 @@ class SettingsForm {
     renderScale.value = camera.renderScale;
     updateRenderScaleValue(camera.renderScale, camera.width, camera.height);
     fov.value = camera.fov;
-    updateBoundValue("id_fov", camera.fov);
+    updateFovValue(camera);
     const mipRange = mipCountRange(this._app.terrain);
     mipCount.min = mipRange.min;
     mipCount.max = mipRange.max;
@@ -485,6 +501,7 @@ class SettingsForm {
     const camera = this._app.camera;
     this._elements.renderScale.value = camera.renderScale;
     updateRenderScaleValue(camera.renderScale, camera.width, camera.height);
+    updateFovValue(camera);
   }
 }
 

@@ -358,7 +358,10 @@ export function updateSkyPack(pack, view, camera, width, height, skyDraw) {
   f32[H_ROW_STEP + 1] = -u[1];
   f32[H_ROW_STEP + 2] = -u[2];
   const focal = retailDescriptorFocal(camera.fov);
-  const proj = horizontalProjPlane(width, camera.fov);
+  const proj =
+    typeof camera.calculateProjPlane === "function"
+      ? camera.calculateProjPlane()
+      : horizontalProjPlane(width, camera.fov);
   const bias = Number(draw.cloudLodBias);
   const biasScale = retailLodBiasScale(Number.isFinite(bias) ? bias : 0);
   f32[H_CLOUD_LOD_SCALE] = (focal > 0 ? proj / focal : 1) / biasScale;

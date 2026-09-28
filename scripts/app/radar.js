@@ -138,7 +138,7 @@ class Radar {
     const px = (wrap(camera.posX, mapW) / mapW) * w;
     const py = (wrap(camera.posY, mapH) / mapH) * h;
     const heading = Math.atan2(camera.fwdY, camera.fwdX);
-    const halfFov = ((camera.fov || 90) * Math.PI) / 180 / 2;
+    const halfFov = ((camera.calculateFov().fovX || 90) * Math.PI) / 180 / 2;
     const radius = Math.min(w, h) * RADAR_FOV_RADIUS;
 
     ctx.save();

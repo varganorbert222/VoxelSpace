@@ -3,32 +3,51 @@
 import VMath from "../math/vmath.js";
 import { HALF } from "../constants/vmath.js";
 
+// The slider is the angle across the shorter screen axis. A wide view keeps
+// that vertical angle and opens the horizontal one with the aspect ratio, so
+// the extra width shows more terrain instead of magnifying the same span.
+export function viewAngles(fovDeg, width, height) {
+  const fov = Number(fovDeg) || 0;
+  const half = fov * VMath.DEG_TO_RAD * HALF;
+  const tanHalf = Math.tan(half);
+  const w = width | 0;
+  const h = height | 0;
+  const aspect = h > 0 ? w / h : 1;
+  let tanHalfX = tanHalf;
+  let tanHalfY = tanHalf;
+  let fovX = fov;
+  let fovY = fov;
+  if (w > h && h > 0) {
+    tanHalfY = tanHalf;
+    tanHalfX = tanHalfY * aspect;
+    fovY = fov;
+    fovX = Math.atan(tanHalfX) * 2 * VMath.RAD_TO_DEG;
+  } else if (aspect > 0) {
+    tanHalfX = tanHalf;
+    tanHalfY = tanHalfX / aspect;
+    fovX = fov;
+    fovY = Math.atan(tanHalfY) * 2 * VMath.RAD_TO_DEG;
+  }
+  return {
+    fovX: fovX,
+    fovY: fovY,
+    halfFovX: Math.atan(tanHalfX),
+    halfFovY: Math.atan(tanHalfY),
+    tanHalfY: tanHalfY,
+    tanHalfX: tanHalfX,
+  };
+}
+
 export function calculateFov(camera) {
   if (!camera._fovDirty) {
     return camera._cachedFov;
   }
   camera._fovDirty = false;
-
-  const halfFovX = camera.fov * VMath.DEG_TO_RAD * HALF;
-  const tanHalfX = Math.tan(halfFovX);
-  const aspect = camera.width / camera.height;
-  const tanHalfY = aspect > 0 ? tanHalfX / aspect : tanHalfX;
-  const halfFovY = Math.atan(tanHalfY);
-
-  camera._cachedFov = {
-    fovX: camera.fov,
-    fovY: halfFovY * 2 * VMath.RAD_TO_DEG,
-    halfFovX: halfFovX,
-    halfFovY: halfFovY,
-    tanHalfY: tanHalfY,
-    tanHalfX: tanHalfX,
-  };
-
+  camera._cachedFov = viewAngles(camera.fov, camera.width, camera.height);
   return camera._cachedFov;
 }
 
-// Projection distance in pixels. The FOV slider is the horizontal angle,
-// matching retail's focalFor(width, fov).
+// Projection distance in pixels for a horizontal angle.
 export function horizontalProjPlane(width, fovDeg) {
   const halfFovX = (Number(fovDeg) || 0) * VMath.DEG_TO_RAD * HALF;
   const tanHalfX = Math.tan(halfFovX);
@@ -45,7 +64,8 @@ export function calculateProjPlane(camera) {
   }
   camera._projPlaneDirty = false;
 
-  camera._cachedProjPlane = horizontalProjPlane(camera.width, camera.fov);
+  const fov = calculateFov(camera);
+  camera._cachedProjPlane = horizontalProjPlane(camera.width, fov.fovX);
 
   return camera._cachedProjPlane;
 }

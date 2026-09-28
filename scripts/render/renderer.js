@@ -420,7 +420,7 @@ class Renderer {
         posY: camera.posY,
         posZ: camera.posZ,
         pitch: camera.pitch,
-        fov: camera.fov,
+        fov: camera.calculateFov().fovX,
         angle: camera.angle,
         farClip: camera.farClip,
       },

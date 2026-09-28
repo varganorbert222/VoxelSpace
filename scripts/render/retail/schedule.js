@@ -17,8 +17,9 @@ const DIRECT5_FACTOR = 512;
 // Q22 / (Q20 >> 2) = 16 scan steps per meter.
 const SCAN_STEPS_PER_METER = 16;
 // Terrain descriptors follow the retail 640×480 preset. Output size does not
-// move them. camera.fov is the horizontal angle, the same axis retail's
-// focalFor uses with the preset width. Focal at horizontal 90 is 320.
+// move them. The slider angle is what focalFor uses with the preset width.
+// Focal at 90 is 320. A wide framebuffer opens the view; it does not move
+// these distances.
 export const LOD_TERRAIN_WIDTH = 640;
 export const LOD_BIAS_DEFAULT = 0;
 export const LOD_BIAS_MIN = -2;
