@@ -488,7 +488,6 @@ class SettingsForm {
     setChip("id_hud_algorithm", options.algorithm);
     setChip("id_hud_backend", BACKEND_CHIP[options.backend] || options.backend);
     setChip("id_hud_camera", camera.mode);
-    setChip("id_hud_quality", Number(camera.quality).toFixed(2));
     const debugViewName = options.debugView || DEBUG_VIEW_COLOR;
     setChip("id_hud_debug", DEBUG_VIEW_LABEL[debugViewName] || debugViewName);
     syncDebugLegend(debugViewName);

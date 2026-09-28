@@ -56,7 +56,6 @@
         <span class="hud-chip hud-chip--cyan" id="id_hud_algorithm">----</span>
         <span class="hud-chip" id="id_hud_backend">----</span>
         <span class="hud-chip hud-chip--green" id="id_hud_camera">----</span>
-        <span class="hud-chip" id="id_hud_quality">----</span>
         <span class="hud-chip hud-chip--amber" id="id_hud_debug">Color</span>
       </div>
       <div class="hud-top-right">
@@ -183,13 +182,6 @@
               <option value="">Please select runtime</option>
             </select>
           </div>
-          <div class="control scan-quality" data-tip="Retail scan quality. Divides the band step. 1.00 is the retail step. 0.55 takes a longer step, 4.00 a shorter one. Band edges and Render scale stay put.">
-            <div class="control-head">
-              <label for="id_quality">Scan Quality</label>
-              <span class="control-value" data-for="id_quality"></span>
-            </div>
-            <input id="id_quality" type="range" autocomplete="off" aria-keyshortcuts="1 2 3 4 5" />
-          </div>
           <div
             class="control"
             data-tip="Fly: free flight. Orbital: circle the map center."
@@ -211,6 +203,13 @@
 
       <section class="hud-section">
         <h2 class="hud-section-title"><span>03</span> View</h2>
+        <div class="control scan-quality" data-tip="Retail scan quality. Divides the band step. 1.00 is the retail step. 0.55 takes a longer step, 4.00 a shorter one. Band edges and Render scale stay put.">
+          <div class="control-head">
+            <label for="id_quality">Scan Quality</label>
+            <span class="control-value" data-for="id_quality"></span>
+          </div>
+          <input id="id_quality" type="range" autocomplete="off" aria-keyshortcuts="1 2 3 4 5" />
+        </div>
         <div class="control" data-tip="Hard stop for every ray, in meters. Past the last LOD band the ray keeps that band's step and mip until this distance. Maximum is 8000 m.">
           <div class="control-head">
             <label for="id_render_distance">Distance</label>

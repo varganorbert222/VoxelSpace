@@ -1185,8 +1185,7 @@ body.scanline .freelook-only {
   display: none;
 }
 
-body.voxel .scan-quality,
-body.voxel #id_hud_quality {
+body.voxel .scan-quality {
   display: none;
 }
 
