@@ -3,7 +3,7 @@
 import { Color } from "../math/color.js";
 import { qualityBandSteps, useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
-import { vmaxClamp, vmaxMeters, vmaxQuery } from "./retail/vmax.js";
+import { vmaxClamp, vmaxLevel, vmaxMeters } from "./retail/vmax.js";
 import { HEIGHTMAP_MAX } from "../constants/terrain.js";
 import { FILTER_DISTANCE_DEFAULT } from "../constants/sampling.js";
 import { COLUMN_PAIR, UNFILLED_PIXEL } from "../constants/framebuffer.js";
@@ -441,6 +441,10 @@ function renderClassicColumnsSampled({
       let ply = kLeftY * z + camY + dy * startColumn;
       let sliceOpen = 0;
       let sliceSdf = 0;
+      const vmaxLv = mips.vmaxMaps
+        ? vmaxClamp(mips, vmaxLevel(mip, refineHere, refineMip))
+        : 0;
+      const zFar = z + step;
 
       for (let i = startColumn; (i < endColumn) | 0; ) {
         let pair = COLUMN_PAIR;
@@ -477,31 +481,20 @@ function renderClassicColumnsSampled({
           }
 
           if (mips.vmaxMaps) {
-            const query = vmaxQuery(mip, refineHere, refineMip);
             const env = vmaxMeters(
               mips,
               plx,
               ply,
-              vmaxClamp(mips, query.level),
+              vmaxLv,
               altScale,
               repeat | 0
             );
-            const envY = classicProjectedY(
+            const envY = projectSdfYSpan(
               camZ - env,
               dstToProjPlane,
               z,
-              step,
-              plx,
-              ply,
-              i,
-              kLeftX,
-              kLeftY,
-              kDx,
-              kDy,
-              mip,
-              screenHorizon,
-              refineHere,
-              refineMip
+              zFar,
+              screenHorizon
             );
             if ((envY >= colHidden) | 0) {
               plx += dx * pair;

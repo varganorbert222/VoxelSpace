@@ -13,7 +13,7 @@ import {
   isAlgorithmAllowed,
 } from "../constants/algorithm.js";
 import { DEBUG_VIEW_COLOR, isDebugColor } from "../constants/debugView.js";
-import { activeColorGrade } from "./retail/colorGrade.js";
+import { activeColorGrade, applyColorGrade } from "./retail/colorGrade.js";
 import { COLUMN_PAIR, UNFILLED_PIXEL } from "../constants/framebuffer.js";
 import {
   FILTER_DISTANCE_DEFAULT,
@@ -461,7 +461,7 @@ class Renderer {
         cloudLodBias: this._cloudLodBias,
       }
     );
-    const graded = compositeSky(
+    compositeSky(
       frameBuffer.buffer32bit,
       width,
       height,
@@ -469,10 +469,12 @@ class Renderer {
       isDebugColor(this._debugView),
       this._algorithm === ALGORITHM_VOXEL ? 1 : COLUMN_PAIR,
       0,
-      0,
-      isDebugColor(this._debugView) ? activeColorGrade() : null
+      0
     );
-    if (graded) {
+    if (
+      isDebugColor(this._debugView) &&
+      applyColorGrade(frameBuffer.buffer32bit, activeColorGrade())
+    ) {
       frameBuffer.markGraded();
     }
   }

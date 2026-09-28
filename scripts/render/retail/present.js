@@ -1,5 +1,6 @@
 "use strict";
 
+import { applyColorGrade } from "./colorGrade.js";
 import { compositeSky, skyPackView } from "./skybox.js";
 import { compositeWater } from "./water.js";
 
@@ -50,19 +51,20 @@ export function presentColumns(buffer32, sliceWidth, height, originX, present, g
     );
   }
   const words = present.words;
-  if (!words) {
-    return;
+  if (words) {
+    const pack = skyPackView(words, screenW, height, present.cloudBytes | 0);
+    compositeSky(
+      buffer32,
+      sliceWidth,
+      height,
+      pack,
+      present.overlay,
+      present.pair | 0,
+      originX | 0,
+      screenW
+    );
   }
-  const pack = skyPackView(words, screenW, height, present.cloudBytes | 0);
-  compositeSky(
-    buffer32,
-    sliceWidth,
-    height,
-    pack,
-    present.overlay,
-    present.pair | 0,
-    originX | 0,
-    screenW,
-    present.overlay ? grade : null
-  );
+  if (present.overlay && grade) {
+    applyColorGrade(buffer32, grade);
+  }
 }

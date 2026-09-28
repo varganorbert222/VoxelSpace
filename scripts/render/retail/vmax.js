@@ -99,25 +99,39 @@ export function attachVMaxMips(mips, retail) {
 
 // Near passes follow the retail helper: the first two 1/16 bands jump 16 fine
 // steps, the 1/8 band jumps 8, and the rest jump 4. Direct mip m reads level m+2.
-export function vmaxQuery(mip, refine, refineMip) {
+export function vmaxLevel(mip, refine, refineMip) {
   if ((mip | 0) <= 0 && refine) {
-    const band = refineMip | 0;
-    if (band >= 4) {
-      return { level: 1, shift: 2 };
+    if ((refineMip | 0) >= 4) {
+      return 1;
     }
-    if (band >= 3) {
-      return { level: 0, shift: 2 };
-    }
-    if (band >= 2) {
-      return { level: 0, shift: 3 };
-    }
-    return { level: 0, shift: 4 };
+    return 0;
   }
   let level = (mip | 0) + 2;
   if (level > 9) {
     level = 9;
   }
-  return { level: level, shift: 2 };
+  return level;
+}
+
+export function vmaxShift(mip, refine, refineMip) {
+  if ((mip | 0) <= 0 && refine) {
+    const band = refineMip | 0;
+    if (band >= 3) {
+      return 2;
+    }
+    if (band >= 2) {
+      return 3;
+    }
+    return 4;
+  }
+  return 2;
+}
+
+export function vmaxQuery(mip, refine, refineMip) {
+  return {
+    level: vmaxLevel(mip, refine, refineMip),
+    shift: vmaxShift(mip, refine, refineMip),
+  };
 }
 
 export function vmaxClamp(mips, level) {
@@ -156,8 +170,35 @@ export function vmaxMeters(mips, x, y, level, altScale, wrap) {
   return map[((iy << shift) + ix) | 0] * altScale;
 }
 
-// Last distance still at or above the envelope, at most one envelope cell at a
-// time, and never past the current band. The fine march covers the crossing.
+// t delta that reaches the next envelope-cell edge along the ray. The edge
+// belongs to the following cell. A vertical ray does not cross a cell.
+function rayCellExit(t, bx, by, camX, camY, cell) {
+  const x = camX + t * bx;
+  const y = camY + t * by;
+  let dt = 1e30;
+  if (bx > 1e-8 || bx < -1e-8) {
+    const origin = Math.floor(x / cell) * cell;
+    const edge = bx > 0 ? origin + cell : origin;
+    const step = (edge - x) / bx;
+    if (step > 1e-8 && step < dt) {
+      dt = step;
+    }
+  }
+  if (by > 1e-8 || by < -1e-8) {
+    const origin = Math.floor(y / cell) * cell;
+    const edge = by > 0 ? origin + cell : origin;
+    const step = (edge - y) / by;
+    if (step > 1e-8 && step < dt) {
+      dt = step;
+    }
+  }
+  return dt;
+}
+
+// Last distance still above the envelope. A hop stays inside the current cell
+// or stops on its edge, and never passes the current band. Falling rays test
+// the low end of the cell, because the envelope is constant inside it. The
+// fine march covers the crossing.
 export function vmaxSkipDistance(
   t,
   step,
@@ -178,30 +219,53 @@ export function vmaxSkipDistance(
 ) {
   const lv = vmaxClamp(mips, level);
   const cell = 1 << lv;
-  let coarse = step * (1 << shift);
-  if (coarse > cell) {
-    coarse = cell;
-  }
+  const coarse = step * (1 << shift);
   if (!(coarse > step * 0.5)) {
     return t;
   }
+  const ax = bx < 0 ? -bx : bx;
+  const ay = by < 0 ? -by : by;
+  const horiz = ax > ay ? ax : ay;
+  const eps = horiz > 1e-8 ? 1e-4 / horiz : 0;
   if (camZ + t * bz < vmaxMeters(mips, camX + t * bx, camY + t * by, lv, altScale, wrap)) {
     return t;
   }
   let cursor = t;
   let hops = 0;
-  while (hops < 32) {
-    const next = cursor + coarse;
-    if (!(next < bandEnd)) {
+  while (hops < 128) {
+    const exitDt = rayCellExit(cursor, bx, by, camX, camY, cell);
+    let next = cursor + coarse;
+    let leaving = 0;
+    if (cursor + exitDt <= next) {
+      next = cursor + exitDt;
+      leaving = 1;
+    }
+    if (!(next < bandEnd) || !(next > cursor)) {
       break;
     }
-    const nx = camX + next * bx;
-    const ny = camY + next * by;
-    if (!wrap && (nx < 0 || ny < 0 || nx > mapW || ny > mapH)) {
+    const probe = leaving ? next - eps : next;
+    if (!(probe > cursor)) {
       break;
     }
-    if (camZ + next * bz < vmaxMeters(mips, nx, ny, lv, altScale, wrap)) {
+    const px = camX + probe * bx;
+    const py = camY + probe * by;
+    if (!wrap && (px < 0 || py < 0 || px > mapW || py > mapH)) {
       break;
+    }
+    if ((bz < 0) | leaving) {
+      if (camZ + probe * bz < vmaxMeters(mips, px, py, lv, altScale, wrap)) {
+        break;
+      }
+    }
+    if (leaving) {
+      const nx = camX + next * bx;
+      const ny = camY + next * by;
+      if (!wrap && (nx < 0 || ny < 0 || nx > mapW || ny > mapH)) {
+        break;
+      }
+      if (camZ + next * bz < vmaxMeters(mips, nx, ny, lv, altScale, wrap)) {
+        break;
+      }
     }
     cursor = next;
     hops = (hops + 1) | 0;

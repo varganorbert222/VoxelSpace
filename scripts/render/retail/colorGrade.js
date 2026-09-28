@@ -77,7 +77,16 @@ export function buildColorGrade(gamma, saturation, filter) {
       }
     }
   }
-  return { saturation: sat, lut, apply };
+  let identity = sat === 128;
+  if (identity) {
+    for (let i = 0; i < 256; i++) {
+      if (lut[i] !== i || lut[256 + i] !== i || lut[512 + i] !== i) {
+        identity = false;
+        break;
+      }
+    }
+  }
+  return { saturation: sat, lut, apply, identity: identity ? 1 : 0 };
 }
 
 export function gradeByte(v, y, saturation, lut, channelIndex) {
@@ -87,6 +96,12 @@ export function gradeByte(v, y, saturation, lut, channelIndex) {
 }
 
 function gradeWords(src, dst, grade) {
+  if (!grade || grade.identity) {
+    if (src !== dst) {
+      dst.set(src);
+    }
+    return;
+  }
   const n = src.length | 0;
   const lut = grade.lut;
   const apply = grade.apply;
@@ -174,6 +189,18 @@ export function gradeWord(p, grade) {
     (apply[65536 + (row | g)] << 8) |
     apply[row | r]
   ) >>> 0;
+}
+
+// One tight pass over a finished slice. Identity grades leave the words put.
+export function applyColorGrade(words, grade) {
+  if (!words || !grade) {
+    return 0;
+  }
+  if (grade.identity) {
+    return 1;
+  }
+  gradeWords(words, words, grade);
+  return 1;
 }
 
 export function gradeBytes(bytes, grade) {

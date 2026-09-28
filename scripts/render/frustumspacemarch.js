@@ -3,7 +3,7 @@
 import { Color } from "../math/color.js";
 import { qualityBandSteps, useRetailFrame } from "./retail/schedule.js";
 import { applyDetail, detailElevMax, detailHeightAdd, detailInRange } from "./retail/detail.js";
-import { vmaxQuery, vmaxSkipDistance } from "./retail/vmax.js";
+import { vmaxLevel, vmaxShift, vmaxSkipDistance } from "./retail/vmax.js";
 import {
   GROUND_CLIP_OFFSET,
   GROUND_HEIGHT,
@@ -386,6 +386,7 @@ export function renderFrustumSpaceColumns({
     let t = zStart;
     let step = 0;
     let guard = 0;
+    let emptyRun = 1;
     while (((sy >= 0) | 0) & (t < farClip) & ((guard < stepBudget) | 0)) {
       guard = (guard + 1) | 0;
       const mip = mipLevelAtDistance(t, switches, lastMip);
@@ -409,9 +410,10 @@ export function renderFrustumSpaceColumns({
         ((wy <= mapH) | 0);
       if (!(inside | wrap)) {
         t = t + step;
+        emptyRun = 1;
         continue;
       }
-      if (mips.vmaxMaps) {
+      if (emptyRun && mips.vmaxMaps) {
         let bandEnd = farClip;
         if (((mip + 1) | 0) < switches.length && switches[mip] > t && switches[mip] < bandEnd) {
           bandEnd = switches[mip];
@@ -430,7 +432,6 @@ export function renderFrustumSpaceColumns({
             bandEnd = nearLimit;
           }
         }
-        const query = vmaxQuery(mip, refineHere, refineMip);
         const jumped = vmaxSkipDistance(
           t,
           step,
@@ -441,8 +442,8 @@ export function renderFrustumSpaceColumns({
           camY,
           camZ,
           mips,
-          query.level,
-          query.shift,
+          vmaxLevel(mip, refineHere, refineMip),
+          vmaxShift(mip, refineHere, refineMip),
           bandEnd,
           mapW,
           mapH,
@@ -536,8 +537,10 @@ export function renderFrustumSpaceColumns({
         sy = (sy - 1) | 0;
         const prev = t - step;
         t = prev > zStart ? prev : zStart;
+        emptyRun = 0;
       } else {
         t = t + step;
+        emptyRun = 1;
       }
     }
     i = (i + pair) | 0;

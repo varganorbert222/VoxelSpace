@@ -909,19 +909,62 @@ static i32 vmax_clamp(i32 level) {
   return lv;
 }
 
-static f64 vmax_meters(f64 x, f64 y, i32 level) {
+static f64 vmax_meters(f64 x, f64 y, i32 level, i32 wrap) {
   i32 lv = vmax_clamp(level);
   u8 *map = g_vmax_h[lv];
   i32 ix;
   i32 iy;
+  i32 mask_x;
+  i32 mask_y;
   if (!map) {
     return g_max_height;
   }
   ix = ifloor_vmax(x) >> lv;
   iy = ifloor_vmax(y) >> lv;
-  ix &= g_mip_wmask[lv];
-  iy &= g_mip_hmask[lv];
+  mask_x = g_mip_wmask[lv];
+  mask_y = g_mip_hmask[lv];
+  if (wrap) {
+    ix &= mask_x;
+    iy &= mask_y;
+  } else {
+    if (ix < 0) {
+      ix = 0;
+    }
+    if (iy < 0) {
+      iy = 0;
+    }
+    if (ix > mask_x) {
+      ix = mask_x;
+    }
+    if (iy > mask_y) {
+      iy = mask_y;
+    }
+  }
   return (f64)map[((iy << g_mip_sh[lv]) + ix) | 0] * g_alt_scale;
+}
+
+// t delta to the next envelope-cell edge. The edge is the following cell.
+static f64 ray_cell_exit(f64 t, f64 bx, f64 by, f64 cam_x, f64 cam_y, f64 cell) {
+  f64 x = cam_x + t * bx;
+  f64 y = cam_y + t * by;
+  f64 dt = 1.0e30;
+  if (bx > 1.0e-8 || bx < -1.0e-8) {
+    f64 origin = (f64)ifloor_vmax(x / cell) * cell;
+    f64 edge = bx > 0.0 ? origin + cell : origin;
+    f64 step = (edge - x) / bx;
+    if (step > 1.0e-8 && step < dt) {
+      dt = step;
+    }
+  }
+  if (by > 1.0e-8 || by < -1.0e-8) {
+    f64 origin = (f64)ifloor_vmax(y / cell) * cell;
+    f64 edge = by > 0.0 ? origin + cell : origin;
+    f64 step = (edge - y) / by;
+    if (step > 1.0e-8 && step < dt) {
+      dt = step;
+    }
+  }
+  return dt;
 }
 
 WASM_EXPORT void set_luts(
@@ -1239,6 +1282,14 @@ WASM_EXPORT void classic_columns(
       i32 near_sub = lerp_now ? near_subdiv_at(z) : 0;
       i32 col;
       i32 slice_open = 0;
+      i32 vmax_lv = 0;
+      i32 vmax_sh = 2;
+      f64 z_far = z + step;
+      if (g_vmax_h[0]) {
+        vmax_params(mip, z, &vmax_lv, &vmax_sh);
+        vmax_lv = vmax_clamp(vmax_lv);
+      }
+      (void)vmax_sh;
 
       for (col = start_column; col < end_column; col = (col + px_offset) | 0) {
         i32 local_i = (col - start_column) | 0;
@@ -1266,13 +1317,19 @@ WASM_EXPORT void classic_columns(
           }
 
           if (g_vmax_h[0]) {
-            i32 vmax_lv = 0;
-            i32 vmax_sh = 2;
             f64 env;
             i32 env_y;
-            vmax_params(mip, z, &vmax_lv, &vmax_sh);
-            env = vmax_meters(plx, ply, vmax_lv);
-            env_y = (i32)((cam_z - env) * z_scale + screen_horizon);
+            env = vmax_meters(plx, ply, vmax_lv, repeat);
+            {
+              f64 sdf = cam_z - env;
+              env_y = (i32)(sdf * z_scale + screen_horizon);
+              if (z_far > z) {
+                i32 y_far = (i32)(sdf * (dst_to_proj / z_far) + screen_horizon);
+                if (y_far < env_y) {
+                  env_y = y_far;
+                }
+              }
+            }
             if (env_y >= col_hidden) {
               plx += dx * (f64)px_offset;
               ply += dy * (f64)px_offset;
@@ -1578,6 +1635,7 @@ WASM_EXPORT void frustum_space_columns(
       f64 t = z_start;
       f64 step = 0.0;
       i32 guard = 0;
+      i32 empty_run = 1;
       f64 xn = ((f64)col + 0.5) * xn_step - 1.0;
       while ((sy >= 0) & (t < far_clip) & (guard < step_budget)) {
         i32 mip = 0;
@@ -1628,15 +1686,18 @@ WASM_EXPORT void frustum_space_columns(
         inside = (wx >= 0.0) & (wx <= (f64)g_map_w) & (wy >= 0.0) & (wy <= (f64)g_map_h);
         if (!inside && !wrap) {
           t = t + step;
+          empty_run = 1;
           continue;
         }
-        if (g_vmax_h[0]) {
+        if (empty_run && g_vmax_h[0]) {
           i32 vmax_lv = 0;
           i32 vmax_sh = 2;
           f64 band_end = far_clip;
           f64 cell;
           f64 coarse;
           f64 cursor;
+          f64 horiz;
+          f64 eps;
           i32 hops;
           vmax_params(mip, t, &vmax_lv, &vmax_sh);
           if (((mip + 1) < g_lod_n) && (lod_distances[mip + 1] > t) &&
@@ -1659,30 +1720,54 @@ WASM_EXPORT void frustum_space_columns(
           vmax_lv = vmax_clamp(vmax_lv);
           cell = (f64)(1 << vmax_lv);
           coarse = step * (f64)(1 << vmax_sh);
-          if (coarse > cell) {
-            coarse = cell;
+          horiz = bx < 0.0 ? -bx : bx;
+          if ((by < 0.0 ? -by : by) > horiz) {
+            horiz = by < 0.0 ? -by : by;
           }
+          eps = horiz > 1.0e-8 ? 1.0e-4 / horiz : 0.0;
           if ((coarse > step * 0.5) &&
-              !(wz < vmax_meters(wx, wy, vmax_lv))) {
+              !(wz < vmax_meters(wx, wy, vmax_lv, wrap))) {
             cursor = t;
             hops = 0;
-            while (hops < 32) {
+            while (hops < 128) {
+              f64 exit_dt = ray_cell_exit(cursor, bx, by, cam_x, cam_y, cell);
               f64 next = cursor + coarse;
-              f64 nx;
-              f64 ny;
-              f64 nz;
-              if (!(next < band_end)) {
+              i32 leaving = 0;
+              f64 probe;
+              f64 px;
+              f64 py;
+              if (cursor + exit_dt <= next) {
+                next = cursor + exit_dt;
+                leaving = 1;
+              }
+              if (!(next < band_end) || !(next > cursor)) {
                 break;
               }
-              nx = cam_x + next * bx;
-              ny = cam_y + next * by;
-              nz = cam_z + next * bz;
-              if (!wrap && ((nx < 0.0) || (ny < 0.0) || (nx > (f64)g_map_w) ||
-                            (ny > (f64)g_map_h))) {
+              probe = leaving ? next - eps : next;
+              if (!(probe > cursor)) {
                 break;
               }
-              if (nz < vmax_meters(nx, ny, vmax_lv)) {
+              px = cam_x + probe * bx;
+              py = cam_y + probe * by;
+              if (!wrap && ((px < 0.0) || (py < 0.0) || (px > (f64)g_map_w) ||
+                            (py > (f64)g_map_h))) {
                 break;
+              }
+              if ((bz < 0.0) || leaving) {
+                if (cam_z + probe * bz < vmax_meters(px, py, vmax_lv, wrap)) {
+                  break;
+                }
+              }
+              if (leaving) {
+                f64 nx = cam_x + next * bx;
+                f64 ny = cam_y + next * by;
+                if (!wrap && ((nx < 0.0) || (ny < 0.0) || (nx > (f64)g_map_w) ||
+                              (ny > (f64)g_map_h))) {
+                  break;
+                }
+                if (cam_z + next * bz < vmax_meters(nx, ny, vmax_lv, wrap)) {
+                  break;
+                }
               }
               cursor = next;
               hops = (hops + 1) | 0;
@@ -1696,6 +1781,7 @@ WASM_EXPORT void frustum_space_columns(
                        (wy <= (f64)g_map_h);
               if (!inside && !wrap) {
                 t = t + step;
+                empty_run = 1;
                 continue;
               }
             }
@@ -1737,8 +1823,10 @@ WASM_EXPORT void frustum_space_columns(
             f64 prev = t - step;
             t = prev > z_start ? prev : z_start;
           }
+          empty_run = 0;
         } else {
           t = t + step;
+          empty_run = 1;
         }
       }
       col = (col + pair) | 0;
