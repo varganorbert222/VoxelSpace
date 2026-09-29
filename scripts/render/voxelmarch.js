@@ -1080,7 +1080,8 @@ export function renderVoxelTexels({
         }
         continue;
       }
-      const smooth = ((mip | 0) <= 0) & (inDetail ? 0 : 1);
+      const smooth =
+        ((mip | 0) <= 0) & (lod0RefineAt(depth, 0) ? 1 : 0) & (inDetail ? 0 : 1);
       let surfMax = hMax;
       if (zLo > hMax) {
         if (smooth) {

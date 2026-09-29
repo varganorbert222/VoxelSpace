@@ -809,7 +809,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       }
       continue;
     }
-    let nearPatch = (mip <= 0) && !inDetail;
+    let nearPatch = (mip <= 0) && lod0RefineAt(depth, 0) && !inDetail;
     var surfMax = hMax;
     if (zLo > hMax) {
       if (nearPatch) {
