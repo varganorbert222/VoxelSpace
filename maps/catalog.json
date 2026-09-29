@@ -1727,7 +1727,7 @@
       "title": "C1M2",
       "summary": "Green",
       "creator": "Mat Jennings",
-      "playable": false,
+      "playable": true,
       "night": false,
       "filter": [
         173,
@@ -1769,15 +1769,15 @@
         },
         "detailColor": {
           "name": "AFTMAPC",
-          "src": null
+          "src": "maps/comanche3/detail/color/AFTMAPC.png"
         },
         "detailElevation": {
           "name": "AFTMAPD",
-          "src": null
+          "src": "maps/comanche3/detail/height/AFTMAPD.png"
         },
         "detailShade": {
           "name": "AFTMAPS",
-          "src": null
+          "src": "maps/comanche3/detail/shading/AFTMAPS.png"
         },
         "sky": {
           "name": "CLOUDS02",
@@ -2761,7 +2761,7 @@
       "title": "C2M1",
       "summary": "Green",
       "creator": "Keith Butler",
-      "playable": false,
+      "playable": true,
       "night": false,
       "filter": [
         128,
@@ -2803,15 +2803,15 @@
         },
         "detailColor": {
           "name": "C2M1C",
-          "src": null
+          "src": "maps/comanche3/detail/color/C2M1C.png"
         },
         "detailElevation": {
           "name": "C2M1D",
-          "src": null
+          "src": "maps/comanche3/detail/height/C2M1D.png"
         },
         "detailShade": {
           "name": "C2M1S",
-          "src": null
+          "src": "maps/comanche3/detail/shading/C2M1S.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -3099,7 +3099,7 @@
       "title": "C2M3",
       "summary": "Green",
       "creator": "Keith Butler",
-      "playable": false,
+      "playable": true,
       "night": false,
       "filter": [
         128,
@@ -3141,15 +3141,15 @@
         },
         "detailColor": {
           "name": "C2M3C",
-          "src": null
+          "src": "maps/comanche3/detail/color/C2M3C.png"
         },
         "detailElevation": {
           "name": "C2M3D",
-          "src": null
+          "src": "maps/comanche3/detail/height/C2M3D.png"
         },
         "detailShade": {
           "name": "C2M3S",
-          "src": null
+          "src": "maps/comanche3/detail/shading/C2M3S.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -4964,7 +4964,7 @@
       "title": "c3m4",
       "summary": "Snow",
       "creator": "Mat Jennings",
-      "playable": false,
+      "playable": true,
       "night": false,
       "filter": [
         120,
@@ -5006,15 +5006,15 @@
         },
         "detailColor": {
           "name": "T1MAPC",
-          "src": null
+          "src": "maps/comanche3/detail/color/T1MAPC.png"
         },
         "detailElevation": {
           "name": "T1MAPD",
-          "src": null
+          "src": "maps/comanche3/detail/height/T1MAPD.png"
         },
         "detailShade": {
           "name": "T1MAPS",
-          "src": null
+          "src": "maps/comanche3/detail/shading/T1MAPS.png"
         },
         "sky": {
           "name": "CLOUDS05",
@@ -5640,7 +5640,7 @@
       "title": "c3m8",
       "summary": "Snow",
       "creator": "Mat Jennings",
-      "playable": false,
+      "playable": true,
       "night": false,
       "filter": [
         127,
@@ -5682,15 +5682,15 @@
         },
         "detailColor": {
           "name": "T1MAPC",
-          "src": null
+          "src": "maps/comanche3/detail/color/T1MAPC.png"
         },
         "detailElevation": {
           "name": "T1MAPD",
-          "src": null
+          "src": "maps/comanche3/detail/height/T1MAPD.png"
         },
         "detailShade": {
           "name": "T1MAPS",
-          "src": null
+          "src": "maps/comanche3/detail/shading/T1MAPS.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -7529,7 +7529,7 @@
       "title": "C5M1",
       "summary": "Desert",
       "creator": "Keith Butler",
-      "playable": false,
+      "playable": true,
       "night": false,
       "filter": [
         138,
@@ -7571,15 +7571,15 @@
         },
         "detailColor": {
           "name": "VLLYMAPC",
-          "src": null
+          "src": "maps/comanche3/detail/color/VLLYMAPC.png"
         },
         "detailElevation": {
           "name": "VLLYMAPD",
-          "src": null
+          "src": "maps/comanche3/detail/height/VLLYMAPD.png"
         },
         "detailShade": {
           "name": "VLLYMAPS",
-          "src": null
+          "src": "maps/comanche3/detail/shading/VLLYMAPS.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -7696,7 +7696,7 @@
       "title": "C5M2",
       "summary": "Desert",
       "creator": "Keith Butler",
-      "playable": false,
+      "playable": true,
       "night": false,
       "filter": [
         128,
@@ -7738,15 +7738,15 @@
         },
         "detailColor": {
           "name": "CLIFMAPC",
-          "src": null
+          "src": "maps/comanche3/detail/color/CLIFMAPC.png"
         },
         "detailElevation": {
           "name": "CLIFMAPD",
-          "src": null
+          "src": "maps/comanche3/detail/height/CLIFMAPD.png"
         },
         "detailShade": {
           "name": "CLIFMAPS",
-          "src": null
+          "src": "maps/comanche3/detail/shading/CLIFMAPS.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -7867,7 +7867,7 @@
       "title": "C5M3",
       "summary": "Desert",
       "creator": "Keith Butler",
-      "playable": false,
+      "playable": true,
       "night": false,
       "filter": [
         40,
@@ -7909,15 +7909,15 @@
         },
         "detailColor": {
           "name": "CLIFMAPC",
-          "src": null
+          "src": "maps/comanche3/detail/color/CLIFMAPC.png"
         },
         "detailElevation": {
           "name": "CLIFMAPD",
-          "src": null
+          "src": "maps/comanche3/detail/height/CLIFMAPD.png"
         },
         "detailShade": {
           "name": "CLIFMAPS",
-          "src": null
+          "src": "maps/comanche3/detail/shading/CLIFMAPS.png"
         },
         "sky": {
           "name": "CLOUDS02",
@@ -8376,7 +8376,7 @@
       "title": "C5M6",
       "summary": "Desert",
       "creator": "Mat Jennings",
-      "playable": false,
+      "playable": true,
       "night": false,
       "filter": [
         133,
@@ -8418,15 +8418,15 @@
         },
         "detailColor": {
           "name": "T2MAPC",
-          "src": null
+          "src": "maps/comanche3/detail/color/T2MAPC.png"
         },
         "detailElevation": {
           "name": "T2MAPD",
-          "src": null
+          "src": "maps/comanche3/detail/height/T2MAPD.png"
         },
         "detailShade": {
           "name": "T2MAPS",
-          "src": null
+          "src": "maps/comanche3/detail/shading/T2MAPS.png"
         },
         "sky": {
           "name": "CLOUDS04",
@@ -8547,7 +8547,7 @@
       "title": "C5M7",
       "summary": "Desert",
       "creator": "Keith Butler",
-      "playable": false,
+      "playable": true,
       "night": false,
       "filter": [
         161,
@@ -8589,15 +8589,15 @@
         },
         "detailColor": {
           "name": "TERAMAPC",
-          "src": null
+          "src": "maps/comanche3/detail/color/TERAMAPC.png"
         },
         "detailElevation": {
           "name": "TERAMAPD",
-          "src": null
+          "src": "maps/comanche3/detail/height/TERAMAPD.png"
         },
         "detailShade": {
           "name": "TERAMAPS",
-          "src": null
+          "src": "maps/comanche3/detail/shading/TERAMAPS.png"
         },
         "sky": {
           "name": "CLOUDS06",
@@ -8714,7 +8714,7 @@
       "title": "C5M8",
       "summary": "Desert",
       "creator": "Keith Butler",
-      "playable": false,
+      "playable": true,
       "night": false,
       "filter": [
         145,
@@ -8756,15 +8756,15 @@
         },
         "detailColor": {
           "name": "CLIFMAPC",
-          "src": null
+          "src": "maps/comanche3/detail/color/CLIFMAPC.png"
         },
         "detailElevation": {
           "name": "CLIFMAPD",
-          "src": null
+          "src": "maps/comanche3/detail/height/CLIFMAPD.png"
         },
         "detailShade": {
           "name": "CLIFMAPS",
-          "src": null
+          "src": "maps/comanche3/detail/shading/CLIFMAPS.png"
         },
         "sky": {
           "name": "CLOUDS01",
@@ -14512,7 +14512,7 @@
       "title": "MP01",
       "summary": "Desert",
       "creator": "Wes",
-      "playable": false,
+      "playable": true,
       "night": false,
       "filter": [
         128,
@@ -14554,15 +14554,15 @@
         },
         "detailColor": {
           "name": "TERAMAPC",
-          "src": null
+          "src": "maps/comanche3/detail/color/TERAMAPC.png"
         },
         "detailElevation": {
           "name": "TERAMAPD",
-          "src": null
+          "src": "maps/comanche3/detail/height/TERAMAPD.png"
         },
         "detailShade": {
           "name": "TERAMAPS",
-          "src": null
+          "src": "maps/comanche3/detail/shading/TERAMAPS.png"
         },
         "sky": {
           "name": "CLOUDS01",
