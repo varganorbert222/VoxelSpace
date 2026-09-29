@@ -4,17 +4,20 @@ export const DEBUG_VIEW_COLOR = "color";
 export const DEBUG_VIEW_HEIGHT = "height";
 export const DEBUG_VIEW_DEPTH = "depth";
 export const DEBUG_VIEW_ITERATIONS = "iterations";
+export const DEBUG_VIEW_LOD = "lod";
 
 export const DEBUG_VIEW_COLOR_ID = 0;
 export const DEBUG_VIEW_HEIGHT_ID = 1;
 export const DEBUG_VIEW_DEPTH_ID = 2;
 export const DEBUG_VIEW_ITERATIONS_ID = 3;
+export const DEBUG_VIEW_LOD_ID = 4;
 
 export const DEBUG_VIEW_IDS = Object.freeze({
   [DEBUG_VIEW_COLOR]: DEBUG_VIEW_COLOR_ID,
   [DEBUG_VIEW_HEIGHT]: DEBUG_VIEW_HEIGHT_ID,
   [DEBUG_VIEW_DEPTH]: DEBUG_VIEW_DEPTH_ID,
   [DEBUG_VIEW_ITERATIONS]: DEBUG_VIEW_ITERATIONS_ID,
+  [DEBUG_VIEW_LOD]: DEBUG_VIEW_LOD_ID,
 });
 
 export const DEBUG_VIEW_LABEL = Object.freeze({
@@ -22,6 +25,7 @@ export const DEBUG_VIEW_LABEL = Object.freeze({
   [DEBUG_VIEW_HEIGHT]: "Height",
   [DEBUG_VIEW_DEPTH]: "Depth",
   [DEBUG_VIEW_ITERATIONS]: "Iterations",
+  [DEBUG_VIEW_LOD]: "LOD",
 });
 
 export const ITER_VIS_MAX = 256;
@@ -29,6 +33,7 @@ export const ITER_VIS_MAX = 256;
 export const DEBUG_LEGEND_ID = "id_debug_legend";
 export const DEBUG_LEGEND_RAMP_GRAY = "gray";
 export const DEBUG_LEGEND_RAMP_ITER = "iter";
+export const DEBUG_LEGEND_RAMP_LOD = "lod";
 
 export const DEBUG_VIEW_LEGEND = Object.freeze({
   [DEBUG_VIEW_HEIGHT]: Object.freeze({
@@ -57,6 +62,15 @@ export const DEBUG_VIEW_LEGEND = Object.freeze({
       String(ITER_VIS_MAX) +
       " or more.",
     ramp: DEBUG_LEGEND_RAMP_ITER,
+  }),
+  [DEBUG_VIEW_LOD]: Object.freeze({
+    title: "LOD",
+    low: "Near",
+    high: "Far",
+    miss: "Sky / miss",
+    caption:
+      "Each color is one LOD band, near passes first, then each mip. White is the band edge. LOD Quality moves the edges.",
+    ramp: DEBUG_LEGEND_RAMP_LOD,
   }),
 });
 

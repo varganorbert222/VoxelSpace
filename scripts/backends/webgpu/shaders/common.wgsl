@@ -70,7 +70,7 @@ fn flagRepeat(flags: u32) -> bool {
 }
 
 fn flagDebugView(flags: u32) -> u32 {
-  return (flags >> 8u) & 3u;
+  return (flags >> 8u) & 7u;
 }
 
 fn flagShowDetails(flags: u32) -> bool {
@@ -448,7 +448,9 @@ const DEBUG_COLOR: u32 = 0u;
 const DEBUG_HEIGHT: u32 = 1u;
 const DEBUG_DEPTH: u32 = 2u;
 const DEBUG_ITER: u32 = 3u;
+const DEBUG_LOD: u32 = 4u;
 const ITER_VIS_MAX: f32 = 256.0;
+const LOD_EDGE_FRAC: f32 = 0.05;
 
 fn encodeUnit(t: f32) -> u32 {
   if (!(t > 0.0)) {
@@ -463,6 +465,75 @@ fn encodeUnit(t: f32) -> u32 {
 
 fn encodeHeight(byte: u32) -> u32 {
   return encodeUnit(f32(byte & 255u) / 255.0);
+}
+
+fn lodVisRgb(index: i32) -> vec3f {
+  let n = f32(max(index, 0));
+  var hue = n * 137.508;
+  hue = hue - floor(hue / 360.0) * 360.0;
+  let c = 0.92;
+  let hp = hue / 60.0;
+  let x = c * (1.0 - abs((hp - floor(hp * 0.5) * 2.0) - 1.0));
+  var rgb = vec3f(c, 0.0, x);
+  if (hp < 1.0) {
+    rgb = vec3f(c, x, 0.0);
+  } else if (hp < 2.0) {
+    rgb = vec3f(x, c, 0.0);
+  } else if (hp < 3.0) {
+    rgb = vec3f(0.0, c, x);
+  } else if (hp < 4.0) {
+    rgb = vec3f(0.0, x, c);
+  } else if (hp < 5.0) {
+    rgb = vec3f(x, 0.0, c);
+  }
+  return rgb + vec3f(0.08);
+}
+
+fn lodOnEdge(t: f32, lo: f32, hi: f32) -> bool {
+  let width = hi - lo;
+  if (!(width > 0.0)) {
+    return false;
+  }
+  let tail = hi - t;
+  return tail >= 0.0 && tail <= width * LOD_EDGE_FRAC;
+}
+
+fn encodeLod(t: f32, mip: i32, mipLo: f32, mipHi: f32, mipHiIsSwitch: bool) -> u32 {
+  if (!(t > 0.0)) {
+    return packRgba(vec4f(0.0, 0.0, 0.0, 1.0));
+  }
+  var index = 5 + max(mip, 0);
+  var lo = mipLo;
+  var hi = mipHi;
+  var mark = mipHiIsSwitch;
+  if (mip <= 0 && lod0RefineAt(t, 0)) {
+    let m = lod0RefineMipAt(t);
+    index = m;
+    if (m <= 0) {
+      lo = 0.0;
+      hi = frame.stepScaleCaps.y;
+    } else if (m == 1) {
+      lo = frame.stepScaleCaps.y;
+      hi = frame.stepScaleCaps.z;
+    } else if (m == 2) {
+      lo = frame.stepScaleCaps.z;
+      hi = frame.stepScaleCaps.w;
+    } else if (m == 3) {
+      lo = frame.stepScaleCaps.w;
+      hi = frame.mipSwitchYHit.y;
+    } else {
+      lo = frame.mipSwitchYHit.y;
+      hi = frame.detailTail.x;
+    }
+    mark = true;
+  } else if (mip <= 0) {
+    lo = frame.detailTail.x;
+  }
+  if (mark && lodOnEdge(t, lo, hi)) {
+    return packRgba(vec4f(1.0, 1.0, 1.0, 1.0));
+  }
+  let rgb = lodVisRgb(index);
+  return packRgba(vec4f(rgb, 1.0));
 }
 
 fn encodeIter(iter: u32) -> u32 {

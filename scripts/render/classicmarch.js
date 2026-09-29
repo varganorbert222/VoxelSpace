@@ -11,9 +11,10 @@ import {
   DEBUG_VIEW_DEPTH,
   DEBUG_VIEW_HEIGHT,
   DEBUG_VIEW_ITERATIONS,
+  DEBUG_VIEW_LOD,
   isDebugColor,
 } from "../constants/debugView.js";
-import { encodeHeight, encodeIter, encodeUnit } from "./debugEncode.js";
+import { encodeHeight, encodeIter, encodeLodDistance, encodeUnit } from "./debugEncode.js";
 import { NON_REPEAT_GROUND_OFFSET } from "../constants/classic.js";
 import {
   TERRAIN_MIP_MAX_COUNT,
@@ -626,6 +627,16 @@ function renderClassicColumnsSampled({
                 plotColor = encodeUnit(farClip > 0 ? z / farClip : 0);
               } else if (countIter) {
                 plotColor = encodeIter(sampleN[localI]);
+              } else if (debugView === DEBUG_VIEW_LOD) {
+                plotColor = encodeLodDistance(
+                  z,
+                  useMip,
+                  useRefine,
+                  useRm,
+                  refineSwitches,
+                  mipSwitches,
+                  farClip
+                );
               }
             } else {
               plotColor = doFilter

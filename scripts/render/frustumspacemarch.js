@@ -15,9 +15,10 @@ import {
   DEBUG_VIEW_DEPTH,
   DEBUG_VIEW_HEIGHT,
   DEBUG_VIEW_ITERATIONS,
+  DEBUG_VIEW_LOD,
   isDebugColor,
 } from "../constants/debugView.js";
-import { encodeHeight, encodeIter, encodeUnit } from "./debugEncode.js";
+import { encodeHeight, encodeIter, encodeLodDistance, encodeUnit } from "./debugEncode.js";
 import {
   LOD0_REFINE_SWITCH_COUNT,
   TERRAIN_MIP_MAX_COUNT,
@@ -351,6 +352,19 @@ export function renderFrustumSpaceColumns({
       }
       if (countIter) {
         return encodeIter(sampleN[localI]);
+      }
+      if (debugView === DEBUG_VIEW_LOD) {
+        const hitMip = mipLevelAtDistance(z, switches, lastMip);
+        const refineOn = lod0RefineAt(z, hitMip);
+        return encodeLodDistance(
+          z,
+          hitMip,
+          refineOn,
+          refineOn ? lod0RefineMipAt(z, refineSwitches) : 0,
+          refineSwitches,
+          switches,
+          farClip
+        );
       }
       return Color.WHITE;
     }

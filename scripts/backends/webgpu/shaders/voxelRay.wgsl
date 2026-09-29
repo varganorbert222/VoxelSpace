@@ -570,6 +570,29 @@ fn marchDetail(
   return DetailMarch(0, k, s, 0.0, 0u, vec4f(0.0));
 }
 
+fn voxelLodColor(dist: f32, farClip: f32) -> u32 {
+  if (!(dist > 0.0)) {
+    return packRgba(vec4f(0.0, 0.0, 0.0, 1.0));
+  }
+  let count = max(i32(frame.mipShiftCount.w), 1);
+  let lastMip = count - 1;
+  let mip = bandMipAt(dist, lastMip);
+  var lo = 0.0;
+  var hi = farClip;
+  var mark = false;
+  if (mip > 0 && mip - 1 < 16) {
+    lo = mipSwitchArr[mip - 1];
+  }
+  if (mip < lastMip && mip < 16) {
+    let s = mipSwitchArr[mip];
+    if (s > dist && s < farClip && s < 1.0e20) {
+      hi = s;
+      mark = true;
+    }
+  }
+  return encodeLod(dist, mip, lo, hi, mark);
+}
+
 fn voxelWrite(
   p: vec2i,
   color: vec4f,
@@ -582,11 +605,11 @@ fn voxelWrite(
 ) {
   let debugView = flagDebugView(frame.mapFlags.w);
   if (debugView != DEBUG_COLOR) {
-    textureStore(
-      outTex,
-      p,
-      vec4<u32>(encodeCamera(debugView, dist, hByte, iter, dist, farClip), 0u, 0u, 0u)
-    );
+    var packed = encodeCamera(debugView, dist, hByte, iter, dist, farClip);
+    if (debugView == DEBUG_LOD) {
+      packed = voxelLodColor(dist, farClip);
+    }
+    textureStore(outTex, p, vec4<u32>(packed, 0u, 0u, 0u));
     return;
   }
   if (!(dist > 0.0)) {

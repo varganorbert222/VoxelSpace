@@ -2,9 +2,11 @@
 
 import {
   DEBUG_LEGEND_ID,
+  DEBUG_LEGEND_RAMP_LOD,
   DEBUG_VIEW_LEGEND,
   isDebugColor,
 } from "../constants/debugView.js";
+import { LOD_LEGEND_STEPS, lodLegendGradient } from "../render/debugEncode.js";
 
 function setText(id, value) {
   const el = document.getElementById(id);
@@ -39,5 +41,7 @@ export function syncDebugLegend(debugView) {
   const bar = document.getElementById("id_debug_legend_bar");
   if (bar) {
     bar.dataset.ramp = spec.ramp;
+    bar.style.background =
+      spec.ramp === DEBUG_LEGEND_RAMP_LOD ? lodLegendGradient(LOD_LEGEND_STEPS) : "";
   }
 }

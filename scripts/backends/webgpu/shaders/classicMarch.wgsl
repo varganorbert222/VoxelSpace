@@ -199,6 +199,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
                   t = z / farClip;
                 }
                 plotPacked = encodeUnit(t);
+              } else if (debugView == DEBUG_LOD) {
+                plotPacked = encodeLod(z, mip, startIndex, endIndex, endIndex < farClip);
               } else {
                 plotPacked = encodeIter(sampleN);
               }

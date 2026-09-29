@@ -1048,6 +1048,108 @@ static u32 encode_iter(i32 iter) {
 #define DEBUG_HEIGHT 1
 #define DEBUG_DEPTH 2
 #define DEBUG_ITER 3
+#define DEBUG_LOD 4
+#define LOD_EDGE_FRAC 0.05
+
+static void lod_vis_bytes(i32 index, i32 *out_r, i32 *out_g, i32 *out_b) {
+  i32 n = index > 0 ? index : 0;
+  f64 hue = (f64)n * 137.508;
+  f64 turns = hue / 360.0;
+  hue = hue - (f64)(i32)turns * 360.0;
+  if (hue < 0.0) {
+    hue += 360.0;
+  }
+  f64 c = 0.92;
+  f64 hp = hue / 60.0;
+  f64 pair = hp - (f64)(i32)(hp * 0.5) * 2.0;
+  f64 ad = pair - 1.0;
+  if (ad < 0.0) {
+    ad = -ad;
+  }
+  f64 x = c * (1.0 - ad);
+  f64 r = c;
+  f64 g = 0.0;
+  f64 b = x;
+  if (hp < 1.0) {
+    r = c;
+    g = x;
+    b = 0.0;
+  } else if (hp < 2.0) {
+    r = x;
+    g = c;
+    b = 0.0;
+  } else if (hp < 3.0) {
+    r = 0.0;
+    g = c;
+    b = x;
+  } else if (hp < 4.0) {
+    r = 0.0;
+    g = x;
+    b = c;
+  } else if (hp < 5.0) {
+    r = x;
+    g = 0.0;
+    b = c;
+  }
+  r += 0.08;
+  g += 0.08;
+  b += 0.08;
+  *out_r = (i32)(r * 255.0 + 0.5);
+  *out_g = (i32)(g * 255.0 + 0.5);
+  *out_b = (i32)(b * 255.0 + 0.5);
+}
+
+static i32 lod_on_edge(f64 t, f64 lo, f64 hi) {
+  f64 width = hi - lo;
+  f64 tail;
+  if (!(width > 0.0)) {
+    return 0;
+  }
+  tail = hi - t;
+  return (tail >= 0.0) && (tail <= width * LOD_EDGE_FRAC);
+}
+
+static u32 encode_lod(f64 t, i32 mip, f64 mip_lo, f64 mip_hi, i32 mip_hi_switch) {
+  i32 index;
+  f64 lo;
+  f64 hi;
+  i32 mark;
+  i32 r;
+  i32 g;
+  i32 b;
+  if (!(t > 0.0)) {
+    return pack_named(0, 0, 0);
+  }
+  index = 5 + (mip > 0 ? mip : 0);
+  lo = mip_lo;
+  hi = mip_hi;
+  mark = mip_hi_switch;
+  if ((mip <= 0) && in_near(t)) {
+    i32 m = 0;
+    while ((m < 4) && (t >= g_refine_sw[m])) {
+      m = (m + 1) | 0;
+    }
+    index = m;
+    if (m <= 0) {
+      lo = 0.0;
+      hi = g_refine_sw[0];
+    } else if (m >= 4) {
+      lo = g_refine_sw[3];
+      hi = near_end();
+    } else {
+      lo = g_refine_sw[m - 1];
+      hi = g_refine_sw[m];
+    }
+    mark = 1;
+  } else if (mip <= 0) {
+    lo = near_end();
+  }
+  if (mark && lod_on_edge(t, lo, hi)) {
+    return pack_named(255, 255, 255);
+  }
+  lod_vis_bytes(index, &r, &g, &b);
+  return pack_named(b, g, r);
+}
 #define SAMPLE_N_MAX 8192
 static i32 g_sample_n[SAMPLE_N_MAX];
 
@@ -1387,6 +1489,13 @@ WASM_EXPORT void classic_columns(
               plot_color = encode_unit(far_clip > 0.0 ? z / far_clip : 0.0);
             } else if (debug == DEBUG_ITER) {
               plot_color = encode_iter(sample_ok ? g_sample_n[local_i] : 0);
+            } else if (debug == DEBUG_LOD) {
+              plot_color = encode_lod(
+                  z,
+                  mip,
+                  start_index,
+                  end_index,
+                  end_index < far_clip);
             }
           } else {
             plot_color = filter_now
@@ -1778,12 +1887,26 @@ WASM_EXPORT void frustum_space_columns(
           g_sample_n[local_i] = (g_sample_n[local_i] + 1) | 0;
         }
         if (wz < h_fine * g_alt_scale) {
-          plot = fs_terrain_color(
-              lod_color_map, wx * lod_scale, wy * lod_scale, wx, wy, nn_off,
-              use_fine ? 1 : 0, do_filter, wrap, lod_w_mask, lod_h_mask, lod_shift,
-              t, far_clip, debug, h_byte,
-              sample_ok ? g_sample_n[local_i] : guard,
-              fine_lerp ? near_subdiv_at(t) : 0);
+          if (debug == DEBUG_LOD) {
+            f64 blo = 0.0;
+            f64 bhi = far_clip;
+            i32 bmark = 0;
+            if (mip > 0) {
+              blo = lod_distances[mip];
+            }
+            if (((mip + 1) < g_lod_n) && (lod_distances[mip + 1] < far_clip)) {
+              bhi = lod_distances[mip + 1];
+              bmark = 1;
+            }
+            plot = encode_lod(t, mip, blo, bhi, bmark);
+          } else {
+            plot = fs_terrain_color(
+                lod_color_map, wx * lod_scale, wy * lod_scale, wx, wy, nn_off,
+                use_fine ? 1 : 0, do_filter, wrap, lod_w_mask, lod_h_mask, lod_shift,
+                t, far_clip, debug, h_byte,
+                sample_ok ? g_sample_n[local_i] : guard,
+                fine_lerp ? near_subdiv_at(t) : 0);
+          }
           pixels[(sy * stride + local_i) | 0] = plot;
           if ((pair > 1) & (((local_i + 1) | 0) < local_width)) {
             pixels[(sy * stride + ((local_i + 1) | 0)) | 0] = plot;

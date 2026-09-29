@@ -102,6 +102,23 @@ fn frustumShade(
       if (farClip > 0.0) { depthT = z / farClip; }
       return encodeUnit(depthT);
     }
+    if (debugView == DEBUG_LOD) {
+      let lodCount = i32(frame.extraU.y);
+      var lo = 0.0;
+      var hi = farClip;
+      var mark = false;
+      if (mip > 0 && mip < 16) {
+        lo = lodDistances[mip];
+      }
+      if (mip + 1 < lodCount && mip + 1 < 16) {
+        let s = lodDistances[mip + 1];
+        if (s > z && s < farClip && s < 1.0e20) {
+          hi = s;
+          mark = true;
+        }
+      }
+      return encodeLod(z, mip, lo, hi, mark);
+    }
     return encodeIter(sampleN);
   }
   let plot = detailColor(

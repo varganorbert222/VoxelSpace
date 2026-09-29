@@ -23,8 +23,8 @@ import {
   NDC_SCALE,
   PIXEL_CENTER,
 } from "../constants/vmath.js";
-import { isDebugColor } from "../constants/debugView.js";
-import { encodeCameraSample } from "./debugEncode.js";
+import { DEBUG_VIEW_LOD, isDebugColor } from "../constants/debugView.js";
+import { encodeCameraSample, encodeLodDistance } from "./debugEncode.js";
 import { resolveTerrainMips } from "../terrain/mipChain.js";
 import {
   LOD0_REFINE_SWITCH_COUNT,
@@ -805,6 +805,21 @@ export function renderVoxelTexels({
 
   function writeHit(dest, color, dist, hByte, iter, hatZ) {
     if (debug) {
+      if (debugView === DEBUG_VIEW_LOD) {
+        const hitMip = mipLevelAtDistance(dist, switches, lastMip);
+        const refineHere = lod0RefineAt(dist, hitMip);
+        const refineMip = refineHere ? lod0RefineMipAt(dist, refineSwitches) : 0;
+        pixels[dest] = encodeLodDistance(
+          dist,
+          hitMip,
+          refineHere,
+          refineMip,
+          refineSwitches,
+          switches,
+          farClip
+        );
+        return;
+      }
       pixels[dest] = encodeCameraSample(
         debugView,
         dist,
