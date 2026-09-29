@@ -86,6 +86,91 @@ fn voxelXyCell(camX: f32, camY: f32, dirX: f32, dirY: f32, s: f32, cellSize: f32
   return VoxelXyCell(ix, iy, far.t);
 }
 
+struct SurfCorners {
+  z00: f32,
+  z10: f32,
+  z01: f32,
+  z11: f32,
+  zMax: f32,
+}
+
+fn patchHeight(u: f32, v: f32, z00: f32, z10: f32, z01: f32, z11: f32) -> f32 {
+  let fu = clamp(u, 0.0, 1.0);
+  let fv = clamp(v, 0.0, 1.0);
+  if (fv <= fu) {
+    return z00 + (z10 - z00) * fu + (z11 - z10) * fv;
+  }
+  return z00 + (z11 - z01) * fu + (z01 - z00) * fv;
+}
+
+fn rayTri(o: vec3f, d: vec3f, a: vec3f, b: vec3f, c: vec3f) -> f32 {
+  let e1 = b - a;
+  let e2 = c - a;
+  let p = cross(d, e2);
+  let det = dot(e1, p);
+  if (det > -1e-8 && det < 1e-8) {
+    return -1.0;
+  }
+  let inv = 1.0 / det;
+  let tvec = o - a;
+  let u = dot(tvec, p) * inv;
+  if (u < -1e-4 || u > 1.0 + 1e-4) {
+    return -1.0;
+  }
+  let q = cross(tvec, e1);
+  let v = dot(d, q) * inv;
+  if (v < -1e-4 || u + v > 1.0 + 1e-4) {
+    return -1.0;
+  }
+  return dot(e2, q) * inv;
+}
+
+fn patchHit(o: vec3f, d: vec3f, x0: f32, y0: f32, cell: f32, surf: SurfCorners, s: f32, sExit: f32) -> f32 {
+  let x1 = x0 + cell;
+  let y1 = y0 + cell;
+  var best = -1.0;
+  let tA = rayTri(o, d, vec3f(x0, y0, surf.z00), vec3f(x1, y0, surf.z10), vec3f(x1, y1, surf.z11));
+  let tB = rayTri(o, d, vec3f(x0, y0, surf.z00), vec3f(x1, y1, surf.z11), vec3f(x0, y1, surf.z01));
+  if (tA >= s - HIT_T_EPS && tA <= sExit + HIT_T_EPS) {
+    best = clamp(tA, s, sExit);
+  }
+  if (tB >= s - HIT_T_EPS && tB <= sExit + HIT_T_EPS) {
+    let hitB = clamp(tB, s, sExit);
+    if (best < 0.0 || hitB < best) {
+      best = hitB;
+    }
+  }
+  return best;
+}
+
+fn sampleCorners(ix: i32, iy: i32, mip: i32, wrap: bool, altitude: f32) -> SurfCorners {
+  let scale = altitude / 255.0;
+  var z00: f32;
+  var z10: f32;
+  var z01: f32;
+  var z11: f32;
+  if (mip <= 0) {
+    z00 = f32(terrainHeightAt(heightTex, ix, iy, 0, wrap)) * scale;
+    z10 = f32(terrainHeightAt(heightTex, ix + 1, iy, 0, wrap)) * scale;
+    z01 = f32(terrainHeightAt(heightTex, ix, iy + 1, 0, wrap)) * scale;
+    z11 = f32(terrainHeightAt(heightTex, ix + 1, iy + 1, 0, wrap)) * scale;
+  } else {
+    z00 = f32(terrainHeightAt(heightTex, ix, iy, mip, wrap)) * scale;
+    z10 = f32(terrainHeightAt(heightTex, ix + 1, iy, mip, wrap)) * scale;
+    z01 = f32(terrainHeightAt(heightTex, ix, iy + 1, mip, wrap)) * scale;
+    z11 = f32(terrainHeightAt(heightTex, ix + 1, iy + 1, mip, wrap)) * scale;
+  }
+  return SurfCorners(z00, z10, z01, z11, max(max(z00, z10), max(z01, z11)));
+}
+
+fn coarseEdgeTop(ix: i32, iy: i32, mip: i32, wrap: bool, altitude: f32) -> f32 {
+  let h00 = f32(terrainHeightAt(heightTex, ix, iy, mip, wrap));
+  let h10 = f32(terrainHeightAt(heightTex, ix + 1, iy, mip, wrap));
+  let h01 = f32(terrainHeightAt(heightTex, ix, iy + 1, mip, wrap));
+  let h11 = f32(terrainHeightAt(heightTex, ix + 1, iy + 1, mip, wrap));
+  return max(max(h00, h10), max(h01, h11)) * (altitude / 255.0);
+}
+
 fn voxelColumnHit(camZ: f32, dirZ: f32, h: f32, s: f32, sExit: f32) -> f32 {
   let zEnter = camZ + dirZ * s;
   let zExitV = camZ + dirZ * sExit;
@@ -584,6 +669,10 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let leaf = detailLeafHeight(camIx, camIy, camCell, wrap, altitude);
     hCamByte = leaf.hByte;
     hCamW = leaf.h;
+  } else if (lod0RefineAt(depthNear, 0)) {
+    let camPatch = sampleCorners(camIx, camIy, 0, wrap, altitude);
+    hCamW = patchHeight(cam.x - f32(camIx), cam.y - f32(camIy), camPatch.z00, camPatch.z10, camPatch.z01, camPatch.z11);
+    hCamByte = u32(clamp(hCamW / (altitude / 255.0) + 0.5, 0.0, 255.0));
   } else {
     let camCol = voxelColumn(0, camIx, camIy, 1.0, s0, cam.z);
     hCamByte = camCol.hByte;
@@ -720,9 +809,30 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       }
       continue;
     }
+    let nearPatch = (mip <= 0) && !inDetail;
+    var surfMax = hMax;
     if (zLo > hMax) {
+      if (nearPatch) {
+        let above = sampleCorners(ix, iy, mip, wrap, altitude);
+        if (above.zMax > surfMax) {
+          surfMax = above.zMax;
+        }
+      } else if (mip > 0) {
+        let edge = coarseEdgeTop(ix, iy, mip, wrap, altitude);
+        if (edge > surfMax) {
+          surfMax = edge;
+        }
+      }
+      if (zLo > surfMax && !inDetail) {
+        let bump = detailElevMaxBytes(depth) * (altitude / 255.0);
+        if (bump > 0.0) {
+          surfMax = surfMax + bump;
+        }
+      }
+    }
+    if (zLo > surfMax) {
       s = sExit;
-      let approaching = ((dir.z < 0.0) && (zEnter > hMax)) || ((dir.z > 0.0) && (zEnter < 0.0));
+      let approaching = ((dir.z < 0.0) && (zEnter > surfMax)) || ((dir.z > 0.0) && (zEnter < 0.0));
       if (!approaching && (mip < lastMip)) {
         mip = mip + 1;
       }
@@ -755,8 +865,44 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       s = sExit;
       continue;
     }
-    let sHit = voxelColumnHit(cam.z, dir.z, col.h, s, sExit);
-    if (sHit < 0.0) {
+    if (!nearPatch) {
+      let columnHit = voxelColumnHit(cam.z, dir.z, col.h, s, sExit);
+      if (columnHit < 0.0) {
+        s = sExit;
+        continue;
+      }
+      let depthHit = columnHit * dirFwd;
+      let hx = cam.x + dir.x * columnHit;
+      let hy = cam.y + dir.y * columnHit;
+      if (!wrap) {
+        let hitInside = (hx >= 0.0) && (hx < mapW) && (hy >= 0.0) && (hy < mapH);
+        if (!hitInside) {
+          break;
+        }
+      }
+      voxelWrite(
+        p,
+        voxelHitColor(mip, ix, iy, cellSize, col.colX, col.colY, depthHit),
+        depthHit,
+        col.hByte,
+        k,
+        hatZ,
+        farClip,
+        nearClip
+      );
+      return;
+    }
+    let surf = sampleCorners(ix, iy, mip, wrap, altitude);
+    var sHit = patchHit(cam, dir, x0, y0, cellSize, surf, s, sExit);
+    if (!(sHit >= 0.0)) {
+      let u = (cam.x + dir.x * s - x0) / cellSize;
+      let v = (cam.y + dir.y * s - y0) / cellSize;
+      let zs = patchHeight(u, v, surf.z00, surf.z10, surf.z01, surf.z11);
+      if (zEnter <= zs && zEnter >= 0.0) {
+        sHit = s;
+      }
+    }
+    if (!(sHit >= 0.0)) {
       s = sExit;
       continue;
     }
@@ -769,11 +915,16 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         break;
       }
     }
+    let colorIx = select(ix, i32(floor(hx)), mip <= 0);
+    let colorIy = select(iy, i32(floor(hy)), mip <= 0);
+    let colorCell = select(cellSize, 1.0, mip <= 0);
+    let zSurf = patchHeight((hx - x0) / cellSize, (hy - y0) / cellSize, surf.z00, surf.z10, surf.z01, surf.z11);
+    let hByte = u32(clamp(zSurf / (altitude / 255.0) + 0.5, 0.0, 255.0));
     voxelWrite(
       p,
-      voxelHitColor(mip, ix, iy, cellSize, col.colX, col.colY, depthHit),
+      voxelHitColor(mip, colorIx, colorIy, colorCell, col.colX, col.colY, depthHit),
       depthHit,
-      col.hByte,
+      hByte,
       k,
       hatZ,
       farClip,

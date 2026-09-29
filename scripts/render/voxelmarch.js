@@ -2,7 +2,13 @@
 
 import { Color } from "../math/color.js";
 import { useRetailFrame } from "./retail/schedule.js";
-import { applyDetail, detailColumnBump, detailInRange, detailSpanAt } from "./retail/detail.js";
+import {
+  applyDetail,
+  detailColumnBump,
+  detailElevMax,
+  detailInRange,
+  detailSpanAt,
+} from "./retail/detail.js";
 import ColorPalette from "../math/colorPalette.js";
 import {
   SKY_PALETTE_STEPS,
@@ -264,6 +270,81 @@ function voxelXyCell(camX, camY, dirX, dirY, s, cellSize) {
     }
   }
   return { ix: ix | 0, iy: iy | 0, tFar: far.t };
+}
+
+function patchHeight(u, v, z00, z10, z01, z11) {
+  let fu = u;
+  let fv = v;
+  if (fu < 0) {
+    fu = 0;
+  } else if (fu > 1) {
+    fu = 1;
+  }
+  if (fv < 0) {
+    fv = 0;
+  } else if (fv > 1) {
+    fv = 1;
+  }
+  if (fv <= fu) {
+    return z00 + (z10 - z00) * fu + (z11 - z10) * fv;
+  }
+  return z00 + (z11 - z01) * fu + (z01 - z00) * fv;
+}
+
+function rayTri(ox, oy, oz, dx, dy, dz, ax, ay, az, bx, by, bz, cx, cy, cz) {
+  const e1x = bx - ax;
+  const e1y = by - ay;
+  const e1z = bz - az;
+  const e2x = cx - ax;
+  const e2y = cy - ay;
+  const e2z = cz - az;
+  const px = dy * e2z - dz * e2y;
+  const py = dz * e2x - dx * e2z;
+  const pz = dx * e2y - dy * e2x;
+  const det = e1x * px + e1y * py + e1z * pz;
+  if (det > -1e-8 && det < 1e-8) {
+    return -1;
+  }
+  const inv = 1 / det;
+  const tx = ox - ax;
+  const ty = oy - ay;
+  const tz = oz - az;
+  const u = (tx * px + ty * py + tz * pz) * inv;
+  if (u < -1e-4 || u > 1 + 1e-4) {
+    return -1;
+  }
+  const qx = ty * e1z - tz * e1y;
+  const qy = tz * e1x - tx * e1z;
+  const qz = tx * e1y - ty * e1x;
+  const v = (dx * qx + dy * qy + dz * qz) * inv;
+  if (v < -1e-4 || u + v > 1 + 1e-4) {
+    return -1;
+  }
+  return (e2x * qx + e2y * qy + e2z * qz) * inv;
+}
+
+function patchHit(ox, oy, oz, dx, dy, dz, x0, y0, cell, z00, z10, z01, z11, s, sExit) {
+  const x1 = x0 + cell;
+  const y1 = y0 + cell;
+  let best = -1;
+  const consider = function (t) {
+    if (t < s - HIT_T_EPS || t > sExit + HIT_T_EPS) {
+      return;
+    }
+    let hit = t;
+    if (hit < s) {
+      hit = s;
+    }
+    if (hit > sExit) {
+      hit = sExit;
+    }
+    if (best < 0 || hit < best) {
+      best = hit;
+    }
+  };
+  consider(rayTri(ox, oy, oz, dx, dy, dz, x0, y0, z00, x1, y0, z10, x1, y1, z11));
+  consider(rayTri(ox, oy, oz, dx, dy, dz, x0, y0, z00, x1, y1, z11, x0, y1, z01));
+  return best;
 }
 
 function voxelColumnHit(camZ, dirZ, h, s, sExit) {
@@ -633,6 +714,54 @@ export function renderVoxelTexels({
     return { h: h, hByte: hByte, colX: ix | 0, colY: iy | 0 };
   }
 
+  function sampleCorners(ix, iy, mip, cellSize) {
+    let z00;
+    let z10;
+    let z01;
+    let z11;
+    if ((mip | 0) <= 0) {
+      const x0 = ix | 0;
+      const y0 = iy | 0;
+      z00 = heightAt(lod0H, x0, y0, lod0Shift, lod0WMask, lod0HMask, wrap) * altScale;
+      z10 = heightAt(lod0H, (x0 + 1) | 0, y0, lod0Shift, lod0WMask, lod0HMask, wrap) * altScale;
+      z01 = heightAt(lod0H, x0, (y0 + 1) | 0, lod0Shift, lod0WMask, lod0HMask, wrap) * altScale;
+      z11 =
+        heightAt(lod0H, (x0 + 1) | 0, (y0 + 1) | 0, lod0Shift, lod0WMask, lod0HMask, wrap) *
+        altScale;
+    } else {
+      const level = mip | 0;
+      const hm = mips.heightMaps[level];
+      const shift = mips.shifts[level];
+      const wMask = (mips.widths[level] - 1) | 0;
+      const hMask = (mips.heights[level] - 1) | 0;
+      z00 = heightAt(hm, ix, iy, shift, wMask, hMask, wrap) * altScale;
+      z10 = heightAt(hm, (ix + 1) | 0, iy, shift, wMask, hMask, wrap) * altScale;
+      z01 = heightAt(hm, ix, (iy + 1) | 0, shift, wMask, hMask, wrap) * altScale;
+      z11 = heightAt(hm, (ix + 1) | 0, (iy + 1) | 0, shift, wMask, hMask, wrap) * altScale;
+    }
+    let zMax = z00;
+    if (z10 > zMax) zMax = z10;
+    if (z01 > zMax) zMax = z01;
+    if (z11 > zMax) zMax = z11;
+    return { z00: z00, z10: z10, z01: z01, z11: z11, zMax: zMax };
+  }
+
+  function coarseEdgeTop(ix, iy, mip) {
+    const level = mip | 0;
+    const hm = mips.heightMaps[level];
+    const shift = mips.shifts[level];
+    const wMask = (mips.widths[level] - 1) | 0;
+    const hMask = (mips.heights[level] - 1) | 0;
+    let z = heightAt(hm, ix, iy, shift, wMask, hMask, wrap);
+    const z10 = heightAt(hm, (ix + 1) | 0, iy, shift, wMask, hMask, wrap);
+    const z01 = heightAt(hm, ix, (iy + 1) | 0, shift, wMask, hMask, wrap);
+    const z11 = heightAt(hm, (ix + 1) | 0, (iy + 1) | 0, shift, wMask, hMask, wrap);
+    if (z10 > z) z = z10;
+    if (z01 > z) z = z01;
+    if (z11 > z) z = z11;
+    return z * altScale;
+  }
+
   function hitColor(ix, iy, cellSize, t, colX, colY, skipMip) {
     const wx = (ix + HALF) * cellSize;
     const wy = (iy + HALF) * cellSize;
@@ -726,6 +855,23 @@ export function renderVoxelTexels({
       const leaf = detailLeaf(camIx, camIy, camCell);
       hCam = leaf.hByte;
       hCamW = leaf.h;
+    } else if (lod0RefineAt(depthNear, 0)) {
+      const camPatch = sampleCorners(camIx, camIy, 0, 1);
+      hCamW = patchHeight(
+        camX - camIx,
+        camY - camIy,
+        camPatch.z00,
+        camPatch.z10,
+        camPatch.z01,
+        camPatch.z11
+      );
+      hCam = (hCamW / altScale + HALF) | 0;
+      if ((hCam < 0) | 0) {
+        hCam = 0;
+      }
+      if ((hCam > 255) | 0) {
+        hCam = 255;
+      }
     } else {
       const camCol = columnAt(camIx, camIy, 0, 1, s0, camZ);
       hCam = camCol.hByte;
@@ -934,10 +1080,31 @@ export function renderVoxelTexels({
         }
         continue;
       }
+      const smooth = ((mip | 0) <= 0) & (inDetail ? 0 : 1);
+      let surfMax = hMax;
       if (zLo > hMax) {
+        if (smooth) {
+          const above = sampleCorners(ix, iy, mip, cellSize);
+          if (above.zMax > surfMax) {
+            surfMax = above.zMax;
+          }
+        } else if ((mip | 0) > 0) {
+          const edge = coarseEdgeTop(ix, iy, mip);
+          if (edge > surfMax) {
+            surfMax = edge;
+          }
+        }
+        if (zLo > surfMax && !inDetail) {
+          const bump = detailElevMax(depth) * altScale;
+          if (bump > 0) {
+            surfMax += bump;
+          }
+        }
+      }
+      if (zLo > surfMax) {
         s = sExit;
         const approaching =
-          ((dirZ < 0) & (zEnter > hMax)) | ((dirZ > 0) & (zEnter < GROUND_HEIGHT));
+          ((dirZ < 0) & (zEnter > surfMax)) | ((dirZ > 0) & (zEnter < GROUND_HEIGHT));
         if (!approaching && (mip < lastMip) | 0) {
           mip = (mip + 1) | 0;
         }
@@ -974,7 +1141,61 @@ export function renderVoxelTexels({
         s = sExit;
         continue;
       }
-      const sHit = voxelColumnHit(camZ, dirZ, col.h, s, sExit);
+      if (!smooth) {
+        const sHit = voxelColumnHit(camZ, dirZ, col.h, s, sExit);
+        if (sHit >= 0) {
+          const depthHit = sHit * dirFwd;
+          const hx = camX + dirX * sHit;
+          const hy = camY + dirY * sHit;
+          if (!wrap) {
+            const hitInside =
+              ((hx >= 0) | 0) &
+              ((hx < mapWf) | 0) &
+              ((hy >= 0) | 0) &
+              ((hy < mapHf) | 0);
+            if (!hitInside) {
+              break;
+            }
+          }
+          writeHit(
+            dest,
+            hitColor(ix, iy, cellSize, depthHit, col.colX, col.colY, mip),
+            depthHit,
+            col.hByte,
+            k,
+            hatZ
+          );
+          return;
+        }
+        s = sExit;
+        continue;
+      }
+      const surf = sampleCorners(ix, iy, mip, cellSize);
+      let sHit = patchHit(
+        camX,
+        camY,
+        camZ,
+        dirX,
+        dirY,
+        dirZ,
+        x0,
+        y0,
+        cellSize,
+        surf.z00,
+        surf.z10,
+        surf.z01,
+        surf.z11,
+        s,
+        sExit
+      );
+      if (!(sHit >= 0)) {
+        const u = (camX + dirX * s - x0) / cellSize;
+        const v = (camY + dirY * s - y0) / cellSize;
+        const zs = patchHeight(u, v, surf.z00, surf.z10, surf.z01, surf.z11);
+        if (zEnter <= zs && zEnter >= GROUND_HEIGHT) {
+          sHit = s;
+        }
+      }
       if (sHit >= 0) {
         const depthHit = sHit * dirFwd;
         const hx = camX + dirX * sHit;
@@ -989,11 +1210,23 @@ export function renderVoxelTexels({
             break;
           }
         }
+        const zu = (hx - x0) / cellSize;
+        const zv = (hy - y0) / cellSize;
+        const zSurf = patchHeight(zu, zv, surf.z00, surf.z10, surf.z01, surf.z11);
+        let hByte = (zSurf / altScale + HALF) | 0;
+        if ((hByte < 0) | 0) {
+          hByte = 0;
+        }
+        if ((hByte > 255) | 0) {
+          hByte = 255;
+        }
+        const colorIx = (mip | 0) <= 0 ? Math.floor(hx) | 0 : ix;
+        const colorIy = (mip | 0) <= 0 ? Math.floor(hy) | 0 : iy;
         writeHit(
           dest,
-          hitColor(ix, iy, cellSize, depthHit, col.colX, col.colY, mip),
+          hitColor(colorIx, colorIy, (mip | 0) <= 0 ? 1 : cellSize, depthHit, col.colX, col.colY, mip),
           depthHit,
-          col.hByte,
+          hByte,
           k,
           hatZ
         );
