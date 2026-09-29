@@ -210,7 +210,7 @@
           </div>
           <input id="id_quality" type="range" autocomplete="off" aria-keyshortcuts="1 2 3 4 5" />
         </div>
-        <div class="control" data-tip="Hard stop for every ray, in meters. Past the last LOD band the ray keeps that band's step and mip until this distance. Maximum is 8000 m.">
+        <div class="control" data-tip="Hard stop for every ray, in meters. At FOV 90 and LOD bias 0 the maximum covers the 10th LOD, the 2×2 raster on a 1024 map.">
           <div class="control-head">
             <label for="id_render_distance">Distance</label>
             <span class="control-value" data-for="id_render_distance"></span>
@@ -230,7 +230,7 @@
         </div>
         <div
           class="control"
-          data-tip="How many terrain mip / LOD rasters the march uses. 1 is full resolution only. On a 1024 map, 5 stops at 64×64 and 10 at 2×2. Default is the middle of the range."
+          data-tip="How many terrain mip / LOD rasters the march uses. 1 is full resolution only. On a 1024 map, 5 stops at 64×64 and 10 at 2×2."
         >
           <div class="control-head">
             <label for="id_mip_count">LOD</label>
@@ -282,7 +282,7 @@
             for="id_show_details"
             data-tip="Show Details draws the detail atlas in the retail Near range and interpolates height and color there. Off: point sample, no detail."
           >
-            <input id="id_show_details" name="showDetails" type="checkbox" autocomplete="off" checked />
+            <input id="id_show_details" name="showDetails" type="checkbox" autocomplete="off" />
             <span class="check-box" aria-hidden="true"></span>
             Show Details
           </label>
@@ -313,17 +313,17 @@
             Repeat
           </label>
           <label class="check" for="id_show_sky" data-tip="Sky gradient from the mission palette. Off paints black and skips the gradient. Clouds still draw when Clouds is on.">
-            <input id="id_show_sky" name="showsky" type="checkbox" autocomplete="off" checked />
+            <input id="id_show_sky" name="showsky" type="checkbox" autocomplete="off" />
             <span class="check-box" aria-hidden="true"></span>
             Sky
           </label>
           <label class="check" for="id_show_clouds" data-tip="Cloud plane. Off skips the cloud mip lookup and the overlay on terrain.">
-            <input id="id_show_clouds" name="showclouds" type="checkbox" autocomplete="off" checked />
+            <input id="id_show_clouds" name="showclouds" type="checkbox" autocomplete="off" />
             <span class="check-box" aria-hidden="true"></span>
             Clouds
           </label>
           <label class="check" for="id_voxpal_fog" data-tip="VoxPal fog at LOD boundaries. Each coarser mip blends toward the horizon color from sky palette index 0. Off keeps every mip at full color.">
-            <input id="id_voxpal_fog" name="voxpalfog" type="checkbox" autocomplete="off" checked />
+            <input id="id_voxpal_fog" name="voxpalfog" type="checkbox" autocomplete="off" />
             <span class="check-box" aria-hidden="true"></span>
             Fog
           </label>
@@ -338,6 +338,7 @@
               type="checkbox"
               autocomplete="off"
               aria-keyshortcuts="T"
+              checked
             />
             <span class="check-box" aria-hidden="true"></span>
             Threads

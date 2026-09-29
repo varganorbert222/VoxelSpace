@@ -2,7 +2,7 @@
   "settings": {
     "renderDistance": {
       "min": 100.0,
-      "max": 8000.0,
+      "max": 74500.0,
       "step": 100.0
     },
     "renderScale": {
@@ -24,7 +24,7 @@
     "mipCount": {
       "min": 1,
       "step": 1,
-      "default": 5
+      "default": 10
     },
     "lodBias": {
       "min": -2,
@@ -36,7 +36,7 @@
       "min": -2,
       "max": 3,
       "step": 0.25,
-      "default": 0
+      "default": -0.75
     },
     "lodSpacing": {
       "min": 10,
@@ -90,7 +90,7 @@
   },
   "camera": {
     "nearClip": 0.001,
-    "farClip": 2000.0,
+    "farClip": 8000.0,
     "quality": 1.0,
     "renderScale": 0.5,
     "fov": 90.0

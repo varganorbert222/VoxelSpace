@@ -34,7 +34,7 @@ let frame = {
   width: 1024,
   fovDeg: 90,
   quality: 1,
-  farClip: 2000,
+  farClip: 8000,
   lodBias: LOD_BIAS_DEFAULT,
   showDetails: 0,
   lodSpacingMode: "retail",
@@ -169,9 +169,8 @@ export function retailNearEnd(lodBias) {
   return retailLodSpan(lodBias) * (8 / DIRECT5_FACTOR);
 }
 
-// Mip switch i ends Direct mip i, while the edge is still inside Direct5.
-// There is no band boundary at Direct5 or beyond it. The last LOD keeps its
-// step and mip until Render Distance stops the ray.
+// Mip switch i ends mip i. The ladder keeps doubling past Direct5, so a
+// 1024 map can reach its 10th LOD (mip 9, the 2×2 raster).
 export function retailMipSwitches(bandCount, spanMeters, out) {
   const levels = Math.max(1, bandCount | 0);
   const switchN = (levels - 1) | 0;
@@ -179,14 +178,31 @@ export function retailMipSwitches(bandCount, spanMeters, out) {
   const far = Number(spanMeters);
   for (let i = 0; i < switchN; i++) {
     const u = Math.pow(2, i - 5);
-    if (!(far > 1) || !(u > 0) || !(u < 1)) {
+    if (!(far > 1) || !(u > 0)) {
       dest[i] = Number.POSITIVE_INFINITY;
       continue;
     }
     const t = u * far;
-    dest[i] = t > 0 && t < far ? t : Number.POSITIVE_INFINITY;
+    dest[i] = t > 0 ? t : Number.POSITIVE_INFINITY;
   }
   return dest.subarray(0, switchN);
+}
+
+// Reference span at 640×480, FOV 90, LOD bias 0. Live FOV and bias scale the
+// switches; the render-distance cap uses this fixed span.
+export function retailReferenceSpan() {
+  const focal = retailDescriptorFocal(90);
+  return (focal * DIRECT5_FACTOR) / DIVISOR / SCAN_STEPS_PER_METER;
+}
+
+// Far-clip ceiling at FOV 90 and LOD bias 0. The 10th LOD (mip index 9, 2×2
+// on a 1024 map) starts at switch 8. Every earlier band is one octave wide,
+// so the cap is the next switch: the level stays active until the far clip.
+// The slider step is 100 m.
+export function renderDistanceMaxMeters() {
+  const octaveEnd = Math.pow(2, 9 - 5) * retailReferenceSpan();
+  const step = 100;
+  return Math.ceil(octaveEnd / step) * step;
 }
 
 // Direct mip i walks (1 << i) meters at Scan Quality 1, capped at Direct5 (mip 5, 32 m).

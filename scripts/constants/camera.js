@@ -5,7 +5,7 @@ export const MODE_ORBITAL = "orbital";
 export const MODE_WALK = "walking";
 
 export const DEFAULT_NEAR_CLIP = 1;
-export const DEFAULT_FAR_CLIP = 2000;
+export const DEFAULT_FAR_CLIP = 8000;
 export const DEFAULT_POS_X = 512;
 export const DEFAULT_POS_Y = 512;
 export const DEFAULT_POS_Z = 150;
