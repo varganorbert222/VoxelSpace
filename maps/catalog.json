@@ -18531,7 +18531,7 @@
       "title": "Death & More Death",
       "summary": "Death & More Death",
       "creator": "Jason Tull",
-      "playable": false,
+      "playable": true,
       "night": true,
       "filter": [
         80,
@@ -18588,8 +18588,8 @@
           "src": "maps/deltaforce/clouds/CLOUDS06.png"
         },
         "skyPalette": {
-          "name": "GRNEGRAD",
-          "src": null
+          "name": "GRENGRAD",
+          "src": "maps/deltaforce/grads/GRENGRAD.png"
         },
         "water": {
           "name": "256WATER",

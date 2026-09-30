@@ -38,9 +38,9 @@
     "found": true
   },
   "sky_palette": {
-    "name": "grnegrad",
-    "png": null,
-    "found": false
+    "name": "grengrad",
+    "png": "../png/GRENGRAD.png",
+    "found": true
   },
   "sky_height": 700,
   "water_map": {
