@@ -1,0 +1,57 @@
+{
+  "source": "DMDS2.TRN",
+  "terrain_name": "Green One",
+  "terrain_creator": "Jason Tull",
+  "color_map": {
+    "name": "dmds2_c",
+    "png": "../png/DMDS2_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "dmds2_d",
+    "png": "../png/DMDS2_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "dmds2_m",
+    "png": "../png/DMDS2_M.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "dmds2_cm",
+    "png": "../png/DMDS2_CM.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "dmds2_dm",
+    "png": "../png/DMDS2_DM.png",
+    "found": true
+  },
+  "char_data": "dmds2_cm",
+  "sky_map": {
+    "name": "clouds01",
+    "png": "../png/CLOUDS01.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "skygrd01",
+    "png": "../png/SKYGRD01.png",
+    "found": true
+  },
+  "sky_height": 1236,
+  "horizon": 1,
+  "water_map": {
+    "name": "ripple1",
+    "png": "../png/RIPPLE1.png",
+    "found": true
+  },
+  "water_height": 0,
+  "filter": [
+    128,
+    128,
+    128
+  ],
+  "gamma": 128,
+  "saturation": 128,
+  "sun_slope": 70
+}

@@ -56,7 +56,8 @@ static i32 g_detail_light[3];
 static u8 *g_detail_char;
 static i32 g_detail_char_w;
 static i32 g_detail_char_h;
-static u32 *g_detail_mips[4];
+static i32 g_detail_tile_size = 16;
+static u32 *g_detail_mips[6];
 static u8 *g_detail_pal;
 static f64 g_detail_pack_x;
 static f64 g_detail_pack_y;
@@ -575,14 +576,20 @@ WASM_EXPORT void set_detail_maps(
     i32 mip1,
     i32 mip2,
     i32 mip3,
+    i32 mip4,
+    i32 mip5,
+    i32 tile_size,
     i32 pal_ptr) {
   g_detail_char = char_ptr ? (u8 *)char_ptr : 0;
   g_detail_char_w = char_w;
   g_detail_char_h = char_h;
+  g_detail_tile_size = tile_size > 0 ? tile_size : 16;
   g_detail_mips[0] = mip0 ? (u32 *)mip0 : 0;
   g_detail_mips[1] = mip1 ? (u32 *)mip1 : 0;
   g_detail_mips[2] = mip2 ? (u32 *)mip2 : 0;
   g_detail_mips[3] = mip3 ? (u32 *)mip3 : 0;
+  g_detail_mips[4] = mip4 ? (u32 *)mip4 : 0;
+  g_detail_mips[5] = mip5 ? (u32 *)mip5 : 0;
   g_detail_pal = pal_ptr ? (u8 *)pal_ptr : 0;
   g_detail_pack_valid = 0;
 }
@@ -646,7 +653,15 @@ static i32 detail_level_at(f64 dist) {
   if (band == 3) {
     return 2;
   }
-  return 3;
+  {
+    i32 level = 0;
+    i32 size = g_detail_tile_size;
+    while (size > 2) {
+      size >>= 1;
+      level = (level + 1) | 0;
+    }
+    return level;
+  }
 }
 
 static i32 detail_in_range(f64 dist) {
@@ -687,7 +702,7 @@ static u32 sample_detail_packed(f64 x, f64 y, f64 dist) {
   ix = detail_wrap_floor(x, g_detail_char_w);
   iy = detail_wrap_floor(y, g_detail_char_h);
   tile = g_detail_char[(iy * g_detail_char_w + ix) | 0] | 0;
-  subdiv = 16 >> level;
+  subdiv = g_detail_tile_size >> level;
   if (subdiv < 1) {
     subdiv = 1;
   }
@@ -725,10 +740,7 @@ static f64 detail_height_add(f64 x, f64 y, f64 dist) {
   }
   packed = sample_detail_packed(x, y, dist);
   elev = (packed >> 16) & 255u;
-  if (elev < 128u) {
-    return 0.0;
-  }
-  return ((f64)(elev - 128u)) / 32.0;
+  return ((f64)elev - 128.0) / 32.0;
 }
 
 static i32 detail_shade_byte(i32 base, i32 light, i32 shade) {
@@ -775,12 +787,12 @@ static u32 apply_detail(u32 color, f64 x, f64 y, f64 dist) {
       return color;
     }
     return ((u32)a << (u32)T_SHIFT_A) |
-           ((u32)g_detail_pal[(ci << 2)] << (u32)T_SHIFT_R) |
+           ((u32)g_detail_pal[(ci << 2) + 2] << (u32)T_SHIFT_R) |
            ((u32)g_detail_pal[(ci << 2) + 1] << (u32)T_SHIFT_G) |
-           (u32)g_detail_pal[(ci << 2) + 2];
+           (u32)g_detail_pal[(ci << 2)];
   }
   r = detail_shade_byte(
-      (i32)((color >> (u32)T_SHIFT_R) & (u32)T_CHAN_MASK),
+      (i32)(color & (u32)T_CHAN_MASK),
       g_detail_light[0],
       shade);
   g = detail_shade_byte(
@@ -788,14 +800,16 @@ static u32 apply_detail(u32 color, f64 x, f64 y, f64 dist) {
       g_detail_light[1],
       shade);
   b = detail_shade_byte(
-      (i32)(color & (u32)T_CHAN_MASK), g_detail_light[2], shade);
+      (i32)((color >> (u32)T_SHIFT_R) & (u32)T_CHAN_MASK),
+      g_detail_light[2],
+      shade);
   if (ci) {
-    r = (r >> 1) + ((i32)g_detail_pal[(ci << 2)] >> 1);
+    r = (r >> 1) + ((i32)g_detail_pal[(ci << 2) + 0] >> 1);
     g = (g >> 1) + ((i32)g_detail_pal[(ci << 2) + 1] >> 1);
     b = (b >> 1) + ((i32)g_detail_pal[(ci << 2) + 2] >> 1);
   }
-  return ((u32)a << (u32)T_SHIFT_A) | ((u32)r << (u32)T_SHIFT_R) |
-         ((u32)g << (u32)T_SHIFT_G) | (u32)b;
+  return ((u32)a << (u32)T_SHIFT_A) | ((u32)b << (u32)T_SHIFT_R) |
+         ((u32)g << (u32)T_SHIFT_G) | (u32)r;
 }
 
 WASM_EXPORT void set_map_info(

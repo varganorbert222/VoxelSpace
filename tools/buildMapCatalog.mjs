@@ -371,7 +371,6 @@ function requiredAssetsReady(assets, render) {
     "character",
     "detailColor",
     "detailElevation",
-    "detailShade",
     "sky",
     "skyPalette",
   ];

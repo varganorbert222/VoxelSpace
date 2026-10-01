@@ -36,7 +36,7 @@ fn sampleDetailPacked(wx: f32, wy: f32, dist: f32) -> u32 {
   let ix = detailWrapIndex(wx, i32(dims.x));
   let iy = detailWrapIndex(wy, i32(dims.y));
   let tile = textureLoad(characterTex, vec2i(ix, iy), 0).r;
-  let subdiv = 16u >> u32(level);
+  let subdiv = textureDimensions(detailPackedTex, u32(level)).x / 16u;
   let fx = wx - floor(wx);
   let fy = wy - floor(wy);
   let last = i32(subdiv) - 1;
@@ -44,16 +44,13 @@ fn sampleDetailPacked(wx: f32, wy: f32, dist: f32) -> u32 {
   let cy = clamp(i32(floor(fy * f32(subdiv))), 0, last);
   return textureLoad(
     detailPackedTex,
-    vec2i(cx, i32(tile) * i32(subdiv) + cy),
+    vec2i((i32(tile) % 16) * i32(subdiv) + cx, (i32(tile) / 16) * i32(subdiv) + cy),
     level
   ).r;
 }
 
 fn detailElevAdd(byte: u32) -> f32 {
-  if (byte < 128u) {
-    return 0.0;
-  }
-  return f32(byte - 128u) / 32.0;
+  return (f32(byte) - 128.0) / 32.0;
 }
 
 fn sampleDetailPackedLevel(wx: f32, wy: f32, level: i32) -> u32 {
@@ -64,7 +61,7 @@ fn sampleDetailPackedLevel(wx: f32, wy: f32, level: i32) -> u32 {
   let ix = detailWrapIndex(wx, i32(dims.x));
   let iy = detailWrapIndex(wy, i32(dims.y));
   let tile = textureLoad(characterTex, vec2i(ix, iy), 0).r;
-  let subdiv = 16u >> u32(level);
+  let subdiv = textureDimensions(detailPackedTex, u32(level)).x / 16u;
   let fx = wx - floor(wx);
   let fy = wy - floor(wy);
   let last = i32(subdiv) - 1;
@@ -72,7 +69,7 @@ fn sampleDetailPackedLevel(wx: f32, wy: f32, level: i32) -> u32 {
   let cy = clamp(i32(floor(fy * f32(subdiv))), 0, last);
   return textureLoad(
     detailPackedTex,
-    vec2i(cx, i32(tile) * i32(subdiv) + cy),
+    vec2i((i32(tile) % 16) * i32(subdiv) + cx, (i32(tile) / 16) * i32(subdiv) + cy),
     level
   ).r;
 }

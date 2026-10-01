@@ -73,7 +73,7 @@ export function createWasmKernels(instance) {
   const switchSlot = { ptr: 0 };
   const detailSlot = {
     charPtr: 0,
-    mipPtr: [0, 0, 0, 0],
+    mipPtr: [0, 0, 0, 0, 0, 0],
     palPtr: 0,
   };
   function mustAlloc(bytes) {
@@ -98,6 +98,8 @@ export function createWasmKernels(instance) {
     detailSlot.mipPtr[1] = 0;
     detailSlot.mipPtr[2] = 0;
     detailSlot.mipPtr[3] = 0;
+    detailSlot.mipPtr[4] = 0;
+    detailSlot.mipPtr[5] = 0;
     detailSlot.palPtr = 0;
   }
 
@@ -292,11 +294,16 @@ export function createWasmKernels(instance) {
       ":" +
       (character.height | 0) +
       ":" +
+      (retail.detailTileSize | 0) +
+      ":" +
       (mips[0] ? mips[0].length | 0 : 0);
     if (detailKey !== key || !detailSlot.charPtr) {
       detailSlot.charPtr = mustAlloc(character.data.byteLength);
       copyBytes(memory, detailSlot.charPtr, character.data);
-      for (let i = 0; (i < 4) | 0; i = (i + 1) | 0) {
+      for (let i = 0; i < detailSlot.mipPtr.length; i++) {
+        detailSlot.mipPtr[i] = 0;
+      }
+      for (let i = 0; i < mips.length && i < detailSlot.mipPtr.length; i++) {
         const mip = mips[i];
         detailSlot.mipPtr[i] = mustAlloc(mip.byteLength);
         copyBytes(memory, detailSlot.mipPtr[i], mip);
@@ -312,6 +319,9 @@ export function createWasmKernels(instance) {
         detailSlot.mipPtr[1],
         detailSlot.mipPtr[2],
         detailSlot.mipPtr[3],
+        detailSlot.mipPtr[4],
+        detailSlot.mipPtr[5],
+        retail.detailTileSize | 0,
         detailSlot.palPtr
       );
       detailKey = key;

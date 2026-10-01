@@ -10,7 +10,7 @@ function tileAdds(heightLength, retail) {
     return null;
   }
   const mips = retail.detailMips;
-  const one = mips[4] || mips[mips.length - 1];
+  const one = mips[mips.length - 1];
   const tiles = retail.characterIndex.data;
   if (!one || !tiles || tiles.length !== heightLength) {
     return null;

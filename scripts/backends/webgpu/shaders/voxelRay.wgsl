@@ -221,33 +221,16 @@ fn detailTargetLevel(depth: f32) -> i32 {
   if (subdiv >= 4u) {
     return 2;
   }
-  return 3;
+  return detailLastLevel();
+}
+
+fn detailLastLevel() -> i32 {
+  return max(i32(textureNumLevels(detailPackedTex)) - 2, 0);
 }
 
 fn detailSubdivOf(level: i32) -> f32 {
-  if (level <= 0) {
-    return 16.0;
-  }
-  if (level == 1) {
-    return 8.0;
-  }
-  if (level == 2) {
-    return 4.0;
-  }
-  return 2.0;
-}
-
-fn detailLevelOfSubdiv(subdiv: f32) -> i32 {
-  if (subdiv >= 16.0) {
-    return 0;
-  }
-  if (subdiv >= 8.0) {
-    return 1;
-  }
-  if (subdiv >= 4.0) {
-    return 2;
-  }
-  return 3;
+  let mip = u32(clamp(level, 0, detailLastLevel()));
+  return f32(textureDimensions(detailPackedTex, mip).x / 16u);
 }
 
 struct RayHeightSpan {
@@ -399,7 +382,7 @@ struct DetailLeaf {
   hByte: u32,
 }
 
-fn detailLeafHeight(ix: i32, iy: i32, cellSize: f32, wrap: bool, altitude: f32) -> DetailLeaf {
+fn detailLeafHeight(ix: i32, iy: i32, cellSize: f32, level: i32, wrap: bool, altitude: f32) -> DetailLeaf {
   let wx = (f32(ix) + 0.5) * cellSize;
   let wy = (f32(iy) + 0.5) * cellSize;
   let subdiv = u32(max(1.0 / cellSize + 0.5, 1.0));
@@ -419,7 +402,7 @@ fn detailLeafHeight(ix: i32, iy: i32, cellSize: f32, wrap: bool, altitude: f32) 
     fx,
     fy
   );
-  let bump = detailSpanAt(wx, wy, detailLevelOfSubdiv(f32(subdiv))).y;
+  let bump = detailSpanAt(wx, wy, level).y;
   var h = (hFine + bump) * (altitude / 255.0);
   if (!(h > 0.0)) {
     h = AABB_Z_EPS;
@@ -472,9 +455,10 @@ fn detailMeterTop(ix: i32, iy: i32, wrap: bool, altitude: f32) -> f32 {
   );
   let x0 = f32(ix);
   let y0 = f32(iy);
+  let lastLevel = detailLastLevel();
   let bump = max(
-    max(detailSpanAt(x0 + 0.25, y0 + 0.25, 3).y, detailSpanAt(x0 + 0.75, y0 + 0.25, 3).y),
-    max(detailSpanAt(x0 + 0.25, y0 + 0.75, 3).y, detailSpanAt(x0 + 0.75, y0 + 0.75, 3).y)
+    max(detailSpanAt(x0 + 0.25, y0 + 0.25, lastLevel).y, detailSpanAt(x0 + 0.75, y0 + 0.25, lastLevel).y),
+    max(detailSpanAt(x0 + 0.25, y0 + 0.75, lastLevel).y, detailSpanAt(x0 + 0.75, y0 + 0.75, lastLevel).y)
   );
   var h = (hMax + bump) * (altitude / 255.0);
   if (!(h > 0.0)) {
@@ -505,7 +489,7 @@ fn marchDetail(
 ) -> DetailMarch {
   var s = sIn;
   var k = kIn;
-  var level = 3;
+  var level = detailLastLevel();
   loop {
     if ((s >= sLimit) || (k >= maxSteps)) {
       break;
@@ -537,14 +521,14 @@ fn marchDetail(
     var hTop = 0.0;
     var leaf = DetailLeaf(0.0, 0u);
     if (leafNow) {
-      leaf = detailLeafHeight(span.ix, span.iy, cellSize, wrap, altitude);
+      leaf = detailLeafHeight(span.ix, span.iy, cellSize, level, wrap, altitude);
       hTop = leaf.h;
     } else {
       hTop = detailCellTop(span.ix, span.iy, cellSize, level, wrap, altitude);
     }
     if ((zHi < 0.0) || (zLo > hTop)) {
       s = sExit;
-      if (level < 3) {
+      if (level < detailLastLevel()) {
         level = level + 1;
       }
       continue;
@@ -673,7 +657,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     camCell = 1.0 / detailSubdivOf(level);
     camIx = i32(floor(cam.x / camCell));
     camIy = i32(floor(cam.y / camCell));
-    let leaf = detailLeafHeight(camIx, camIy, camCell, wrap, altitude);
+    let leaf = detailLeafHeight(camIx, camIy, camCell, level, wrap, altitude);
     hCamByte = leaf.hByte;
     hCamW = leaf.h;
   } else if (lod0RefineAt(depthNear, 0)) {

@@ -10,7 +10,7 @@ const FORWARD_LUT = new Uint8Array(
   )
 );
 
-const LEVEL_SUBDIV = Object.freeze([16, 8, 4, 2]);
+const DETAIL_TILE_COUNT = 256;
 
 // Retail samples the detail atlas only on the five Near passes
 // (factors 0.5, 1, 2, 4, 8). The last of those ends at factor 8, and the
@@ -173,7 +173,7 @@ function reduceColor(c0, c1, c2, c3, buildPal, match) {
   return 0;
 }
 
-function buildDetailChain(color, shade, elev) {
+function buildDetailChain(color, shade, elev, tileSize) {
   const nTexels = color.data.length | 0;
   const buildPal = new Uint32Array(256);
   const palette = new Uint8Array(256 * 4);
@@ -203,11 +203,11 @@ function buildDetailChain(color, shade, elev) {
   }
   const mips = [base];
   let src = base;
-  let n = 16;
+  let n = tileSize;
   while (n > 1) {
     const nn = n >> 1;
-    const dst = new Uint32Array(256 * nn * nn);
-    for (let tile = 0; tile < 256; tile++) {
+    const dst = new Uint32Array(DETAIL_TILE_COUNT * nn * nn);
+    for (let tile = 0; tile < DETAIL_TILE_COUNT; tile++) {
       const st = tile * n * n;
       const dt = tile * nn * nn;
       for (let y = 0; y < nn; y++) {
@@ -261,10 +261,18 @@ export function prepareRetailDetail(retail) {
   }
   const character = plane(retail.character);
   const color = plane(retail.detailColor);
-  const shade = plane(retail.detailShade);
+  let shade = plane(retail.detailShade);
   const elev = plane(retail.detailElevation);
-  if (!character || !color || !shade || !elev) {
+  const requestedTileSize = Number(retail.detailTileSize) | 0;
+  const tileSize = requestedTileSize === 64 ? 64 : 16;
+  const detailSampleLastLevel = Math.max(0, Math.log2(tileSize) - 1);
+  if (!character || !color || !elev) {
     return retail;
+  }
+  if (!shade) {
+    const data = new Uint8Array(color.data.length);
+    data.fill(128);
+    shade = { data, width: color.width, height: color.height, palette: null };
   }
   if (
     color.data.length !== shade.data.length ||
@@ -272,7 +280,9 @@ export function prepareRetailDetail(retail) {
   ) {
     return retail;
   }
-  const built = buildDetailChain(color, shade, elev);
+  const built = buildDetailChain(color, shade, elev, tileSize);
+  retail.detailTileSize = tileSize;
+  retail.detailSampleLastLevel = detailSampleLastLevel;
   retail.characterIndex = character;
   retail.detailMips = built.mips;
   retail.detailPalette = built.palette;
@@ -320,7 +330,7 @@ function detailLevel(distance) {
   if (band === 3) {
     return 2;
   }
-  return 3;
+  return state.detailSampleLastLevel;
 }
 
 function wrapFloor(v, size) {
@@ -350,7 +360,7 @@ function samplePackedLevel(x, y, level) {
   const ix = wrapFloor(x, character.width);
   const iy = wrapFloor(y, character.height);
   const tile = character.data[(iy * character.width + ix) | 0] | 0;
-  const subdiv = LEVEL_SUBDIV[level] | 0;
+  const subdiv = (state.detailTileSize >> level) | 0;
   if (!subdiv) {
     return null;
   }
@@ -371,11 +381,7 @@ function samplePackedLevel(x, y, level) {
 }
 
 function elevByteAdd(byte) {
-  const e = byte & 255;
-  if (e < 128) {
-    return 0;
-  }
-  return (e - 128) / 32;
+  return ((byte & 255) - 128) / 32;
 }
 
 export function detailSpanAt(x, y, level) {
@@ -425,7 +431,7 @@ function samplePacked(x, y, distance) {
   const ix = wrapFloor(x, character.width);
   const iy = wrapFloor(y, character.height);
   const tile = character.data[(iy * character.width + ix) | 0] | 0;
-  const subdiv = LEVEL_SUBDIV[level];
+  const subdiv = state.detailTileSize >> level;
   const fx = x - Math.floor(x);
   const fy = y - Math.floor(y);
   let cx = Math.floor(fx * subdiv) | 0;
@@ -504,9 +510,6 @@ export function detailHeightAdd(x, y, distance) {
     return 0;
   }
   const elev = (packed >>> 16) & 255;
-  if (elev < 128) {
-    return 0;
-  }
   return (elev - 128) / 32;
 }
 
@@ -523,19 +526,19 @@ export function applyDetail(color, x, y, distance) {
     }
     return (
       ((color >>> 24) << 24) |
-      (paletteByte(colorIndex, 0) << 16) |
+      (paletteByte(colorIndex, 2) << 16) |
       (paletteByte(colorIndex, 1) << 8) |
-      paletteByte(colorIndex, 2)
+      paletteByte(colorIndex, 0)
     );
   }
   const light = lightBytes();
-  let r = shadeChannel((color >>> 16) & 255, light[0], shade);
+  let r = shadeChannel(color & 255, light[0], shade);
   let g = shadeChannel((color >>> 8) & 255, light[1], shade);
-  let b = shadeChannel(color & 255, light[2], shade);
+  let b = shadeChannel((color >>> 16) & 255, light[2], shade);
   if (colorIndex) {
     r = (r >> 1) + (paletteByte(colorIndex, 0) >> 1);
     g = (g >> 1) + (paletteByte(colorIndex, 1) >> 1);
     b = (b >> 1) + (paletteByte(colorIndex, 2) >> 1);
   }
-  return ((color >>> 24) << 24) | (r << 16) | (g << 8) | b;
+  return ((color >>> 24) << 24) | (b << 16) | (g << 8) | r;
 }

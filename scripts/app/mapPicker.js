@@ -1,6 +1,6 @@
 "use strict";
 
-import { DETAIL_TILE, detailAtlasGrid, isNightMap } from "../constants/mapLayout.js";
+import { detailAtlasGrid, detailTileSizeForCollection, isNightMap } from "../constants/mapLayout.js";
 import {
   collectionById,
   collections,
@@ -29,15 +29,15 @@ const ASSET_META = {
   },
   detailColor: {
     label: "Detail color",
-    description: "Color atlas. Each index is a 16×16 tile.",
+    description: "Color atlas. Each index is a detail tile.",
   },
   detailElevation: {
     label: "Detail elevation",
-    description: "Elevation atlas. Each index is a 16×16 tile.",
+    description: "Elevation atlas. Each index is a detail tile.",
   },
   detailShade: {
     label: "Detail shade",
-    description: "Shading atlas. Each index is a 16×16 tile.",
+    description: "Shading atlas. Each index is a detail tile.",
   },
   sky: {
     label: "Sky",
@@ -106,7 +106,7 @@ const GROUPS = [
   {
     id: "detail",
     label: "Detail",
-    blurb: "Atlas of 16×16 textures. Identical tiles are shown once, with every index that uses them.",
+    blurb: "Detail tile atlas. Identical tiles are shown once, with every index that uses them.",
     assets: ["detailColor", "detailElevation", "detailShade"],
     facts: [],
   },
@@ -492,7 +492,7 @@ export function initMapPicker(app) {
     }
 
     if (group.id === "detail") {
-      section.append(renderDetailAtlas(assetRows));
+      section.append(renderDetailAtlas(map, assetRows));
     }
 
     if (factKeys.length) {
@@ -525,7 +525,8 @@ export function initMapPicker(app) {
     if (!src) {
       row.classList.add("map-asset--missing");
     }
-    row.append(groupAtlas(key) ? atlasMark(src) : thumb(src, meta.label));
+    const tileSize = detailTileSizeForCollection(map.collection);
+    row.append(groupAtlas(key) ? atlasMark(src, tileSize) : thumb(src, meta.label));
 
     const body = document.createElement("div");
     body.className = "map-asset-body";
@@ -581,16 +582,17 @@ export function initMapPicker(app) {
     return key === "detailColor" || key === "detailElevation" || key === "detailShade";
   }
 
-  function atlasMark(src) {
+  function atlasMark(src, tileSize) {
     const frame = document.createElement("div");
     frame.className = "map-asset-thumb";
     const mark = document.createElement("span");
-    mark.textContent = src ? "16" : "—";
+    mark.textContent = src ? String(tileSize) : "—";
     frame.append(mark);
     return frame;
   }
 
-  function renderDetailAtlas(assetRows) {
+  function renderDetailAtlas(map, assetRows) {
+    const tileSize = detailTileSizeForCollection(map.collection);
     const available = assetRows.filter((row) => row.asset && row.asset.src);
     const wrap = document.createElement("div");
     wrap.className = "map-atlas-wrap";
@@ -612,7 +614,7 @@ export function initMapPicker(app) {
         btn.setAttribute("aria-selected", on ? "true" : "false");
       }
       const row = available.find((item) => item.key === key);
-      mountAtlas(stage, row.asset.src, ASSET_META[key].label);
+      mountAtlas(stage, row.asset.src, ASSET_META[key].label, tileSize);
     };
 
     for (const row of available) {
@@ -631,7 +633,7 @@ export function initMapPicker(app) {
     return wrap;
   }
 
-  function mountAtlas(stage, src, label) {
+  function mountAtlas(stage, src, label, tileSize) {
     const token = {};
     stage._atlasToken = token;
     stage.replaceChildren();
@@ -645,14 +647,15 @@ export function initMapPicker(app) {
       if (stage._atlasToken !== token || !stage.isConnected) {
         return;
       }
-      const grid = detailAtlasGrid(image.naturalWidth, image.naturalHeight);
+      const grid = detailAtlasGrid(image.naturalWidth, image.naturalHeight, tileSize);
       stage.replaceChildren();
       if (!grid) {
-        stage.append(atlasStatus("No 16×16 tiles in this image."));
+        stage.append(atlasStatus("No " + tileSize + "×" + tileSize + " tiles in this image."));
         return;
       }
-      const display = DETAIL_TILE * 2;
-      const groups = distinctTiles(image, grid);
+      const display = 32;
+      const scale = display / tileSize;
+      const groups = distinctTiles(image, grid, tileSize);
       const repeated = grid.count - groups.length;
       const status = atlasStatus(
         groups.length +
@@ -665,7 +668,7 @@ export function initMapPicker(app) {
       tiles.className = "map-atlas";
       tiles.setAttribute("aria-label", label + " atlas");
       const size =
-        image.naturalWidth * 2 + "px " + image.naturalHeight * 2 + "px";
+        image.naturalWidth * scale + "px " + image.naturalHeight * scale + "px";
       for (const group of groups) {
         const captionText = formatIndexList(group.indices);
         const tile = document.createElement("figure");
@@ -693,7 +696,7 @@ export function initMapPicker(app) {
     image.src = src;
   }
 
-  function distinctTiles(image, grid) {
+  function distinctTiles(image, grid, tileSize) {
     const canvas = document.createElement("canvas");
     canvas.width = image.naturalWidth;
     canvas.height = image.naturalHeight;
@@ -704,10 +707,10 @@ export function initMapPicker(app) {
     for (let y = 0; y < grid.rows; y++) {
       for (let x = 0; x < grid.cols; x++) {
         const sample = context.getImageData(
-          x * DETAIL_TILE,
-          y * DETAIL_TILE,
-          DETAIL_TILE,
-          DETAIL_TILE
+          x * tileSize,
+          y * tileSize,
+          tileSize,
+          tileSize
         ).data;
         const hash = pixelKey(sample);
         const bucket = buckets.get(hash) || [];

@@ -33455,6 +33455,1988 @@
           "value": "20"
         }
       ]
+    },
+    {
+      "id": "deltaforce2/DFD1",
+      "collection": "deltaforce2",
+      "name": "DFD1",
+      "title": "Green One",
+      "summary": "Green One",
+      "creator": "Jason Tull",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DFD1_C",
+          "src": "maps/deltaforce2/color/DFD1_C.png"
+        },
+        "elevation": {
+          "name": "DFD1_D",
+          "src": "maps/deltaforce2/height/DFD1_D.png"
+        },
+        "character": {
+          "name": "DFD1_M",
+          "src": "maps/deltaforce2/character/DFD1_M.png"
+        },
+        "detailColor": {
+          "name": "DFD1_CM",
+          "src": "maps/deltaforce2/detail/color/DFD1_CM.png"
+        },
+        "detailElevation": {
+          "name": "DFD1_DM",
+          "src": "maps/deltaforce2/detail/height/DFD1_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        },
+        "water": {
+          "name": "RIPPLE1",
+          "src": "maps/deltaforce2/aqua/RIPPLE1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Green One"
+        },
+        {
+          "key": "creator",
+          "value": "Jason Tull"
+        },
+        {
+          "key": "source",
+          "value": "DFD1.TRN"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1236 m"
+        },
+        {
+          "key": "waterHeight",
+          "value": "0 m"
+        },
+        {
+          "key": "horizon",
+          "value": "1"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DFD2",
+      "collection": "deltaforce2",
+      "name": "DFD2",
+      "title": "Desert Two",
+      "summary": "Desert Two",
+      "creator": "Jason Tull",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DFD2_C",
+          "src": "maps/deltaforce2/color/DFD2_C.png"
+        },
+        "elevation": {
+          "name": "DFD2_D",
+          "src": "maps/deltaforce2/height/DFD2_D.png"
+        },
+        "character": {
+          "name": "DFD2_M",
+          "src": "maps/deltaforce2/character/DFD2_M.png"
+        },
+        "detailColor": {
+          "name": "DFD2_CM",
+          "src": "maps/deltaforce2/detail/color/DFD2_CM.png"
+        },
+        "detailElevation": {
+          "name": "DFD2_DM",
+          "src": "maps/deltaforce2/detail/height/DFD2_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        },
+        "water": {
+          "name": "RIPPLE1",
+          "src": "maps/deltaforce2/aqua/RIPPLE1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Desert Two"
+        },
+        {
+          "key": "creator",
+          "value": "Jason Tull"
+        },
+        {
+          "key": "source",
+          "value": "DFD2.TRN"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1236 m"
+        },
+        {
+          "key": "waterHeight",
+          "value": "0 m"
+        },
+        {
+          "key": "horizon",
+          "value": "1"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DFDG1",
+      "collection": "deltaforce2",
+      "name": "DFDG1",
+      "title": "The Swamp",
+      "summary": "The Swamp",
+      "creator": "Jason Tull",
+      "playable": false,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 11,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DFDG1_C",
+          "src": "maps/deltaforce2/color/DFDG1_C.png"
+        },
+        "elevation": {
+          "name": "DFDG1_D",
+          "src": "maps/deltaforce2/height/DFDG1_D.png"
+        },
+        "character": {
+          "name": "DFDG1_M",
+          "src": "maps/deltaforce2/character/DFDG1_M.png"
+        },
+        "detailColor": {
+          "name": "DFDG1_CM",
+          "src": "maps/deltaforce2/detail/color/DFDG1_CM.png"
+        },
+        "detailElevation": {
+          "name": "DFDG1_DM",
+          "src": "maps/deltaforce2/detail/height/DFDG1_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        },
+        "water": {
+          "name": "RIPPLE1",
+          "src": "maps/deltaforce2/aqua/RIPPLE1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "The Swamp"
+        },
+        {
+          "key": "creator",
+          "value": "Jason Tull"
+        },
+        {
+          "key": "source",
+          "value": "DFDG1.TRN"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1236 m"
+        },
+        {
+          "key": "waterHeight",
+          "value": "11 m"
+        },
+        {
+          "key": "horizon",
+          "value": "1"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DFDG2",
+      "collection": "deltaforce2",
+      "name": "DFDG2",
+      "title": "Green One",
+      "summary": "Green One",
+      "creator": "Jason Tull",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DFDG2_C",
+          "src": "maps/deltaforce2/color/DFDG2_C.png"
+        },
+        "elevation": {
+          "name": "DFDG2_D",
+          "src": "maps/deltaforce2/height/DFDG2_D.png"
+        },
+        "character": {
+          "name": "DFDG2_M",
+          "src": "maps/deltaforce2/character/DFDG2_M.png"
+        },
+        "detailColor": {
+          "name": "DFDG2_CM",
+          "src": "maps/deltaforce2/detail/color/DFDG2_CM.png"
+        },
+        "detailElevation": {
+          "name": "DFDG2_DM",
+          "src": "maps/deltaforce2/detail/height/DFDG2_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        },
+        "water": {
+          "name": "RIPPLE1",
+          "src": "maps/deltaforce2/aqua/RIPPLE1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Green One"
+        },
+        {
+          "key": "creator",
+          "value": "Jason Tull"
+        },
+        {
+          "key": "source",
+          "value": "DFDG2.TRN"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1236 m"
+        },
+        {
+          "key": "waterHeight",
+          "value": "0 m"
+        },
+        {
+          "key": "horizon",
+          "value": "1"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DFDS1",
+      "collection": "deltaforce2",
+      "name": "DFDS1",
+      "title": "Green One",
+      "summary": "Green One",
+      "creator": "Jason Tull",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DFDS1_C",
+          "src": "maps/deltaforce2/color/DFDS1_C.png"
+        },
+        "elevation": {
+          "name": "DFDS1_D",
+          "src": "maps/deltaforce2/height/DFDS1_D.png"
+        },
+        "character": {
+          "name": "DFDS1_M",
+          "src": "maps/deltaforce2/character/DFDS1_M.png"
+        },
+        "detailColor": {
+          "name": "DFDS1_CM",
+          "src": "maps/deltaforce2/detail/color/DFDS1_CM.png"
+        },
+        "detailElevation": {
+          "name": "DFDS1_DM",
+          "src": "maps/deltaforce2/detail/height/DFDS1_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        },
+        "water": {
+          "name": "RIPPLE1",
+          "src": "maps/deltaforce2/aqua/RIPPLE1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Green One"
+        },
+        {
+          "key": "creator",
+          "value": "Jason Tull"
+        },
+        {
+          "key": "source",
+          "value": "DFDS1.TRN"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1236 m"
+        },
+        {
+          "key": "waterHeight",
+          "value": "0 m"
+        },
+        {
+          "key": "horizon",
+          "value": "1"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DFG1",
+      "collection": "deltaforce2",
+      "name": "DFG1",
+      "title": "Green One",
+      "summary": "Green One",
+      "creator": "Jason Tull",
+      "playable": false,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 35,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DFG1_C",
+          "src": "maps/deltaforce2/color/DFG1_C.png"
+        },
+        "elevation": {
+          "name": "DFG1_D",
+          "src": "maps/deltaforce2/height/DFG1_D.png"
+        },
+        "character": {
+          "name": "DFG1_M",
+          "src": "maps/deltaforce2/character/DFG1_M.png"
+        },
+        "detailColor": {
+          "name": "DFG1_CM",
+          "src": "maps/deltaforce2/detail/color/DFG1_CM.png"
+        },
+        "detailElevation": {
+          "name": "DFG1_DM",
+          "src": "maps/deltaforce2/detail/height/DFG1_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        },
+        "water": {
+          "name": "RIPPLE1",
+          "src": "maps/deltaforce2/aqua/RIPPLE1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Green One"
+        },
+        {
+          "key": "creator",
+          "value": "Jason Tull"
+        },
+        {
+          "key": "source",
+          "value": "DFG1.TRN"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1236 m"
+        },
+        {
+          "key": "waterHeight",
+          "value": "35 m"
+        },
+        {
+          "key": "horizon",
+          "value": "1"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DFG2",
+      "collection": "deltaforce2",
+      "name": "DFG2",
+      "title": "Green One",
+      "summary": "Green One",
+      "creator": "Jason Tull",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DFG2_C",
+          "src": "maps/deltaforce2/color/DFG2_C.png"
+        },
+        "elevation": {
+          "name": "DFG2_D",
+          "src": "maps/deltaforce2/height/DFG2_D.png"
+        },
+        "character": {
+          "name": "DFG2_M",
+          "src": "maps/deltaforce2/character/DFG2_M.png"
+        },
+        "detailColor": {
+          "name": "DFG2_CM",
+          "src": "maps/deltaforce2/detail/color/DFG2_CM.png"
+        },
+        "detailElevation": {
+          "name": "DFG2_DM",
+          "src": "maps/deltaforce2/detail/height/DFG2_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        },
+        "water": {
+          "name": "RIPPLE1",
+          "src": "maps/deltaforce2/aqua/RIPPLE1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Green One"
+        },
+        {
+          "key": "creator",
+          "value": "Jason Tull"
+        },
+        {
+          "key": "source",
+          "value": "DFG2.TRN"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1236 m"
+        },
+        {
+          "key": "waterHeight",
+          "value": "0 m"
+        },
+        {
+          "key": "horizon",
+          "value": "1"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DFG3",
+      "collection": "deltaforce2",
+      "name": "DFG3",
+      "title": "Green One",
+      "summary": "Green One",
+      "creator": "Jason Tull",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DFG3_C",
+          "src": "maps/deltaforce2/color/DFG3_C.png"
+        },
+        "elevation": {
+          "name": "DFG3_D",
+          "src": "maps/deltaforce2/height/DFG3_D.png"
+        },
+        "character": {
+          "name": "DFG3_M",
+          "src": "maps/deltaforce2/character/DFG3_M.png"
+        },
+        "detailColor": {
+          "name": "DFG3_CM",
+          "src": "maps/deltaforce2/detail/color/DFG3_CM.png"
+        },
+        "detailElevation": {
+          "name": "DFG3_DM",
+          "src": "maps/deltaforce2/detail/height/DFG3_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        },
+        "water": {
+          "name": "RIPPLE1",
+          "src": "maps/deltaforce2/aqua/RIPPLE1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Green One"
+        },
+        {
+          "key": "creator",
+          "value": "Jason Tull"
+        },
+        {
+          "key": "source",
+          "value": "DFG3.TRN"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1236 m"
+        },
+        {
+          "key": "waterHeight",
+          "value": "0 m"
+        },
+        {
+          "key": "horizon",
+          "value": "1"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DFG4",
+      "collection": "deltaforce2",
+      "name": "DFG4",
+      "title": "Green One",
+      "summary": "Green One",
+      "creator": "Jason Tull",
+      "playable": false,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 11,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DFG4_C",
+          "src": "maps/deltaforce2/color/DFG4_C.png"
+        },
+        "elevation": {
+          "name": "DFG4_D",
+          "src": "maps/deltaforce2/height/DFG4_D.png"
+        },
+        "character": {
+          "name": "DFG4_M",
+          "src": "maps/deltaforce2/character/DFG4_M.png"
+        },
+        "detailColor": {
+          "name": "DFG4_CM",
+          "src": "maps/deltaforce2/detail/color/DFG4_CM.png"
+        },
+        "detailElevation": {
+          "name": "DFG4_DM",
+          "src": "maps/deltaforce2/detail/height/DFG4_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        },
+        "water": {
+          "name": "RIPPLE1",
+          "src": "maps/deltaforce2/aqua/RIPPLE1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Green One"
+        },
+        {
+          "key": "creator",
+          "value": "Jason Tull"
+        },
+        {
+          "key": "source",
+          "value": "DFG4.TRN"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1236 m"
+        },
+        {
+          "key": "waterHeight",
+          "value": "11 m"
+        },
+        {
+          "key": "horizon",
+          "value": "1"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DFG5",
+      "collection": "deltaforce2",
+      "name": "DFG5",
+      "title": "Green One",
+      "summary": "Green One",
+      "creator": "Jason Tull",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DFG5_C",
+          "src": "maps/deltaforce2/color/DFG5_C.png"
+        },
+        "elevation": {
+          "name": "DFG5_D",
+          "src": "maps/deltaforce2/height/DFG5_D.png"
+        },
+        "character": {
+          "name": "DFG5_M",
+          "src": "maps/deltaforce2/character/DFG5_M.png"
+        },
+        "detailColor": {
+          "name": "DFG5_CM",
+          "src": "maps/deltaforce2/detail/color/DFG5_CM.png"
+        },
+        "detailElevation": {
+          "name": "DFG5_DM",
+          "src": "maps/deltaforce2/detail/height/DFG5_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        },
+        "water": {
+          "name": "RIPPLE1",
+          "src": "maps/deltaforce2/aqua/RIPPLE1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Green One"
+        },
+        {
+          "key": "creator",
+          "value": "Jason Tull"
+        },
+        {
+          "key": "source",
+          "value": "DFG5.TRN"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1236 m"
+        },
+        {
+          "key": "waterHeight",
+          "value": "0 m"
+        },
+        {
+          "key": "horizon",
+          "value": "1"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DFGS1",
+      "collection": "deltaforce2",
+      "name": "DFGS1",
+      "title": "Test Terrain",
+      "summary": "Test Terrain",
+      "creator": "test",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1350,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DFGS1_C",
+          "src": "maps/deltaforce2/color/DFGS1_C.png"
+        },
+        "elevation": {
+          "name": "DFGS1_D",
+          "src": "maps/deltaforce2/height/DFGS1_D.png"
+        },
+        "character": {
+          "name": "DFGS1_M",
+          "src": "maps/deltaforce2/character/DFGS1_M.png"
+        },
+        "detailColor": {
+          "name": "DFGS1_CM",
+          "src": "maps/deltaforce2/detail/color/DFGS1_CM.png"
+        },
+        "detailElevation": {
+          "name": "DFGS1_DM",
+          "src": "maps/deltaforce2/detail/height/DFGS1_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Test Terrain"
+        },
+        {
+          "key": "creator",
+          "value": "test"
+        },
+        {
+          "key": "source",
+          "value": "DFGS1.TRN"
+        },
+        {
+          "key": "camouflage",
+          "value": "Green"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1350 m"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DFS1",
+      "collection": "deltaforce2",
+      "name": "DFS1",
+      "title": "Green One",
+      "summary": "Green One",
+      "creator": "Jason Tull",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DFS1_C",
+          "src": "maps/deltaforce2/color/DFS1_C.png"
+        },
+        "elevation": {
+          "name": "DFS1_D",
+          "src": "maps/deltaforce2/height/DFS1_D.png"
+        },
+        "character": {
+          "name": "DFS1_M",
+          "src": "maps/deltaforce2/character/DFS1_M.png"
+        },
+        "detailColor": {
+          "name": "DFS1_CM",
+          "src": "maps/deltaforce2/detail/color/DFS1_CM.png"
+        },
+        "detailElevation": {
+          "name": "DFS1_DM",
+          "src": "maps/deltaforce2/detail/height/DFS1_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        },
+        "water": {
+          "name": "RIPPLE1",
+          "src": "maps/deltaforce2/aqua/RIPPLE1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Green One"
+        },
+        {
+          "key": "creator",
+          "value": "Jason Tull"
+        },
+        {
+          "key": "source",
+          "value": "DFS1.TRN"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1236 m"
+        },
+        {
+          "key": "waterHeight",
+          "value": "0 m"
+        },
+        {
+          "key": "horizon",
+          "value": "1"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DMD3",
+      "collection": "deltaforce2",
+      "name": "DMD3",
+      "title": "Desert Two",
+      "summary": "Desert Two",
+      "creator": "Jason Tull",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DMD3_C",
+          "src": "maps/deltaforce2/color/DMD3_C.png"
+        },
+        "elevation": {
+          "name": "DMD3_D",
+          "src": "maps/deltaforce2/height/DMD3_D.png"
+        },
+        "character": {
+          "name": "DMD3_M",
+          "src": "maps/deltaforce2/character/DMD3_M.png"
+        },
+        "detailColor": {
+          "name": "DMD3_CM",
+          "src": "maps/deltaforce2/detail/color/DMD3_CM.png"
+        },
+        "detailElevation": {
+          "name": "DMD3_DM",
+          "src": "maps/deltaforce2/detail/height/DMD3_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        },
+        "water": {
+          "name": "RIPPLE1",
+          "src": "maps/deltaforce2/aqua/RIPPLE1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Desert Two"
+        },
+        {
+          "key": "creator",
+          "value": "Jason Tull"
+        },
+        {
+          "key": "source",
+          "value": "DMD3.TRN"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1236 m"
+        },
+        {
+          "key": "waterHeight",
+          "value": "0 m"
+        },
+        {
+          "key": "horizon",
+          "value": "1"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DMDG3",
+      "collection": "deltaforce2",
+      "name": "DMDG3",
+      "title": "Green One",
+      "summary": "Green One",
+      "creator": "Jason Tull",
+      "playable": false,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 35,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DMDG3_C",
+          "src": "maps/deltaforce2/color/DMDG3_C.png"
+        },
+        "elevation": {
+          "name": "DMDG3_D",
+          "src": "maps/deltaforce2/height/DMDG3_D.png"
+        },
+        "character": {
+          "name": "DMDG3_M",
+          "src": "maps/deltaforce2/character/DMDG3_M.png"
+        },
+        "detailColor": {
+          "name": "DMDG3_CM",
+          "src": "maps/deltaforce2/detail/color/DMDG3_CM.png"
+        },
+        "detailElevation": {
+          "name": "DMDG3_DM",
+          "src": "maps/deltaforce2/detail/height/DMDG3_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        },
+        "water": {
+          "name": "RIPPLE3",
+          "src": null
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Green One"
+        },
+        {
+          "key": "creator",
+          "value": "Jason Tull"
+        },
+        {
+          "key": "source",
+          "value": "DMDG3.TRN"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1236 m"
+        },
+        {
+          "key": "waterHeight",
+          "value": "35 m"
+        },
+        {
+          "key": "horizon",
+          "value": "1"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DMDS2",
+      "collection": "deltaforce2",
+      "name": "DMDS2",
+      "title": "Green One",
+      "summary": "Green One",
+      "creator": "Jason Tull",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DMDS2_C",
+          "src": "maps/deltaforce2/color/DMDS2_C.png"
+        },
+        "elevation": {
+          "name": "DMDS2_D",
+          "src": "maps/deltaforce2/height/DMDS2_D.png"
+        },
+        "character": {
+          "name": "DMDS2_M",
+          "src": "maps/deltaforce2/character/DMDS2_M.png"
+        },
+        "detailColor": {
+          "name": "DMDS2_CM",
+          "src": "maps/deltaforce2/detail/color/DMDS2_CM.png"
+        },
+        "detailElevation": {
+          "name": "DMDS2_DM",
+          "src": "maps/deltaforce2/detail/height/DMDS2_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        },
+        "water": {
+          "name": "RIPPLE1",
+          "src": "maps/deltaforce2/aqua/RIPPLE1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Green One"
+        },
+        {
+          "key": "creator",
+          "value": "Jason Tull"
+        },
+        {
+          "key": "source",
+          "value": "DMDS2.TRN"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1236 m"
+        },
+        {
+          "key": "waterHeight",
+          "value": "0 m"
+        },
+        {
+          "key": "horizon",
+          "value": "1"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DMG6",
+      "collection": "deltaforce2",
+      "name": "DMG6",
+      "title": "Green One",
+      "summary": "Green One",
+      "creator": "Jason Tull",
+      "playable": false,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 35,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DMG6_C",
+          "src": "maps/deltaforce2/color/DMG6_C.png"
+        },
+        "elevation": {
+          "name": "DMG6_D",
+          "src": "maps/deltaforce2/height/DMG6_D.png"
+        },
+        "character": {
+          "name": "DMG6_M",
+          "src": "maps/deltaforce2/character/DMG6_M.png"
+        },
+        "detailColor": {
+          "name": "DMG6_CM",
+          "src": "maps/deltaforce2/detail/color/DMG6_CM.png"
+        },
+        "detailElevation": {
+          "name": "DMG6_DM",
+          "src": "maps/deltaforce2/detail/height/DMG6_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        },
+        "water": {
+          "name": "RIPPLE1",
+          "src": "maps/deltaforce2/aqua/RIPPLE1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Green One"
+        },
+        {
+          "key": "creator",
+          "value": "Jason Tull"
+        },
+        {
+          "key": "source",
+          "value": "DMG6.TRN"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1236 m"
+        },
+        {
+          "key": "waterHeight",
+          "value": "35 m"
+        },
+        {
+          "key": "horizon",
+          "value": "1"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DMGS2",
+      "collection": "deltaforce2",
+      "name": "DMGS2",
+      "title": "Test Terrain",
+      "summary": "Test Terrain",
+      "creator": "test",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1350,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DMGS2_C",
+          "src": "maps/deltaforce2/color/DMGS2_C.png"
+        },
+        "elevation": {
+          "name": "DMGS2_D",
+          "src": "maps/deltaforce2/height/DMGS2_D.png"
+        },
+        "character": {
+          "name": "DMGS2_M",
+          "src": "maps/deltaforce2/character/DMGS2_M.png"
+        },
+        "detailColor": {
+          "name": "DMGS2_CM",
+          "src": "maps/deltaforce2/detail/color/DMGS2_CM.png"
+        },
+        "detailElevation": {
+          "name": "DMGS2_DM",
+          "src": "maps/deltaforce2/detail/height/DMGS2_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Test Terrain"
+        },
+        {
+          "key": "creator",
+          "value": "test"
+        },
+        {
+          "key": "source",
+          "value": "DMGS2.TRN"
+        },
+        {
+          "key": "camouflage",
+          "value": "Green"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1350 m"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
+    },
+    {
+      "id": "deltaforce2/DMS2",
+      "collection": "deltaforce2",
+      "name": "DMS2",
+      "title": "Green One",
+      "summary": "Green One",
+      "creator": "Jason Tull",
+      "playable": true,
+      "night": false,
+      "filter": [
+        128,
+        128,
+        128
+      ],
+      "altitude": null,
+      "skyColor": null,
+      "render": {
+        "skyHeight": 1236,
+        "horizon": 1,
+        "gamma": 128,
+        "saturation": 128,
+        "filter": [
+          128,
+          128,
+          128
+        ],
+        "waterHeight": 0,
+        "waterOpacity": 0,
+        "turbidity": [
+          23,
+          8,
+          4
+        ]
+      },
+      "assets": {
+        "color": {
+          "name": "DMS2_C",
+          "src": "maps/deltaforce2/color/DMS2_C.png"
+        },
+        "elevation": {
+          "name": "DMS2_D",
+          "src": "maps/deltaforce2/height/DMS2_D.png"
+        },
+        "character": {
+          "name": "DMS2_M",
+          "src": "maps/deltaforce2/character/DMS2_M.png"
+        },
+        "detailColor": {
+          "name": "DMS2_CM",
+          "src": "maps/deltaforce2/detail/color/DMS2_CM.png"
+        },
+        "detailElevation": {
+          "name": "DMS2_DM",
+          "src": "maps/deltaforce2/detail/height/DMS2_DM.png"
+        },
+        "sky": {
+          "name": "CLOUDS01",
+          "src": "maps/deltaforce2/clouds/CLOUDS01.png"
+        },
+        "skyPalette": {
+          "name": "SKYGRD01",
+          "src": "maps/deltaforce2/grads/SKYGRD01.png"
+        },
+        "water": {
+          "name": "RIPPLE1",
+          "src": "maps/deltaforce2/aqua/RIPPLE1.png"
+        }
+      },
+      "facts": [
+        {
+          "key": "terrain",
+          "value": "Green One"
+        },
+        {
+          "key": "creator",
+          "value": "Jason Tull"
+        },
+        {
+          "key": "source",
+          "value": "DMS2.TRN"
+        },
+        {
+          "key": "skyHeight",
+          "value": "1236 m"
+        },
+        {
+          "key": "waterHeight",
+          "value": "0 m"
+        },
+        {
+          "key": "horizon",
+          "value": "1"
+        },
+        {
+          "key": "filter",
+          "value": "128, 128, 128"
+        },
+        {
+          "key": "gamma",
+          "value": "128"
+        },
+        {
+          "key": "saturation",
+          "value": "128"
+        },
+        {
+          "key": "sunSlope",
+          "value": "70"
+        }
+      ]
     }
   ]
 }

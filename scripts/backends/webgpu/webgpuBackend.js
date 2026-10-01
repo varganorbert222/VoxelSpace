@@ -75,6 +75,24 @@ function columnPairGroups(screenW, pair) {
   return Math.ceil(columns / WEBGPU_WORKGROUP_1D);
 }
 
+function packDetailMip(mip, tileSize, level) {
+  const tileWidth = tileSize >> level;
+  const atlasWidth = tileWidth * 16;
+  const packed = new Uint32Array(atlasWidth * atlasWidth);
+  for (let tile = 0; tile < 256; tile++) {
+    const tileX = (tile % 16) * tileWidth;
+    const tileY = Math.floor(tile / 16) * tileWidth;
+    const source = tile * tileWidth * tileWidth;
+    for (let y = 0; y < tileWidth; y++) {
+      packed.set(
+        mip.subarray(source + y * tileWidth, source + (y + 1) * tileWidth),
+        (tileY + y) * atlasWidth + tileX
+      );
+    }
+  }
+  return packed;
+}
+
 class WebGpuBackend {
   static get id() {
     return BACKEND_WEBGPU;
@@ -276,8 +294,8 @@ class WebGpuBackend {
       );
       this._detailPackedTex = createTexture(
         this._device,
-        16,
-        16,
+        256,
+        256,
         "r32uint",
         GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
         5
@@ -292,8 +310,16 @@ class WebGpuBackend {
       );
       uploadHeight(this._device, this._characterTex, new Uint8Array(1), 1, 1, 0);
       for (let level = 0; level < 5; level++) {
-        const n = 16 >> level;
-        uploadTexels(this._device, this._detailPackedTex, new Uint32Array(n * n), n, n, 4, level);
+        const n = 256 >> level;
+        uploadTexels(
+          this._device,
+          this._detailPackedTex,
+          new Uint32Array(n * n),
+          n,
+          n,
+          4,
+          level
+        );
       }
       uploadTexels(this._device, this._detailPalTex, new Uint8Array(256 * 4), 256, 1, 4, 0);
       return;
@@ -308,11 +334,11 @@ class WebGpuBackend {
     );
     this._detailPackedTex = createTexture(
       this._device,
-      16,
-      4096,
+      prepared.detailTileSize * 16,
+      prepared.detailTileSize * 16,
       "r32uint",
       GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-      5
+      mips.length
     );
     this._detailPalTex = createTexture(
       this._device,
@@ -330,9 +356,17 @@ class WebGpuBackend {
       character.height,
       0
     );
-    for (let level = 0; level < mips.length && level < 5; level++) {
-      const n = 16 >> level;
-      uploadTexels(this._device, this._detailPackedTex, mips[level], n, 256 * n, 4, level);
+    for (let level = 0; level < mips.length; level++) {
+      const n = (prepared.detailTileSize >> level) * 16;
+      uploadTexels(
+        this._device,
+        this._detailPackedTex,
+        packDetailMip(mips[level], prepared.detailTileSize, level),
+        n,
+        n,
+        4,
+        level
+      );
     }
     uploadTexels(
       this._device,

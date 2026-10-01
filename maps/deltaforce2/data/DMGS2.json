@@ -1,0 +1,53 @@
+{
+  "source": "DMGS2.TRN",
+  "terrain_name": "Test Terrain",
+  "terrain_creator": "test",
+  "color_map": {
+    "name": "dmgs2_c",
+    "png": "../png/DMGS2_C.png",
+    "found": true
+  },
+  "elev_map": {
+    "name": "dmgs2_d",
+    "png": "../png/DMGS2_D.png",
+    "found": true
+  },
+  "detail_map": {
+    "name": "dmgs2_m",
+    "png": "../png/DMGS2_M.png",
+    "found": true
+  },
+  "detail_color": {
+    "name": "dmgs2_cm",
+    "png": "../png/DMGS2_CM.png",
+    "found": true
+  },
+  "detail_elev": {
+    "name": "dmgs2_dm",
+    "png": "../png/DMGS2_DM.png",
+    "found": true
+  },
+  "char_data": "dmgs2_cm",
+  "sky_map": {
+    "name": "clouds01",
+    "png": "../png/CLOUDS01.png",
+    "found": true
+  },
+  "sky_palette": {
+    "name": "skygrd01",
+    "png": "../png/SKYGRD01.png",
+    "found": true
+  },
+  "moon_sun_object\t": "sun",
+  "sky_height": 1350,
+  "scale_bits": "21",
+  "camouflage": "Green",
+  "filter": [
+    128,
+    128,
+    128
+  ],
+  "gamma": 128,
+  "saturation": 128,
+  "sun_slope": 70
+}

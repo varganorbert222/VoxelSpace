@@ -10,6 +10,7 @@ import { retailBands } from "../render/retail/schedule.js";
 import { prepareRetailDetail } from "../render/retail/detail.js";
 import { attachVMaxMips } from "../render/retail/vmax.js";
 import { setActiveColorGrade } from "../render/retail/colorGrade.js";
+import { detailTileSizeForCollection } from "../constants/mapLayout.js";
 
 const BYTE_HEIGHT_SCALE = 0.25;
 
@@ -50,13 +51,22 @@ export function loadMap(app, mapName) {
   const waterHeight = Number(render.waterHeight) || 0;
   const waterSrc = waterHeight ? assetSrc(selectedMap, "water") : null;
   const waterPaletteSrc = waterHeight ? assetSrc(selectedMap, "waterPalette") : null;
+  const urls = [colorSrc, heightSrc, characterSrc, detailColorSrc, detailElevationSrc];
+  const detailShadeIndex = detailShadeSrc ? urls.push(detailShadeSrc) - 1 : -1;
+  const cloudIndex = urls.push(cloudSrc) - 1;
+  const skyIndex = urls.push(skySrc) - 1;
+  let waterIndex = -1;
+  let waterPaletteIndex = -1;
+  if (waterHeight) {
+    waterIndex = urls.push(waterSrc) - 1;
+    waterPaletteIndex = urls.push(waterPaletteSrc) - 1;
+  }
   const required = [
     colorSrc,
     heightSrc,
     characterSrc,
     detailColorSrc,
     detailElevationSrc,
-    detailShadeSrc,
     cloudSrc,
     skySrc,
   ];
@@ -70,25 +80,12 @@ export function loadMap(app, mapName) {
   app.currentMapName = selectedMap.id;
   app.persistAndSync();
 
-  const urls = [
-    colorSrc,
-    heightSrc,
-    characterSrc,
-    detailColorSrc,
-    detailElevationSrc,
-    detailShadeSrc,
-    cloudSrc,
-    skySrc,
-  ];
-  if (waterHeight) {
-    urls.push(waterSrc, waterPaletteSrc);
-  }
   loadImagesAsync(urls).then((images) => {
     if (images.some((image) => !image)) {
       console.error("Failed to load a required retail texture", selectedMap.id);
       return;
     }
-    const skyPalette = images[7];
+    const skyPalette = images[skyIndex];
     const sky = paletteSky(skyPalette);
     const skyColor = sky ? sky.top : Color.WHITE;
     const horizonColor = sky && sky.bottom !== sky.top ? sky.bottom : Color.WHITE;
@@ -102,14 +99,15 @@ export function loadMap(app, mapName) {
     const exported = app.terrain.exportMaps();
     const builtSky = buildSkyTable(skyPalette, render.saturation, render.gamma);
     exported.retail = {
+      detailTileSize: detailTileSizeForCollection(selectedMap.collection),
       character: indexedPlane(images[2]),
       detailColor: indexedPlane(images[3]),
       detailElevation: indexedPlane(images[4]),
-      detailShade: indexedPlane(images[5]),
+      detailShade: detailShadeIndex < 0 ? null : indexedPlane(images[detailShadeIndex]),
       lightRGB: builtSky.lightRGB,
       sky: {
         table: builtSky.table,
-        cloudMips: buildCloudMips(images[6]),
+        cloudMips: buildCloudMips(images[cloudIndex]),
         height: retailCloudHeight(render.skyHeight, altitude),
         horizon: Number.isFinite(render.horizon) ? render.horizon : 1,
         horizonRGB: builtSky.horizonRGB,
@@ -120,8 +118,8 @@ export function loadMap(app, mapName) {
         ? {
             height: waterHeight,
             opacity: Number.isFinite(render.waterOpacity) ? render.waterOpacity : 0,
-            table: buildWaterTable(images[9]),
-            mips: buildWaterMips(images[8]),
+            table: buildWaterTable(images[waterPaletteIndex]),
+            mips: buildWaterMips(images[waterIndex]),
           }
         : null,
       nearEnd: retailBands()[4].end,

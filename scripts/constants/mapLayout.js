@@ -44,8 +44,8 @@ export function foldersForRole(key) {
   return role ? role.folders : [];
 }
 
-// Detail images are atlases of 16×16 textures. Dividing each side by
-// this size gives the index grid: index = y * cols + x.
+// Detail atlas tile size depends on the game. Dividing each side by this size
+// gives the index grid: index = y * cols + x.
 // A mission whose name ends in N is the night variant. NovaLogic tints the
 // whole view with this filter; 128 is neutral, so night green is 80, 160, 30.
 export const NIGHT_FILTER = [80, 160, 30];
@@ -56,9 +56,14 @@ export function isNightMap(name) {
 
 export const DETAIL_TILE = 16;
 
-export function detailAtlasGrid(width, height) {
-  const cols = Math.floor(Number(width) / DETAIL_TILE);
-  const rows = Math.floor(Number(height) / DETAIL_TILE);
+export function detailTileSizeForCollection(collectionId) {
+  return collectionId === "deltaforce2" ? 64 : DETAIL_TILE;
+}
+
+export function detailAtlasGrid(width, height, tileSize = DETAIL_TILE) {
+  const size = Number(tileSize) || DETAIL_TILE;
+  const cols = Math.floor(Number(width) / size);
+  const rows = Math.floor(Number(height) / size);
   if (cols < 1 || rows < 1) {
     return null;
   }
