@@ -6,10 +6,8 @@ import {
   MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
   MSG_RENDER_SCANLINE,
-  MSG_RENDER_VOXEL,
   MSG_RESULT_CLASSIC,
   MSG_RESULT_SCANLINE,
-  MSG_RESULT_VOXEL,
   MSG_WORKER_ERROR,
 } from "../constants/threading.js";
 
@@ -19,10 +17,8 @@ export {
   MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
   MSG_RENDER_SCANLINE,
-  MSG_RENDER_VOXEL,
   MSG_RESULT_CLASSIC,
   MSG_RESULT_SCANLINE,
-  MSG_RESULT_VOXEL,
   MSG_WORKER_ERROR,
 };
 
@@ -60,7 +56,6 @@ export function classicRenderPayload(jobId, range, params) {
     present: params.present || null,
   };
 }
-
 export function scanlineRenderPayload(jobId, range, params) {
   return {
     type: MSG_RENDER_SCANLINE,
@@ -101,42 +96,11 @@ export function scanlineRenderPayload(jobId, range, params) {
   };
 }
 
-export function voxelRenderPayload(jobId, range, params) {
-  return {
-    type: MSG_RENDER_VOXEL,
-    jobId: jobId,
-    startColumn: range.start,
-    endColumn: range.end,
-    screenWidth: params.screenWidth,
-    screenHeight: params.screenHeight,
-    camX: params.camX,
-    camY: params.camY,
-    camZ: params.camZ,
-    rightX: params.rightX,
-    rightY: params.rightY,
-    rightZ: params.rightZ,
-    upX: params.upX,
-    upY: params.upY,
-    upZ: params.upZ,
-    fwdX: params.fwdX,
-    fwdY: params.fwdY,
-    fwdZ: params.fwdZ,
-    fovY: params.fovY,
-    dstToProjPlane: params.dstToProjPlane,
-    nearClip: params.nearClip,
-    farClip: params.farClip,
-    quality: params.quality,
-    debugView: params.debugView,
-    repeat: params.repeat,
-    filterDistance: params.filterDistance,
-    mipCount: params.mipCount,
-    lodSpacingMode: params.lodSpacingMode,
-    lodSpacing: params.lodSpacing,
-    lodBias: params.lodBias,
-    showDetails: params.showDetails,
-    skyColor: params.skyColor,
-    horizonColor: params.horizonColor,
-    present: params.present || null,
-  };
-}
+
+
+
+
+
+
+
 

@@ -842,8 +842,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     }
     if (zLo > surfMax) {
       s = sExit;
-      let approaching = ((dir.z < 0.0) && (zEnter > surfMax)) || ((dir.z > 0.0) && (zEnter < 0.0));
-      if (!approaching && (mip < lastMip)) {
+      if (mip < lastMip) {
         mip = mip + 1;
       }
       continue;

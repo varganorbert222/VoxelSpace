@@ -2,7 +2,6 @@
 
 import { renderClassicColumns as renderClassicColumnsJs } from "./classicmarch.js";
 import { renderScanlineColumns as renderScanlineColumnsJs } from "./scanlinemarch.js";
-import { renderVoxelTexels as renderVoxelTexelsJs } from "./voxelmarch.js";
 import { bindRetailMaps } from "./retail/detail.js";
 import { attachVMaxMips } from "./retail/vmax.js";
 import { presentColumns } from "./retail/present.js";
@@ -12,10 +11,8 @@ import {
   MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
   MSG_RENDER_SCANLINE,
-  MSG_RENDER_VOXEL,
   MSG_RESULT_CLASSIC,
   MSG_RESULT_SCANLINE,
-  MSG_RESULT_VOXEL,
   MSG_WORKER_ERROR,
 } from "./jobProtocol.js";
 import { BACKEND_WASM } from "../constants/backend.js";
@@ -35,7 +32,6 @@ const workerState = {
 
 let renderClassicColumns = renderClassicColumnsJs;
 let renderScanlineColumns = renderScanlineColumnsJs;
-let renderVoxelTexels = renderVoxelTexelsJs;
 let kernelBackend = null;
 
 async function setKernelBackend(backend) {
@@ -47,12 +43,10 @@ async function setKernelBackend(backend) {
     const kernels = createWasmKernels(instance);
     renderClassicColumns = kernels.renderClassicColumns;
     renderScanlineColumns = kernels.renderScanlineColumns;
-    renderVoxelTexels = kernels.renderVoxelTexels;
     return;
   }
   renderClassicColumns = renderClassicColumnsJs;
   renderScanlineColumns = renderScanlineColumnsJs;
-  renderVoxelTexels = renderVoxelTexelsJs;
 }
 
 function initMaps(msg) {
@@ -70,7 +64,6 @@ function initMaps(msg) {
   workerState.altitude = msg.altitude;
   workerState.maxHeight =
     msg.maxHeight == null ? workerState.altitude : msg.maxHeight;
-  workerState.maxSlope = msg.maxSlope == null ? 0 : msg.maxSlope;
   workerState.mapsGeneration = (workerState.mapsGeneration + 1) | 0;
   const mipCount = msg.mipCount | 0;
   const heightMaps = [workerState.heightMap];
@@ -256,75 +249,6 @@ function renderScanline(msg) {
   );
 }
 
-function renderVoxel(msg) {
-  const localWidth = (msg.endColumn - msg.startColumn) | 0;
-  const pixels = new Uint32Array((localWidth * msg.screenHeight) | 0);
-  const renderVoxel = renderVoxelTexels;
-  renderVoxel({
-    heightMap: workerState.heightMap,
-    colorMap: workerState.colorMap,
-    mapW: workerState.mapW,
-    mapH: workerState.mapH,
-    mapShift: workerState.mapShift,
-    altitude: workerState.altitude,
-    maxHeight: workerState.maxHeight,
-    mapsGeneration: workerState.mapsGeneration,
-    terrainMips: workerState.terrainMips,
-    startColumn: msg.startColumn,
-    endColumn: msg.endColumn,
-    screenWidth: msg.screenWidth,
-    screenHeight: msg.screenHeight,
-    camX: msg.camX,
-    camY: msg.camY,
-    camZ: msg.camZ,
-    rightX: msg.rightX,
-    rightY: msg.rightY,
-    rightZ: msg.rightZ,
-    upX: msg.upX,
-    upY: msg.upY,
-    upZ: msg.upZ,
-    fwdX: msg.fwdX,
-    fwdY: msg.fwdY,
-    fwdZ: msg.fwdZ,
-    fovY: msg.fovY,
-    dstToProjPlane: msg.dstToProjPlane,
-    nearClip: msg.nearClip,
-    farClip: msg.farClip,
-    quality: msg.quality,
-    debugView: msg.debugView,
-    repeat: msg.repeat,
-    filterDistance: msg.filterDistance,
-    mipCount: msg.mipCount,
-    lodSpacingMode: msg.lodSpacingMode,
-    lodSpacing: msg.lodSpacing,
-    lodBias: msg.lodBias,
-    showDetails: msg.showDetails,
-    skyColor: msg.skyColor,
-    horizonColor: msg.horizonColor,
-    pixels,
-    pixelWidth: localWidth,
-    fillUnfilled: 0,
-  });
-  presentColumns(
-    pixels,
-    localWidth,
-    msg.screenHeight | 0,
-    msg.startColumn | 0,
-    msg.present,
-    workerState.colorGrade
-  );
-  self.postMessage(
-    {
-      type: MSG_RESULT_VOXEL,
-      jobId: msg.jobId,
-      startColumn: msg.startColumn,
-      endColumn: msg.endColumn,
-      pixels: pixels.buffer,
-    },
-    [pixels.buffer]
-  );
-}
-
 async function handleMessage(msg) {
   if (msg.type === MSG_INIT_KERNEL) {
     await setKernelBackend(msg.backend);
@@ -342,9 +266,6 @@ async function handleMessage(msg) {
   if (msg.type === MSG_RENDER_SCANLINE) {
     renderScanline(msg);
     return;
-  }
-  if (msg.type === MSG_RENDER_VOXEL) {
-    renderVoxel(msg);
   }
 }
 

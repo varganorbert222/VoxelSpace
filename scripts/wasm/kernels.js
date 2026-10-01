@@ -524,69 +524,8 @@ export function createWasmKernels(instance) {
     copyOutU32(pixelsPtr, params.pixels);
   }
 
-  function renderVoxelTexels(params) {
-    ensureMaps(params);
-    syncSampleFlags(params);
-    syncDetail(params);
-    const mips = resolveTerrainMips(
-      params.terrainMips,
-      params.heightMap,
-      params.colorMap,
-      params.mapW,
-      params.mapH,
-      params.mapShift,
-      params.mipCount
-    );
-    syncMipSwitch(params, mips.count);
-    const localWidth = (params.endColumn - params.startColumn) | 0;
-    const n = (localWidth * params.screenHeight) | 0;
-    let tanHalfY = 0;
-    if (params.dstToProjPlane > 0 && params.screenHeight > 0) {
-      tanHalfY = (params.screenHeight * HALF) / params.dstToProjPlane;
-    } else {
-      tanHalfY = Math.tan(params.fovY * DEG_TO_RAD * HALF);
-    }
-    ex.reset_scratch();
-    const pixelsPtr = mustAlloc(n * 4);
-    if (!(params.fillUnfilled | 0)) {
-      copyBytes(memory, pixelsPtr, params.pixels);
-    }
-    ex.voxel_texels(
-      params.startColumn | 0,
-      params.endColumn | 0,
-      params.screenWidth | 0,
-      params.screenHeight | 0,
-      params.camX,
-      params.camY,
-      params.camZ,
-      params.rightX,
-      params.rightY,
-      params.rightZ,
-      params.upX,
-      params.upY,
-      params.upZ,
-      params.fwdX,
-      params.fwdY,
-      params.fwdZ,
-      params.fovY,
-      params.dstToProjPlane,
-      tanHalfY,
-      params.nearClip,
-      params.farClip,
-      0,
-      params.repeat | 0,
-      params.showDetails ? 1 : 0,
-      params.fillUnfilled | 0,
-      pixelsPtr,
-      params.pixelWidth | 0,
-      debugViewId(params.debugView)
-    );
-    copyOutU32(pixelsPtr, params.pixels);
-  }
-
   return {
     renderClassicColumns,
     renderScanlineColumns,
-    renderVoxelTexels,
   };
 }

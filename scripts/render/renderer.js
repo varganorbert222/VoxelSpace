@@ -413,7 +413,7 @@ class Renderer {
       words: pack.words,
       cloudBytes: pack.cloudBytes | 0,
       overlay: isDebugColor(this._debugView),
-      pair: this._algorithm === ALGORITHM_VOXEL ? 1 : COLUMN_PAIR,
+      pair: COLUMN_PAIR,
       screenWidth: width,
       camera: {
         posX: camera.posX,
@@ -467,7 +467,7 @@ class Renderer {
       height,
       pack,
       isDebugColor(this._debugView),
-      this._algorithm === ALGORITHM_VOXEL ? 1 : COLUMN_PAIR,
+      COLUMN_PAIR,
       0,
       0
     );

@@ -12,9 +12,6 @@ import {
   MSG_WORKER_ERROR,
   classicRenderPayload,
   scanlineRenderPayload,
-  voxelRenderPayload,
-  MSG_RENDER_VOXEL,
-  MSG_RESULT_VOXEL,
 } from "./jobProtocol.js";
 import { BACKEND_JS } from "../constants/backend.js";
 import { canShareBuffers, allocU8, allocU32 } from "./sharedBuffers.js";
@@ -252,12 +249,6 @@ class WorkerPool {
     );
   }
 
-  renderVoxel(params) {
-    return this._whenReady().then(() =>
-      this._runJob(MSG_RENDER_VOXEL, params, params.screenWidth, 1)
-    );
-  }
-
   _whenReady() {
     this.ensureWorkers();
     return this._ready || Promise.resolve();
@@ -313,8 +304,6 @@ class WorkerPool {
           slot.worker.postMessage(classicRenderPayload(jobId, range, params));
         } else if (msgType === MSG_RENDER_SCANLINE) {
           slot.worker.postMessage(scanlineRenderPayload(jobId, range, params));
-        } else if (msgType === MSG_RENDER_VOXEL) {
-          slot.worker.postMessage(voxelRenderPayload(jobId, range, params));
         }
       };
 
@@ -380,12 +369,6 @@ class WorkerPool {
 
     const index = slot.chunkIndex;
     if (data.type === MSG_RESULT_CLASSIC || data.type === MSG_RESULT_SCANLINE) {
-      active.onChunk(index, {
-        startColumn: data.startColumn,
-        endColumn: data.endColumn,
-        pixels: new Uint32Array(data.pixels),
-      });
-    } else if (data.type === MSG_RESULT_VOXEL) {
       active.onChunk(index, {
         startColumn: data.startColumn,
         endColumn: data.endColumn,

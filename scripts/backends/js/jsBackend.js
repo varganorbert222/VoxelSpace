@@ -2,12 +2,8 @@
 
 import ClassicRenderer from "../../render/classicRenderer.js";
 import ScanlineRenderer from "../../render/scanlineRenderer.js";
-import VoxelRenderer from "../../render/voxelRenderer.js";
 import WorkerPool from "../../render/workerPool.js";
-import {
-  ALGORITHM_SCANLINE,
-  ALGORITHM_VOXEL,
-} from "../../constants/algorithm.js";
+import { ALGORITHM_SCANLINE } from "../../constants/algorithm.js";
 import { BACKEND_JS } from "../../constants/backend.js";
 import { bindRetailMaps } from "../../render/retail/detail.js";
 class JsBackend {
@@ -23,7 +19,6 @@ class JsBackend {
     this._host = null;
     this._classic = null;
     this._scanline = null;
-    this._voxel = null;
     this._pool = null;
     this._maps = null;
   }
@@ -32,7 +27,6 @@ class JsBackend {
     this._host = ctx.renderer;
     this._classic = new ClassicRenderer(this);
     this._scanline = new ScanlineRenderer(this);
-    this._voxel = new VoxelRenderer(this);
   }
 
   get camera() {
@@ -147,8 +141,6 @@ class JsBackend {
     bindRetailMaps(this._maps);
     if (frame.algorithm === ALGORITHM_SCANLINE) {
       await this._scanline.render(frame.terrain);
-    } else if (frame.algorithm === ALGORITHM_VOXEL) {
-      await this._voxel.render(frame.terrain);
     } else {
       await this._classic.render(frame.terrain);
     }
@@ -162,7 +154,6 @@ class JsBackend {
     }
     this._classic = null;
     this._scanline = null;
-    this._voxel = null;
     this._host = null;
     this._maps = null;
   }
