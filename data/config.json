@@ -93,6 +93,50 @@
     "farClip": 8000.0,
     "quality": 1.0,
     "renderScale": 0.5,
-    "fov": 90.0
+    "fov": 90.0,
+    "pitchLimits": {
+      "classic": {
+        "fly": {
+          "min": -35.0,
+          "max": 45.0
+        },
+        "orbital": {
+          "min": -35.0,
+          "max": 45.0
+        },
+        "walking": {
+          "min": -35.0,
+          "max": 45.0
+        }
+      },
+      "scanline": {
+        "fly": {
+          "min": -90.0,
+          "max": 75.0
+        },
+        "orbital": {
+          "min": 0.0,
+          "max": 90.0
+        },
+        "walking": {
+          "min": -90.0,
+          "max": 75.0
+        }
+      },
+      "voxel": {
+        "fly": {
+          "min": -90.0,
+          "max": 90.0
+        },
+        "orbital": {
+          "min": -90.0,
+          "max": 90.0
+        },
+        "walking": {
+          "min": -90.0,
+          "max": 90.0
+        }
+      }
+    }
   }
 }

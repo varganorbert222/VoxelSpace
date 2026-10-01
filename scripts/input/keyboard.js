@@ -137,12 +137,6 @@ function detectKeysDown(input, e) {
     case Key.CTRL:
       refreshUpDown(input);
       break;
-    case Key.E:
-      if (input._rollEnabled) input._rollHold = -1;
-      break;
-    case Key.Q:
-      if (input._rollEnabled) input._rollHold = 1;
-      break;
     default:
       break;
   }
@@ -176,12 +170,6 @@ function detectKeysUp(input, e) {
     case Key.SPACE:
     case Key.CTRL:
       refreshUpDown(input);
-      break;
-    case Key.E:
-      if (input._rollHold === -1) input._rollHold = 0;
-      break;
-    case Key.Q:
-      if (input._rollHold === 1) input._rollHold = 0;
       break;
     default:
       return;

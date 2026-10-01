@@ -1,7 +1,7 @@
 "use strict";
 
 import VMath from "../math/vmath.js";
-import { lookAt, rebuildBasisFromEuler } from "./basis.js";
+import { lookAt } from "./basis.js";
 import { EPSILON, HALF } from "../constants/vmath.js";
 import {
   ORBIT_RADIUS_MIN,
@@ -72,8 +72,7 @@ export function applyOrbit(dt, input, camera, terrain) {
       { x: camera.posX - offsetX, y: camera.posY - offsetY },
       { x: 0, y: offsetY }
     ),
-    VMath.clamp(0, 1, camera.posZ / radius) * ORBIT_PITCH_SCALE,
-    camera.roll
+    VMath.clamp(0, 1, camera.posZ / radius) * ORBIT_PITCH_SCALE
   );
   camera.markHorizonDirty();
 }
@@ -81,7 +80,12 @@ export function applyOrbit(dt, input, camera, terrain) {
 export function finishOrbitLook(camera, terrain) {
   if (camera.panoramaLook || camera.frustumLook) {
     lookAt(camera, terrain.width * HALF, terrain.height * HALF, 0);
+    if (camera.frustumLook) {
+      camera.clampPitchForFrustumSpace();
+    } else if (camera.panoramaLook) {
+      camera.clampPitchForVoxel();
+    }
   } else {
-    rebuildBasisFromEuler(camera);
+    camera.clampPitchForClassic();
   }
 }

@@ -147,8 +147,6 @@ class App {
       zoomStick: document.getElementById("id_stick_zoom"),
       btnUp: document.getElementById("id_btn_up"),
       btnDown: document.getElementById("id_btn_down"),
-      btnRollLeft: document.getElementById("id_btn_roll_left"),
-      btnRollRight: document.getElementById("id_btn_roll_right"),
     });
 
     this.loadMap(this.currentMapName);
@@ -211,6 +209,8 @@ class App {
       this.camera.clampPitchForClassic();
     } else if (algorithm === ALGORITHM_FRUSTUM_SPACE) {
       this.camera.clampPitchForFrustumSpace();
+    } else if (algorithm === ALGORITHM_VOXEL) {
+      this.camera.clampPitchForVoxel();
     }
     document.body.classList.toggle("classic", algorithm === ALGORITHM_CLASSIC);
     document.body.classList.toggle(

@@ -48,14 +48,6 @@ export function bindTouchControls(input, elements) {
     if (down) input._updown = -TOUCH_UPDOWN_SPEED;
     else if (input._updown < 0) input._updown = 0;
   });
-  bindHoldButton(elements.btnRollLeft, (down) => {
-    if (down) input._rollHold = 1;
-    else if (input._rollHold > 0) input._rollHold = 0;
-  });
-  bindHoldButton(elements.btnRollRight, (down) => {
-    if (down) input._rollHold = -1;
-    else if (input._rollHold < 0) input._rollHold = 0;
-  });
 }
 
 function resetKnob(knob) {

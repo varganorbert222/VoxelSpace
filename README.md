@@ -74,7 +74,7 @@ A mip chain sits on the maps. Classic and voxel drop to coarser LODs farther fro
 
 **Classic** redraws the camera frustum every frame: one ray per screen column, LOD bands, fog, optional world wrap.
 
-**Voxel** also redraws every frame, but with one 3D ray per pixel. Height-map texels are solid columns; a max-height mip pyramid skips empty air. Roll is available. Looking around still marches the world.
+**Voxel** also redraws every frame, but with one 3D ray per pixel. Height-map texels are solid columns; a max-height mip pyramid skips empty air. Looking around uses yaw and pitch while still marching the world.
 
 Runtimes plug in behind the same contract:
 
@@ -128,7 +128,6 @@ Then open [http://localhost:8080](http://localhost:8080).
 | **R** or **Space** | Up |
 | **F** or **Ctrl** | Down |
 | **Arrow keys** | Look |
-| **Q E** | Roll (voxel only) |
 | **Click** the view | Mouse look (pointer lock in fly mode) |
 | **Esc** | Close the command panel (browser also exits pointer lock) |
 
@@ -208,7 +207,7 @@ A 256×256 top-down of the current map, with heading, FOV wedge, and craft mark.
 | --- | --- | --- | --- |
 | **classic** | Column voxel space | Yaw + limited pitch | None — every frame |
 | **scanline** | View-Z slices, per-pixel first hit | Yaw + real pitch (±80°), no roll | None — every frame |
-| **voxel** | Per-pixel 3D column raycast | Full Euler + roll | None — every frame |
+| **voxel** | Per-pixel 3D column raycast | Yaw + pitch | None — every frame |
 
 ### Camera
 
@@ -288,7 +287,7 @@ The extractor lineage is the C program from [sioux](https://github.com/hanatos/s
 | `tools/MISToJSON/` | Mission → JSON |
 | `tools/comanche3extract/` | Comanche 3 map extract |
 
-`data/config.json` is the product spec for sliders and enums. Constants under `scripts/constants/` own the numbers the kernels actually use.
+`data/config.json` is the product spec for sliders and enums. Camera pitch limits are configured in degrees for each algorithm and camera mode at `camera.pitchLimits.<algorithm>.<mode>` (`classic` / `scanline` / `voxel`, `fly` / `orbital` / `walking`); omitted or invalid ranges fall back to the built-in defaults.
 
 ### Rebuild WASM (optional)
 

@@ -33,10 +33,6 @@ class Input {
     return this._pitchHold;
   }
 
-  get rollHold() {
-    return this._rollHold;
-  }
-
   get stickLookX() {
     return this._stickLookX;
   }
@@ -146,7 +142,6 @@ class Input {
     this._updown = 0;
     this._yawHold = 0;
     this._pitchHold = 0;
-    this._rollHold = 0;
     this._lookX = 0;
     this._lookY = 0;
     this._stickLookX = 0;
@@ -167,7 +162,6 @@ class Input {
     this._nudgeDistance = 0;
     this._nudgeFov = 0;
     this._flyLook = true;
-    this._rollEnabled = false;
     this._canvas = config.canvas;
     this._keys = Object.create(null);
 
@@ -189,13 +183,6 @@ class Input {
 
   nudgeZoom(delta) {
     this._zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, this._zoom + delta));
-  }
-
-  setRollEnabled(enabled) {
-    this._rollEnabled = !!enabled;
-    if (!this._rollEnabled) {
-      this._rollHold = 0;
-    }
   }
 
   tryPointerLock() {

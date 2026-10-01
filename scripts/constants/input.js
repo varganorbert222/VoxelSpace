@@ -35,8 +35,6 @@ export const Key = Object.freeze({
   DOWN: "ArrowDown",
   A: "KeyA",
   D: "KeyD",
-  E: "KeyE",
-  Q: "KeyQ",
   R: "KeyR",
   S: "KeyS",
   W: "KeyW",
@@ -44,7 +42,7 @@ export const Key = Object.freeze({
 });
 
 // Typed characters (e.key), first unused letter of the HUD label.
-// Skips movement: WASD, R/F, Q/E, Space, Ctrl.
+// Skips movement: WASD, R/F, Space, Ctrl.
 export const SettingChar = Object.freeze({
   MAP: "m",
   ALGORITHM: "l",

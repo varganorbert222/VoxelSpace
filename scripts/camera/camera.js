@@ -31,6 +31,21 @@ import {
 } from "../constants/camera.js";
 import { HALF } from "../constants/vmath.js";
 
+function pitchLimitsFor(settings, algorithm, mode, fallbackMin, fallbackMax) {
+  const algorithmSettings = settings && settings[algorithm];
+  const configured =
+    (algorithmSettings && algorithmSettings[mode]) || algorithmSettings;
+  const min = Number(configured && configured.min);
+  const max = Number(configured && configured.max);
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min >= max) {
+    return { min: fallbackMin, max: fallbackMax };
+  }
+  return {
+    min: VMath.clamp(-90, 90, min),
+    max: VMath.clamp(-90, 90, max),
+  };
+}
+
 class Camera {
   get nearClip() {
     return this._nearClip;
@@ -90,10 +105,6 @@ class Camera {
 
   get mode() {
     return this._mode;
-  }
-
-  get roll() {
-    return this._roll;
   }
 
   get panoramaLook() {
@@ -168,9 +179,36 @@ class Camera {
     this._mode = MODE_FLY;
     this._panoramaLook = false;
     this._frustumLook = false;
+    this._pitchLimits = {
+      classic: {},
+      scanline: {},
+      voxel: {},
+    };
+    for (const mode of [MODE_FLY, MODE_ORBITAL, MODE_WALK]) {
+      this._pitchLimits.classic[mode] = pitchLimitsFor(
+        settings.pitchLimits,
+        "classic",
+        mode,
+        CLASSIC_PITCH_MIN,
+        CLASSIC_PITCH_MAX
+      );
+      this._pitchLimits.scanline[mode] = pitchLimitsFor(
+        settings.pitchLimits,
+        "scanline",
+        mode,
+        FRUSTUM_SPACE_PITCH_MIN,
+        FRUSTUM_SPACE_PITCH_MAX
+      );
+      this._pitchLimits.voxel[mode] = pitchLimitsFor(
+        settings.pitchLimits,
+        "voxel",
+        mode,
+        -90,
+        90
+      );
+    }
     this._pitchMin = CLASSIC_PITCH_MIN;
     this._pitchMax = CLASSIC_PITCH_MAX;
-    this._roll = 0;
     this._rightX = 1;
     this._rightY = 0;
     this._rightZ = 0;
@@ -188,17 +226,23 @@ class Camera {
 
   setPanoramaLook(enabled) {
     this._panoramaLook = !!enabled;
+    this._updatePitchLimits();
   }
 
   setFrustumLook(enabled) {
     this._frustumLook = !!enabled;
-    if (this._frustumLook) {
-      this._pitchMin = FRUSTUM_SPACE_PITCH_MIN;
-      this._pitchMax = FRUSTUM_SPACE_PITCH_MAX;
-    } else {
-      this._pitchMin = CLASSIC_PITCH_MIN;
-      this._pitchMax = CLASSIC_PITCH_MAX;
-    }
+    this._updatePitchLimits();
+  }
+
+  _updatePitchLimits() {
+    const algorithm = this._frustumLook
+      ? "scanline"
+      : this._panoramaLook
+        ? "voxel"
+        : "classic";
+    const limits = this._pitchLimits[algorithm][this._mode];
+    this._pitchMin = limits.min;
+    this._pitchMax = limits.max;
   }
 
   setPosition(x, y, z) {
@@ -207,10 +251,9 @@ class Camera {
     this._posZ = z;
   }
 
-  setEuler(angle, pitch, roll) {
+  setEuler(angle, pitch) {
     this._angle = angle;
     this._pitch = pitch;
-    this._roll = roll;
   }
 
   setBasis(rightX, rightY, rightZ, upX, upY, upZ, fwdX, fwdY, fwdZ) {
@@ -265,9 +308,13 @@ class Camera {
     if (this._mode === MODE_WALK && prevMode !== MODE_WALK) {
       levelWalkOrientation(this);
     }
+    if (this._mode !== prevMode) this._updatePitchLimits();
     this._posX = settings.posX ?? this._posX;
     this._posY = settings.posY ?? this._posY;
     this._posZ = settings.posZ ?? this._posZ;
+    if (this._mode !== prevMode) {
+      this.clampPitchForActiveAlgorithm();
+    }
 
     this.markProjectionDirty();
   }
@@ -308,33 +355,48 @@ class Camera {
   }
 
   clampPitchForClassic() {
-    this._pitch = VMath.clamp(CLASSIC_PITCH_MIN, CLASSIC_PITCH_MAX, this._pitch);
-    this._roll = 0;
+    this._panoramaLook = false;
     this._frustumLook = false;
-    this._pitchMin = CLASSIC_PITCH_MIN;
-    this._pitchMax = CLASSIC_PITCH_MAX;
+    this._updatePitchLimits();
+    const limits = this._pitchLimits.classic[this._mode];
+    this._pitchMin = limits.min;
+    this._pitchMax = limits.max;
+    this._pitch = VMath.clamp(this._pitchMin, this._pitchMax, this._pitch);
     rebuildBasisFromEuler(this);
     this._horizonDirty = true;
   }
 
   clampPitchForFrustumSpace() {
-    this._pitch = VMath.clamp(
-      FRUSTUM_SPACE_PITCH_MIN,
-      FRUSTUM_SPACE_PITCH_MAX,
-      this._pitch
-    );
-    this._roll = 0;
+    this._panoramaLook = false;
     this._frustumLook = true;
-    this._pitchMin = FRUSTUM_SPACE_PITCH_MIN;
-    this._pitchMax = FRUSTUM_SPACE_PITCH_MAX;
+    this._updatePitchLimits();
+    const limits = this._pitchLimits.scanline[this._mode];
+    this._pitchMin = limits.min;
+    this._pitchMax = limits.max;
+    this._pitch = VMath.clamp(this._pitchMin, this._pitchMax, this._pitch);
     rebuildBasisFromEuler(this);
     this._horizonDirty = true;
+  }
+
+  clampPitchForVoxel() {
+    this._panoramaLook = true;
+    this._frustumLook = false;
+    this._updatePitchLimits();
+    const limits = this._pitchLimits.voxel[this._mode];
+    this._pitch = VMath.clamp(limits.min, limits.max, this._pitch);
+    rebuildBasisFromEuler(this);
+    this._horizonDirty = true;
+  }
+
+  clampPitchForActiveAlgorithm() {
+    if (this._frustumLook) this.clampPitchForFrustumSpace();
+    else if (this._panoramaLook) this.clampPitchForVoxel();
+    else this.clampPitchForClassic();
   }
 
   move(dt, input, terrain) {
     const walking = this._mode === MODE_WALK;
     input.setFlyLook(this._mode === MODE_FLY || walking);
-    input.setRollEnabled(this._panoramaLook && !walking);
     if (this._mode === MODE_FLY) {
       applyFly(dt, input, this);
     } else if (walking) {
@@ -352,6 +414,11 @@ class Camera {
         terrain.getTerrainHeight(this._posX, this._posY) + COLLISION_CLEARANCE;
       if (this._mode === MODE_ORBITAL && (this._panoramaLook || this._frustumLook)) {
         lookAt(this, terrain.width * HALF, terrain.height * HALF, 0);
+        if (this._frustumLook) {
+          this.clampPitchForFrustumSpace();
+        } else if (this._panoramaLook) {
+          this.clampPitchForVoxel();
+        }
       }
     }
   }

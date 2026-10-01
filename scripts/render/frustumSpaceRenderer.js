@@ -93,7 +93,6 @@ function isFrustumSpaceTokenStale(token, renderer) {
     camera.posZ !== token.camZ ||
     camera.angle !== token.angle ||
     camera.pitch !== token.pitch ||
-    camera.roll !== token.roll ||
     camera.rightX !== token.rightX ||
     camera.rightY !== token.rightY ||
     camera.rightZ !== token.rightZ ||
@@ -186,7 +185,6 @@ class FrustumSpaceRenderer {
       camZ: camera.posZ,
       angle: camera.angle,
       pitch: camera.pitch,
-      roll: camera.roll,
       rightX: camera.rightX,
       rightY: camera.rightY,
       rightZ: camera.rightZ,
