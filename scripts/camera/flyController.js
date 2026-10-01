@@ -68,8 +68,8 @@ export function applyFly(dt, input, camera) {
   const s = input.strafe;
   const u = input.updown;
   camera.setPosition(
-    camera.posX + (f * camera.fwdX + s * camera.rightX) * moveDt,
-    camera.posY + (f * camera.fwdY + s * camera.rightY) * moveDt,
-    camera.posZ + u * moveDt
+    camera.posX + (f * camera.fwdX + s * camera.rightX + u * camera.upX) * moveDt,
+    camera.posY + (f * camera.fwdY + s * camera.rightY + u * camera.upY) * moveDt,
+    camera.posZ + (f * camera.fwdZ + s * camera.rightZ + u * camera.upZ) * moveDt
   );
 }
