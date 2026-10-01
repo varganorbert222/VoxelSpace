@@ -3,6 +3,7 @@
 import { assetSrc, getMap, resolveMapId } from "./mapCatalog.js";
 import { loadImagesAsync } from "../assets/imageLoader.js";
 import { readColorFromImage } from "../assets/image.js";
+import { paletteRGB } from "../assets/pngPalette.js";
 import { Color } from "../math/color.js";
 import { buildCloudMips, buildSkyTable, retailCloudHeight } from "../render/retail/skybox.js";
 import { buildWaterMips, buildWaterTable } from "../render/retail/water.js";
@@ -30,6 +31,19 @@ function paletteSky(image) {
   const count = image.width * image.height;
   if (!count) {
     return null;
+  }
+  if (
+    image.width === 16 &&
+    image.height === 257 &&
+    image.palette &&
+    image.palette.length >= 256 * 3
+  ) {
+    const pack = (rgb) =>
+      ((255 << 24) | (rgb[2] << 16) | (rgb[1] << 8) | rgb[0]) >>> 0;
+    return {
+      top: pack(paletteRGB(image, 255)),
+      bottom: pack(paletteRGB(image, 1)),
+    };
   }
   return {
     top: readColorFromImage(image.data, 0),
@@ -107,7 +121,7 @@ export function loadMap(app, mapName) {
       lightRGB: builtSky.lightRGB,
       sky: {
         table: builtSky.table,
-        cloudMips: buildCloudMips(images[cloudIndex]),
+        cloudMips: buildCloudMips(images[cloudIndex], selectedMap.collection),
         height: retailCloudHeight(render.skyHeight, altitude),
         horizon: Number.isFinite(render.horizon) ? render.horizon : 1,
         horizonRGB: builtSky.horizonRGB,

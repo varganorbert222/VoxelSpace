@@ -211,6 +211,10 @@ fn voxelGridSize(mip: i32) -> f32 {
 }
 
 fn detailTargetLevel(depth: f32) -> i32 {
+  let baseSubdiv = textureDimensions(detailPackedTex).x / 16u;
+  if (baseSubdiv > 16u) {
+    return detailLevelAt(depth);
+  }
   let subdiv = lod0RefineSubdivAt(lod0RefineMipAt(depth));
   if (subdiv >= 16u) {
     return 0;

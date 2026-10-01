@@ -640,6 +640,33 @@ static i32 detail_level_at(f64 dist) {
   if (!(far_end > 0.0) || dist > far_end) {
     return -1;
   }
+  if (g_detail_tile_size > 16) {
+    f64 fraction = dist / far_end;
+    if (fraction <= 0.0625) {
+      return 0;
+    }
+    if (fraction <= 0.1088188204) {
+      return 1;
+    }
+    if (fraction <= 0.1894645708) {
+      return 2;
+    }
+    if (fraction <= 0.3298769777) {
+      return 3;
+    }
+    if (fraction <= 0.5743491775) {
+      return 4;
+    }
+    {
+      i32 level = 0;
+      i32 size = g_detail_tile_size;
+      while (size > 2) {
+        size >>= 1;
+        level = (level + 1) | 0;
+      }
+      return level;
+    }
+  }
   band = 0;
   while (band < 4 && dist > g_detail_ends[band]) {
     band = (band + 1) | 0;

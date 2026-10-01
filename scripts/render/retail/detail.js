@@ -11,6 +11,12 @@ const FORWARD_LUT = new Uint8Array(
 );
 
 const DETAIL_TILE_COUNT = 256;
+const DF2_DETAIL_LEVEL_ENDS = Object.freeze([
+  0.1088188204,
+  0.1894645708,
+  0.3298769777,
+  0.5743491775,
+]);
 
 // Retail samples the detail atlas only on the five Near passes
 // (factors 0.5, 1, 2, 4, 8). The last of those ends at factor 8, and the
@@ -316,6 +322,18 @@ function detailLevel(distance) {
   const ends = cachedDetailNearEnds();
   if (!(ends[4] > 0) || distance > ends[4]) {
     return -1;
+  }
+  if (state.detailTileSize === 64) {
+    const fraction = distance / ends[4];
+    if (fraction <= 0.0625) {
+      return 0;
+    }
+    for (let level = 1; level <= DF2_DETAIL_LEVEL_ENDS.length; level++) {
+      if (fraction <= DF2_DETAIL_LEVEL_ENDS[level - 1]) {
+        return level;
+      }
+    }
+    return state.detailSampleLastLevel;
   }
   let band = 0;
   while (band < 4 && distance > ends[band]) {

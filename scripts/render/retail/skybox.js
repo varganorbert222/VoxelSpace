@@ -88,13 +88,20 @@ function gradientBase(keys, row) {
 export function buildSkyTable(paletteImage, saturation, gamma) {
   void saturation;
   void gamma;
-  const keys = skyKeys(paletteImage);
-  const cloud = paletteRGB(paletteImage, 16);
+  const verticalGradient =
+    paletteImage.width === 16 &&
+    paletteImage.height === 257 &&
+    paletteImage.palette &&
+    paletteImage.palette.length >= 256 * 3;
+  const keys = verticalGradient ? null : skyKeys(paletteImage);
+  const cloud = paletteRGB(paletteImage, verticalGradient ? 0 : 16);
   const table = new Uint32Array(CLOUD_LEVELS * 256);
   for (let level = 0; level < CLOUD_LEVELS; level++) {
     const q = level < 62 ? level : 62;
     for (let row = 0; row < 256; row++) {
-      const base = gradientBase(keys, row);
+      const base = verticalGradient
+        ? paletteRGB(paletteImage, 1 + Math.round((row * 254) / 255))
+        : gradientBase(keys, row);
       table[(level * 256 + row) | 0] = packFrame(
         base[0] + (((cloud[0] - base[0]) * q) >> 6),
         base[1] + (((cloud[1] - base[1]) * q) >> 6),
@@ -104,16 +111,20 @@ export function buildSkyTable(paletteImage, saturation, gamma) {
   }
   return {
     table,
-    horizonRGB: keys[0],
+    horizonRGB: verticalGradient ? paletteRGB(paletteImage, 1) : keys[0],
     lightRGB: cloud,
     cloudColor: packFrame(cloud[0], cloud[1], cloud[2]),
   };
 }
 
-export function cloudByte(image, i) {
+export function cloudByte(image, i, collectionId) {
   const p = (i * 4) | 0;
   const data = image.data;
   const luma = (data[p] + 2 * data[p + 1] + data[p + 2]) >> 2;
+  if (collectionId === "deltaforce2") {
+    const level = luma >> 1;
+    return level > 62 ? 62 : level;
+  }
   if (luma < 128) {
     return 0;
   }
@@ -121,7 +132,7 @@ export function cloudByte(image, i) {
   return level > 62 ? 62 : level;
 }
 
-export function buildCloudMips(image) {
+export function buildCloudMips(image, collectionId) {
   let size = image.width | 0;
   if (size < 2) {
     size = 2;
@@ -133,7 +144,11 @@ export function buildCloudMips(image) {
     const sy = Math.min(srcH - 1, y);
     for (let x = 0; x < size; x++) {
       const sx = Math.min(srcW - 1, x);
-      base[(y * size + x) | 0] = cloudByte(image, (sy * srcW + sx) | 0);
+      base[(y * size + x) | 0] = cloudByte(
+        image,
+        (sy * srcW + sx) | 0,
+        collectionId
+      );
     }
   }
   const mips = [base];

@@ -6,6 +6,26 @@ fn detailLevelAt(dist: f32) -> i32 {
   if (!(farEnd > 0.0) || dist > farEnd) {
     return -1;
   }
+  let baseSubdiv = textureDimensions(detailPackedTex).x / 16u;
+  if (baseSubdiv > 16u) {
+    let fraction = dist / farEnd;
+    if (fraction <= 0.0625) {
+      return 0;
+    }
+    if (fraction <= 0.1088188204) {
+      return 1;
+    }
+    if (fraction <= 0.1894645708) {
+      return 2;
+    }
+    if (fraction <= 0.3298769777) {
+      return 3;
+    }
+    if (fraction <= 0.5743491775) {
+      return 4;
+    }
+    return max(i32(textureNumLevels(detailPackedTex)) - 2, 0);
+  }
   if (dist <= frame.detailNear.y) {
     return 0;
   }
