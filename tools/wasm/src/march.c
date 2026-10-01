@@ -1633,6 +1633,7 @@ WASM_EXPORT void frustum_space_columns(
       i32 helper_band = -1;
       i32 advance = 1;
       i32 rewinding = 0;
+      i32 rewind_steps = 0;
       f64 xn = ((f64)col + 0.5) * xn_step - 1.0;
       while ((sy >= 0) & (t < far_clip) & (guard < step_budget)) {
         i32 mip = 0;
@@ -1795,13 +1796,29 @@ WASM_EXPORT void frustum_space_columns(
         }
         if (wz < h_fine * g_alt_scale) {
           if (rewinding && (t > z_start)) {
-            t -= step;
-            if (t < z_start) {
+            if (rewind_steps < 3) {
+              rewind_steps = (rewind_steps + 1) | 0;
+              t -= step;
+              if (t < z_start) {
+                t = z_start;
+              }
+            } else if (bz < -1e-6) {
+              f64 penetration = h_fine * g_alt_scale - wz;
+              i32 back_steps = (i32)(penetration / (-bz * step)) + 1;
+              if (back_steps < 1) {
+                back_steps = 1;
+              }
+              t -= (f64)back_steps * step;
+              if (t < z_start) {
+                t = z_start;
+              }
+            } else {
               t = z_start;
             }
             continue;
           }
           rewinding = 0;
+          rewind_steps = 0;
           plot = fs_terrain_color(
               lod_color_map, wx * lod_scale, wy * lod_scale, wx, wy, nn_off,
               use_fine ? 1 : 0, do_filter, wrap, lod_w_mask, lod_h_mask, lod_shift,
@@ -1818,11 +1835,13 @@ WASM_EXPORT void frustum_space_columns(
             t = prev > z_start ? prev : z_start;
           }
           rewinding = 1;
+          rewind_steps = 0;
           helper_on = 0;
           fine_since = 0;
           advance = 0;
         } else {
           rewinding = 0;
+          rewind_steps = 0;
           t = t + step;
           advance = 1;
           fine_since = (fine_since + 1) | 0;

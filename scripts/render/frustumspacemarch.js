@@ -391,6 +391,7 @@ export function renderFrustumSpaceColumns({
     let helperBand = -1;
     let advance = 1;
     let rewinding = 0;
+    let rewindSteps = 0;
     while (((sy >= 0) | 0) & (t < farClip) & ((guard < stepBudget) | 0)) {
       guard = (guard + 1) | 0;
       const mip = mipLevelAtDistance(t, switches, lastMip);
@@ -518,10 +519,20 @@ export function renderFrustumSpaceColumns({
       }
       if (wz < hFine * altScale) {
         if (rewinding && t > zStart) {
-          t = Math.max(zStart, t - step);
+          if (rewindSteps < 3) {
+            rewindSteps = (rewindSteps + 1) | 0;
+            t = Math.max(zStart, t - step);
+          } else if (bz < -1e-6) {
+            const penetration = hFine * altScale - wz;
+            const backSteps = Math.floor(penetration / (-bz * step)) + 1;
+            t = Math.max(zStart, t - backSteps * step);
+          } else {
+            t = zStart;
+          }
           continue;
         }
         rewinding = 0;
+        rewindSteps = 0;
         const hByte = doLerp ? heightByteFromFine(hFine) : nearestH;
         const col = shade(wx, wy, offset, hByte, t, useFine, localI);
         const o = (pixelBase + ((sy * stride + pixCol) | 0)) | 0;
@@ -560,11 +571,13 @@ export function renderFrustumSpaceColumns({
         const prev = t - step;
         t = prev > zStart ? prev : zStart;
         rewinding = 1;
+        rewindSteps = 0;
         helperOn = 0;
         fineSince = 0;
         advance = 0;
       } else {
         rewinding = 0;
+        rewindSteps = 0;
         t = t + step;
         advance = 1;
         fineSince = (fineSince + 1) | 0;

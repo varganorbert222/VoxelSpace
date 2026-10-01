@@ -201,6 +201,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   var step = 0.0;
   var guard = 0u;
   var rewinding = false;
+  var rewindSteps = 0u;
   loop {
     if ((sy < 0) || (t >= farClip) || (guard >= MAX_STEPS)) { break; }
     guard = guard + 1u;
@@ -250,10 +251,20 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     sampleN = sampleN + 1u;
     if (pos.z < hFine * altScale) {
       if (rewinding && t > lodDistances[0]) {
-        t = max(lodDistances[0], t - step);
+        if (rewindSteps < 3u) {
+          rewindSteps = rewindSteps + 1u;
+          t = max(lodDistances[0], t - step);
+        } else if (dir.z < -1.0e-6) {
+          let penetration = hFine * altScale - pos.z;
+          let backSteps = floor(penetration / max(-dir.z * step, 1.0e-6)) + 1.0;
+          t = max(lodDistances[0], t - backSteps * step);
+        } else {
+          t = lodDistances[0];
+        }
         continue;
       }
       rewinding = false;
+      rewindSteps = 0u;
       let plot = frustumShade(
         pos.x * mipScale,
         pos.y * mipScale,
@@ -277,8 +288,10 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       let t0 = lodDistances[0];
       t = select(t0, prev, prev > t0);
       rewinding = true;
+      rewindSteps = 0u;
     } else {
       rewinding = false;
+      rewindSteps = 0u;
       t = t + step;
     }
   }
