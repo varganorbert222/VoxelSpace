@@ -215,7 +215,7 @@ A 256×256 top-down of the current map, with heading, FOV wedge, and craft mark.
 | --- | --- |
 | **fly** | Free flight from the craft. Click to lock the mouse. |
 | **orbital** | Circle the map center. Drag to orbit, wheel to zoom. |
-| **walking** | Walk the height field at eye height, about 12 m/s (Shift still sprints). Look stays free; altitude keys are ignored. |
+| **walking** | Walk the height field at 6 m/s; hold Shift to sprint at 12 m/s. Hold Left Ctrl to crouch at 2 m/s; press Y (Z on an English keyboard) to go prone and crawl at 0.75 m/s. Shift does not increase crouch or prone speed. Space jumps while standing, or stands up and jumps from prone. Releasing Ctrl stands up from crouch. Look stays free; R/F altitude controls are ignored. |
 
 Switching camera respawns over the map center, above terrain.
 

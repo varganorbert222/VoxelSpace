@@ -25,6 +25,18 @@ class Input {
     return this._updown;
   }
 
+  get consumeJump() {
+    const pressed = this._jumpPressed;
+    this._jumpPressed = false;
+    return pressed;
+  }
+
+  get consumeProne() {
+    const pressed = this._pronePressed;
+    this._pronePressed = false;
+    return pressed;
+  }
+
   get yawHold() {
     return this._yawHold;
   }
@@ -140,6 +152,8 @@ class Input {
     this._stickForward = 0;
     this._stickStrafe = 0;
     this._updown = 0;
+    this._jumpPressed = false;
+    this._pronePressed = false;
     this._yawHold = 0;
     this._pitchHold = 0;
     this._lookX = 0;

@@ -112,6 +112,10 @@ function detectKeysDown(input, e) {
     e.preventDefault();
   }
   input._keys[key] = true;
+  if (!e.repeat && key === Key.SPACE) input._jumpPressed = true;
+  if (!e.repeat && (key === Key.Y || key === Key.Z)) {
+    input._pronePressed = true;
+  }
   switch (key) {
     case Key.LEFT:
       input._yawHold = -1;

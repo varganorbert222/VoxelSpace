@@ -33,10 +33,17 @@ export const ORBIT_PITCH_SCALE = 60;
 
 export const COLLISION_CLEARANCE = 1;
 
-// Ground follow from the DF renderer: eye height above the height field,
-// 0.5 m sweep so a rise lifts the camera before it tunnels, then a 7 Hz ease.
-export const WALK_EYE_HEIGHT = 2;
+// Approximate adult eye heights above the terrain, in meters.
+export const WALK_EYE_HEIGHT = 1.65;
+export const WALK_CROUCH_EYE_HEIGHT = 1.05;
+export const WALK_PRONE_EYE_HEIGHT = 0.25;
+// 0.5 m sweep prevents terrain tunneling; height changes ease at 7 Hz.
 export const WALK_SWEEP_STEP = 0.5;
 export const WALK_FOLLOW_RATE = 7;
-// Map units are meters. 12 m/s reads as a walk on this terrain; Shift keeps the sprint multiplier.
-export const WALK_SPEED = 12;
+export const WALK_JUMP_SPEED = 8;
+export const WALK_GRAVITY = 20;
+// Map units are meters: brisk walking and a fast human sprint.
+export const WALK_SPEED = 6;
+export const WALK_SPRINT_SPEED = 12;
+export const WALK_CROUCH_SPEED = 2;
+export const WALK_PRONE_SPEED = 2;

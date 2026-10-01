@@ -39,6 +39,8 @@ export const Key = Object.freeze({
   S: "KeyS",
   W: "KeyW",
   F: "KeyF",
+  Y: "KeyY",
+  Z: "KeyZ",
 });
 
 // Typed characters (e.key), first unused letter of the HUD label.
