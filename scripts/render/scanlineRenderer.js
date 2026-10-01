@@ -1,23 +1,23 @@
 "use strict";
 
-import { renderFrustumSpaceColumns } from "./frustumspacemarch.js";
+import { renderScanlineColumns } from "./scanlinemarch.js";
 import { Color } from "../math/color.js";
 import { isDebugColor } from "../constants/debugView.js";
 import { canShareBuffers, ensureU32 } from "./sharedBuffers.js";
 
-function frustumSpaceKernel(renderer) {
+function scanlineKernel(renderer) {
   const kernels = renderer.kernels;
   if (!kernels) {
-    return renderFrustumSpaceColumns;
+    return renderScanlineColumns;
   }
-  const fn = kernels.renderFrustumSpaceColumns;
+  const fn = kernels.renderScanlineColumns;
   if (typeof fn !== "function") {
-    throw new Error("WASM backend missing renderFrustumSpaceColumns");
+    throw new Error("WASM backend missing renderScanlineColumns");
   }
   return fn;
 }
 
-function frustumSpaceParams(renderer, maps) {
+function scanlineParams(renderer, maps) {
   const camera = renderer.camera;
   const frameBuffer = renderer.frameBuffer;
   const fov = camera.calculateFov();
@@ -69,7 +69,7 @@ function frustumSpaceParams(renderer, maps) {
   };
 }
 
-function isFrustumSpaceTokenStale(token, renderer) {
+function isScanlineTokenStale(token, renderer) {
   const camera = renderer.camera;
   const frameBuffer = renderer.frameBuffer;
   return (
@@ -105,7 +105,7 @@ function isFrustumSpaceTokenStale(token, renderer) {
   );
 }
 
-class FrustumSpaceRenderer {
+class ScanlineRenderer {
   constructor(renderer) {
     this._renderer = renderer;
     this._rowColors = new Uint32Array(1);
@@ -121,7 +121,7 @@ class FrustumSpaceRenderer {
 
   renderLocal(terrain) {
     const maps = terrain.exportMaps();
-    const params = frustumSpaceParams(this._renderer, maps);
+    const params = scanlineParams(this._renderer, maps);
     const frameBuffer = this._renderer.frameBuffer;
     const pending = this._renderer.retailSkyPass;
     const extras = {
@@ -137,7 +137,7 @@ class FrustumSpaceRenderer {
       frameBuffer.copySkyRowColors(this._rowColors);
       extras.rowColors = this._rowColors;
     }
-    frustumSpaceKernel(this._renderer)({
+    scanlineKernel(this._renderer)({
       ...params,
       ...extras,
     });
@@ -149,7 +149,7 @@ class FrustumSpaceRenderer {
     const pool = renderer.ensurePool();
     pool.initMaps(maps);
     this._fillBackground();
-    const params = frustumSpaceParams(renderer, maps);
+    const params = scanlineParams(renderer, maps);
     if (!renderer.retailSkyPass) {
       const height = renderer.frameBuffer.height | 0;
       if ((this._rowColors.length < height) | 0) {
@@ -195,11 +195,11 @@ class FrustumSpaceRenderer {
       fwdY: camera.fwdY,
       fwdZ: camera.fwdZ,
     };
-    const slices = await pool.renderFrustumSpace(params);
+    const slices = await pool.renderScanline(params);
     if (!slices) {
       return false;
     }
-    if (isFrustumSpaceTokenStale(token, renderer)) {
+    if (isScanlineTokenStale(token, renderer)) {
       return false;
     }
     for (let i = 0; (i < slices.length) | 0; i = (i + 1) | 0) {
@@ -237,4 +237,4 @@ class FrustumSpaceRenderer {
   }
 }
 
-export default FrustumSpaceRenderer;
+export default ScanlineRenderer;

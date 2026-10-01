@@ -40,17 +40,17 @@ export async function createPipelines(device, canvasFormat, onStatus) {
     onStatus,
     ["retailSky.wgsl", "detailBindMaps.wgsl", "detailSample.wgsl"]
   );
-  let frustumSpaceMod = classicMod;
+  let scanlineMod = classicMod;
   try {
-    frustumSpaceMod = await loadCompute(
+    scanlineMod = await loadCompute(
       device,
-      "frustumSpaceMarch",
-      "frustumSpaceMarch.wgsl",
+      "scanlineMarch",
+      "scanlineMarch.wgsl",
       onStatus,
       ["retailSky.wgsl", "detailBindMaps.wgsl", "detailSample.wgsl"]
     );
   } catch (err) {
-    console.warn("frustumSpaceMarch compile failed:", err);
+    console.warn("scanlineMarch compile failed:", err);
   }
   const voxelMod = await loadCompute(device, "voxelRay", "voxelRay.wgsl", onStatus, [
     "detailBindMips1.wgsl",
@@ -213,19 +213,19 @@ export async function createPipelines(device, canvasFormat, onStatus) {
     compute: { module: classicMod, entryPoint: "main" },
   });
 
-  let frustumSpacePipe = classicPipe;
+  let scanlinePipe = classicPipe;
   try {
     device.pushErrorScope("validation");
     const pipe = device.createComputePipeline({
-      label: "frustumSpace",
+      label: "scanline",
       layout: classicLayout,
-      compute: { module: frustumSpaceMod, entryPoint: "main" },
+      compute: { module: scanlineMod, entryPoint: "main" },
     });
     const pipeErr = await device.popErrorScope();
     if (pipeErr) {
-      console.warn("frustumSpace pipeline failed:", pipeErr.message);
+      console.warn("scanline pipeline failed:", pipeErr.message);
     } else {
-      frustumSpacePipe = pipe;
+      scanlinePipe = pipe;
     }
   } catch (err) {
     try {
@@ -233,7 +233,7 @@ export async function createPipelines(device, canvasFormat, onStatus) {
     } catch {
       void 0;
     }
-    console.warn("frustumSpace pipeline failed:", err);
+    console.warn("scanline pipeline failed:", err);
   }
 
   const voxelPipe = device.createComputePipeline({
@@ -260,7 +260,7 @@ export async function createPipelines(device, canvasFormat, onStatus) {
 
   return {
     classic: classicPipe,
-    frustumSpace: frustumSpacePipe,
+    scanline: scanlinePipe,
     voxel: voxelPipe,
     skyComposite: skyCompositePipe,
     screenClear: screenClearPipe,

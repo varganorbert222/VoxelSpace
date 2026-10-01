@@ -1490,7 +1490,7 @@ static u32 fs_terrain_color(
   return plot;
 }
 
-WASM_EXPORT void frustum_space_columns(
+WASM_EXPORT void scanline_columns(
     i32 start_column,
     i32 end_column,
     i32 screen_width,
@@ -1615,7 +1615,7 @@ WASM_EXPORT void frustum_space_columns(
   /* One ray per two-pixel column, sampled at the left pixel. The LOD cell
      sets the step and Step divides it. The first hit paints this row,
      rewinds one step, and moves up a row. The step cap matches the WebGPU
-     frustum march and does not grow with the framebuffer height. */
+    scanline march and does not grow with the framebuffer height. */
   {
     i32 step_budget = 65536;
     for (i32 col = start_column; col < end_column;) {

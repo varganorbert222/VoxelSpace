@@ -196,7 +196,7 @@ function heightByteFromFine(hFine) {
   return b;
 }
 
-export function renderFrustumSpaceColumns({
+export function renderScanlineColumns({
   heightMap,
   colorMap,
   mapW,
@@ -337,7 +337,7 @@ export function renderFrustumSpaceColumns({
   const lastMip = (bandCount - 1) | 0;
   const rowBase = screenHorizon - 0.5;
   const xnStep = 2 * screenWidthScaler;
-  // Same cap as the WebGPU frustum march. A budget that grows with the
+  // Same cap as the WebGPU scanline march. A budget that grows with the
   // framebuffer height stops high-resolution columns before the far ridges.
   const stepBudget = marchMaxSteps(true);
 

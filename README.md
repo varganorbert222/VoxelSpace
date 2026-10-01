@@ -60,7 +60,7 @@ A mip chain sits on the maps. Classic and voxel drop to coarser LODs farther fro
             ▼
         Renderer
      ┌──────┼──────┐
-  Classic  Frustum  Voxel
+    Classic  Scanline  Voxel
        │      │      │
        └─── backends ───┘
         JS · WASM · WebGPU

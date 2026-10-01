@@ -25,8 +25,8 @@ import {
   DEFAULT_ORBIT_RADIUS,
   CLASSIC_PITCH_MIN,
   CLASSIC_PITCH_MAX,
-  FRUSTUM_SPACE_PITCH_MIN,
-  FRUSTUM_SPACE_PITCH_MAX,
+  SCANLINE_PITCH_MIN,
+  SCANLINE_PITCH_MAX,
   COLLISION_CLEARANCE,
 } from "../constants/camera.js";
 import { HALF } from "../constants/vmath.js";
@@ -111,8 +111,8 @@ class Camera {
     return this._panoramaLook;
   }
 
-  get frustumLook() {
-    return this._frustumLook;
+  get scanlineLook() {
+    return this._scanlineLook;
   }
 
   get pitchMin() {
@@ -178,7 +178,7 @@ class Camera {
     this._orbiterRadius = DEFAULT_ORBIT_RADIUS;
     this._mode = MODE_FLY;
     this._panoramaLook = false;
-    this._frustumLook = false;
+    this._scanlineLook = false;
     this._pitchLimits = {
       classic: {},
       scanline: {},
@@ -196,8 +196,8 @@ class Camera {
         settings.pitchLimits,
         "scanline",
         mode,
-        FRUSTUM_SPACE_PITCH_MIN,
-        FRUSTUM_SPACE_PITCH_MAX
+        SCANLINE_PITCH_MIN,
+        SCANLINE_PITCH_MAX
       );
       this._pitchLimits.voxel[mode] = pitchLimitsFor(
         settings.pitchLimits,
@@ -229,13 +229,13 @@ class Camera {
     this._updatePitchLimits();
   }
 
-  setFrustumLook(enabled) {
-    this._frustumLook = !!enabled;
+  setScanlineLook(enabled) {
+    this._scanlineLook = !!enabled;
     this._updatePitchLimits();
   }
 
   _updatePitchLimits() {
-    const algorithm = this._frustumLook
+    const algorithm = this._scanlineLook
       ? "scanline"
       : this._panoramaLook
         ? "voxel"
@@ -356,7 +356,7 @@ class Camera {
 
   clampPitchForClassic() {
     this._panoramaLook = false;
-    this._frustumLook = false;
+    this._scanlineLook = false;
     this._updatePitchLimits();
     const limits = this._pitchLimits.classic[this._mode];
     this._pitchMin = limits.min;
@@ -366,9 +366,9 @@ class Camera {
     this._horizonDirty = true;
   }
 
-  clampPitchForFrustumSpace() {
+  clampPitchForScanline() {
     this._panoramaLook = false;
-    this._frustumLook = true;
+    this._scanlineLook = true;
     this._updatePitchLimits();
     const limits = this._pitchLimits.scanline[this._mode];
     this._pitchMin = limits.min;
@@ -380,7 +380,7 @@ class Camera {
 
   clampPitchForVoxel() {
     this._panoramaLook = true;
-    this._frustumLook = false;
+    this._scanlineLook = false;
     this._updatePitchLimits();
     const limits = this._pitchLimits.voxel[this._mode];
     this._pitch = VMath.clamp(limits.min, limits.max, this._pitch);
@@ -389,7 +389,7 @@ class Camera {
   }
 
   clampPitchForActiveAlgorithm() {
-    if (this._frustumLook) this.clampPitchForFrustumSpace();
+    if (this._scanlineLook) this.clampPitchForScanline();
     else if (this._panoramaLook) this.clampPitchForVoxel();
     else this.clampPitchForClassic();
   }
@@ -412,10 +412,10 @@ class Camera {
     ) {
       this._posZ =
         terrain.getTerrainHeight(this._posX, this._posY) + COLLISION_CLEARANCE;
-      if (this._mode === MODE_ORBITAL && (this._panoramaLook || this._frustumLook)) {
+      if (this._mode === MODE_ORBITAL && (this._panoramaLook || this._scanlineLook)) {
         lookAt(this, terrain.width * HALF, terrain.height * HALF, 0);
-        if (this._frustumLook) {
-          this.clampPitchForFrustumSpace();
+        if (this._scanlineLook) {
+          this.clampPitchForScanline();
         } else if (this._panoramaLook) {
           this.clampPitchForVoxel();
         }

@@ -1,7 +1,7 @@
 "use strict";
 
 import { renderClassicColumns as renderClassicColumnsJs } from "./classicmarch.js";
-import { renderFrustumSpaceColumns as renderFrustumSpaceColumnsJs } from "./frustumspacemarch.js";
+import { renderScanlineColumns as renderScanlineColumnsJs } from "./scanlinemarch.js";
 import { renderVoxelTexels as renderVoxelTexelsJs } from "./voxelmarch.js";
 import { bindRetailMaps } from "./retail/detail.js";
 import { attachVMaxMips } from "./retail/vmax.js";
@@ -11,10 +11,10 @@ import {
   MSG_INIT_KERNEL,
   MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
-  MSG_RENDER_FRUSTUM_SPACE,
+  MSG_RENDER_SCANLINE,
   MSG_RENDER_VOXEL,
   MSG_RESULT_CLASSIC,
-  MSG_RESULT_FRUSTUM_SPACE,
+  MSG_RESULT_SCANLINE,
   MSG_RESULT_VOXEL,
   MSG_WORKER_ERROR,
 } from "./jobProtocol.js";
@@ -34,7 +34,7 @@ const workerState = {
 };
 
 let renderClassicColumns = renderClassicColumnsJs;
-let renderFrustumSpaceColumns = renderFrustumSpaceColumnsJs;
+let renderScanlineColumns = renderScanlineColumnsJs;
 let renderVoxelTexels = renderVoxelTexelsJs;
 let kernelBackend = null;
 
@@ -46,12 +46,12 @@ async function setKernelBackend(backend) {
     const instance = await instantiateMarch();
     const kernels = createWasmKernels(instance);
     renderClassicColumns = kernels.renderClassicColumns;
-    renderFrustumSpaceColumns = kernels.renderFrustumSpaceColumns;
+    renderScanlineColumns = kernels.renderScanlineColumns;
     renderVoxelTexels = kernels.renderVoxelTexels;
     return;
   }
   renderClassicColumns = renderClassicColumnsJs;
-  renderFrustumSpaceColumns = renderFrustumSpaceColumnsJs;
+  renderScanlineColumns = renderScanlineColumnsJs;
   renderVoxelTexels = renderVoxelTexelsJs;
 }
 
@@ -178,7 +178,7 @@ function renderClassic(msg) {
   );
 }
 
-function renderFrustumSpace(msg) {
+function renderScanline(msg) {
   const localWidth = (msg.endColumn - msg.startColumn) | 0;
   const pixels = new Uint32Array((localWidth * msg.screenHeight) | 0);
   const rowColors = msg.rowColors;
@@ -188,8 +188,8 @@ function renderFrustumSpace(msg) {
       pixels.fill(rowColors[y], row, row + localWidth);
     }
   }
-  const renderFrustum = renderFrustumSpaceColumns;
-  renderFrustum({
+  const renderScanlineColumnRange = renderScanlineColumns;
+  renderScanlineColumnRange({
     heightMap: workerState.heightMap,
     colorMap: workerState.colorMap,
     mapW: workerState.mapW,
@@ -246,7 +246,7 @@ function renderFrustumSpace(msg) {
   );
   self.postMessage(
     {
-      type: MSG_RESULT_FRUSTUM_SPACE,
+      type: MSG_RESULT_SCANLINE,
       jobId: msg.jobId,
       startColumn: msg.startColumn,
       endColumn: msg.endColumn,
@@ -339,8 +339,8 @@ async function handleMessage(msg) {
     renderClassic(msg);
     return;
   }
-  if (msg.type === MSG_RENDER_FRUSTUM_SPACE) {
-    renderFrustumSpace(msg);
+  if (msg.type === MSG_RENDER_SCANLINE) {
+    renderScanline(msg);
     return;
   }
   if (msg.type === MSG_RENDER_VOXEL) {

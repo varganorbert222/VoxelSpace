@@ -8,7 +8,7 @@ import {
 } from "../constants/backend.js";
 import {
   ALGORITHM_CLASSIC,
-  ALGORITHM_FRUSTUM_SPACE,
+  ALGORITHM_SCANLINE,
   ALGORITHM_VOXEL,
   isAlgorithmAllowed,
 } from "../constants/algorithm.js";
@@ -349,7 +349,7 @@ class Renderer {
       height,
       this._algorithm !== ALGORITHM_CLASSIC,
       this._algorithm === ALGORITHM_CLASSIC ||
-        this._algorithm === ALGORITHM_FRUSTUM_SPACE
+        this._algorithm === ALGORITHM_SCANLINE
     );
   }
 

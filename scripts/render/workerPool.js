@@ -6,12 +6,12 @@ import {
   MSG_INIT_KERNEL,
   MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
-  MSG_RENDER_FRUSTUM_SPACE,
+  MSG_RENDER_SCANLINE,
   MSG_RESULT_CLASSIC,
-  MSG_RESULT_FRUSTUM_SPACE,
+  MSG_RESULT_SCANLINE,
   MSG_WORKER_ERROR,
   classicRenderPayload,
-  frustumSpaceRenderPayload,
+  scanlineRenderPayload,
   voxelRenderPayload,
   MSG_RENDER_VOXEL,
   MSG_RESULT_VOXEL,
@@ -23,7 +23,7 @@ import { activeColorGrade } from "./retail/colorGrade.js";
 
 // Measured: splitting into more chunks than workers costs more in messages,
 // allocations and blits than the load balancing wins back.
-const FRUSTUM_CHUNKS_PER_WORKER = 1;
+const SCANLINE_CHUNKS_PER_WORKER = 1;
 
 function chunkSizeFor(columnCount, workerCount, align, chunksPerWorker) {
   const parts = Math.max(1, (workerCount * (chunksPerWorker || 1)) | 0);
@@ -240,14 +240,14 @@ class WorkerPool {
     );
   }
 
-  renderFrustumSpace(params) {
+  renderScanline(params) {
     return this._whenReady().then(() =>
       this._runJob(
-        MSG_RENDER_FRUSTUM_SPACE,
+        MSG_RENDER_SCANLINE,
         params,
         params.screenWidth,
         COLUMN_PAIR,
-        FRUSTUM_CHUNKS_PER_WORKER
+        SCANLINE_CHUNKS_PER_WORKER
       )
     );
   }
@@ -311,8 +311,8 @@ class WorkerPool {
 
         if (msgType === MSG_RENDER_CLASSIC) {
           slot.worker.postMessage(classicRenderPayload(jobId, range, params));
-        } else if (msgType === MSG_RENDER_FRUSTUM_SPACE) {
-          slot.worker.postMessage(frustumSpaceRenderPayload(jobId, range, params));
+        } else if (msgType === MSG_RENDER_SCANLINE) {
+          slot.worker.postMessage(scanlineRenderPayload(jobId, range, params));
         } else if (msgType === MSG_RENDER_VOXEL) {
           slot.worker.postMessage(voxelRenderPayload(jobId, range, params));
         }
@@ -379,7 +379,7 @@ class WorkerPool {
     }
 
     const index = slot.chunkIndex;
-    if (data.type === MSG_RESULT_CLASSIC || data.type === MSG_RESULT_FRUSTUM_SPACE) {
+    if (data.type === MSG_RESULT_CLASSIC || data.type === MSG_RESULT_SCANLINE) {
       active.onChunk(index, {
         startColumn: data.startColumn,
         endColumn: data.endColumn,

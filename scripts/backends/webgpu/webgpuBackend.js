@@ -3,7 +3,7 @@
 import { BACKEND_WEBGPU } from "../../constants/backend.js";
 import {
   ALGORITHM_CLASSIC,
-  ALGORITHM_FRUSTUM_SPACE,
+  ALGORITHM_SCANLINE,
   ALGORITHM_VOXEL,
 } from "../../constants/algorithm.js";
 import { debugViewId, isDebugColor } from "../../constants/debugView.js";
@@ -769,7 +769,7 @@ class WebGpuBackend {
     pass.end();
   }
 
-  _dispatchFrustumSpace(encoder, screenW, screenH) {
+  _dispatchScanline(encoder, screenW, screenH) {
     const tables = this._cachedBind("classicTables", () =>
       this._device.createBindGroup({
         layout: this._pipes.layouts.classicTables,
@@ -800,7 +800,7 @@ class WebGpuBackend {
       })
     );
     const pass = encoder.beginComputePass();
-    pass.setPipeline(this._pipes.frustumSpace);
+    pass.setPipeline(this._pipes.scanline);
     pass.setBindGroup(0, this._frameBind());
     pass.setBindGroup(1, tables);
     pass.setBindGroup(2, maps);
@@ -991,14 +991,14 @@ class WebGpuBackend {
     const dst = camera.calculateProjPlane();
     const horizon = camera.calculateHorizon(dst);
     const classic = frame.algorithm === ALGORITHM_CLASSIC;
-    if (classic || frame.algorithm === ALGORITHM_FRUSTUM_SPACE || this._retailSkyActive()) {
+    if (classic || frame.algorithm === ALGORITHM_SCANLINE || this._retailSkyActive()) {
       this._writeSky(
         screenW,
         screenH,
         horizon,
         camera,
         !classic,
-        classic || frame.algorithm === ALGORITHM_FRUSTUM_SPACE
+        classic || frame.algorithm === ALGORITHM_SCANLINE
       );
     }
     const host = this._host;
@@ -1013,10 +1013,10 @@ class WebGpuBackend {
     const encoder = this._device.createCommandEncoder();
     if (frame.algorithm === ALGORITHM_VOXEL) {
       this._dispatchVoxel(encoder, screenW, screenH);
-    } else if (frame.algorithm === ALGORITHM_FRUSTUM_SPACE) {
+    } else if (frame.algorithm === ALGORITHM_SCANLINE) {
       this._writeClassicTables(camera);
       this._dispatchScreenClear(encoder, screenW, screenH);
-      this._dispatchFrustumSpace(encoder, screenW, screenH);
+      this._dispatchScanline(encoder, screenW, screenH);
     } else {
       this._writeClassicTables(camera);
       this._dispatchScreenClear(encoder, screenW, screenH);

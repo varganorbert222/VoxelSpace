@@ -99,7 +99,7 @@ export function lookAt(camera, tx, ty, tz) {
   );
   camera.setEuler(camera.angle, camera.pitch);
   extractEulerFromBasis(camera);
-  if (camera.frustumLook || camera.panoramaLook) {
+    if (camera.scanlineLook || camera.panoramaLook) {
     camera.setEuler(camera.angle, -camera.pitch);
   }
 }

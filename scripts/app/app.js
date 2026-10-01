@@ -22,11 +22,11 @@ import {
 } from "./settingsStore.js";
 import {
   ALGORITHM_CLASSIC,
-  ALGORITHM_FRUSTUM_SPACE,
+  ALGORITHM_SCANLINE,
   ALGORITHM_VOXEL,
   isAlgorithmAllowed,
   usesFreeLook,
-  usesFrustumLook,
+  usesScanlineLook,
 } from "../constants/algorithm.js";
 import { BACKEND_JS, BACKEND_WEBGPU } from "../constants/backend.js";
 import { detectBackends } from "../backends/contract.js";
@@ -204,18 +204,18 @@ class App {
     const prev = this.renderer.algorithm;
     this.renderer.setOptions({ algorithm });
     this.camera.setPanoramaLook(usesFreeLook(algorithm));
-    this.camera.setFrustumLook(usesFrustumLook(algorithm));
+    this.camera.setScanlineLook(usesScanlineLook(algorithm));
     if (algorithm === ALGORITHM_CLASSIC) {
       this.camera.clampPitchForClassic();
-    } else if (algorithm === ALGORITHM_FRUSTUM_SPACE) {
-      this.camera.clampPitchForFrustumSpace();
+    } else if (algorithm === ALGORITHM_SCANLINE) {
+      this.camera.clampPitchForScanline();
     } else if (algorithm === ALGORITHM_VOXEL) {
       this.camera.clampPitchForVoxel();
     }
     document.body.classList.toggle("classic", algorithm === ALGORITHM_CLASSIC);
     document.body.classList.toggle(
       "scanline",
-      algorithm === ALGORITHM_FRUSTUM_SPACE
+      algorithm === ALGORITHM_SCANLINE
     );
     document.body.classList.toggle("voxel", algorithm === ALGORITHM_VOXEL);
     if (prev !== algorithm) {

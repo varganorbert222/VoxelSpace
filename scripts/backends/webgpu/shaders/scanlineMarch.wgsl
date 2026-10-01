@@ -78,7 +78,7 @@ fn classicSampleColor(plx: f32, ply: f32, mip: i32, doFilter: bool, subdiv: u32,
   return bilinearColor(c00, c10, c01, c11, fx, fy);
 }
 
-fn frustumShade(
+fn scanlineShade(
   px: f32,
   py: f32,
   hByte: u32,
@@ -134,7 +134,7 @@ fn storeColumn(x: i32, y: i32, packed: u32, screenW: i32, pair: i32) {
 }
 
 // One thread per two-pixel column: view-Z slices front-to-back with a
-// persistent horizon. See scripts/render/frustumspacemarch.js.
+// persistent horizon. See scripts/render/scanlinemarch.js.
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) gid: vec3u) {
   let screenW = i32(frame.screenPano.x);
@@ -265,7 +265,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       }
       rewinding = false;
       rewindSteps = 0u;
-      let plot = frustumShade(
+      let plot = scanlineShade(
         pos.x * mipScale,
         pos.y * mipScale,
         u32(clamp(hFine + 0.5, 0.0, 255.0)),

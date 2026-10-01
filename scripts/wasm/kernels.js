@@ -60,8 +60,8 @@ function allocCopy(ex, memory, src) {
 export function createWasmKernels(instance) {
   const ex = instance.exports;
   const memory = ex.memory;
-  if (typeof ex.frustum_space_columns !== "function") {
-    throw new Error("WASM module missing frustum_space_columns");
+  if (typeof ex.scanline_columns !== "function") {
+    throw new Error("WASM module missing scanline_columns");
   }
   let mapsGeneration = null;
   let tablesReady = 0;
@@ -455,7 +455,7 @@ export function createWasmKernels(instance) {
     copyOutU32(pixelsPtr, params.pixels);
   }
 
-  function renderFrustumSpaceColumns(params) {
+  function renderScanlineColumns(params) {
     ensureMaps(params);
     syncSampleFlags(params);
     syncDetail(params);
@@ -485,7 +485,7 @@ export function createWasmKernels(instance) {
     } else if (!(params.fillUnfilled | 0)) {
       copyBytes(memory, pixelsPtr, params.pixels);
     }
-    ex.frustum_space_columns(
+    ex.scanline_columns(
       params.startColumn | 0,
       params.endColumn | 0,
       params.screenWidth | 0,
@@ -586,7 +586,7 @@ export function createWasmKernels(instance) {
 
   return {
     renderClassicColumns,
-    renderFrustumSpaceColumns,
+    renderScanlineColumns,
     renderVoxelTexels,
   };
 }

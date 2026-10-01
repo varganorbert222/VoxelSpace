@@ -1,11 +1,11 @@
 "use strict";
 
 import ClassicRenderer from "../../render/classicRenderer.js";
-import FrustumSpaceRenderer from "../../render/frustumSpaceRenderer.js";
+import ScanlineRenderer from "../../render/scanlineRenderer.js";
 import VoxelRenderer from "../../render/voxelRenderer.js";
 import WorkerPool from "../../render/workerPool.js";
 import {
-  ALGORITHM_FRUSTUM_SPACE,
+  ALGORITHM_SCANLINE,
   ALGORITHM_VOXEL,
 } from "../../constants/algorithm.js";
 import { BACKEND_WASM } from "../../constants/backend.js";
@@ -36,7 +36,7 @@ class WasmBackend {
   constructor() {
     this._host = null;
     this._classic = null;
-    this._frustumSpace = null;
+    this._scanline = null;
     this._voxel = null;
     this._pool = null;
     this._maps = null;
@@ -60,7 +60,7 @@ class WasmBackend {
     this._kernels = createWasmKernels(instance);
     this._host = ctx.renderer;
     this._classic = new ClassicRenderer(this);
-    this._frustumSpace = new FrustumSpaceRenderer(this);
+    this._scanline = new ScanlineRenderer(this);
     this._voxel = new VoxelRenderer(this);
   }
 
@@ -166,8 +166,8 @@ class WasmBackend {
 
   async render(frame) {
     bindRetailMaps(this._maps);
-    if (frame.algorithm === ALGORITHM_FRUSTUM_SPACE) {
-      await this._frustumSpace.render(frame.terrain);
+    if (frame.algorithm === ALGORITHM_SCANLINE) {
+      await this._scanline.render(frame.terrain);
     } else if (frame.algorithm === ALGORITHM_VOXEL) {
       await this._voxel.render(frame.terrain);
     } else {
@@ -182,7 +182,7 @@ class WasmBackend {
       this._pool = null;
     }
     this._classic = null;
-    this._frustumSpace = null;
+    this._scanline = null;
     this._voxel = null;
     this._host = null;
     this._maps = null;

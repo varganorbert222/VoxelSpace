@@ -3,7 +3,7 @@
 import { BACKEND_WEBGPU } from "./backend.js";
 
 export const ALGORITHM_CLASSIC = "classic";
-export const ALGORITHM_FRUSTUM_SPACE = "scanline";
+export const ALGORITHM_SCANLINE = "scanline";
 export const ALGORITHM_VOXEL = "voxel";
 
 export function isAlgorithmAllowed(algorithm, backend) {
@@ -23,6 +23,6 @@ export function usesFreeLook(algorithm) {
   return algorithm === ALGORITHM_VOXEL;
 }
 
-export function usesFrustumLook(algorithm) {
-  return algorithm === ALGORITHM_FRUSTUM_SPACE;
+export function usesScanlineLook(algorithm) {
+  return algorithm === ALGORITHM_SCANLINE;
 }

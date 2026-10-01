@@ -5,10 +5,10 @@ import {
   MSG_INIT_KERNEL,
   MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
-  MSG_RENDER_FRUSTUM_SPACE,
+  MSG_RENDER_SCANLINE,
   MSG_RENDER_VOXEL,
   MSG_RESULT_CLASSIC,
-  MSG_RESULT_FRUSTUM_SPACE,
+  MSG_RESULT_SCANLINE,
   MSG_RESULT_VOXEL,
   MSG_WORKER_ERROR,
 } from "../constants/threading.js";
@@ -18,10 +18,10 @@ export {
   MSG_INIT_KERNEL,
   MSG_KERNEL_READY,
   MSG_RENDER_CLASSIC,
-  MSG_RENDER_FRUSTUM_SPACE,
+  MSG_RENDER_SCANLINE,
   MSG_RENDER_VOXEL,
   MSG_RESULT_CLASSIC,
-  MSG_RESULT_FRUSTUM_SPACE,
+  MSG_RESULT_SCANLINE,
   MSG_RESULT_VOXEL,
   MSG_WORKER_ERROR,
 };
@@ -61,9 +61,9 @@ export function classicRenderPayload(jobId, range, params) {
   };
 }
 
-export function frustumSpaceRenderPayload(jobId, range, params) {
+export function scanlineRenderPayload(jobId, range, params) {
   return {
-    type: MSG_RENDER_FRUSTUM_SPACE,
+    type: MSG_RENDER_SCANLINE,
     jobId: jobId,
     startColumn: range.start,
     endColumn: range.end,

@@ -7,7 +7,7 @@ import {
   ORBIT_RADIUS_MIN,
   ORBIT_RADIUS_MAX,
   ORBIT_THETA_MIN_CLASSIC,
-  ORBIT_THETA_MIN_FRUSTUM_SPACE,
+  ORBIT_THETA_MIN_SCANLINE,
   ORBIT_THETA_MIN_PANORAMA,
   ORBIT_PITCH_SCALE,
   MOVE_DT_SCALE,
@@ -20,7 +20,7 @@ export function applyOrbit(dt, input, camera, terrain) {
     input.nudgeZoom(input.stickZoom * ZOOM_STICK_RATE * dt);
   }
   const panorama = camera.panoramaLook;
-  const frustum = camera.frustumLook;
+  const scanline = camera.scanlineLook;
   const radius = VMath.lerp(ORBIT_RADIUS_MIN, ORBIT_RADIUS_MAX, input.zoom);
   const scaledDt = dt * MOVE_DT_SCALE;
   const stickPhi =
@@ -32,7 +32,7 @@ export function applyOrbit(dt, input, camera, terrain) {
   const offsetX = terrain.width * HALF;
   const offsetY = terrain.height * HALF;
 
-  if (panorama || frustum) {
+  if (panorama || scanline) {
     const dx = camera.posX - offsetX;
     const dy = camera.posY - offsetY;
     const dist = Math.hypot(dx, dy, camera.posZ);
@@ -40,7 +40,7 @@ export function applyOrbit(dt, input, camera, terrain) {
     let theta = Math.acos(VMath.clamp(-1, 1, camera.posZ / currentR));
     let phi = Math.atan2(dy, dx);
     theta = VMath.clamp(
-      frustum ? ORBIT_THETA_MIN_FRUSTUM_SPACE : ORBIT_THETA_MIN_PANORAMA,
+      scanline ? ORBIT_THETA_MIN_SCANLINE : ORBIT_THETA_MIN_PANORAMA,
       Math.PI / 2,
       theta - deltaTheta
     );
@@ -78,10 +78,10 @@ export function applyOrbit(dt, input, camera, terrain) {
 }
 
 export function finishOrbitLook(camera, terrain) {
-  if (camera.panoramaLook || camera.frustumLook) {
+  if (camera.panoramaLook || camera.scanlineLook) {
     lookAt(camera, terrain.width * HALF, terrain.height * HALF, 0);
-    if (camera.frustumLook) {
-      camera.clampPitchForFrustumSpace();
+    if (camera.scanlineLook) {
+      camera.clampPitchForScanline();
     } else if (camera.panoramaLook) {
       camera.clampPitchForVoxel();
     }

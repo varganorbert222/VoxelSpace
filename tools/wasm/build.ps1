@@ -53,7 +53,7 @@ $exports = @(
     "set_mip_switch",
   "set_luts",
   "classic_columns",
-  "frustum_space_columns"
+  "scanline_columns"
 )
 $exportFlags = $exports | ForEach-Object { "-Wl,--export=$_" }
 

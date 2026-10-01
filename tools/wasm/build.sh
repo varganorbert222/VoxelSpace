@@ -25,7 +25,7 @@ exports=(
   set_vmax_level
   set_luts
   classic_columns
-  frustum_space_columns
+  scanline_columns
 )
 
 export_flags=()
