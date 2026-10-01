@@ -1632,6 +1632,7 @@ WASM_EXPORT void frustum_space_columns(
       i32 fine_since = 0;
       i32 helper_band = -1;
       i32 advance = 1;
+      i32 rewinding = 0;
       f64 xn = ((f64)col + 0.5) * xn_step - 1.0;
       while ((sy >= 0) & (t < far_clip) & (guard < step_budget)) {
         i32 mip = 0;
@@ -1677,10 +1678,25 @@ WASM_EXPORT void frustum_space_columns(
         wy = cam_y + t * by;
         wz = cam_z + t * bz;
         if ((wz > g_max_height) && !(bz < 0.0)) {
+          if (rewinding && (t > z_start)) {
+            t -= step;
+            if (t < z_start) {
+              t = z_start;
+            }
+            continue;
+          }
           break;
         }
         inside = (wx >= 0.0) & (wx <= (f64)g_map_w) & (wy >= 0.0) & (wy <= (f64)g_map_h);
         if (!inside && !wrap) {
+          if (rewinding && (t > z_start)) {
+            t -= step;
+            if (t < z_start) {
+              t = z_start;
+            }
+            continue;
+          }
+          rewinding = 0;
           t = t + step;
           fine_since = (fine_since + 1) | 0;
           continue;
@@ -1778,6 +1794,14 @@ WASM_EXPORT void frustum_space_columns(
           g_sample_n[local_i] = (g_sample_n[local_i] + 1) | 0;
         }
         if (wz < h_fine * g_alt_scale) {
+          if (rewinding && (t > z_start)) {
+            t -= step;
+            if (t < z_start) {
+              t = z_start;
+            }
+            continue;
+          }
+          rewinding = 0;
           plot = fs_terrain_color(
               lod_color_map, wx * lod_scale, wy * lod_scale, wx, wy, nn_off,
               use_fine ? 1 : 0, do_filter, wrap, lod_w_mask, lod_h_mask, lod_shift,
@@ -1793,10 +1817,12 @@ WASM_EXPORT void frustum_space_columns(
             f64 prev = t - step;
             t = prev > z_start ? prev : z_start;
           }
+          rewinding = 1;
           helper_on = 0;
           fine_since = 0;
           advance = 0;
         } else {
+          rewinding = 0;
           t = t + step;
           advance = 1;
           fine_since = (fine_since + 1) | 0;

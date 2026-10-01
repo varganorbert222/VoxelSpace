@@ -200,6 +200,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   var t = lodDistances[0];
   var step = 0.0;
   var guard = 0u;
+  var rewinding = false;
   loop {
     if ((sy < 0) || (t >= farClip) || (guard >= MAX_STEPS)) { break; }
     guard = guard + 1u;
@@ -216,10 +217,19 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let dir = fwd + right * (xn * tanHalfX) + up * yn;
     let pos = cam + dir * t;
     if ((pos.z > ceiling) && !(dir.z < 0.0)) {
+      if (rewinding && t > lodDistances[0]) {
+        t = max(lodDistances[0], t - step);
+        continue;
+      }
       break;
     }
     let inside = ((pos.x >= 0.0) && (pos.x <= mapWf) && (pos.y >= 0.0) && (pos.y <= mapHf)) || repeat;
     if (!inside) {
+      if (rewinding && t > lodDistances[0]) {
+        t = max(lodDistances[0], t - step);
+        continue;
+      }
+      rewinding = false;
       t = t + step;
       continue;
     }
@@ -239,6 +249,11 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let hFine = sampled.x + addBytes;
     sampleN = sampleN + 1u;
     if (pos.z < hFine * altScale) {
+      if (rewinding && t > lodDistances[0]) {
+        t = max(lodDistances[0], t - step);
+        continue;
+      }
+      rewinding = false;
       let plot = frustumShade(
         pos.x * mipScale,
         pos.y * mipScale,
@@ -261,7 +276,9 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       let prev = t - step;
       let t0 = lodDistances[0];
       t = select(t0, prev, prev > t0);
+      rewinding = true;
     } else {
+      rewinding = false;
       t = t + step;
     }
   }
