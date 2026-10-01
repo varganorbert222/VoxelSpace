@@ -595,7 +595,7 @@ class WebGpuBackend {
       mapShift: maps.mapShift,
       repeat: this._host.repeat,
       showDetails: this._host.showDetails,
-      columnPair: this._host.algorithm !== ALGORITHM_VOXEL,
+      columnPair: true,
       screenClear: !!this._screenClear,
       detailEnd0: detailEnds[0],
       detailEnd1: detailEnds[1],
@@ -818,7 +818,7 @@ class WebGpuBackend {
     pass.setBindGroup(1, maps);
     pass.setBindGroup(2, out);
     pass.dispatchWorkgroups(
-      Math.ceil(screenW / WEBGPU_WORKGROUP_2D),
+      Math.ceil(Math.ceil(screenW / COLUMN_PAIR) / WEBGPU_WORKGROUP_2D),
       Math.ceil(screenH / WEBGPU_WORKGROUP_2D)
     );
     pass.end();
@@ -891,10 +891,7 @@ class WebGpuBackend {
     pass.setPipeline(this._pipes.skyComposite);
     pass.setBindGroup(0, bind);
     pass.setBindGroup(1, this._frameBind());
-    const columns =
-      host.algorithm === ALGORITHM_VOXEL
-        ? screenW
-        : Math.ceil(screenW / COLUMN_PAIR);
+    const columns = Math.ceil(screenW / COLUMN_PAIR);
     pass.dispatchWorkgroups(
       Math.ceil(columns / WEBGPU_WORKGROUP_2D),
       Math.ceil(screenH / WEBGPU_WORKGROUP_2D)

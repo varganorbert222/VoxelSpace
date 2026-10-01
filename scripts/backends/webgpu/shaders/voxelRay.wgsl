@@ -572,6 +572,7 @@ fn marchDetail(
 
 fn voxelWrite(
   p: vec2i,
+  pairWidth: i32,
   color: vec4f,
   dist: f32,
   hByte: u32,
@@ -582,38 +583,43 @@ fn voxelWrite(
 ) {
   let debugView = flagDebugView(frame.mapFlags.w);
   if (debugView != DEBUG_COLOR) {
-    textureStore(
-      outTex,
-      p,
-      vec4<u32>(encodeCamera(debugView, dist, hByte, iter, dist, farClip), 0u, 0u, 0u)
-    );
+    let packed = vec4<u32>(encodeCamera(debugView, dist, hByte, iter, dist, farClip), 0u, 0u, 0u);
+    textureStore(outTex, p, packed);
+    if (pairWidth > 1) {
+      textureStore(outTex, p + vec2i(1, 0), packed);
+    }
     return;
   }
   if (!(dist > 0.0)) {
-    textureStore(
-      outTex,
-      p,
-      vec4<u32>(packRgba(skyColorFromHat(hatZ, frame.sky, frame.horizonColor)), 0u, 0u, 0u)
-    );
+    let packed = vec4<u32>(packRgba(skyColorFromHat(hatZ, frame.sky, frame.horizonColor)), 0u, 0u, 0u);
+    textureStore(outTex, p, packed);
+    if (pairWidth > 1) {
+      textureStore(outTex, p + vec2i(1, 0), packed);
+    }
     return;
   }
   var outColor = packRgba(color);
   if ((dist >= farClip) || (dist < nearClip)) {
     outColor = packRgba(skyColorFromHat(hatZ, frame.sky, frame.horizonColor));
   }
-  textureStore(outTex, p, vec4<u32>(outColor, 0u, 0u, 0u));
+  let packed = vec4<u32>(outColor, 0u, 0u, 0u);
+  textureStore(outTex, p, packed);
+  if (pairWidth > 1) {
+    textureStore(outTex, p + vec2i(1, 0), packed);
+  }
 }
 
 @compute @workgroup_size(16, 16, 1)
 fn main(@builtin(global_invocation_id) gid: vec3u) {
   let screenW = i32(frame.screenPano.x);
   let screenH = i32(frame.screenPano.y);
-  let sx = i32(gid.x);
+  let sx = i32(gid.x) * 2;
   let sy = i32(gid.y);
   if (sx >= screenW || sy >= screenH) {
     return;
   }
   let p = vec2<i32>(sx, sy);
+  let pairWidth = min(2, screenW - sx);
   let cam = frame.camPosTanHalfX.xyz;
   let right = frame.camRightDst.xyz;
   let up = frame.camUpHorizon.xyz;
@@ -641,12 +647,13 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let invW = 1.0 / f32(screenW);
   let invH = 1.0 / f32(screenH);
   let tanHalfX = tanHalfY * (f32(screenW) / f32(screenH));
-  let camXndc = ((f32(sx) + pixelCenter) * invW * ndcScale - 1.0) * tanHalfX;
+  let pairCenterX = f32(sx) + (f32(pairWidth - 1) * 0.5) + pixelCenter;
+  let camXndc = (pairCenterX * invW * ndcScale - 1.0) * tanHalfX;
   let camYndc = (1.0 - (f32(sy) + pixelCenter) * invH * ndcScale) * tanHalfY;
   var d = right * camXndc + up * camYndc + fwd;
   let len = length(d);
   if (!(len > EPS)) {
-    voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, 0.0, farClip, nearClip);
+    voxelWrite(p, pairWidth, vec4f(0.0), 0.0, 0u, 0u, 0.0, farClip, nearClip);
     return;
   }
   let dir = d / len;
@@ -682,6 +689,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   if (camInside && (cam.z <= hCamW)) {
     voxelWrite(
       p,
+      pairWidth,
       voxelHitColor(0, camIx, camIy, camCell, 0, 0, s0),
       s0,
       hCamByte,
@@ -694,19 +702,19 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   }
   let lenXY2 = dir.x * dir.x + dir.y * dir.y;
   if (!(dirFwd > DIR_FWD_EPS)) {
-    voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip);
+    voxelWrite(p, pairWidth, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip);
     return;
   }
   let sNear = s0 / dirFwd;
   let sFar = farClip / dirFwd;
   let spanZ = rayHeightSpan(cam.z, dir.z, ceiling, sNear, sFar);
   if (!spanZ.ok) {
-    voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip);
+    voxelWrite(p, pairWidth, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip);
     return;
   }
   if (!(lenXY2 > DIR_XY_EPS)) {
     if (!camInside) {
-      voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip);
+      voxelWrite(p, pairWidth, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip);
       return;
     }
     if (dir.z < 0.0) {
@@ -716,6 +724,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         if (sHit >= spanZ.s0 && sHit <= spanZ.s1 && depthHit >= s0 && depthHit <= farClip) {
           voxelWrite(
             p,
+            pairWidth,
             voxelHitColor(0, camIx, camIy, camCell, 0, 0, depthHit),
             depthHit,
             hCamByte,
@@ -733,6 +742,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       if (sHit >= spanZ.s0 && sHit <= spanZ.s1 && depthHit >= s0 && depthHit <= farClip) {
         voxelWrite(
           p,
+          pairWidth,
           voxelHitColor(0, camIx, camIy, camCell, 0, 0, depthHit),
           depthHit,
           hCamByte,
@@ -744,7 +754,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         return;
       }
     }
-    voxelWrite(p, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip);
+    voxelWrite(p, pairWidth, vec4f(0.0), 0.0, 0u, 0u, hatZ, farClip, nearClip);
     return;
   }
 
@@ -859,7 +869,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
             break;
           }
         }
-        voxelWrite(p, refined.color, refined.depth, refined.hByte, refined.k, hatZ, farClip, nearClip);
+        voxelWrite(p, pairWidth, refined.color, refined.depth, refined.hByte, refined.k, hatZ, farClip, nearClip);
         return;
       }
       s = sExit;
@@ -882,6 +892,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       }
       voxelWrite(
         p,
+        pairWidth,
         voxelHitColor(mip, ix, iy, cellSize, col.colX, col.colY, depthHit),
         depthHit,
         col.hByte,
@@ -922,6 +933,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let hByte = u32(clamp(zSurf / (altitude / 255.0) + 0.5, 0.0, 255.0));
     voxelWrite(
       p,
+      pairWidth,
       voxelHitColor(mip, colorIx, colorIy, colorCell, col.colX, col.colY, depthHit),
       depthHit,
       hByte,
@@ -932,5 +944,5 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     );
     return;
   }
-  voxelWrite(p, vec4f(0.0), 0.0, 0u, k, hatZ, farClip, nearClip);
+  voxelWrite(p, pairWidth, vec4f(0.0), 0.0, 0u, k, hatZ, farClip, nearClip);
 }

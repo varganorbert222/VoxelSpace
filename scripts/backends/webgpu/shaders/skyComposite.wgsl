@@ -24,8 +24,8 @@ fn clearMain(@builtin(global_invocation_id) gid: vec3<u32>) {
   textureStore(screenTex, vec2<i32>(i32(gid.x), i32(gid.y)), vec4<u32>(0u, 0u, 0u, 0u));
 }
 
-// One thread per sample column. Classic and scanline sample the left
-// pixel and write both; voxel keeps one thread per pixel.
+// One thread per sample column. All terrain algorithms sample one pixel
+// per pair and write the sky/cloud result to both output pixels.
 @compute @workgroup_size(16, 16)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let dims = textureDimensions(screenTex);
