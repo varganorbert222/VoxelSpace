@@ -177,7 +177,7 @@ class App {
     this.currentMapName = "deltaforce/C5M5";
     this.camera.set({ mode: "fly", posX: 512, posY: 512, posZ: 0, farClip: 74500, fov: 90, renderScale: 0.5, quality: 1 });
     this.camera.setEuler(0.15, 5);
-    this.renderer.setOptions({ algorithm: ALGORITHM_VOXEL, backend: BACKEND_WEBGPU, debugView: "lod", mipCount: 10, lodBias: 0, lodSpacing: 100, repeat: true });
+    this.renderer.setOptions({ algorithm: ALGORITHM_VOXEL, backend: BACKEND_WEBGPU, debugView: "lod", mipCount: 10, lodBias: 0, lodSpacing: 100, repeat: true, showDetails: true });
   }
 
   placeLodParityCamera() {
