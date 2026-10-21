@@ -151,6 +151,7 @@ export function loadMap(app, mapName) {
       topColor: app.terrain.skyColor,
       bottomColor: app.terrain.horizonColor,
     });
+    app.placeLodParityCamera();
     const viewport = document.getElementById("id_viewport");
     if (viewport) {
       viewport.classList.remove("is-night");

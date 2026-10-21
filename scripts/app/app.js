@@ -122,6 +122,7 @@ class App {
     }
     this.currentMapName = firstMapId();
     this._applyPersistedSettings(readPersistedSettings());
+    this._applyLodParityPresetFromUrl();
 
     window.onresize = () => this.resize();
     window.addEventListener("pageshow", () => {
@@ -137,8 +138,13 @@ class App {
     this._setSystemStatus("Starting renderer", "Preparing WebGPU", false);
     await this.setRenderBackend(this.renderer.backend);
     this._setSystemStatus("Renderer ready", "", false);
-    window.setTimeout(() => this._setSystemStatus("", "", false), 900);
     this.setRenderAlgorithm(this.renderer.algorithm);
+    if (new URLSearchParams(window.location.search).get("lod-parity") === "1"
+        && (this.renderer.backend !== BACKEND_WEBGPU || this.renderer.algorithm !== ALGORITHM_VOXEL)) {
+      this._setSystemStatus("LOD parity requires WebGPU voxel rendering", "The reference renderer fell back to another backend or algorithm.", true);
+    } else {
+      window.setTimeout(() => this._setSystemStatus("", "", false), 900);
+    }
     this._bindViewportResize();
 
     this.input.bindTouchControls({
@@ -164,6 +170,22 @@ class App {
 
   loadMap(mapName) {
     loadMap(this, mapName);
+  }
+
+  _applyLodParityPresetFromUrl() {
+    if (new URLSearchParams(window.location.search).get("lod-parity") !== "1") return;
+    this.currentMapName = "deltaforce/C5M5";
+    this.camera.set({ mode: "fly", posX: 512, posY: 512, posZ: 0, farClip: 74500, fov: 90, renderScale: 0.5, quality: 1 });
+    this.camera.setEuler(0.15, 5);
+    this.renderer.setOptions({ algorithm: ALGORITHM_VOXEL, backend: BACKEND_WEBGPU, debugView: "lod", mipCount: 10, lodBias: 0, lodSpacing: 100, repeat: true });
+  }
+
+  placeLodParityCamera() {
+    if (new URLSearchParams(window.location.search).get("lod-parity") !== "1" || !this.terrain) return;
+    this.camera.setPosition(512, 512, this.terrain.getTerrainHeightSmooth(512, 512) + 50);
+    this.camera.setEuler(0.15, 5);
+    this.camera.clampPitchForVoxel();
+    this.persistAndSync();
   }
 
   setCameraMode(mode) {
