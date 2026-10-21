@@ -1089,6 +1089,23 @@ static u32 encode_iter(i32 iter) {
 #define DEBUG_HEIGHT 1
 #define DEBUG_DEPTH 2
 #define DEBUG_ITER 3
+#define DEBUG_LOD 4
+#define LOD_MIP_COLOR_COUNT 16
+
+static u32 encode_lod_mip(i32 mip) {
+  static const u32 colors[LOD_MIP_COLOR_COUNT] = {
+      0xe6194b, 0x3cb44b, 0xffe119, 0x4363d8,
+      0xf58231, 0x911eb4, 0x46f0f0, 0xf032e6,
+      0xbcf60c, 0xfabebe, 0x008080, 0xe6beff,
+      0x9a6324, 0xfffac8, 0x800000, 0xaaffc3};
+  i32 index = mip < 0 ? 0 : mip;
+  if (index >= LOD_MIP_COLOR_COUNT) {
+    index = LOD_MIP_COLOR_COUNT - 1;
+  }
+  return pack_named((colors[index] >> 16) & 255u,
+                    (colors[index] >> 8) & 255u,
+                    colors[index] & 255u);
+}
 #define SAMPLE_N_MAX 8192
 static i32 g_sample_n[SAMPLE_N_MAX];
 
@@ -1428,6 +1445,8 @@ WASM_EXPORT void classic_columns(
               plot_color = encode_unit(far_clip > 0.0 ? z / far_clip : 0.0);
             } else if (debug == DEBUG_ITER) {
               plot_color = encode_iter(sample_ok ? g_sample_n[local_i] : 0);
+            } else if (debug == DEBUG_LOD) {
+              plot_color = encode_lod_mip(mip);
             }
           } else {
             plot_color = filter_now
@@ -1505,6 +1524,7 @@ static u32 fs_terrain_color(
     f64 z,
     f64 far_clip,
     i32 debug,
+    i32 mip,
     u32 h_byte,
     i32 iter,
     i32 subdiv) {
@@ -1518,6 +1538,9 @@ static u32 fs_terrain_color(
     }
     if (debug == DEBUG_ITER) {
       return encode_iter(iter);
+    }
+    if (debug == DEBUG_LOD) {
+      return encode_lod_mip(mip);
     }
     return T_WHITE;
   }
@@ -1863,7 +1886,7 @@ WASM_EXPORT void scanline_columns(
           plot = fs_terrain_color(
               lod_color_map, wx * lod_scale, wy * lod_scale, wx, wy, nn_off,
               use_fine ? 1 : 0, do_filter, wrap, lod_w_mask, lod_h_mask, lod_shift,
-              t, far_clip, debug, h_byte,
+              t, far_clip, debug, mip, h_byte,
               sample_ok ? g_sample_n[local_i] : guard,
               fine_lerp ? near_subdiv_at(t) : 0);
           pixels[(sy * stride + local_i) | 0] = plot;

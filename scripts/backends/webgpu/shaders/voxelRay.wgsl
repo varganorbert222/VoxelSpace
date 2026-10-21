@@ -571,7 +571,12 @@ fn voxelWrite(
 ) {
   let debugView = flagDebugView(frame.mapFlags.w);
   if (debugView != DEBUG_COLOR) {
-    let packed = vec4<u32>(encodeCamera(debugView, dist, hByte, iter, dist, farClip), 0u, 0u, 0u);
+    var debugColor = encodeCamera(debugView, dist, hByte, iter, dist, farClip);
+    if (debugView == DEBUG_LOD && dist > 0.0) {
+      let lastMip = max(i32(frame.mipShiftCount.w) - 1, 0);
+      debugColor = encodeLodMip(bandMipAt(dist, lastMip));
+    }
+    let packed = vec4<u32>(debugColor, 0u, 0u, 0u);
     textureStore(outTex, p, packed);
     if (pairWidth > 1) {
       textureStore(outTex, p + vec2i(1, 0), packed);

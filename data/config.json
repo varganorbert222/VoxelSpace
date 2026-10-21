@@ -57,7 +57,7 @@
       "default": "js"
     },
     "debugViews": {
-      "values": ["color", "height", "depth", "iterations"],
+      "values": ["color", "height", "depth", "iterations", "lod"],
       "default": "color"
     },
     "hudChrome": {

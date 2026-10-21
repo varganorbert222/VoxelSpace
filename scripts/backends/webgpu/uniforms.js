@@ -68,7 +68,7 @@ export function packFrame(packer, p) {
   if (p.screenClear) {
     flags |= FLAG_SCREEN_CLEAR;
   }
-  flags |= ((p.debugViewId | 0) & 3) << FLAG_DEBUG_SHIFT;
+  flags |= ((p.debugViewId | 0) & 7) << FLAG_DEBUG_SHIFT;
   u[31] = flags;
   const sky = unpackToVec4(p.skyColor);
   f[32] = sky[0];

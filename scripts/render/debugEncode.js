@@ -6,12 +6,36 @@ import {
   DEBUG_VIEW_COLOR,
   DEBUG_VIEW_DEPTH,
   DEBUG_VIEW_HEIGHT,
+  DEBUG_VIEW_LOD,
   ITER_VIS_MAX,
   isDebugColor,
 } from "../constants/debugView.js";
 
 function phys(r, g, b) {
   return Color.makeColor(b, g, r, CHANNEL_MAX);
+}
+
+export const LOD_MIP_COLORS = Object.freeze([
+  "#e6194b", "#3cb44b", "#ffe119", "#4363d8",
+  "#f58231", "#911eb4", "#46f0f0", "#f032e6",
+  "#bcf60c", "#fabebe", "#008080", "#e6beff",
+  "#9a6324", "#fffac8", "#800000", "#aaffc3",
+]);
+
+export function encodeLodMip(mip) {
+  const index = Math.max(0, Math.min(LOD_MIP_COLORS.length - 1, mip | 0));
+  return Color.hexToColor(LOD_MIP_COLORS[index]);
+}
+
+export function lodMipLegendGradient() {
+  const stops = [];
+  for (let i = 0; i < LOD_MIP_COLORS.length; i = (i + 1) | 0) {
+    stops.push(
+      LOD_MIP_COLORS[i] + " " + (i / LOD_MIP_COLORS.length) * 100 + "%",
+      LOD_MIP_COLORS[i] + " " + ((i + 1) / LOD_MIP_COLORS.length) * 100 + "%"
+    );
+  }
+  return "linear-gradient(to right, " + stops.join(", ") + ")";
 }
 
 const ITER_STOPS = Object.freeze([
@@ -81,6 +105,9 @@ export function encodeCameraSample(debugView, dist, heightByte, iter, viewZ, far
     }
     const t = farClip > 0 ? viewZ / farClip : 0;
     return encodeUnit(t);
+  }
+  if (debugView === DEBUG_VIEW_LOD) {
+    return Color.BLACK;
   }
   return encodeIter(iter);
 }

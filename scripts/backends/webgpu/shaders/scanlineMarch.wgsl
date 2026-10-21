@@ -102,6 +102,9 @@ fn scanlineShade(
       if (farClip > 0.0) { depthT = z / farClip; }
       return encodeUnit(depthT);
     }
+    if (debugView == DEBUG_LOD) {
+      return encodeLodMip(mip);
+    }
     return encodeIter(sampleN);
   }
   let plot = detailColor(

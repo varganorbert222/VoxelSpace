@@ -70,7 +70,7 @@ fn flagRepeat(flags: u32) -> bool {
 }
 
 fn flagDebugView(flags: u32) -> u32 {
-  return (flags >> 8u) & 3u;
+  return (flags >> 8u) & 7u;
 }
 
 fn flagShowDetails(flags: u32) -> bool {
@@ -448,7 +448,29 @@ const DEBUG_COLOR: u32 = 0u;
 const DEBUG_HEIGHT: u32 = 1u;
 const DEBUG_DEPTH: u32 = 2u;
 const DEBUG_ITER: u32 = 3u;
+const DEBUG_LOD: u32 = 4u;
 const ITER_VIS_MAX: f32 = 256.0;
+
+fn encodeLodMip(mip: i32) -> u32 {
+  switch (clamp(mip, 0, 15)) {
+    case 0: { return packRgba(vec4f(0.902, 0.098, 0.294, 1.0)); }
+    case 1: { return packRgba(vec4f(0.235, 0.706, 0.294, 1.0)); }
+    case 2: { return packRgba(vec4f(1.0, 0.882, 0.098, 1.0)); }
+    case 3: { return packRgba(vec4f(0.263, 0.388, 0.847, 1.0)); }
+    case 4: { return packRgba(vec4f(0.961, 0.510, 0.192, 1.0)); }
+    case 5: { return packRgba(vec4f(0.569, 0.118, 0.706, 1.0)); }
+    case 6: { return packRgba(vec4f(0.275, 0.941, 0.941, 1.0)); }
+    case 7: { return packRgba(vec4f(0.941, 0.196, 0.902, 1.0)); }
+    case 8: { return packRgba(vec4f(0.737, 0.965, 0.047, 1.0)); }
+    case 9: { return packRgba(vec4f(0.980, 0.745, 0.745, 1.0)); }
+    case 10: { return packRgba(vec4f(0.0, 0.502, 0.502, 1.0)); }
+    case 11: { return packRgba(vec4f(0.902, 0.745, 1.0, 1.0)); }
+    case 12: { return packRgba(vec4f(0.604, 0.388, 0.141, 1.0)); }
+    case 13: { return packRgba(vec4f(1.0, 0.980, 0.784, 1.0)); }
+    case 14: { return packRgba(vec4f(0.502, 0.0, 0.0, 1.0)); }
+    default: { return packRgba(vec4f(0.667, 1.0, 0.765, 1.0)); }
+  }
+}
 
 fn encodeUnit(t: f32) -> u32 {
   if (!(t > 0.0)) {
@@ -505,6 +527,9 @@ fn encodeCamera(debugView: u32, dist: f32, heightByte: u32, iter: u32, viewZ: f3
       t = viewZ / farClip;
     }
     return encodeUnit(t);
+  }
+  if (debugView == DEBUG_LOD) {
+    return packRgba(vec4f(0.0, 0.0, 0.0, 1.0));
   }
   return encodeIter(iter);
 }

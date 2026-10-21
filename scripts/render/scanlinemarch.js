@@ -15,9 +15,10 @@ import {
   DEBUG_VIEW_DEPTH,
   DEBUG_VIEW_HEIGHT,
   DEBUG_VIEW_ITERATIONS,
+  DEBUG_VIEW_LOD,
   isDebugColor,
 } from "../constants/debugView.js";
-import { encodeHeight, encodeIter, encodeUnit } from "./debugEncode.js";
+import { encodeHeight, encodeIter, encodeLodMip, encodeUnit } from "./debugEncode.js";
 import {
   LOD0_REFINE_SWITCH_COUNT,
   TERRAIN_MIP_MAX_COUNT,
@@ -351,6 +352,9 @@ export function renderScanlineColumns({
       }
       if (countIter) {
         return encodeIter(sampleN[localI]);
+      }
+      if (debugView === DEBUG_VIEW_LOD) {
+        return encodeLodMip(mipLevelAtDistance(z, switches, lastMip));
       }
       return Color.WHITE;
     }
